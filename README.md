@@ -4,30 +4,22 @@
 
 ![arch](arch.png)
 
-## 2. roadmap
+## 2. Roadmap
 
-* Media streaming support
+* Media stream support
+  * Peer-to-Browser (webrtc)
+  * Peer-to-Peer (rtp)
 
-  * Peer to browser by webrtc
-
-  * Peer to peer by rtp
-
-* Singal exchanging support
-
-  * Singal protocol (room/stream/relay)
-
-  * Exchange sdp/candidate/other
+* Singal exchange support
+  * Singal protocol (room/stream/relay )
+  * Exchange sdp/candidate/other (edge)
 
 * Autoscaling router
-
-  * Browser to peer
-
-  * Peer to peer
+  * Keep-Alive/Load-Upload (etcd)
+  * Browser-to-peer-to-Browser (edge)
+  * Peer-to-Peer (relay)
 
 * Admin system
-
   * Database operation
-
   * Node monitor/manager
-
   * Router manager
