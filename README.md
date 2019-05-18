@@ -1,25 +1,45 @@
 # SFU
 
-## 1. Architecture
+## Architecture
 
 ![arch](arch.png)
 
-## 2. Roadmap
+## Contributing
+* [adwpc](https://github.com/adwpc) - *pion sfu server*
+* [cloudwebrtc](https://github.com/cloudwebrtc) - *pion sfu sdk*
 
-* Media stream support
-  * Peer-to-Browser (webrtc) *[WIP-adam]*
-  * Peer-to-Peer (rtp)
+## Roadmap
+[Projects](https://github.com/pion/sfu/projects/1)
 
-* Singal exchange support
-  * Singal protocol (room/stream/relay) *[WIP-adam]*
-  * Exchange sdp/candidate/other (edge) *[WIP-adam]*
+## How to use
+### 1. install signal server and make key.pem|cert.pem
+```
+cd signal-server
+./install.sh
+```
+### 2. install web app
+```
+cd pion-sfu-sdk
+npm i
+```
+### 3. start signal server
+```
+cd signal-server
+./start.sh
+```
+### 4. start web app
+```
+cd pion-sfu-sdk
+npm start
+```
+### 5. start sfu
+```
+go build
+./sfu
+```
+### 6. let's chat
+Open this url with chrome
 
-* Autoscaling router
-  * Keep-Alive/Load-Upload (etcd) *[WIP-adam]*
-  * Browser-to-peer-to-Browser (edge) *[WIP-adam]*
-  * Peer-to-Peer (relay)
-
-* Admin system
-  * Database operation
-  * Node monitor/manager
-  * Router manager
+```
+https://yourip:3666
+```

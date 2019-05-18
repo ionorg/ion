@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pion SFU-WS webapp</title>
+    <script src="dist/pion-sfu.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        var sfu;
+        window.onload = () => {
+            sfu = new SFU('signal:room1');
+            sfu.connect();
+        }
+
+        window.onunload = () => {
+            sfu.leave();
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+[mode]
+standalone = true
+
+[log]
+level = "info"
+
+[etcds]
+servers = ["localhost:2379"]
+
+[centrifugo]
+url = "wss://localhost:8000/connection/websocket"
+key = "secret"
+certpem = "conf/cert.pem"
+keypem = "conf/key.pem"
+expire = 0
+
+[sfu]
+#ices = ["stun:stun.stunprotocol.org:3478"]
+

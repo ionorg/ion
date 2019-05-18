@@ -1,0 +1,34 @@
+{
+  "name": "pion-webapp-sfu-ws",
+  "version": "0.0.1",
+  "description": "A webapp for pion sfu-ws",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack -p",
+    "start": "webpack-dev-server --host 0.0.0.0 --port 3666 --https --key ../conf/key.pem --cert ../conf/cert.pem"
+  },
+  "author": "pion",
+  "license": "MIT",
+  "dependencies": {
+    "centrifuge": "^2.1.3",
+    "events": "^3.0.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-plugin-add-module-exports": "^1.0.2",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "babelify": "^8.0.0",
+    "webpack": "^3.8.1",
+    "webpack-dev-server": "^2.9.4"
+  },
+  "keywords": [
+    "pion",
+    "sfu",
+    "webrtc"
+  ]
+}

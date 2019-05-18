@@ -1,0 +1,22 @@
+{
+    "secret": "secret",
+    "admin_password": "password",
+    "admin_secret": "secret",
+    "publish": true,
+    "debug": true,
+    "namespaces": [{
+        "name": "signal",
+        "publish": true,
+        "debug": true,
+        "history_size": 0,
+        "history_lifetime": 0,
+        "history_recover": true
+    }, {
+        "name": "chat",
+        "publish": true,
+        "debug": true,
+        "history_size": 100,
+        "history_lifetime": 600,
+        "history_recover": true
+    }]
+}
