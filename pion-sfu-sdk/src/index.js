@@ -5,7 +5,7 @@ import Player from './Player'
 
 export default class SFU  extends EventEmitter {
 
-    onRoomConnect () {
+    onRoomConnect = () => {
         console.log('SFU.onRoomConnect')
         this.players = new Map();
         this.join(true)
