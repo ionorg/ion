@@ -1,8 +1,0 @@
-{
-    "extends": "standard",
-        "rules": {
-            "no-cond-assign": ["error", "except-parens"],
-            "no-underscore-dangle": "off",
-            "indent": ["error", 4],
-        }
-}
