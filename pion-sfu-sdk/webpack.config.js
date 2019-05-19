@@ -1,42 +1,29 @@
-const path = require('path');
 const webpack = require('webpack');
 
-const root = {
-  src: path.join(__dirname, 'src/index.js'),
-  dest: path.join(__dirname),
-};
-
 module.exports = {
-  devServer: {
-    historyApiFallback: true,
-    noInfo: false,
-    port: 3000,
-  },
-  devtool: 'source-map',//eval | source-map
-  entry: {
-    main: root.src,
-  },
-  output: {
-    path: root.dest,
-    filename: 'dist/pion-sfu.js',
-  },
-  resolve: {
-    extensions: ['.js', '.jsx'],
-  },
+  entry: './src/index.js',
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
-        use: [
-          {
-            loader: 'babel-loader',
-            options: {
-              cacheDirectory: true,
-            },
-          },
-        ],
-      },
-    ],
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: ['babel-loader']
+      }
+    ]
   },
-  plugins: [],
+  resolve: {
+    extensions: ['*', '.js', '.jsx']
+  },
+  output: {
+    path: __dirname + '/dist',
+    publicPath: '/',
+    filename: 'pion-sfu.js'
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin()
+  ],
+  devServer: {
+    contentBase: './dist',
+    hot: true
+  }
 };

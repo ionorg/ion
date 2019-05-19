@@ -4,27 +4,24 @@
   "description": "A webapp for pion sfu-ws",
   "main": "src/index.js",
   "scripts": {
-    "build": "webpack -p",
-    "start": "webpack-dev-server --host 0.0.0.0 --port 3666 --https --key ../conf/key.pem --cert ../conf/cert.pem"
+    "build": "webpack --mode=production --config webpack.config.js",
+    "start": "webpack-dev-server --config ./webpack.config.js --mode development --open --https --cert ../conf/cert.pem --key  ../conf/key.pem"
   },
   "author": "pion",
   "license": "MIT",
-  "dependencies": {
-    "centrifuge": "^2.1.3",
-    "events": "^3.0.0"
-  },
   "devDependencies": {
-    "babel-core": "^6.26.3",
-    "babel-loader": "^7.1.5",
-    "babel-plugin-add-module-exports": "^1.0.2",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-react": "^6.24.1",
-    "babel-preset-stage-0": "^6.24.1",
-    "babelify": "^8.0.0",
-    "webpack": "^3.8.1",
-    "webpack-dev-server": "^2.9.4"
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-proposal-class-properties": "^7.4.4",
+    "@babel/preset-env": "^7.4.3",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.5",
+    "webpack": "^4.30.0",
+    "webpack-cli": "^3.3.1",
+    "webpack-dev-server": "^3.3.1"
+  },
+  "dependencies": {
+    "events": "^3.0.0",
+    "centrifuge": "^2.1.3"
   },
   "keywords": [
     "pion",
