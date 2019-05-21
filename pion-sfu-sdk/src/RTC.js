@@ -8,75 +8,56 @@ const ices = 'stun:stun.stunprotocol.org:3478'
 export default class RTC extends EventEmitter {
     constructor() {
         super()
-        this.sendPC = null;
+        this.sender = {};
         this.receivers = new Map();
     }
 
-    createSender(pubid) {
-        this.sendPC = new RTCPeerConnection({ iceServers: [{ urls: ices }] })
-        this.sendPC.oniceconnectionstatechange = e => {
-            // console.log('sendPC.oniceconnectionstatechange' + e)
+    async createSender(pubid) {
+        let sender = {
+            offerSent: false,
+            pc: null,
         }
-        this.sendPC.onicecandidate = e => {
-            if (!this.senderOffer) {
-                var offer = this.sendPC.localDescription;
-                console.log('Send offer => ' + offer.sdp)
-                this.emit('offer', offer, 'sender', pubid)
-                this.senderOffer = true
-            }
-        }
-        this.sendPC.onnegotiationneeded = e => {
-        }
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-            this.sendPC.addStream(stream)
-            this.sendPC.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false })
-                .then(desc => {
-                    this.sendPC.setLocalDescription(desc)
-                })
-            this.emit('localstream', pubid, stream)
-        })
+        sender.pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] })
+        let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        sender.pc.addStream(stream);
+        this.emit('localstream', pubid, stream)
+        this.sender = sender;
+        return sender;
     }
 
     createRecver (pubid) {
         try {
-            var recvPC = new RTCPeerConnection({ iceServers: [{ urls: ices }] })
-            recvPC.onicecandidate = e => {
-                console.log('recvPC.onicecandidate => ' + e.candidate)
+            var pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] })
+            pc.onicecandidate = e => {
+                console.log('receiver.pc.onicecandidate => ' + e.candidate)
             }
 
-            recvPC.addTransceiver('audio', { 'direction': 'recvonly' })
-            recvPC.addTransceiver('video', { 'direction': 'recvonly' })
+            pc.addTransceiver('audio', { 'direction': 'recvonly' })
+            pc.addTransceiver('video', { 'direction': 'recvonly' })
 
-            recvPC.createOffer()
-                .then(desc => {
-                    recvPC.setLocalDescription(desc)
-                    console.log('createOffer(' + pubid + ') sdp => ' + desc.sdp)
-                    this.emit('offer', recvPC.localDescription, 'recver', pubid);
-                })
-
-            recvPC.onaddstream = (e) => {
+            pc.onaddstream = (e) => {
                 var stream = e.stream;
-                console.log('recvPC.onaddstream', stream.id)
+                console.log('receiver.pc.onaddstream', stream.id)
                 var receiver = this.receivers.get(pubid)
                 receiver.streams.push(stream)
                 this.emit('addstream', pubid, stream)
             }
 
-            recvPC.onremovestream = (e) => {
+            pc.onremovestream = (e) => {
                 var stream = e.stream
-                console.log('recvPC.onremovestream', stream.id)
+                console.log('receiver.pc.onremovestream', stream.id)
                 this.emit('removestream', pubid, stream)
             }
-
             var receiver = {
-                pc: recvPC,
+                pc: pc,
                 id: pubid,
                 streams: []
             }
-
             this.receivers.set(pubid,receiver);
+            return receiver;
         } catch (e) {
-            console.log(e)
+            console.log(e);
+            throw e;
         }
     }
 
@@ -92,7 +73,7 @@ export default class RTC extends EventEmitter {
     }
 
     getSender () {
-        return this.sendPC
+        return this.sender
     }
 
     getRecver (pubid) {

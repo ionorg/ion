@@ -2,181 +2,112 @@
 // eslint-disable-next-line
 //
 import { EventEmitter } from 'events';
-import Signal from './Signal'
+import protooClient from 'protoo-client';
+import randomString from 'random-string';
 
-var url = 'wss://' + window.location.host + ':8000/connection/websocket'
-if (window.location.host.search(':') !== -1) {
-    url = 'wss://' + window.location.host.split(':')[0] + ':8000/connection/websocket'
-}
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyb29tMSIsImV4cCI6MTU4NjM0NTczNn0.p0NtUrooCBPZqpszXczoc7G8EQpCCSWmz-QstbxWeug'
+const protooPort = 8443;
 
 class Room extends EventEmitter {
-    constructor(roomid) {
+
+    constructor(roomId) {
         super()
-        this.roomID = roomid
-        this.signal = new Signal({
-            url: url,
-            token: token,
-            roomid: roomid
-        })
-        this.signal.on('connect', this._onconnect)
-        this.signal.on('disconnect', () => this.emit('onRoomDisconnect'))
-        this.reqID = 1
+        this.roomID = roomId
+        this.peerId = randomString({ length: 8 }).toLowerCase();
+        this.url = this.getProtooUrl(roomId, this.peerId);
+        let transport = new protooClient.WebSocketTransport(this.url);
+        // protoo-client Peer instance.
+        this._protoo = new protooClient.Peer(transport);
+    
+        this._protoo.on('open', () => {
+            console.log('Peer "open" event');
+            this.emit('onRoomConnect');
+        });
+
+        this._protoo.on('disconnected', () => {
+            console.log('Peer "disconnected" event');
+            this.emit('onRoomDisconnect');
+        });
+
+        this._protoo.on('close', () => {
+            console.log('Peer "close" event');
+            this.emit('onRoomDisconnect');
+        });
+
+        this._protoo.on('request', this._handleRequest.bind(this));
+        this._protoo.on('notification', this._handleNotification.bind(this))
     }
 
-    /*
-        {
-            "result": {
-                "channel": "signal:room1",
-                "data": {
-                    "data": {
-                        "req": "leave",
-                        "id": 4,
-                        "msg": {
-                            "client": "1b5731a3-2c3c-4726-9b7b-11ea94d63508"
-                        }
-                    },
-                    "info": {
-                        "user": "room1",
-                        "client": "1b5731a3-2c3c-4726-9b7b-11ea94d63508"
-                    }
-                }
-            }
-        }
-    */
+    getProtooUrl(roomId, peerId)
+    {
+        const hostname = window.location.hostname;
+        let url = `wss://${hostname}:${protooPort}/ws?room=${roomId}&peer=${peerId}`;
+        return url;
+    }
 
-    onClientSubscribe = (msg) => {
-
-        console.log('Got message => ' + JSON.stringify(msg))
-
-        // drop self message
-        if (this.clientID === msg.info.client) {
-            // console.log('skip self message')
-            return
-        }
-
-        if (msg.data.req !== undefined) { //handle request
-            const request = msg.data.req
-
-            switch (request) {
-                case 'onPublish': {
-                    var pubid = msg.data.msg.pubid;
-                    if (pubid === this.clientID)
-                        return;
-                    console.log('Got publish from => ' + pubid)
-                    this.emit('onRtcCreateRecver', pubid)
-                }
-                break;
-            case 'leave': {
-                var pubid = msg.data.msg.client
-                console.log('[' + pubid + ']  => leave !!!!')
-                this.emit('onRtcLeaveRecver', pubid)
-            }
-            break;
-            }
-
-        } else if (msg.data.resp != undefined) { //handle response
-            const response = msg.data.resp;
-            if (response === 'success') {
-                if (msg.data.msg.type !== undefined &&
-                    msg.data.msg.type === 'sender' &&
-                    this.senderOfferReqID === msg.data.id
-                ) {
-                    console.log('Room.onRtcSetSenderRemoteSDP ' + this.senderOfferReqID.toString())
-                    this.emit('onRtcSetSenderRemoteSDP', msg.data.msg.jsep)
-                } else if (msg.data.msg.pubid !== undefined && msg.data.msg.pubid !== this.clientID) {
-                    console.log('Room.onRtcSetRecverRemoteSDP(' + msg.data.msg.pubid + ')')
-                    this.emit('onRtcSetRecverRemoteSDP', msg.data.msg.pubid, msg.data.msg.jsep)
-                }
-            }
+    async join(sender) {
+        try{
+            let data = await this._protoo.request('join',
+            {
+                 'client': this.clientID,
+                 'type': sender? 'sender' : 'recver'
+            });
+            console.log('join success: result => ' + JSON.stringify(data));
+        }catch(error) {
+            console.log('join reject: error =>' + error);
         }
     }
 
-    _onconnect = (ctx) => {
-        this.clientID = ctx.client
-        console.log('Room.onconnect ', ctx)
-        this.signal.subscribe(this.roomID, this.onClientSubscribe)
-        this.signal.subscribe(this.clientID, this.onClientSubscribe)
-        this.emit('onRoomConnect')
+    _handleRequest(request, accept, reject) {
+        console.log('Handle request from server: [method:%s, data:%o]', request.method, request.data);
     }
 
-    connect() {
-        console.log('Room.connect')
+    _handleNotification (notification) {
+        console.log('Handle notification from server: [method:%s, data:%o]', notification.method, notification.data);
+
+        switch(notification.method){
+            case 'onPublish':
+                {
+                    let pubid = notification.data.pubid;
+                    console.log('Got publish from => ' + pubid);
+                    this.emit('onRtcCreateRecver', pubid);
+                    break;
+                }
+                case 'onUnPublish':
+                {
+                    let pubid = notification.data.pubid;
+                    console.log('[' + pubid + ']  => leave !!!!');
+                    this.emit('onRtcLeaveRecver', pubid);
+                    break;
+                }
+        }
+    }
+
+    async publish(offer, pubid){
         try {
-            this.signal.connect()
-        } catch (e) {
-            console.log('Room.connect fail')
+            let answer = await this._protoo.request('publish',{jsep: offer, pubid});
+            console.log('publish success => ' + JSON.stringify(answer));
+            return answer;
+        }catch(error) {
+            throw error;
         }
     }
 
-    disconnect() {
-        this.signal.disconnect()
+    async subscribe(offer, pubid){
+        try {
+            let answer = await this._protoo.request('subscribe',{jsep: offer, pubid});
+            console.log('subscribe success => ' + JSON.stringify(answer));
+            return answer;
+        }catch(error) {
+            throw error;
+        }
     }
 
-    join(sender) {
-        let joinMsg
-        if (sender) {
-            joinMsg = {
-                'req': 'join',
-                'id': this.reqID++,
-                'msg': {
-                    'client': this.clientID,
-                    'type': 'sender'
-                }
-            }
-        } else {
-            joinMsg = {
-                'req': 'join',
-                'id': this.reqID++,
-                'msg': {
-                    'client': this.clientID,
-                    'type': 'recver'
-                }
-            }
-        }
-        this.signal.broadcast(joinMsg)
+    close() {
+        this._protoo.close();
     }
 
     leave() {
-        var leaveMsg = {
-            'req': 'leave',
-            'id': this.reqID++,
-            'msg': {
-                'client': this.clientID
-            }
-        }
-        this.signal.broadcast(leaveMsg)
-    }
-
-    offer(sdp, offertype, pubid) {
-        if (offertype === 'sender') {
-            this.senderOfferReqID = this.reqID
-            console.log('Room.offer this.senderOfferReqID=', this.senderOfferReqID)
-            var pubMsg = {
-                'req': 'publish',
-                'id': this.reqID,
-                'msg': {
-                    'type': offertype,
-                    'jsep': sdp
-                }
-            }
-            this.signal.publish(pubMsg)
-        } else {
-            //this.recverOfferReqID = this.reqID
-            //console.log('Room.offer this.recverOfferReqID=', this.recverOfferReqID)
-            console.log('Room.offer pubid=', pubid)
-            var subMsg = {
-                'req': 'subscribe',
-                'id': this.reqID,
-                'msg': {
-                    'type': 'recver',
-                    'pubid': pubid,
-                    'jsep': sdp
-                }
-            }
-            this.signal.publish(subMsg)
-        }
-        this.reqID++
+        this._protoo.request('leave',{'client': this.clientID});
     }
 }
 

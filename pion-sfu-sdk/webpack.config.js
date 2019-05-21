@@ -2,6 +2,7 @@ const webpack = require('webpack');
 
 module.exports = {
   entry: './src/index.js',
+  devtool: 'source-map',//eval | source-map
   module: {
     rules: [
       {

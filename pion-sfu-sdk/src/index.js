@@ -1,3 +1,6 @@
+/* global */
+// eslint-disable-next-line
+//
 import { EventEmitter } from 'events';
 import Room from './Room'
 import RTC from './RTC'
@@ -6,11 +9,11 @@ import Player from './Player'
 export default class SFU  extends EventEmitter {
 
     onRoomConnect = () => {
-        console.log('SFU.onRoomConnect')
-        this.players = new Map();
-        this.join(true)
-        this.rtc = new RTC()
+        console.log('onRoomConnect')
+        this.join(true);
 
+        this.players = new Map();
+        this.rtc = new RTC();
 
         this.rtc.on('localstream',(id, stream) => {
             var player = new Player({ id, stream });
@@ -34,34 +37,49 @@ export default class SFU  extends EventEmitter {
         })
 
         this.rtc.on('offer',(sdp, type , pubid) => {
-            this.room.offer(sdp, type, pubid);
+            this.room.publish(sdp, type, pubid);
         });
 
-        this.rtc.createSender(1)
+        this.onCreateSender(this.room.peerId);
     }
 
     onRoomDisconnect = () => {
         console.log('onRoomDisconnect')
     }
 
-    onRtcCreateRecver = (pubid) => {
-        this.rtc.createRecver(pubid)
+    async onCreateSender(pubid){
+        let sender = await this.rtc.createSender();
+        sender.pc.onicecandidate = async (e) => {
+            if (!sender.senderOffer) {
+                var offer = sender.pc.localDescription;
+                console.log('Send offer sdp => ' + offer.sdp);
+                sender.senderOffer = true
+
+                let answer = await this.room.publish(offer,pubid);
+                console.log('Got answer(' + pubid + ') sdp => ' + answer.sdp);
+                sender.pc.setRemoteDescription(answer);
+            }
+        }
+        let desc = await sender.pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false })
+        sender.pc.setLocalDescription(desc);
+    }
+
+    async onRtcCreateRecver(pubid) {
+        try {
+            let receiver = this.rtc.createRecver(pubid);
+            let offer = await receiver.pc.createOffer();
+            receiver.pc.setLocalDescription(offer);
+            console.log('Send offer(' + pubid + ') sdp => ' + offer.sdp);
+            let answer = await this.room.subscribe(offer, pubid);
+            console.log('Got answer(' + pubid + ') sdp => ' + answer.sdp);
+            receiver.pc.setRemoteDescription(answer);
+        }catch(error){
+            console.log('onRtcCreateRecver error => ' + error);
+        }
     }
 
     onRtcLeaveRecver = (pubid) => {
         this.rtc.closeRecver(pubid)
-    }
-
-    onRtcSetSenderRemoteSDP = (sdp) => {
-        console.log('onRtcSetSenderRemoteSDP====', sdp)
-        this.rtc.getSender().setRemoteDescription(sdp)
-    }
-
-    onRtcSetRecverRemoteSDP = (pubid, sdp) => {
-        console.log('onRtcSetRecverRemoteSDP(' + pubid + ')==== \n ' + sdp )
-        var receiver = this.rtc.getRecver(pubid);
-        if(receiver)
-            receiver.pc.setRemoteDescription(sdp)
     }
 
     constructor (roomId) {
@@ -74,13 +92,11 @@ export default class SFU  extends EventEmitter {
         this.room.on('onRoomDisconnect',this.onRoomDisconnect);
         this.room.on('onRtcCreateRecver', this.onRtcCreateRecver)
         this.room.on('onRtcLeaveRecver', this.onRtcLeaveRecver)
-        this.room.on('onRtcSetSenderRemoteSDP',this.onRtcSetSenderRemoteSDP)
-        this.room.on('onRtcSetRecverRemoteSDP', this.onRtcSetRecverRemoteSDP)
     }
 
-    connect () {
-        console.log('SFU.connect')
-        this.room.connect()
+    close () {
+        console.log('Force close.')
+        this.room.close()
     }
 
     join (sender) {

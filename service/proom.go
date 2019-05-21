@@ -72,7 +72,6 @@ func createRoom(id string) *PRoom {
 }
 
 func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.Request) {
-
 	vars := request.URL.Query()
 	roomId, _ := vars["room"]
 	if roomId == nil || len(roomId) < 1 {
@@ -82,6 +81,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 	if peerId == nil || len(peerId) < 1 {
 		return
 	}
+
+	log.Infof("handleNewWebSocket room => %s, peer => %s", roomId, peerId)
 
 	room := getRoom(roomId[0])
 	if room == nil {
@@ -140,7 +141,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		method := notification["method"].(string)
 		data := notification["data"].(map[string]interface{})
 
-		//Forward notification to testRoom.
+		//Forward notification to the room.
 		room.Notify(peer, method, data)
 	}
 
