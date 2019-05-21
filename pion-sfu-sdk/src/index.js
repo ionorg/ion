@@ -36,10 +36,6 @@ export default class SFU  extends EventEmitter {
             }
         })
 
-        this.rtc.on('offer',(sdp, type , pubid) => {
-            this.room.publish(sdp, type, pubid);
-        });
-
         this.onCreateSender(this.room.peerId);
     }
 
