@@ -128,7 +128,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 				reject(-1, "")
 			}
 		case MethodSubscribe:
-			resp := room.processSubscribe(peerId[0], request)
+			resp := room.processSubscribe(peerId[0], request["data"].(map[string]interface{}))
 			if resp != "" {
 				accept(jsonEncode(resp))
 			} else {

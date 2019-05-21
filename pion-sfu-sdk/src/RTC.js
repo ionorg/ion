@@ -27,6 +27,13 @@ export default class RTC extends EventEmitter {
 
     createRecver (pubid) {
         try {
+            let receiver = {
+                offerSent: false,
+                pc: null,
+                id: pubid,
+                streams: []
+            }
+
             var pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] })
             pc.onicecandidate = e => {
                 console.log('receiver.pc.onicecandidate => ' + e.candidate)
@@ -48,11 +55,7 @@ export default class RTC extends EventEmitter {
                 console.log('receiver.pc.onremovestream', stream.id)
                 this.emit('removestream', pubid, stream)
             }
-            var receiver = {
-                pc: pc,
-                id: pubid,
-                streams: []
-            }
+            receiver.pc = pc;
             this.receivers.set(pubid,receiver);
             return receiver;
         } catch (e) {
