@@ -17,7 +17,8 @@ func init() {
 }
 
 type Mode struct {
-	Standalone bool `mapstructure:"standalone"`
+	Standalone bool   `mapstructure:"standalone"`
+	Signal     string `mapstructure:"signal"`
 }
 
 type Log struct {
@@ -36,6 +37,13 @@ type Centrifugo struct {
 	Expire  int64  `mapstructure:"expire"`
 }
 
+type Protoo struct {
+	Host    string `mapstructure:"host"`
+	Port    string `mapstructure:"port"`
+	CertPem string `mapstructure:"certpem"`
+	KeyPem  string `mapstructure:"keypem"`
+}
+
 type SFU struct {
 	Ices []string `mapstructure:"ices"`
 }
@@ -45,6 +53,7 @@ type Config struct {
 	Log        Log        `mapstructure:"log"`
 	Etcd       Etcd       `mapstructure:"etcds"`
 	Centrifugo Centrifugo `mapstructure:"centrifugo"`
+	Protoo     Protoo     `mapstructure:"protoo"`
 	Sfu        SFU        `mapstructure:"sfu"`
 	CfgFile    string
 	err        error
