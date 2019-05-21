@@ -105,8 +105,10 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		case MethodLogin:
 			accept(jsonEncode(`{"name":"xxxx","status":"login"}`))
 		case MethodJoin:
+			room.processJoin(peerId[0], request["data"].(map[string]interface{}))
 			accept(jsonEncode(`{}`))
 		case MethodLeave:
+			room.processLeave(peerId[0], request["data"].(map[string]interface{}))
 			accept(jsonEncode(`{}`))
 			//broadcast onUnpublish
 			onUnpublish := make(map[string]interface{})
@@ -187,18 +189,12 @@ func NewPRoom(id string) *PRoom {
 
 func (r *PRoom) GetWebRTCPeer(id string, sender bool) *media.WebRTCPeer {
 	if sender {
-		r.pubPeerLock.Lock()
-		defer r.pubPeerLock.Unlock()
-		if r.pubPeers[id] == nil {
-			r.AddWebRTCPeer(id, sender)
-		}
+		r.pubPeerLock.RLock()
+		defer r.pubPeerLock.RUnlock()
 		return r.pubPeers[id]
 	} else {
-		r.subPeerLock.Lock()
-		defer r.subPeerLock.Unlock()
-		if r.subPeers[id] == nil {
-			r.AddWebRTCPeer(id, sender)
-		}
+		r.subPeerLock.RLock()
+		defer r.subPeerLock.RUnlock()
 		return r.subPeers[id]
 	}
 	return nil
@@ -290,6 +286,10 @@ func (r *PRoom) Close() {
 
 func (r *PRoom) processJoin(client string, req map[string]interface{}) {
 	//a new one joined room, send onPublish to him
+	if req == nil || req["type"] == nil {
+		log.Errorf(`invalid join protocol`)
+		return
+	}
 	if req["type"].(string) == "sender" {
 		r.AddWebRTCPeer(client, true)
 	} else if req["type"].(string) == "recver" {
@@ -298,9 +298,9 @@ func (r *PRoom) processJoin(client string, req map[string]interface{}) {
 
 }
 
-func (r *PRoom) processLeave(req ReqMsg) {
-	r.DelWebRTCPeer(req.client, true)
-	r.DelWebRTCPeer(req.client, false)
+func (r *PRoom) processLeave(client string, req map[string]interface{}) {
+	r.DelWebRTCPeer(client, true)
+	r.DelWebRTCPeer(client, false)
 }
 
 func (r *PRoom) processPublish(id string, req map[string]interface{}) string {
@@ -322,18 +322,21 @@ func (r *PRoom) processPublish(id string, req map[string]interface{}) string {
 		Type: webrtc.SDPTypeOffer,
 		SDP:  j["sdp"].(string),
 	}
+	log.Infof("aaaaaaaaaaaaa=%v", jsep)
 	answer, err := r.Answer(id, "", jsep, true)
 	if err != nil {
 		log.Errorf("answer err=%v\n jsep=%v", err.Error(), jsep)
 		return ""
 	}
 	log.Infof("answer===========%v", answer)
-	jsepByte, err := json.Marshal(answer)
+	resp := make(map[string]interface{})
+	resp["jsep"] = answer
+	respByte, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf(err.Error())
 		return ""
 	}
-	return string(jsepByte)
+	return string(respByte)
 }
 
 func (r *PRoom) processSubscribe(id string, req map[string]interface{}) string {

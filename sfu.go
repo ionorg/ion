@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -25,7 +26,8 @@ type ClientSDP struct {
 
 type SFU struct {
 	gslb *gslb.GSLB
-	room *service.Room
+	// room *service.Room
+	room interface{}
 }
 
 func NewSFU() (*SFU, error) {
@@ -38,8 +40,14 @@ func NewSFU() (*SFU, error) {
 		}
 		s.gslb = g
 	}
-
-	s.room = service.NewRoom(signalNameSpace + "room1")
+	if conf.Cfg.Mode.Signal == "protoo" {
+		log.Infof("new sfu protoo")
+		s.room = service.NewPRoom(signalNameSpace + "room1")
+	} else if conf.Cfg.Mode.Signal == "centrifugo" {
+		s.room = service.NewRoom(signalNameSpace + "room1")
+	} else {
+		return nil, errors.New("invalid signal type")
+	}
 
 	return s, nil
 
@@ -50,7 +58,11 @@ func (s *SFU) Close() {
 }
 
 func (s *SFU) Run() {
-	s.room.Run()
+	if conf.Cfg.Mode.Signal == "protoo" {
+		s.room.(*service.PRoom).Run()
+	} else if conf.Cfg.Mode.Signal == "centrifugo" {
+		s.room.(*service.Room).Run()
+	}
 }
 
 func main() {
