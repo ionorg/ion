@@ -80,14 +80,18 @@ export default class SFU  extends EventEmitter {
 
     constructor (roomId) {
         super()
+        this.roomId = roomId;
 
         this.room = new Room(roomId)
-
         // bind event callbaks.
         this.room.on('onRoomConnect', this.onRoomConnect)
         this.room.on('onRoomDisconnect',this.onRoomDisconnect);
         this.room.on('onRtcCreateRecver', this.onRtcCreateRecver)
         this.room.on('onRtcLeaveRecver', this.onRtcLeaveRecver)
+    }
+
+    connect() {
+        console.log('Connect to [' + this.roomId + ']')
     }
 
     close () {
