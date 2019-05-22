@@ -105,7 +105,7 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		case MethodLogin:
 			accept(jsonEncode(`{"name":"xxxx","status":"login"}`))
 		case MethodJoin:
-			room.processJoin(peerId[0], request["data"].(map[string]interface{}))
+			//room.processJoin(peerId[0], request["data"].(map[string]interface{}))
 			accept(jsonEncode(`{}`))
 		case MethodLeave:
 			room.processLeave(peerId[0], request["data"].(map[string]interface{}))
@@ -114,8 +114,8 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 			onUnpublish := make(map[string]interface{})
 			onUnpublish["pubid"] = peerId[0]
 			room.Notify(room.GetPeer(peerId[0]), MethodOnUnpublish, onUnpublish)
-
 		case MethodPublish:
+			room.AddWebRTCPeer(peerId[0], true)
 			resp := room.processPublish(peerId[0], request["data"].(map[string]interface{}))
 			if resp != "" {
 				accept(jsonEncode(resp))
@@ -124,10 +124,19 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 				onPublish["type"] = "sender"
 				onPublish["pubid"] = peerId[0]
 				room.Notify(room.GetPeer(peerId[0]), MethodOnPublish, onPublish)
+
+				peers := room.GetPeers()
+				for id, item := range peers {
+					if id != peerId[0] {
+						onPublish["pubid"] = item.ID()
+						peer.Notify(MethodOnPublish, onPublish)
+					}
+				}
 			} else {
 				reject(-1, "")
 			}
 		case MethodSubscribe:
+			room.AddWebRTCPeer(peerId[0], false)
 			resp := room.processSubscribe(peerId[0], request["data"].(map[string]interface{}))
 			if resp != "" {
 				accept(jsonEncode(resp))
@@ -363,6 +372,7 @@ func (r *PRoom) processSubscribe(id string, req map[string]interface{}) string {
 		log.Errorf(err.Error())
 		return ""
 	}
+	r.sendPLI(req["pubid"].(string))
 	return string(jsepByte)
 }
 
