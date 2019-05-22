@@ -72,7 +72,7 @@ class Room extends EventEmitter {
                     this.emit('onRtcCreateRecver', pubid);
                     break;
                 }
-                case 'onUnPublish':
+                case 'onUnpublish':
                 {
                     let pubid = notification.data.pubid;
                     console.log('[' + pubid + ']  => leave !!!!');
