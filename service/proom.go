@@ -89,69 +89,38 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 		room = createRoom(roomId[0])
 	}
 
-	// TODO room.GetPeer
 	peer := room.GetPeer(peerId[0])
 	if peer == nil {
 		peer = room.CreatePeer(peerId[0], transport)
 	}
 
 	handleRequest := func(request map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
-
 		method := request["method"]
-		log.Infof("method==========%v, request==========%v", method, request)
-
-		/*handle login and offer request*/
+		data := request["data"]
+		if method == nil || method == "" || data == nil || data == "" {
+			log.Errorf("method => %v, data => %v", method, data)
+			reject(-1, "invalid method or data")
+		}
+		msg := data.(map[string]interface{})
+		log.Infof("handleRequest method => %s, request => %v", method, request)
 		switch method {
 		case MethodLogin:
-			accept(jsonEncode(`{"name":"xxxx","status":"login"}`))
+			room.processLogin(peerId[0], msg, accept, reject)
 		case MethodJoin:
-			//room.processJoin(peerId[0], request["data"].(map[string]interface{}))
-			accept(jsonEncode(`{}`))
+			room.processJoin(peerId[0], msg, accept, reject)
 		case MethodLeave:
-			room.processLeave(peerId[0], request["data"].(map[string]interface{}))
-			accept(jsonEncode(`{}`))
-			//broadcast onUnpublish
-			onUnpublish := make(map[string]interface{})
-			onUnpublish["pubid"] = peerId[0]
-			room.Notify(room.GetPeer(peerId[0]), MethodOnUnpublish, onUnpublish)
+			room.processLeave(peerId[0], msg, accept, reject)
 		case MethodPublish:
-			room.AddWebRTCPeer(peerId[0], true)
-			resp := room.processPublish(peerId[0], request["data"].(map[string]interface{}))
-			if resp != "" {
-				accept(jsonEncode(resp))
-				// broad onPublish
-				onPublish := make(map[string]interface{})
-				onPublish["type"] = "sender"
-				onPublish["pubid"] = peerId[0]
-				room.Notify(room.GetPeer(peerId[0]), MethodOnPublish, onPublish)
-
-				peers := room.GetPeers()
-				for id, item := range peers {
-					if id != peerId[0] {
-						onPublish["pubid"] = item.ID()
-						peer.Notify(MethodOnPublish, onPublish)
-					}
-				}
-			} else {
-				reject(-1, "")
-			}
+			room.processPublish(peerId[0], msg, accept, reject)
 		case MethodSubscribe:
-			room.AddWebRTCPeer(peerId[0], false)
-			resp := room.processSubscribe(peerId[0], request["data"].(map[string]interface{}))
-			if resp != "" {
-				accept(jsonEncode(resp))
-			} else {
-				reject(-1, "")
-			}
+			room.processSubscribe(peerId[0], msg, accept, reject)
 		}
 	}
 
 	handleNotification := func(notification map[string]interface{}) {
 		logger.Infof("handleNotification => %s", notification["method"])
-
 		method := notification["method"].(string)
 		data := notification["data"].(map[string]interface{})
-
 		//Forward notification to the room.
 		room.Notify(peer, method, data)
 	}
@@ -293,71 +262,89 @@ func (r *PRoom) Close() {
 	log.Infof("Room.Close")
 }
 
-func (r *PRoom) processJoin(client string, req map[string]interface{}) {
-	//a new one joined room, send onPublish to him
-	if req == nil || req["type"] == nil {
-		log.Errorf(`invalid join protocol`)
-		return
-	}
-	if req["type"].(string) == "sender" {
-		r.AddWebRTCPeer(client, true)
-	} else if req["type"].(string) == "recver" {
-		r.AddWebRTCPeer(client, false)
-	}
-
+func (r *PRoom) processLogin(client string, req map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
+	accept(jsonEncode(`{}`))
 }
 
-func (r *PRoom) processLeave(client string, req map[string]interface{}) {
-	r.DelWebRTCPeer(client, true)
-	r.DelWebRTCPeer(client, false)
+func (r *PRoom) processJoin(id string, req map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
+	accept(jsonEncode(`{}`))
 }
 
-func (r *PRoom) processPublish(id string, req map[string]interface{}) string {
-	if req == nil {
-		log.Errorf("req == nil")
-		return ""
-	}
-	log.Infof("req==========%+v", req)
+func (r *PRoom) processLeave(id string, req map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
+	r.DelWebRTCPeer(id, true)
+	r.DelWebRTCPeer(id, false)
+	//broadcast onUnpublish
+	onUnpublish := make(map[string]interface{})
+	onUnpublish["pubid"] = id
+	r.Notify(r.GetPeer(id), MethodOnUnpublish, onUnpublish)
+	accept(jsonEncode(`{}`))
+}
+
+func (r *PRoom) processPublish(id string, req map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
 	if req["jsep"] == nil {
-		log.Errorf("jsep not found in map")
-		return ""
+		log.Errorf("jsep not found")
+		reject(-1, "jsep not found")
+		return
 	}
 	j := req["jsep"].(map[string]interface{})
 	if j["sdp"] == nil {
-		log.Errorf("sdp not found in jsep")
-		return ""
+		log.Errorf("sdp not found")
+		reject(-1, "sdp not found")
+		return
 	}
+	r.AddWebRTCPeer(id, true)
 	jsep := webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  j["sdp"].(string),
 	}
-	log.Infof("aaaaaaaaaaaaa=%v", jsep)
 	answer, err := r.Answer(id, "", jsep, true)
 	if err != nil {
 		log.Errorf("answer err=%v\n jsep=%v", err.Error(), jsep)
-		return ""
+		reject(-1, err.Error())
+		return
 	}
-	log.Infof("answer===========%v", answer)
 	resp := make(map[string]interface{})
 	resp["jsep"] = answer
 	respByte, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf(err.Error())
-		return ""
+		reject(-1, err.Error())
+		return
 	}
-	return string(respByte)
+	respStr := string(respByte)
+	if respStr != "" {
+		accept(jsonEncode(respStr))
+		// broad onPublish
+		onPublish := make(map[string]interface{})
+		onPublish["type"] = "sender"
+		onPublish["pubid"] = id
+		r.Notify(r.GetPeer(id), MethodOnPublish, onPublish)
+		peers := r.GetPeers()
+		for peerId, item := range peers {
+			if peerId != id {
+				onPublish["pubid"] = item.ID()
+				r.GetPeer(id).Notify(MethodOnPublish, onPublish)
+			}
+		}
+		return
+	}
+	reject(-1, "unknown error")
 }
 
-func (r *PRoom) processSubscribe(id string, req map[string]interface{}) string {
+func (r *PRoom) processSubscribe(id string, req map[string]interface{}, accept ppeer.AcceptFunc, reject ppeer.RejectFunc) {
 	if req["jsep"] == nil {
-		log.Errorf("jsep not found in map")
-		return ""
+		log.Errorf("jsep not found")
+		reject(-1, "jsep not found")
+		return
 	}
 	j := req["jsep"].(map[string]interface{})
 	if j["sdp"] == nil {
 		log.Errorf("sdp not found in jsep")
-		return ""
+		reject(-1, "sdp not found")
+		return
 	}
+
+	r.AddWebRTCPeer(id, false)
 	jsep := webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  j["sdp"].(string),
@@ -365,15 +352,22 @@ func (r *PRoom) processSubscribe(id string, req map[string]interface{}) string {
 	answer, err := r.Answer(id, req["pubid"].(string), jsep, false)
 	if err != nil {
 		log.Errorf("answer err=%v", err.Error())
-		return ""
+		reject(-1, err.Error())
+		return
 	}
 	jsepByte, err := json.Marshal(answer)
 	if err != nil {
 		log.Errorf(err.Error())
-		return ""
+		reject(-1, err.Error())
+		return
 	}
 	r.sendPLI(req["pubid"].(string))
-	return string(jsepByte)
+	jsepStr := string(jsepByte)
+	if jsepStr != "" {
+		accept(jsonEncode(jsepStr))
+		return
+	}
+	reject(-1, "unknown error")
 }
 
 func (r *PRoom) sendPLI(skipID string) {
