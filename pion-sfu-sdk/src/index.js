@@ -69,8 +69,8 @@ export default class SFU  extends EventEmitter {
                     console.log('Send offer sdp => ' + offer.sdp);
                     receiver.senderOffer = true
                     let answer = await this.room.subscribe(offer,pubid);
-                    console.log('Got answer(' + pubid + ') sdp => ' + answer.jsep.sdp);
-                    receiver.pc.setRemoteDescription(answer.jsep);
+                    console.log('Got answer(' + pubid + ') sdp => ' + answer.sdp);
+                    receiver.pc.setRemoteDescription(answer);
                 }
             }
             let desc = await receiver.pc.createOffer();
