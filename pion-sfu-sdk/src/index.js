@@ -44,20 +44,24 @@ export default class SFU  extends EventEmitter {
     }
 
     async onCreateSender(pubid) {
-        let sender = await this.rtc.createSender();
-        sender.pc.onicecandidate = async (e) => {
-            if (!sender.senderOffer) {
-                var offer = sender.pc.localDescription;
-                console.log('Send offer sdp => ' + offer.sdp);
-                sender.senderOffer = true
-
-                let answer = await this.room.publish(offer,pubid);
-                console.log('Got answer(' + pubid + ') sdp => ' + answer.jsep.sdp);
-                sender.pc.setRemoteDescription(answer.jsep);
+        try {
+            let sender = await this.rtc.createSender();
+            sender.pc.onicecandidate = async (e) => {
+                if (!sender.senderOffer) {
+                    var offer = sender.pc.localDescription;
+                    console.log('Send offer sdp => ' + offer.sdp);
+                    sender.senderOffer = true
+    
+                    let answer = await this.room.publish(offer,pubid);
+                    console.log('Got answer(' + pubid + ') sdp => ' + answer.jsep.sdp);
+                    sender.pc.setRemoteDescription(answer.jsep);
+                }
             }
+            let desc = await sender.pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false })
+            sender.pc.setLocalDescription(desc);
+        }catch(error){
+            console.log('onCreateSender error => ' + error);
         }
-        let desc = await sender.pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false })
-        sender.pc.setLocalDescription(desc);
     }
 
     async onRtcCreateRecver(pubid) {
