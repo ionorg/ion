@@ -11,7 +11,7 @@
     <div class="container">
         <p>Local Video</p>
         <div id="localVideoDiv"></div>
-        <button onclick="window.handlePublish()">
+        <button onclick="window.onPublishBtnClick()">
             Publish
         </button>
         <p>Remote Video</p>
@@ -63,7 +63,7 @@
             sfu.leave();
         }
 
-        window.handlePublish  = function(){
+        window.onPublishBtnClick  = function(){
             if(!connected) {
                 alert('Not connected to the server!');
                 return;
