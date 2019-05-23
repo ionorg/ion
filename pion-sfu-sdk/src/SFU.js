@@ -30,7 +30,7 @@ export default class SFU  extends EventEmitter {
     }
 
     publish () {
-        this.onCreateSender(this.room.peerId)
+        this.onCreateSender(this.room.uid)
     }
 
     leave () {
@@ -63,7 +63,7 @@ export default class SFU  extends EventEmitter {
 
     async onCreateSender(pubid) {
         try {
-            let sender = await this.rtc.createSender();
+            let sender = await this.rtc.createSender(pubid);
             sender.pc.onicecandidate = async (e) => {
                 if (!sender.senderOffer) {
                     var offer = sender.pc.localDescription;

@@ -9,6 +9,12 @@
 
 <body>
     <div class="container">
+        <p>Status: <input id='status' disabled style="width: 480px; height: 24px;"></input></p>
+        <p>Input RoomID</p>
+        <input id="roomId" type="text" value="room1" style="width: 120px; height: 24px;"><br />
+        <button onclick="window.onJoinBtnClick()">
+            Join
+        </button>
         <p>Local Video</p>
         <div id="localVideoDiv"></div>
         <button onclick="window.onPublishBtnClick()">
@@ -24,29 +30,35 @@
         var published = false;
         var players = new Map();
 
+        window.showStatus = function(text) {
+            var element =  document.getElementById('status');
+            element.value = text;
+            console.log(text);
+        }
+
         window.onload = function() {
             sfu = new SFU();
-
             sfu.on('connect', function(){
-                console.log('SFU connect !');
+                showStatus('Connected to SFU!');
                 connected = true;
-                sfu.join('signal:room1');
             });
 
             sfu.on('disconnect', function(){
-                console.log('SFU disconnect !');
+                showStatus('Disconnect from SFU!');
                 connected = false;
             });
 
             sfu.on('addLocalStream', function(id, stream) {
                 var player = new Player({id, stream, parent: 'localVideoDiv'});
                 players.set(id,player)
+                showStatus('Add local stream [' + id + ']');
                 console.log('Create video element (' + stream.id + ') for local stream !')
             })
 
             sfu.on('addRemoteStream', function(id, stream){
                 var player = new Player({id, stream, parent: 'removeVideoDiv'});
                 players.set(id,player)
+                showStatus('Add remote stream for peer [' + id + ']');
                 console.log('Create video element (' + stream.id + ') for remote stream !')
             })
 
@@ -54,6 +66,7 @@
                 var player = players.get(id);
                 if(player){
                     player.destroy();
+                    showStatus('Remove remote stream for peer [' + id + ']');
                     console.log('Remove video element (' + stream.id + ') for remote stream !')
                 }
             })
@@ -72,8 +85,18 @@
                 alert('Already published!');
                 return;
             }
+            showStatus('Start publish!');
             sfu.publish();
             published = true;
+        }
+
+        window.onJoinBtnClick = function(){
+            var element =  document.getElementById('roomId');
+            var roomId = element.value;
+            if(roomId === '')
+                return;
+            showStatus('Join to [' + roomId + ']');
+            sfu.join(roomId);
         }
     </script>
 </body>
