@@ -1,76 +1,71 @@
-/* global */
-// eslint-disable-next-line
-//
 import { EventEmitter } from 'events';
 import Room from './Room'
 import RTC from './RTC'
-import Player from './Player'
 
 export default class SFU  extends EventEmitter {
 
     constructor () {
-        super()
-        this.room = new Room()
+        super();
+        this._room = new Room();
+        this._rtc = new RTC();
         // bind event callbaks.
-        this.room.on('onRoomConnect', this.onRoomConnect)
-        this.room.on('onRoomDisconnect',this.onRoomDisconnect);
-        this.room.on('onRtcCreateRecver', this.onRtcCreateRecver.bind(this))
-        this.room.on('onRtcLeaveRecver', this.onRtcLeaveRecver.bind(this))
-        this.room.on('onCreateSender',this.onCreateSender.bind(this))
+        this._room.on('onRoomConnect', this._onRoomConnect);
+        this._room.on('onRoomDisconnect',this._onRoomDisconnect);
+        this._room.on('onRtcCreateRecver', this._onRtcCreateRecver.bind(this));
+        this._room.on('onRtcLeaveRecver', this._onRtcLeaveRecver.bind(this));
     }
 
     close () {
-        console.log('Force close.')
-        this.room.close()
+        console.log('Force close.');
+        this._room.close();
     }
 
     join (roomId) {
-        console.log('Join to [' + roomId + ']')
-        this.room.join(roomId)
+        console.log('Join to [' + roomId + ']');
+        this._room.join(roomId);
     }
 
     publish () {
-        this.onCreateSender(this.room.uid)
+        this._createSender(this._room.uid);
     }
 
     leave () {
-        this.room.leave()
+        this._room.leave();
     }
 
-    onRoomConnect = () => {
-        console.log('onRoomConnect')
-        this.rtc = new RTC();
+    _onRoomConnect = () => {
+        console.log('onRoomConnect');
 
-        this.rtc.on('localstream',(id, stream) => {
+        this._rtc.on('localstream',(id, stream) => {
             this.emit('addLocalStream', id, stream);
         })
 
-        this.rtc.on('addstream',(id, stream) => {
+        this._rtc.on('addstream',(id, stream) => {
             this.emit('addRemoteStream', id, stream);
         })
 
-        this.rtc.on('removestream',(id, stream) => {
+        this._rtc.on('removestream',(id, stream) => {
             this.emit('removeRemoteStream', id, stream);
         })
 
         this.emit('connect');
     }
 
-    onRoomDisconnect = () => {
-        console.log('onRoomDisconnect')
+    _onRoomDisconnect = () => {
+        console.log('onRoomDisconnect');
         this.emit('disconnect');
     }
 
-    async onCreateSender(pubid) {
+    async _createSender(pubid) {
         try {
-            let sender = await this.rtc.createSender(pubid);
+            let sender = await this._rtc.createSender(pubid);
             sender.pc.onicecandidate = async (e) => {
                 if (!sender.senderOffer) {
                     var offer = sender.pc.localDescription;
                     console.log('Send offer sdp => ' + offer.sdp);
                     sender.senderOffer = true
     
-                    let answer = await this.room.publish(offer,pubid);
+                    let answer = await this._room.publish(offer,pubid);
                     console.log('Got answer(' + pubid + ') sdp => ' + answer.jsep.sdp);
                     sender.pc.setRemoteDescription(answer.jsep);
                 }
@@ -82,15 +77,15 @@ export default class SFU  extends EventEmitter {
         }
     }
 
-    async onRtcCreateRecver(pubid) {
+    async _onRtcCreateRecver(pubid) {
         try {
-            let receiver = this.rtc.createRecver(pubid);
+            let receiver = this._rtc.createRecver(pubid);
             receiver.pc.onicecandidate = async (e) => {
                 if (!receiver.senderOffer) {
                     var offer = receiver.pc.localDescription;
                     console.log('Send offer sdp => ' + offer.sdp);
                     receiver.senderOffer = true
-                    let answer = await this.room.subscribe(offer,pubid);
+                    let answer = await this._room.subscribe(offer,pubid);
                     console.log('Got answer(' + pubid + ') sdp => ' + answer.sdp);
                     receiver.pc.setRemoteDescription(answer);
                 }
@@ -102,7 +97,7 @@ export default class SFU  extends EventEmitter {
         }
     }
 
-    onRtcLeaveRecver(pubid) {
-        this.rtc.closeRecver(pubid)
+    _onRtcLeaveRecver(pubid) {
+        this._rtc.closeRecver(pubid);
     }
 }

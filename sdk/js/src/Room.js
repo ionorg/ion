@@ -1,6 +1,3 @@
-/* global */
-// eslint-disable-next-line
-//
 import { EventEmitter } from 'events';
 import protooClient from 'protoo-client';
 const uuidv4 = require('uuid/v4');
@@ -10,9 +7,9 @@ const protooPort = 8443;
 class Room extends EventEmitter {
 
     constructor() {
-        super()
+        super();
         this._uid = uuidv4();
-        this._url = this.getProtooUrl(this._uid);
+        this._url = this._getProtooUrl(this._uid);
 
         let transport = new protooClient.WebSocketTransport(this._url);
         // protoo-client Peer instance.
@@ -34,18 +31,11 @@ class Room extends EventEmitter {
         });
 
         this._protoo.on('request', this._handleRequest.bind(this));
-        this._protoo.on('notification', this._handleNotification.bind(this))
+        this._protoo.on('notification', this._handleNotification.bind(this));
     }
 
     get uid(){
         return this._uid;
-    }
-
-    getProtooUrl(peerId)
-    {
-        const hostname = window.location.hostname;
-        let url = `wss://${hostname}:${protooPort}/ws?peer=${peerId}`;
-        return url;
     }
 
     async join(roomId) {
@@ -86,6 +76,13 @@ class Room extends EventEmitter {
         this._protoo.request('leave',{'rid': this._rid});
     }
 
+    _getProtooUrl(peerId)
+    {
+        const hostname = window.location.hostname;
+        let url = `wss://${hostname}:${protooPort}/ws?peer=${peerId}`;
+        return url;
+    }
+
     _handleRequest(request, accept, reject) {
         console.log('Handle request from server: [method:%s, data:%o]', request.method, request.data);
     }
@@ -112,4 +109,4 @@ class Room extends EventEmitter {
     }
 }
 
-export default Room
+export default Room;

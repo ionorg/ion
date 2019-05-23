@@ -2,30 +2,29 @@
 
 class Player {
     constructor (opt) {
-        this.create(opt)
+        this._create(opt);
     }
 
-    create (opt) {
-        this.video = document.createElement('video')
-        this.video.class = 'player'
-        this.video.style = 'width: 320px; height: 240px;'
-        this.video.autoplay = true
-        this.video.playsinline = true
-        this.video.controls = true
-        this.video.muted = true
-        this.video.srcObject = opt.stream
-        this.video.id = `stream${opt.id}`
+    _create ({id, stream, parent}) {
+        let video = document.createElement('video');
+        video.class = 'player';
+        video.style = 'width: 320px; height: 240px;';
+        video.autoplay = true;
+        video.playsinline = true;
+        video.controls = true;
+        video.muted = true;
+        video.srcObject = stream;
+        video.id = `stream${id}`;
+        this.video = video;
+        let parentElement = document.getElementById(parent);
+        parentElement.appendChild(video);
+        this.parentElement = parentElement;
+    }
 
-        this.parentElement = document.getElementById(opt.parent)
-        this.parentElement.appendChild(this.video)
-    }
-    addTrack (track) {
-        this.video.addTrack(track)
-    }
     destroy () {
-        this.video.pause()
-        this.parentElement.removeChild(this.video)
+        this.video.pause();
+        this.parentElement.removeChild(video);
     }
 }
 
-export default Player
+export default Player;
