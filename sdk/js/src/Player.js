@@ -23,7 +23,7 @@ class Player {
 
     destroy () {
         this.video.pause();
-        this.parentElement.removeChild(video);
+        this.parentElement.removeChild(this.video);
     }
 }
 
