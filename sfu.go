@@ -25,7 +25,6 @@ type ClientSDP struct {
 
 type SFU struct {
 	gslb *gslb.GSLB
-	room *service.Room
 }
 
 func NewSFU() (*SFU, error) {
@@ -38,7 +37,7 @@ func NewSFU() (*SFU, error) {
 		}
 		s.gslb = g
 	}
-	s.room = service.NewRoom(signalNameSpace + "room1")
+	service.StartSignalServer()
 	return s, nil
 }
 
