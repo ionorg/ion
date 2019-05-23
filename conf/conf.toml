@@ -1,6 +1,6 @@
 [mode]
-standalone = true
-signal = "protoo"
+single = true
+pprof = ":6060"
 
 [log]
 level = "info"
@@ -8,14 +8,7 @@ level = "info"
 [etcds]
 servers = ["localhost:2379"]
 
-[centrifugo]
-url = "wss://localhost:8000/connection/websocket"
-key = "secret"
-certpem = "conf/cert.pem"
-keypem = "conf/key.pem"
-expire = 0
-
-[protoo]
+[signal]
 host = "0.0.0.0"
 port = "8443"
 certpem = "conf/cert.pem"

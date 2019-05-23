@@ -1,9 +1,8 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/pion/webrtc/v2"
 
@@ -26,31 +25,21 @@ type ClientSDP struct {
 
 type SFU struct {
 	gslb *gslb.GSLB
-	// room *service.Room
-	room interface{}
+	room *service.Room
 }
 
 func NewSFU() (*SFU, error) {
 	log.Infof("NewSFU")
 	s := &SFU{}
-	if !conf.Cfg.Mode.Standalone {
+	if !conf.Cfg.Mode.Single {
 		g, err := gslb.New()
 		if err != nil {
 			return nil, err
 		}
 		s.gslb = g
 	}
-	if conf.Cfg.Mode.Signal == "protoo" {
-		log.Infof("new sfu protoo")
-		s.room = service.NewPRoom(signalNameSpace + "room1")
-	} else if conf.Cfg.Mode.Signal == "centrifugo" {
-		s.room = service.NewRoom(signalNameSpace + "room1")
-	} else {
-		return nil, errors.New("invalid signal type")
-	}
-
+	s.room = service.NewRoom(signalNameSpace + "room1")
 	return s, nil
-
 }
 
 func (s *SFU) Close() {
@@ -58,19 +47,18 @@ func (s *SFU) Close() {
 }
 
 func (s *SFU) Run() {
-	if conf.Cfg.Mode.Signal == "protoo" {
-		s.room.(*service.PRoom).Run()
-	} else if conf.Cfg.Mode.Signal == "centrifugo" {
-		s.room.(*service.Room).Run()
+	for {
+		time.Sleep(time.Second)
 	}
 }
 
 func main() {
 	// 开启pprof
-	go func() {
-		fmt.Println("pprof listen 6060")
-		http.ListenAndServe(":6060", nil)
-	}()
+	if conf.Cfg.Mode.Pprof != "" {
+		go func() {
+			http.ListenAndServe(conf.Cfg.Mode.Pprof, nil)
+		}()
+	}
 
 	log.Infof("main")
 	sfu, err := NewSFU()

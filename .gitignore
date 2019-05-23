@@ -2,4 +2,5 @@ logs
 bin
 conf/cert.pem
 conf/key.pem
+sfu
 
