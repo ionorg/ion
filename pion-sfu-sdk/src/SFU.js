@@ -8,10 +8,9 @@ import Player from './Player'
 
 export default class SFU  extends EventEmitter {
 
-    constructor (roomId) {
+    constructor () {
         super()
-        this.roomId = roomId;
-        this.room = new Room(roomId)
+        this.room = new Room()
         // bind event callbaks.
         this.room.on('onRoomConnect', this.onRoomConnect)
         this.room.on('onRoomDisconnect',this.onRoomDisconnect);
@@ -25,9 +24,9 @@ export default class SFU  extends EventEmitter {
         this.room.close()
     }
 
-    join () {
-        console.log('Connect to [' + this.roomId + ']')
-        this.room.join()
+    join (roomId) {
+        console.log('Join to [' + roomId + ']')
+        this.room.join(roomId)
     }
 
     publish () {

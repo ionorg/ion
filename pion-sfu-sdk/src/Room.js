@@ -9,11 +9,10 @@ const protooPort = 8443;
 
 class Room extends EventEmitter {
 
-    constructor(rid) {
+    constructor() {
         super()
-        this.rid = rid
         this.uid = uuidv4();
-        this.url = this.getProtooUrl(this.rid, this.uid);
+        this.url = this.getProtooUrl(this.uid);
         let transport = new protooClient.WebSocketTransport(this.url);
         // protoo-client Peer instance.
         this._protoo = new protooClient.Peer(transport);
@@ -37,14 +36,15 @@ class Room extends EventEmitter {
         this._protoo.on('notification', this._handleNotification.bind(this))
     }
 
-    getProtooUrl(roomId, peerId)
+    getProtooUrl(peerId)
     {
         const hostname = window.location.hostname;
-        let url = `wss://${hostname}:${protooPort}/ws?room=${roomId}&peer=${peerId}`;
+        let url = `wss://${hostname}:${protooPort}/ws?peer=${peerId}`;
         return url;
     }
 
-    async join() {
+    async join(roomId) {
+        this.rid = roomId;
         try{
             let data = await this._protoo.request('join', {'rid': this.rid});
             console.log('join success: result => ' + JSON.stringify(data));
@@ -78,7 +78,7 @@ class Room extends EventEmitter {
     }
 
     leave() {
-        this._protoo.request('leave',{'uid': this.peerId});
+        this._protoo.request('leave',{'rid': this.rid});
     }
 
     _handleRequest(request, accept, reject) {

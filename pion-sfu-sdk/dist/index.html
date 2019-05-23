@@ -25,12 +25,12 @@
         var players = new Map();
 
         window.onload = function() {
-            sfu = new SFU('signal:room1');
+            sfu = new SFU();
 
             sfu.on('connect', function(){
                 console.log('SFU connect !');
                 connected = true;
-                sfu.join();
+                sfu.join('signal:room1');
             });
 
             sfu.on('disconnect', function(){
