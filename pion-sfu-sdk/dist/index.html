@@ -8,16 +8,72 @@
 </head>
 
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <p>Local Video</p>
+        <div id="localVideoDiv"></div>
+        <button onclick="window.handlePublish()">
+            Publish
+        </button>
+        <p>Remote Video</p>
+        <div id="removeVideoDiv"></div>
+    </div>
+
     <script>
         var sfu;
-        window.onload = () => {
+        var connected = false;
+        var published = false;
+        var players = new Map();
+
+        window.onload = function() {
             sfu = new SFU('signal:room1');
-            sfu.connect();
+
+            sfu.on('connect', function(){
+                console.log('SFU connect !');
+                connected = true;
+                sfu.join();
+            });
+
+            sfu.on('disconnect', function(){
+                console.log('SFU disconnect !');
+                connected = false;
+            });
+
+            sfu.on('addLocalStream', function(id, stream) {
+                var player = new Player({id, stream, parent: 'localVideoDiv'});
+                players.set(id,player)
+                console.log('Create video element (' + stream.id + ') for local stream !')
+            })
+
+            sfu.on('addRemoteStream', function(id, stream){
+                var player = new Player({id, stream, parent: 'removeVideoDiv'});
+                players.set(id,player)
+                console.log('Create video element (' + stream.id + ') for remote stream !')
+            })
+
+            sfu.on('removeRemoteStream', function(id, stream) {
+                var player = players.get(id);
+                if(player){
+                    player.destroy();
+                    console.log('Remove video element (' + stream.id + ') for remote stream !')
+                }
+            })
         }
 
-        window.onunload = () => {
+        window.onunload = function(){
             sfu.leave();
+        }
+
+        window.handlePublish  = function(){
+            if(!connected) {
+                alert('Not connected to the server!');
+                return;
+            }
+            if(published){
+                alert('Already published!');
+                return;
+            }
+            sfu.publish();
+            published = true;
         }
     </script>
 </body>

@@ -261,6 +261,16 @@ func (r *Room) processLogin(client string, req map[string]interface{}, accept pe
 }
 
 func (r *Room) processJoin(id string, req map[string]interface{}, accept peer.AcceptFunc, reject peer.RejectFunc) {
+	onPublish := make(map[string]interface{})
+	onPublish["type"] = "sender"
+	r.pubPeerLock.RLock()
+	defer r.pubPeerLock.RUnlock()
+	for peerId, _ := range r.pubPeers {
+		if peerId != id {
+			onPublish["pubid"] = peerId
+			r.GetPeer(id).Notify(MethodOnPublish, onPublish)
+		}
+	}
 	accept(jsonEncode(`{}`))
 }
 
@@ -313,13 +323,6 @@ func (r *Room) processPublish(id string, req map[string]interface{}, accept peer
 		onPublish["type"] = "sender"
 		onPublish["pubid"] = id
 		r.Notify(r.GetPeer(id), MethodOnPublish, onPublish)
-		peers := r.GetPeers()
-		for peerId, item := range peers {
-			if peerId != id {
-				onPublish["pubid"] = item.ID()
-				r.GetPeer(id).Notify(MethodOnPublish, onPublish)
-			}
-		}
 		return
 	}
 	reject(-1, "unknown error")
@@ -355,7 +358,7 @@ func (r *Room) processSubscribe(id string, req map[string]interface{}, accept pe
 		reject(-1, err.Error())
 		return
 	}
-	r.sendPLI(req["pubid"].(string))
+	r.sendPLI(id)
 	jsepStr := string(jsepByte)
 	if jsepStr != "" {
 		accept(jsonEncode(jsepStr))

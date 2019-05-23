@@ -3,17 +3,17 @@
 //
 import { EventEmitter } from 'events';
 import protooClient from 'protoo-client';
-import randomString from 'random-string';
+const uuidv4 = require('uuid/v4');
 
 const protooPort = 8443;
 
 class Room extends EventEmitter {
 
-    constructor(roomId) {
+    constructor(rid) {
         super()
-        this.roomID = roomId
-        this.peerId = randomString({ length: 8 }).toLowerCase();
-        this.url = this.getProtooUrl(roomId, this.peerId);
+        this.rid = rid
+        this.uid = uuidv4();
+        this.url = this.getProtooUrl(this.rid, this.uid);
         let transport = new protooClient.WebSocketTransport(this.url);
         // protoo-client Peer instance.
         this._protoo = new protooClient.Peer(transport);
@@ -44,41 +44,12 @@ class Room extends EventEmitter {
         return url;
     }
 
-    async join(sender) {
+    async join() {
         try{
-            let data = await this._protoo.request('join',
-            {
-                 'client': this.peerId,
-                 'type': sender? 'sender' : 'recver'
-            });
+            let data = await this._protoo.request('join', {'rid': this.rid});
             console.log('join success: result => ' + JSON.stringify(data));
         }catch(error) {
             console.log('join reject: error =>' + error);
-        }
-    }
-
-    _handleRequest(request, accept, reject) {
-        console.log('Handle request from server: [method:%s, data:%o]', request.method, request.data);
-    }
-
-    _handleNotification (notification) {
-        console.log('Handle notification from server: [method:%s, data:%o]', notification.method, notification.data);
-
-        switch(notification.method){
-            case 'onPublish':
-                {
-                    let pubid = notification.data.pubid;
-                    console.log('Got publish from => ' + pubid);
-                    this.emit('onRtcCreateRecver', pubid);
-                    break;
-                }
-                case 'onUnpublish':
-                {
-                    let pubid = notification.data.pubid;
-                    console.log('[' + pubid + ']  => leave !!!!');
-                    this.emit('onRtcLeaveRecver', pubid);
-                    break;
-                }
         }
     }
 
@@ -107,7 +78,32 @@ class Room extends EventEmitter {
     }
 
     leave() {
-        this._protoo.request('leave',{'client': this.clientID});
+        this._protoo.request('leave',{'uid': this.peerId});
+    }
+
+    _handleRequest(request, accept, reject) {
+        console.log('Handle request from server: [method:%s, data:%o]', request.method, request.data);
+    }
+
+    _handleNotification (notification) {
+        console.log('Handle notification from server: [method:%s, data:%o]', notification.method, notification.data);
+
+        switch(notification.method){
+            case 'onPublish':
+                {
+                    let pubid = notification.data.pubid;
+                    console.log('Got publish from => ' + pubid);
+                    this.emit('onRtcCreateRecver', pubid);
+                    break;
+                }
+                case 'onUnpublish':
+                {
+                    let pubid = notification.data.pubid;
+                    console.log('[' + pubid + ']  => leave !!!!');
+                    this.emit('onRtcLeaveRecver', pubid);
+                    break;
+                }
+        }
     }
 }
 
