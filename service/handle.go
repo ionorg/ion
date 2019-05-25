@@ -38,13 +38,13 @@ func init() {
 	peers = make(map[*peer.Peer]*Room)
 }
 
-func StartSignalServer() {
+func Start() {
 	wsServer = server.NewWebSocketServer(handleNewWebSocket)
 	config := server.DefaultConfig()
-	config.Host = conf.Cfg.Signal.Host
-	config.Port, _ = strconv.Atoi(conf.Cfg.Signal.Port)
-	config.CertFile = conf.Cfg.Signal.CertPem
-	config.KeyFile = conf.Cfg.Signal.KeyPem
+	config.Host = conf.Signal.Host
+	config.Port, _ = strconv.Atoi(conf.Signal.Port)
+	config.CertFile = conf.Signal.CertPem
+	config.KeyFile = conf.Signal.KeyPem
 	go wsServer.Bind(config)
 }
 
@@ -68,6 +68,11 @@ func handleNewWebSocket(transport *transport.WebSocketTransport, request *http.R
 	signalPeer := peer.NewPeer(peerId[0], transport)
 
 	handleRequest := func(request map[string]interface{}, accept peer.AcceptFunc, reject peer.RejectFunc) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Errorf("handleRequest recover err => %v", err)
+			}
+		}()
 		method := request["method"]
 		data := request["data"]
 		if method == nil || method == "" || data == nil || data == "" {

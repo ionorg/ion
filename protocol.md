@@ -1,187 +1,140 @@
 
-## 1. public channel
+## protocol
+This is a signal protocol support by [protoo](https://protoojs.org/#protoo)
 
 
-There are one public channel `signal:$roomid`.
+## 1 join room
 
-All clients should subscribe it, SFU will know which one join/leave this room
-
-## 2. private channel
-
-SFU get a `$clientid` when client join a room.
-
-Client and SFU must subscribe to the channel(`$clientid`).
-
-Now they can publish offer and answer to this channel.
-
-`$reqid` is a request id, so client and SFU can match each request and response.
-
-recently, `$reqid` = `$i++`(i=1)
-## 3. protocol
-## 1) join room
-### publish to channel: `signal:$roomid`
-$type: sender/recver
+###request
 
 ```
-{ "req":"join", "id":$reqid, "msg":{"client":"$clientid", "type":"$type"}}
+method:join
+data:{
+    "rid":"$roomid"
+}
+```
 
+###response
+```
 //success
-{ "resp":"success", "id":$reqid, "msg":{}}
+ok:true
+data:{}
 
 //failed
-{ "resp":"failed", "id":$reqid, "msg":{}}
+ok:false
+errCode:-1
+
 ```
+when publisher join success, SFU broadcast "onPublish" to him
 
 ## 2) leave room
-###publish to channel: `signal:$roomid`
+###request
 
 ```
-{ "req":"leave", "id":$reqid, "msg":{"client":"$clientid"}}
+method:leave
+data:{
+    "rid":"$roomid"
+}
+```
 
+###response
+```
 //success
-{ "resp":"success", "id":$reqid, "msg":{}}
+ok:true
+data:{}
 
 //failed
-{ "resp":"failed", "id":$reqid, "msg":{}}
+ok:false
+errCode:-1
 ```
-
-
 ## 3) publish
-publish to channel: **$clientid**
+###request
 
 ```
-{
-    "req": "publish",
-    "id": $reqid,
-    "msg": {
-        "type": "sender",
-        "jsep": {"type": "offer","sdp": "..."}
-    }
+method:publish
+data:{
+    "jsep": {"type": "offer","sdp": "..."}
 }
+```
 
+###response
+```
 //success
-{
-    "resp": "success",
-    "id": $reqid,
-    "msg": {
-        "type": "sender",
-        "jsep": {"type": "answer","sdp": "..."}
-    }
-}
+ok:true
+data:{}
 
 //failed
-{
-    "resp": "failed",
-    "id": $reqid,
-    "msg": {
-
-    }
-}
-
+ok:false
+errCode:-1
 ```
 
 ## 4) onPublish
 
-when publisher published success, SFU broadcast "onPublish"
-
+when publisher published success, SFU broadcast "onPublish" to others
+###request
 
 ```
-{
-    "req": "onPublish",
-    "id": 0,
-    "msg": {
-        "type": "sender",
-        "pubid": "$pubid"
-    }
+method:onPublish
+data:{
+    "pubid": "$pubid"
 }
+```
 
+###response
+```
 //success
-{
-    "resp": "success",
-    "id": 0,
-    "msg": {
-    }
-}
+ok:true
+data:{}
 
 //failed
-{
-    "resp": "failed",
-    "id": 0,
-    "msg": {
-
-    }
-}
-
+ok:false
+errCode:-1
 ```
-
 
 ## 5) subscribe
 
 client can subscribe $pubid when it get "onPublish"
-
+###request
 ```
-{
-    "req": "subscribe",
-    "id": "$reqid",
-    "msg": {
-        "type": "recver",
-        "pubid": "$pubid",
-        "jsep": {"type": "offer","sdp": "..."}
-    }
+method:subscribe
+data:{
+    "pubid:"$pubid",
+    "jsep": {"type": "offer","sdp": "..."}
 }
+```
 
+###response
+```
 //success
-{
-    "resp": "success",
-    "id": "$reqid",
-    "msg": {
-        "jsep": {"type": "answer","sdp": "..."}
-    }
-}
+ok:true
+data:{}
 
 //failed
-{
-    "resp": "failed",
-    "id": "$reqid",
-    "msg": {
-
-    }
-}
+ok:false
+errCode:-1
 ```
-
 ## 6) onUnpublish
 
 when publisher leave room, SFU broadcast "onUnpublish"
 
 subscribers need to delete this pc and player when they receive "onUnpublish"
-
-
+###request
 ```
-{
-    "req": "onUnpublish",
-    "id": 0,
-    "msg": {
-        "pubid": "$pubid"
-    }
+method:onUnpublish
+data:{
+    "pubid": "$pubid"
 }
+```
 
+###response
+```
 //success
-{
-    "resp": "success",
-    "id": 0,
-    "msg": {
-    }
-}
+ok:true
+data:{}
 
 //failed
-{
-    "resp": "failed",
-    "id": 0,
-    "msg": {
-
-    }
-}
-
+ok:false
+errCode:-1
 ```
 ## 7) control [WIP]
-publishers must publish their devices information, like "muted" "close camera"..
+publishers can control their devices, like "muted" "close camera"..

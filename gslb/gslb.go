@@ -17,7 +17,7 @@ type GSLB struct {
 }
 
 func New() (*GSLB, error) {
-	c, err := NewClient(conf.Cfg.Etcd.Servers, "sfu://"+util.GetIP(false), "0")
+	c, err := NewClient(conf.Etcd.Servers, "sfu://"+util.GetIP(false), "0")
 	if err != nil {
 		return nil, err
 	}

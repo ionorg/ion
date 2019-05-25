@@ -33,7 +33,7 @@ type WebRTCEngine struct {
 }
 
 func NewWebRTCEngine() *WebRTCEngine {
-	urls := conf.Cfg.Sfu.Ices
+	urls := conf.SFU.Ices
 
 	w := &WebRTCEngine{
 		mediaEngine: webrtc.MediaEngine{},
