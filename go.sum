@@ -19,6 +19,8 @@ github.com/cloudwebrtc/go-protoo v0.0.0-20190521054441-f37ff5c3faf0 h1:fpIW2ollE
 github.com/cloudwebrtc/go-protoo v0.0.0-20190521054441-f37ff5c3faf0/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
 github.com/cloudwebrtc/go-protoo v0.0.0-20190523105204-c47a92ab1c68 h1:iGqRhfwxiDJfi7pWnwWZ7RGj6QDEK70XNQ+nu1W5/V8=
 github.com/cloudwebrtc/go-protoo v0.0.0-20190523105204-c47a92ab1c68/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
+github.com/cloudwebrtc/go-protoo v0.0.0-20190525060536-986bf0ece8a3 h1:NRJQ0zA+vQ5iRkL3wgn1JkAlbI+tkMWbInFscAKnjcc=
+github.com/cloudwebrtc/go-protoo v0.0.0-20190525060536-986bf0ece8a3/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
 github.com/coreos/bbolt v1.3.2 h1:wZwiHHUieZCquLkDL0B8UhzreNWsPHooDAG3q34zk0s=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible h1:jFneRYjIvLMLhDLCzuTuU4rSJUjRplcJQ7pD7MnhC04=

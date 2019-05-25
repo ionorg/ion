@@ -3,7 +3,7 @@ module github.com/pion/sfu
 require (
 	github.com/StackExchange/wmi v0.0.0-20181212234831-e0a55b97c705 // indirect
 	github.com/centrifugal/centrifuge-go v0.2.3
-	github.com/cloudwebrtc/go-protoo v0.0.0-20190523105204-c47a92ab1c68
+	github.com/cloudwebrtc/go-protoo v0.0.0-20190525060536-986bf0ece8a3
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
