@@ -70,7 +70,7 @@ export default class RTC extends EventEmitter {
     }
 
     closeRecver(pubid) {
-        var receiver = this.getRecver(pubid)
+        var receiver = this._receivers.get(pubid)
         if(receiver) {
             receiver.streams.forEach(stream => {
                 this.emit('removestream', pubid, stream)

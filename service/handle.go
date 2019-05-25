@@ -241,7 +241,9 @@ func processSubscribe(signalPeer *peer.Peer, req map[string]interface{}, accept 
 		reject(-1, err.Error())
 		return
 	}
-	jsepByte, err := json.Marshal(answer)
+	resp := make(map[string]interface{})
+	resp["jsep"] = answer
+	jsepByte, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf(err.Error())
 		reject(-1, err.Error())
