@@ -9,57 +9,58 @@ import (
 )
 
 var (
-	Cfg = &Config{}
+	cfg    = config{}
+	SFU    = &cfg.SFU
+	Log    = &cfg.Log
+	Etcd   = &cfg.Etcd
+	Signal = &cfg.Signal
 )
 
 func init() {
-	Cfg.Parse()
+	if !cfg.parse() {
+		panic("config init error!")
+	}
 }
 
-type Mode struct {
-	Standalone bool `mapstructure:"standalone"`
-}
-
-type Log struct {
+type log struct {
 	Level string `mapstructure:"level"`
 }
 
-type Etcd struct {
+type etcd struct {
 	Servers []string `mapstructure:"servers"`
 }
 
-type Centrifugo struct {
-	Url     string `mapstructure:"url"`
-	Key     string `mapstructure:"key"`
+type signal struct {
+	Host    string `mapstructure:"host"`
+	Port    string `mapstructure:"port"`
 	CertPem string `mapstructure:"certpem"`
 	KeyPem  string `mapstructure:"keypem"`
-	Expire  int64  `mapstructure:"expire"`
 }
 
-type SFU struct {
-	Ices []string `mapstructure:"ices"`
+type sfu struct {
+	Ices   []string `mapstructure:"ices"`
+	Single bool     `mapstructure:"single"`
+	Pprof  string   `mapstructure:"pprof"`
 }
 
-type Config struct {
-	Mode       Mode       `mapstructure:"mode"`
-	Log        Log        `mapstructure:"log"`
-	Etcd       Etcd       `mapstructure:"etcds"`
-	Centrifugo Centrifugo `mapstructure:"centrifugo"`
-	Sfu        SFU        `mapstructure:"sfu"`
-	CfgFile    string
-	err        error
+type config struct {
+	SFU     sfu    `mapstructure:"sfu"`
+	Log     log    `mapstructure:"log"`
+	Etcd    etcd   `mapstructure:"etcds"`
+	Signal  signal `mapstructure:"signal"`
+	CfgFile string
 }
 
-func ShowHelp() {
-	fmt.Sprintf("Usage:%s {params}\n", os.Args[0])
+func showHelp() {
+	fmt.Printf("Usage:%s {params}\n", os.Args[0])
 	fmt.Println("      -c {config file}")
 	fmt.Println("      -h (show help info)")
 }
 
-func (c *Config) Load() bool {
+func (c *config) load() bool {
 
-	_, c.err = os.Stat(c.CfgFile)
-	if c.err != nil {
+	_, err := os.Stat(c.CfgFile)
+	if err != nil {
 		panic(c.CfgFile + " didn't exist!")
 		return false
 	}
@@ -67,28 +68,32 @@ func (c *Config) Load() bool {
 	viper.SetConfigFile(c.CfgFile)
 	viper.SetConfigType("toml")
 
-	c.err = viper.ReadInConfig()
-	if c.err != nil {
-		fmt.Errorf("config file %s read failed. %v", c.CfgFile, c.err)
+	err = viper.ReadInConfig()
+	if err != nil {
+		fmt.Printf("config file %s read failed. %v\n", c.CfgFile, err)
 		return false
 	}
-	c.err = viper.GetViper().UnmarshalExact(c)
-	if c.err != nil {
-		fmt.Errorf("config file %s loaded failed. %v", c.CfgFile, c.err)
+	err = viper.GetViper().UnmarshalExact(c)
+	fmt.Printf("c=%+v", c)
+	if err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
 		return false
 	}
-
 	fmt.Printf("config %s load ok!\n", c.CfgFile)
 	return true
 }
 
-func (c *Config) Parse() bool {
+func (c *config) parse() bool {
 	flag.StringVar(&c.CfgFile, "c", "conf/conf.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
+	if !c.load() {
+		showHelp()
+		return false
+	}
 
-	if !c.Load() || *help {
-		ShowHelp()
+	if *help {
+		showHelp()
 		return false
 	}
 	return true
