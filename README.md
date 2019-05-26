@@ -11,6 +11,9 @@
 ## Roadmap
 [Projects](https://github.com/pion/sfu/projects/1)
 
+## Project status
+[![Stargazers over time](https://starchart.cc/pion/sfu.svg)](https://starchart.cc/pion/sfu)
+
 ## How to use
 ### 1. install signal server and make key.pem|cert.pem
 ```
