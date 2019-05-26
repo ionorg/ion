@@ -15,34 +15,31 @@
 [![Stargazers over time](https://starchart.cc/pion/sfu.svg)](https://starchart.cc/pion/sfu)
 
 ## How to use
-### 1. install signal server and make key.pem|cert.pem
+### 1. make key.pem|cert.pem
 ```
-cd signal-server
-./install.sh
+./scripts/makekey.sh
 ```
-### 2. install web app
+### 2. build web app
 ```
-cd pion-sfu-sdk
+cd sdk/js
 npm i
 ```
-### 3. start signal server
+### 3. build sfu
 ```
-cd signal-server
-./start.sh
+./scripts/build.sh
 ```
 ### 4. start web app
 ```
-cd pion-sfu-sdk
+cd sdk/js
 npm start
 ```
 ### 5. start sfu
 ```
-go build
-./sfu
+./scripts/start.sh
 ```
 ### 6. let's chat
 Open this url with chrome
 
 ```
-https://yourip:3666
+https://yourip:8080
 ```
