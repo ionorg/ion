@@ -43,7 +43,7 @@ func init() {
 	// log = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	log = zerolog.New(output).With().Timestamp().Logger()
-	switch conf.Cfg.Log.Level {
+	switch conf.Log.Level {
 	case "debug":
 		SetLevel(DebugLevel)
 	case "info":

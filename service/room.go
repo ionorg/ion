@@ -129,6 +129,8 @@ func (r *Room) answer(id string, pubid string, offer webrtc.SessionDescription, 
 			default:
 				if pub.VideoTrack == nil || pub.AudioTrack == nil {
 					time.Sleep(time.Millisecond * 100)
+				} else {
+					goto ENDWAIT
 				}
 			}
 		}

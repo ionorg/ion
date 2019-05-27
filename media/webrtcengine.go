@@ -1,12 +1,15 @@
 package media
 
 import (
-	"time"
+	"io"
 
 	"github.com/pion/rtcp"
+	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs"
 	"github.com/pion/sfu/conf"
 	"github.com/pion/sfu/log"
 	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
 )
 
 var defaultPeerCfg = webrtc.Configuration{
@@ -18,7 +21,9 @@ var defaultPeerCfg = webrtc.Configuration{
 }
 
 const (
-	rtcpPLIInterval = time.Second * 1
+	// The amount of RTP packets it takes to hold one full video frame
+	// The MTU of ~1400 meant that one video buffer had to be split across 7 packets
+	averageRtpPacketsPerFrame = 7
 )
 
 type WebRTCEngine struct {
@@ -33,7 +38,7 @@ type WebRTCEngine struct {
 }
 
 func NewWebRTCEngine() *WebRTCEngine {
-	urls := conf.Cfg.Sfu.Ices
+	urls := conf.SFU.Ices
 
 	w := &WebRTCEngine{
 		mediaEngine: webrtc.MediaEngine{},
@@ -98,10 +103,8 @@ func (s WebRTCEngine) CreateReceiver(offer webrtc.SessionDescription, pc **webrt
 			*videoTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "video", "pion")
 
 			go func() {
-				// ticker := time.NewTicker(rtcpPLIInterval)
 				for {
 					select {
-					// case <-ticker.C:
 					case <-pli:
 						(*pc).WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: remoteTrack.SSRC()}})
 					case <-stop:
@@ -109,21 +112,53 @@ func (s WebRTCEngine) CreateReceiver(offer webrtc.SessionDescription, pc **webrt
 					}
 				}
 			}()
+			var pkt rtp.Depacketizer
+			if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 {
+				pkt = &codecs.VP8Packet{}
+			} else if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP9 {
+				log.Errorf("TODO codecs.VP9Packet")
+			} else if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
+				log.Errorf("TODO codecs.H264Packet")
+			}
 
-			rtpBuf := make([]byte, 1400)
+			builder := samplebuilder.New(averageRtpPacketsPerFrame*5, pkt)
 			for {
 				select {
+
 				case <-stop:
 					return
 				default:
-					i, err := remoteTrack.Read(rtpBuf)
-					if err == nil {
-						(*videoTrack).Write(rtpBuf[:i])
-					} else {
-						log.Infof(err.Error())
+					rtp, err := remoteTrack.ReadRTP()
+					if err != nil {
+						if err == io.EOF {
+							return
+						}
+						log.Errorf(err.Error())
+					}
+
+					builder.Push(rtp)
+					for s := builder.Pop(); s != nil; s = builder.Pop() {
+						if err := (*videoTrack).WriteSample(*s); err != nil && err != io.ErrClosedPipe {
+							log.Errorf(err.Error())
+						}
 					}
 				}
 			}
+
+			// rtpBuf := make([]byte, 1400)
+			// for {
+			// select {
+			// case <-stop:
+			// return
+			// default:
+			// i, err := remoteTrack.Read(rtpBuf)
+			// if err == nil {
+			// (*videoTrack).Write(rtpBuf[:i])
+			// } else {
+			// log.Infof(err.Error())
+			// }
+			// }
+			// }
 		} else {
 			*audioTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "audio", "pion")
 
