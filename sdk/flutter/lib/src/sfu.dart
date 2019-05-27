@@ -1,10 +1,14 @@
 import 'package:events2/events2.dart';
 import 'package:flutter_webrtc/webrtc.dart';
+import 'package:sdp_transform/sdp_transform.dart' as sdp_transform;
+import 'dart:convert';
+
 import 'logger.dart' show Logger;
 import 'room.dart';
 import 'rtc.dart';
 
 class SFU extends EventEmitter {
+  JsonEncoder _jsonEnc = new JsonEncoder();
   var logger = new Logger("Pion::SFU");
   Room _room;
   RTC _rtc;
@@ -24,9 +28,51 @@ class SFU extends EventEmitter {
         _room.close();
     }
 
-    join (roomId) {
+    /*Replace the payload to adapt SFU-WS */
+  replacePayload(description) {
+    return description;
+    var session = sdp_transform.parse(description.sdp);
+    print('session => ' + _jsonEnc.convert(session));
+
+    var videoIdx = 1;
+
+    /*
+     * DefaultPayloadTypeG722 = 9
+     * DefaultPayloadTypeOpus = 111
+     * DefaultPayloadTypeVP8  = 96
+     * DefaultPayloadTypeVP9  = 98
+     * DefaultPayloadTypeH264 = 100
+    */
+    /*Add VP8 and RTX only.*/
+    var rtp = [
+      {"payload": 96, "codec": "VP8", "rate": 90000, "encoding": null},
+      {"payload": 97, "codec": "rtx", "rate": 90000, "encoding": null}
+    ];
+
+    session['media'][videoIdx]["payloads"] = "96 97";
+    session['media'][videoIdx]["rtp"] = rtp;
+
+    var fmtp = [
+      {"payload": 97, "config": "apt=96"}
+    ];
+
+    session['media'][videoIdx]["fmtp"] = fmtp;
+
+    var rtcpFB = [
+      {"payload": 96, "type": "transport-cc", "subtype": null},
+      {"payload": 96, "type": "ccm", "subtype": "fir"},
+      {"payload": 96, "type": "nack", "subtype": null},
+      {"payload": 96, "type": "nack", "subtype": "pli"}
+    ];
+    session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+
+    var sdp = sdp_transform.write(session, null);
+    return new RTCSessionDescription(sdp, description.type);
+  }
+
+    Future<dynamic> join(roomId) async {
         logger.debug('Join to [' + roomId + ']');
-        _room.join(roomId);
+        return _room.join(roomId);
     }
 
     publish () {
@@ -65,18 +111,24 @@ class SFU extends EventEmitter {
             var sender = await _rtc.createSender(pubid);
             sender.pc.onIceCandidate = (cand) async {
                 if (!sender.senderOffer) {
-                    var offer = sender.pc.getLocalDescription();
-                    logger.debug('Send offer sdp => ' + offer.toString());
+
                     sender.senderOffer = true;
-                    var answer = await _room.publish(offer,pubid);
-                    var jsep = answer['jsep'];
-                    var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
-                    logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
-                    sender.pc.setRemoteDescription(desc);
                 }
             };
-            var desc = await sender.pc.createOffer({ 'offerToReceiveVideo': false, 'offerToReceiveAudio': false });
-            sender.pc.setLocalDescription(desc);
+            sender.pc.onIceGatheringState = (state) async {
+              if(state == RTCIceGatheringState.RTCIceGatheringStateComplete){
+                 var offer = await sender.pc.getLocalDescription();
+                    //logger.debug('Send offer sdp => ' + offer.toString());
+                var answer = await _room.publish(offer,pubid);
+                var jsep = answer['jsep'];
+                var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
+                logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
+                sender.pc.setRemoteDescription(desc);
+              }
+            };
+            var tmp = await sender.pc.createOffer({ 'offerToReceiveVideo': false, 'offerToReceiveAudio': false });
+            var offer = replacePayload(tmp);
+            sender.pc.setLocalDescription(offer);
         }catch(error){
             logger.debug('onCreateSender error => ' + error);
         }
@@ -97,8 +149,9 @@ class SFU extends EventEmitter {
                     receiver.pc.setRemoteDescription(desc);
                 }
             };
-            var desc = await receiver.pc.createOffer({ 'offerToReceiveVideo': true, 'offerToReceiveAudio': true });
-            receiver.pc.setLocalDescription(desc);
+            var tmp = await receiver.pc.createOffer({ 'offerToReceiveVideo': true, 'offerToReceiveAudio': true });
+            var offer = replacePayload(tmp);
+            receiver.pc.setLocalDescription(offer);
         }catch(error){
             logger.debug('onRtcCreateRecver error => ' + error);
         }

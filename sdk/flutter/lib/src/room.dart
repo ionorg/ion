@@ -35,17 +35,20 @@ class Room extends EventEmitter {
 
         _protoo.on('request', _handleRequest);
         _protoo.on('notification', _handleNotification);
+        _protoo.connect();
     }
 
     String get uid => _uid;
 
-    join(roomId) async {
+    Future<dynamic> join(roomId) async {
         _rid = roomId;
         try{
             var data = await _protoo.send('join', {'rid': _rid});
             logger.debug('join success: result => ' + data.toString());
+            return data;
         }catch(error) {
             logger.debug('join reject: error =>' + error);
+            throw error;
         }
     }
 
@@ -78,23 +81,24 @@ class Room extends EventEmitter {
     }
 
     _handleRequest(request, accept, reject) {
-        logger.debug('Handle request from server: [method:' + request.method + ', data:' + request.data +']');
+        logger.debug('Handle request from server: [method:' + request['method'] + ', data:' + request['data'] +']');
     }
 
     _handleNotification (notification) {
-      logger.debug('Handle notification from server: [method:' + notification.method + ', data:' + notification.data +']');
-
-        switch(notification.method){
+      logger.debug('Handle notification from server: [method:' + notification['method'] + ', data:' + notification['data'] +']');
+      var method = notification['method'];
+      var data = notification['data'];
+      switch(method){
             case 'onPublish':
                 {
-                    var pubid = notification.data.pubid;
+                    var pubid = data['pubid'];
                     logger.debug('Got publish from => ' + pubid);
                     this.emit('onRtcCreateRecver', pubid);
                     break;
                 }
                 case 'onUnpublish':
                 {
-                    var pubid = notification.data.pubid;
+                     var pubid = data['pubid'];
                     logger.debug('[' + pubid + ']  => leave !!!!');
                     this.emit('onRtcLeaveRecver', pubid);
                     break;
