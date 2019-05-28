@@ -17,6 +17,7 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/jpillora/backoff v0.0.0-20180909062703-3050d21c67d7 // indirect
 	github.com/pion/rtcp v1.2.0
+	github.com/pion/rtp v1.1.2
 	github.com/pion/webrtc/v2 v2.0.14
 	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
