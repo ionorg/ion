@@ -5,23 +5,27 @@
   "main": "src/index.js",
   "scripts": {
     "build": "webpack --mode=production --config webpack.config.js",
-    "start": "webpack-dev-server --config ./webpack.config.js --mode development --open --https --cert ../conf/cert.pem --key  ../conf/key.pem"
+    "start": "webpack-dev-server --config ./webpack.config.js --mode development --open --https --cert ../../conf/cert.pem --key  ../../conf/key.pem"
   },
   "author": "pion",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.4.3",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
+    "@babel/plugin-transform-runtime": "^7.4.4",
     "@babel/preset-env": "^7.4.3",
     "@babel/preset-react": "^7.0.0",
+    "@babel/runtime": "^7.4.4",
     "babel-loader": "^8.0.5",
     "webpack": "^4.30.0",
     "webpack-cli": "^3.3.1",
     "webpack-dev-server": "^3.3.1"
   },
   "dependencies": {
+    "centrifuge": "^2.1.3",
     "events": "^3.0.0",
-    "centrifuge": "^2.1.3"
+    "protoo-client": "^4.0.3",
+    "uuid": "^3.3.2"
   },
   "keywords": [
     "pion",

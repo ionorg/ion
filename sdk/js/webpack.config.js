@@ -2,6 +2,7 @@ const webpack = require('webpack');
 
 module.exports = {
   entry: './src/index.js',
+  devtool: 'source-map',//eval | source-map
   module: {
     rules: [
       {
@@ -24,6 +25,7 @@ module.exports = {
   ],
   devServer: {
     contentBase: './dist',
-    hot: true
+    hot: true,
+    host:"0.0.0.0",
   }
 };

@@ -1,0 +1,8 @@
+logs
+bin
+conf/cert.pem
+conf/key.pem
+sfu
+sdk/js/node_modules/
+build.tar
+
