@@ -3,11 +3,11 @@ package media
 import (
 	"io"
 
+	"github.com/pion/ion/conf"
+	"github.com/pion/ion/log"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
-	"github.com/pion/sfu/conf"
-	"github.com/pion/sfu/log"
 	"github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
 )

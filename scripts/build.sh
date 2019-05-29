@@ -2,7 +2,7 @@
 
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
-EXE=sfu
+EXE=ion
 COMMAND=$APP_DIR/bin/$EXE
 
 help()
@@ -27,4 +27,4 @@ do
 done
 
 go build -o $COMMAND
-tar cvf build.tar bin/sfu conf/conf.toml conf/cert.pem conf/key.pem scripts/start.sh scripts/stop.sh
+tar cvf build.tar bin conf/conf.toml conf/cert.pem conf/key.pem scripts/start.sh scripts/stop.sh

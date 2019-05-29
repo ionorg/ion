@@ -74,7 +74,6 @@ func (c *config) load() bool {
 		return false
 	}
 	err = viper.GetViper().UnmarshalExact(c)
-	fmt.Printf("c=%+v", c)
 	if err != nil {
 		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
 		return false

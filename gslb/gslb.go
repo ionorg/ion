@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pion/sfu/conf"
-	"github.com/pion/sfu/util"
+	"github.com/pion/ion/conf"
+	"github.com/pion/ion/util"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 )
@@ -17,7 +17,7 @@ type GSLB struct {
 }
 
 func New() (*GSLB, error) {
-	c, err := NewClient(conf.Etcd.Servers, "sfu://"+util.GetIP(false), "0")
+	c, err := NewClient(conf.Etcd.Servers, "ion://"+util.GetIP(false), "0")
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (g *GSLB) UpdateLoad() error {
 		case <-time.After(time.Second):
 			ip := util.GetIP(true)
 			if ip != "" {
-				g.client.Update("sfu://"+ip, strconv.Itoa(g.getScore()))
+				g.client.Update("ion://"+ip, strconv.Itoa(g.getScore()))
 			}
 		}
 	}

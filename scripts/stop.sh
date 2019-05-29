@@ -3,7 +3,7 @@
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 
-PID_FILE=$APP_DIR/conf/sfu.pid  #pid file, default: worker.pid
+PID_FILE=$APP_DIR/conf/ion.pid  #pid file, default: worker.pid
 
 help()
 {
