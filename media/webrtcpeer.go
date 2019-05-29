@@ -3,7 +3,7 @@ package media
 import (
 	"time"
 
-	"github.com/pion/sfu/log"
+	"github.com/pion/ion/log"
 	"github.com/pion/webrtc/v2"
 )
 

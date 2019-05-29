@@ -5,10 +5,11 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/pion/sfu/conf"
-	"github.com/pion/sfu/gslb"
-	"github.com/pion/sfu/log"
-	"github.com/pion/sfu/service"
+	"github.com/pion/ion/gslb"
+
+	"github.com/pion/ion/conf"
+	"github.com/pion/ion/log"
+	"github.com/pion/ion/service"
 )
 
 func main() {

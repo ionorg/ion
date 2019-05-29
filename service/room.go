@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/cloudwebrtc/go-protoo/room"
-	"github.com/pion/sfu/log"
+	"github.com/pion/ion/log"
 
-	"github.com/pion/sfu/media"
+	"github.com/pion/ion/media"
 	"github.com/pion/webrtc/v2"
 )
 

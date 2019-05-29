@@ -3,12 +3,12 @@
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
-EXE=sfu
+EXE=ion
 COMMAND=$APP_DIR/bin/$EXE
 STOP=$APP_DIR/scripts/stop.sh
 CONFIG=$APP_DIR/conf/conf.toml
-PID_FILE=$APP_DIR/conf/sfu.pid
-LOG_FILE=$APP_DIR/logs/sfu.log
+PID_FILE=$APP_DIR/conf/ion.pid
+LOG_FILE=$APP_DIR/logs/ion.log
 
 help()
 {
