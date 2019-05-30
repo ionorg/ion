@@ -9,10 +9,10 @@
 * [cloudwebrtc](https://github.com/cloudwebrtc) - *pion sfu sdk*
 
 ## Roadmap
-[Projects](https://github.com/pion/sfu/projects/1)
+[Projects](https://github.com/pion/ion/projects/1)
 
 ## Project status
-[![Stargazers over time](https://starchart.cc/pion/sfu.svg)](https://starchart.cc/pion/sfu)
+[![Stargazers over time](https://starchart.cc/pion/ion.svg)](https://starchart.cc/pion/ion)
 
 ## How to use
 ### 1. make key.pem|cert.pem
@@ -24,7 +24,7 @@
 cd sdk/js
 npm i
 ```
-### 3. build sfu
+### 3. build ion
 ```
 ./scripts/build.sh
 ```
@@ -33,7 +33,7 @@ npm i
 cd sdk/js
 npm start
 ```
-### 5. start sfu
+### 5. start ion
 ```
 ./scripts/start.sh
 ```

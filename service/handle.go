@@ -10,8 +10,8 @@ import (
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/server"
 	"github.com/cloudwebrtc/go-protoo/transport"
-	"github.com/pion/sfu/conf"
-	"github.com/pion/sfu/log"
+	"github.com/pion/ion/conf"
+	"github.com/pion/ion/log"
 	"github.com/pion/webrtc/v2"
 )
 

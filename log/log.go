@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pion/sfu/conf"
+	"github.com/pion/ion/conf"
 	"github.com/rs/zerolog"
 )
 
