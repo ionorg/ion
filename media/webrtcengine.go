@@ -101,7 +101,7 @@ func (s WebRTCEngine) CreateReceiver(offer webrtc.SessionDescription, pc **webrt
 		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 ||
 			remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP9 ||
 			remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
-			*videoTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "video", "pion")
+			*videoTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "video", remoteTrack.Label())
 
 			go func() {
 				for {
@@ -161,7 +161,7 @@ func (s WebRTCEngine) CreateReceiver(offer webrtc.SessionDescription, pc **webrt
 			// }
 			// }
 		} else {
-			*audioTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "audio", "pion")
+			*audioTrack, err = (*pc).NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "audio", remoteTrack.Label())
 
 			rtpBuf := make([]byte, 1400)
 			for {
