@@ -7,6 +7,14 @@ import 'logger.dart' show Logger;
 import 'room.dart';
 import 'rtc.dart';
 
+final Map<String, dynamic> constraints = {
+    'mandatory': {
+      'OfferToReceiveAudio': true,
+      'OfferToReceiveVideo': true,
+    },
+    'optional': [],
+  };
+
 class SFU extends EventEmitter {
   JsonEncoder _jsonEnc = new JsonEncoder();
   var logger = new Logger("Pion::SFU");
@@ -79,8 +87,10 @@ class SFU extends EventEmitter {
         _createSender(_room.uid);
     }
 
-    leave () {
-        _room.leave();
+    leave () async {
+       await _rtc.closeSender();
+       await _rtc.closeReceivers();
+      _room.leave();
     }
 
     _onRoomConnect(){
@@ -88,6 +98,10 @@ class SFU extends EventEmitter {
 
         _rtc.on('localstream',(id, stream)  {
             this.emit('addLocalStream', id, stream);
+        });
+
+         _rtc.on('removelocalstream',(id, stream)  {
+            this.emit('removeLocalStream', id, stream);
         });
 
         _rtc.on('addstream',(id, stream)  {
@@ -109,24 +123,24 @@ class SFU extends EventEmitter {
     _createSender(pubid) async {
         try {
             var sender = await _rtc.createSender(pubid);
-            sender.pc.onIceCandidate = (cand) async {
-                if (!sender.senderOffer) {
+            var sendOffer = () async {
+                    var offer = await sender.pc.getLocalDescription();
+                    var answer = await _room.publish(offer,pubid);
+                    var jsep = answer['jsep'];
+                    var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
+                    logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
+                    sender.pc.setRemoteDescription(desc);
+            };
 
+            sender.pc.onIceCandidate = (cand) {
+                if (!sender.senderOffer) {
                     sender.senderOffer = true;
+                    sendOffer();
                 }
             };
             sender.pc.onIceGatheringState = (state) async {
-              if(state == RTCIceGatheringState.RTCIceGatheringStateComplete){
-                 var offer = await sender.pc.getLocalDescription();
-                    //logger.debug('Send offer sdp => ' + offer.toString());
-                var answer = await _room.publish(offer,pubid);
-                var jsep = answer['jsep'];
-                var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
-                logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
-                sender.pc.setRemoteDescription(desc);
-              }
             };
-            var tmp = await sender.pc.createOffer({ 'offerToReceiveVideo': false, 'offerToReceiveAudio': false });
+            var tmp = await sender.pc.createOffer(constraints);
             var offer = replacePayload(tmp);
             sender.pc.setLocalDescription(offer);
         }catch(error){
@@ -137,19 +151,21 @@ class SFU extends EventEmitter {
     _onRtcCreateRecver(pubid) async {
         try {
             var receiver = await _rtc.createRecver(pubid);
-            receiver.pc.onIceCandidate = (cand) async {
+            var sendOffer = () async {
+              var offer = await receiver.pc.getLocalDescription();
+              var answer = await _room.subscribe(offer,pubid);
+              var jsep = answer['jsep'];
+              var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
+              logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
+              receiver.pc.setRemoteDescription(desc);
+            };
+            receiver.pc.onIceCandidate = (cand) {
                 if (!receiver.senderOffer) {
-                    var offer = receiver.pc.getLocalDescription();
-                    logger.debug('Send offer sdp => ' + offer.toString());
-                    receiver.senderOffer = true;
-                    var answer = await _room.subscribe(offer,pubid);
-                    var jsep = answer['jsep'];
-                    var desc = RTCSessionDescription(jsep['sdp'], jsep['type']);
-                    logger.debug('Got answer(' + pubid + ') sdp => ' + desc.sdp);
-                    receiver.pc.setRemoteDescription(desc);
+                  receiver.senderOffer = true;
+                  sendOffer();
                 }
             };
-            var tmp = await receiver.pc.createOffer({ 'offerToReceiveVideo': true, 'offerToReceiveAudio': true });
+            var tmp = await receiver.pc.createOffer(constraints);
             var offer = replacePayload(tmp);
             receiver.pc.setLocalDescription(offer);
         }catch(error){
@@ -158,6 +174,6 @@ class SFU extends EventEmitter {
     }
 
     _onRtcLeaveRecver(pubid) {
-        _rtc.closeRecver(pubid);
+        _rtc.closeReceiver(pubid);
     }
 }

@@ -3,9 +3,11 @@ import 'package:flutter_webrtc/webrtc.dart';
 import 'logger.dart' show Logger;
 
 class Sender {
-  Sender(this.pc);
+  Sender(this.pc, this.stream, this.id);
+  String id;
   RTCPeerConnection pc;
   bool senderOffer = false;
+  MediaStream stream;
 }
 
 class Receiver {
@@ -13,13 +15,14 @@ class Receiver {
   RTCPeerConnection pc;
   bool senderOffer = false;
   String publid;
-  var streams = [];
+  List<MediaStream> streams = new List();
 }
 
 final Map<String, dynamic> configuration = {
     "iceServers": [
       {"url": "stun:stun.stunprotocol.org:3478"},
-    ]
+    ],
+    'sdpSemantics': 'plan-b',
   };
 
 final Map<String, dynamic> _config = {
@@ -34,7 +37,6 @@ final Map<String, dynamic> _constraints = {
       'OfferToReceiveAudio': true,
       'OfferToReceiveVideo': true,
     },
-    'sdpSemantics': 'unified-plan',
     'optional': [],
   };
 
@@ -67,24 +69,20 @@ class RTC extends EventEmitter {
         var stream = await navigator.getUserMedia(mediaConstraints);
         pc.addStream(stream);
         this.emit('localstream', pubid, stream);
-        return Sender(pc);
+        _sender = Sender(pc, stream,pubid);
+        return _sender;
     }
 
   Future<Receiver> createRecver(pubid) async {
         try {
             var receiver = Receiver(pubid);
-            RTCPeerConnection pc = await createPeerConnection(configuration, _config);
-            pc.onIceCandidate = (candidate) {
-                logger.debug('receiver.pc.onicecandidate => ' + candidate.toString());
-            };
-
+            RTCPeerConnection pc = await createPeerConnection(configuration, _constraints);
             pc.onAddStream = (stream){
                 logger.debug('receiver.pc.onaddstream = ' + stream.id);
                 var receiver = _receivers[pubid];
                 receiver.streams.add(stream);
                 this.emit('addstream', pubid, stream);
             };
-
             pc.onRemoveStream = (stream) {
                 logger.debug('receiver.pc.onremovestream = ' + stream.id);
                 _receivers.remove(pubid);
@@ -99,7 +97,16 @@ class RTC extends EventEmitter {
         }
     }
 
-    closeRecver(pubid) {
+    closeSender() async {
+      if(_sender != null){
+        this.emit('removelocalstream', _sender.id, _sender.stream);
+        await _sender.stream.dispose();
+        await _sender.pc.close();
+        _sender = null;
+      }
+    }
+
+    closeReceiver(pubid) {
         var receiver = _receivers[pubid];
         if(receiver != null) {
             receiver.streams.forEach((stream) {
@@ -108,5 +115,15 @@ class RTC extends EventEmitter {
             receiver.pc.close();
             _receivers.remove(pubid);
         }
+    }
+
+    closeReceivers() async {
+      _receivers.forEach((pubid, receiver) async {
+            receiver.streams.forEach((stream) async {
+                await stream.dispose();
+                this.emit('removestream', pubid, stream);
+            });
+            await receiver.pc.close();
+      });
     }
 }

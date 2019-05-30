@@ -43,6 +43,7 @@ func NewWebRTCEngine() *WebRTCEngine {
 	w := &WebRTCEngine{
 		mediaEngine: webrtc.MediaEngine{},
 		cfg: webrtc.Configuration{
+			SDPSemantics: webrtc.SDPSemanticsUnifiedPlanWithFallback,
 			ICEServers: []webrtc.ICEServer{
 				{
 					URLs: urls,

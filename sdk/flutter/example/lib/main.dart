@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_pion/flutter_pion.dart';
+import 'package:flutter_webrtc/webrtc.dart';
 
 void main() => runApp(MyApp());
 
@@ -24,6 +25,54 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+class VideoRendererAdapter {
+  String _id;
+  RTCVideoRenderer _renderer;
+  MediaStream _stream;
+  RTCVideoViewObjectFit _objectFit =
+      RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
+  VideoRendererAdapter(this._id);
+
+  setSrcObject(MediaStream stream, {bool localVideo = false}) async {
+    if (_renderer == null) {
+      _renderer = new RTCVideoRenderer();
+      await _renderer.initialize();
+    }
+    _stream = stream;
+    _renderer.srcObject = _stream;
+    if (localVideo) {
+      _objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
+      _renderer.mirror = true;
+      _renderer.objectFit = _objectFit;
+    }
+  }
+
+  switchObjFit() {
+    _objectFit =
+        (_objectFit == RTCVideoViewObjectFit.RTCVideoViewObjectFitContain)
+            ? RTCVideoViewObjectFit.RTCVideoViewObjectFitCover
+            : RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
+    _renderer.objectFit = _objectFit;
+  }
+
+  dispose() async {
+    if (_renderer != null) {
+      print('dispose for texture id ' + _renderer.textureId.toString());
+      _renderer.srcObject = null;
+      await _renderer.dispose();
+      _renderer = null;
+    }
+  }
+
+  get id => _id;
+
+  get renderer => _renderer;
+
+  get stream => _stream;
+
+  get streamId => _stream.id;
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   String _server;
   String _roomId;
@@ -31,6 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
   SFU _sfu;
   bool _inCalling = false;
   bool _connected = false;
+  List<VideoRendererAdapter> _videoRendererAdapters = new List();
 
   @override
   initState() {
@@ -62,6 +112,37 @@ class _MyHomePageState extends State<MyHomePage> {
           _connected = false;
         });
       });
+      _sfu.on('addLocalStream',(id, stream) async {
+          var adapter = new VideoRendererAdapter(id);
+          await adapter.setSrcObject(stream);
+          setState(() {
+            _videoRendererAdapters.add(adapter);
+          });
+      });
+
+      _sfu.on('removeLocalStream', (id, stream) async {
+        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
+        await adapter.dispose();
+        setState(() {
+            _videoRendererAdapters.remove(adapter);
+        });
+      });
+
+      _sfu.on('addRemoteStream',(id, stream) async {
+          var adapter = new VideoRendererAdapter(id);
+          await adapter.setSrcObject(stream);
+          setState(() {
+            _videoRendererAdapters.add(adapter);
+          });
+      });
+
+      _sfu.on('removeRemoteStream', (id, stream) async {
+        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
+        await adapter.dispose();
+        setState(() {
+            _videoRendererAdapters.remove(adapter);
+        });
+      });
     }
   }
 
@@ -82,6 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _inCalling = false;
     });
     if (_sfu != null) {
+      await _sfu.leave();
       _sfu.close();
       _sfu = null;
     }
@@ -216,15 +298,20 @@ Widget buildJoinView(context) {
             ]));
   }
 
-  Widget buildVideoView(String item) {
+  Widget buildVideoView(VideoRendererAdapter adapter) {
     return Container(
       alignment: Alignment.center,
-      child: Text(
-        item,
-        style: TextStyle(color: Colors.white, fontSize: 20),
-      ),
-      color: Colors.blue,
+      child: RTCVideoView(adapter.renderer),
+      color: Colors.black,
     );
+  }
+
+ List<Widget> _buildVideoViews() {
+    List<Widget> views = new List<Widget>();
+    _videoRendererAdapters.forEach((adapter) {
+      views.add(buildVideoView(adapter));
+    });
+    return views;
   }
 
   Widget buildStreamsGridView() {
@@ -233,15 +320,7 @@ Widget buildJoinView(context) {
       padding: const EdgeInsets.all(1.0),
       mainAxisSpacing: 1.0,
       crossAxisSpacing: 1.0,
-      children: <Widget>[
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-        buildVideoView('videoview'),
-      ],
+      children: _buildVideoViews(),
     );
   }
 

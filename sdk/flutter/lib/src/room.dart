@@ -81,11 +81,11 @@ class Room extends EventEmitter {
     }
 
     _handleRequest(request, accept, reject) {
-        logger.debug('Handle request from server: [method:' + request['method'] + ', data:' + request['data'] +']');
+        logger.debug('Handle request from server: [method:' + request['method'] + ', data:' + request['data'].toString() +']');
     }
 
     _handleNotification (notification) {
-      logger.debug('Handle notification from server: [method:' + notification['method'] + ', data:' + notification['data'] +']');
+      logger.debug('Handle notification from server: [method:' + notification['method'] + ', data:' + notification['data'].toString() +']');
       var method = notification['method'];
       var data = notification['data'];
       switch(method){
