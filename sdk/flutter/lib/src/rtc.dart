@@ -25,21 +25,6 @@ final Map<String, dynamic> configuration = {
     'sdpSemantics': 'plan-b',
   };
 
-final Map<String, dynamic> _config = {
-    'mandatory': {},
-    'optional': [
-      {'DtlsSrtpKeyAgreement': true},
-    ],
-  };
-
-final Map<String, dynamic> _constraints = {
-    'mandatory': {
-      'OfferToReceiveAudio': true,
-      'OfferToReceiveVideo': true,
-    },
-    'optional': [],
-  };
-
 final Map<String, dynamic> mediaConstraints = {
       "audio": true,
       "video": {
@@ -65,7 +50,14 @@ class RTC extends EventEmitter {
   get receivers => _receivers;
 
   Future<Sender> createSender(var pubid) async {
-        var pc = await createPeerConnection(configuration, _config);
+        final Map<String, dynamic> constraints = {
+          'mandatory': {
+            'OfferToReceiveAudio': false,
+            'OfferToReceiveVideo': false,
+          },
+          'optional': [],
+        };
+        var pc = await createPeerConnection(configuration, constraints);
         var stream = await navigator.getUserMedia(mediaConstraints);
         pc.addStream(stream);
         this.emit('localstream', pubid, stream);
@@ -74,6 +66,13 @@ class RTC extends EventEmitter {
     }
 
   Future<Receiver> createRecver(pubid) async {
+      final Map<String, dynamic> _constraints = {
+          'mandatory': {
+            'OfferToReceiveAudio': true,
+            'OfferToReceiveVideo': true,
+          },
+          'optional': [],
+        };
         try {
             var receiver = Receiver(pubid);
             RTCPeerConnection pc = await createPeerConnection(configuration, _constraints);

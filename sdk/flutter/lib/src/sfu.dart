@@ -7,14 +7,6 @@ import 'logger.dart' show Logger;
 import 'room.dart';
 import 'rtc.dart';
 
-final Map<String, dynamic> constraints = {
-    'mandatory': {
-      'OfferToReceiveAudio': true,
-      'OfferToReceiveVideo': true,
-    },
-    'optional': [],
-  };
-
 class SFU extends EventEmitter {
   JsonEncoder _jsonEnc = new JsonEncoder();
   var logger = new Logger("Pion::SFU");
@@ -121,6 +113,13 @@ class SFU extends EventEmitter {
     }
 
     _createSender(pubid) async {
+        final Map<String, dynamic> constraints = {
+          'mandatory': {
+            'OfferToReceiveAudio': false,
+            'OfferToReceiveVideo': false,
+          },
+          'optional': [],
+        };
         try {
             var sender = await _rtc.createSender(pubid);
             var sendOffer = () async {
@@ -149,6 +148,13 @@ class SFU extends EventEmitter {
     }
 
     _onRtcCreateRecver(pubid) async {
+        final Map<String, dynamic> constraints = {
+          'mandatory': {
+            'OfferToReceiveAudio': true,
+            'OfferToReceiveVideo': true,
+          },
+          'optional': [],
+        };
         try {
             var receiver = await _rtc.createRecver(pubid);
             var sendOffer = () async {
