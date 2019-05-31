@@ -18,7 +18,7 @@ module.exports = {
   output: {
     path: __dirname + '/dist',
     publicPath: '/',
-    filename: 'pion-sfu.js'
+    filename: 'ion-sdk.js'
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin()

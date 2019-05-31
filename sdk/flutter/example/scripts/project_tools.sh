@@ -2,7 +2,7 @@
 
 FLUTTER_APP_FOLDER=$(cd `dirname $0`/../; pwd)
 FLUTTER_APP_ORG=com.github.pion
-FLUTTER_APP_PROJECT_NAME=pion_sfu_example
+FLUTTER_APP_PROJECT_NAME=ion_sfu_example
 CMD=$1
 
 function cleanup() {

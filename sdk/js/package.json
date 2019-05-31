@@ -1,7 +1,7 @@
 {
-  "name": "pion-webapp-sfu-ws",
+  "name": "ion-js-sdk",
   "version": "0.0.1",
-  "description": "A webapp for pion sfu-ws",
+  "description": "A js sdk for ion sfu",
   "main": "src/index.js",
   "scripts": {
     "build": "webpack --mode=production --config webpack.config.js",
@@ -30,6 +30,8 @@
   "keywords": [
     "pion",
     "sfu",
-    "webrtc"
+    "webrtc",
+    "ion",
+    "js"
   ]
 }

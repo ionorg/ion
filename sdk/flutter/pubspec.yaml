@@ -1,8 +1,8 @@
 name: flutter_pion
 version: 0.0.1
 author: pion
-description: webrtc plugin for pion sfu. 
-homepage: https://github.com/pion/sfu
+description: webrtc plugin for ion sfu.
+homepage: https://github.com/pion/ion
 environment:
   sdk: '>1.8.0 <3.0.0'
 
