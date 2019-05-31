@@ -30,7 +30,6 @@ class SFU extends EventEmitter {
 
     /*Replace the payload to adapt SFU-WS */
   replacePayload(description) {
-    return description;
     var session = sdp_transform.parse(description.sdp);
     print('session => ' + _jsonEnc.convert(session));
 
