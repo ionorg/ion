@@ -10,7 +10,9 @@ import (
 
 var (
 	cfg    = config{}
-	SFU    = &cfg.SFU
+	Global = &cfg.Global
+	WebRTC = &cfg.WebRTC
+	Rtp    = &cfg.Rtp
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
 	Signal = &cfg.Signal
@@ -18,8 +20,15 @@ var (
 
 func init() {
 	if !cfg.parse() {
-		panic("config init error!")
+		showHelp()
+		os.Exit(-1)
 	}
+}
+
+type global struct {
+	AdveritiseIP string `mapstructure:"advertiseip"`
+	Pprof        string `mapstructure:"pprof"`
+	// TestIP []string `mapstructure:"testip"`
 }
 
 type log struct {
@@ -31,22 +40,26 @@ type etcd struct {
 }
 
 type signal struct {
-	Host    string `mapstructure:"host"`
-	Port    string `mapstructure:"port"`
-	CertPem string `mapstructure:"certpem"`
-	KeyPem  string `mapstructure:"keypem"`
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
+	Cert string `mapstructure:"cert"`
+	Key  string `mapstructure:"key"`
 }
 
-type sfu struct {
-	Ices   []string `mapstructure:"ices"`
-	Single bool     `mapstructure:"single"`
-	Pprof  string   `mapstructure:"pprof"`
+type webrtc struct {
+	Ices []string `mapstructure:"ices"`
+}
+
+type rtp struct {
+	Port int `mapstructure:"port"`
 }
 
 type config struct {
-	SFU     sfu    `mapstructure:"sfu"`
+	Global  global `mapstructure:"global"`
+	WebRTC  webrtc `mapstructure:"webrtc"`
+	Rtp     rtp    `mapstructure:"rtp"`
 	Log     log    `mapstructure:"log"`
-	Etcd    etcd   `mapstructure:"etcds"`
+	Etcd    etcd   `mapstructure:"etcd"`
 	Signal  signal `mapstructure:"signal"`
 	CfgFile string
 }
@@ -58,10 +71,8 @@ func showHelp() {
 }
 
 func (c *config) load() bool {
-
 	_, err := os.Stat(c.CfgFile)
 	if err != nil {
-		panic(c.CfgFile + " didn't exist!")
 		return false
 	}
 
@@ -87,7 +98,6 @@ func (c *config) parse() bool {
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !c.load() {
-		showHelp()
 		return false
 	}
 

@@ -1,11 +1,14 @@
 
 ## protocol
-This is a signal protocol support by [protoo](https://protoojs.org/#protoo)
+There are two signal protocols base on [protoo](https://protoojs.org/#protoo)
 
+* client to ion
+* ion to ion
 
-## 1 join room
+## client to ion protocol
+### 1) join room
 
-### request
+#### request
 
 ```
 method:join
@@ -14,7 +17,7 @@ data:{
 }
 ```
 
-### response
+#### response
 ```
 //success
 ok:true
@@ -27,8 +30,8 @@ errCode:-1
 ```
 when publisher join success, SFU broadcast "onPublish" to him
 
-## 2) leave room
-### request
+### 2) leave room
+#### request
 
 ```
 method:leave
@@ -37,7 +40,7 @@ data:{
 }
 ```
 
-### response
+#### response
 ```
 //success
 ok:true
@@ -47,8 +50,8 @@ data:{}
 ok:false
 errCode:-1
 ```
-## 3) publish
-### request
+### 3) publish
+#### request
 
 ```
 method:publish
@@ -57,7 +60,7 @@ data:{
 }
 ```
 
-### response
+#### response
 ```
 //success
 ok:true
@@ -70,10 +73,10 @@ ok:false
 errCode:-1
 ```
 
-## 4) onPublish
+### 4) onPublish
 
 when publisher published success, SFU broadcast "onPublish" to others
-### request
+#### request
 
 ```
 method:onPublish
@@ -82,7 +85,7 @@ data:{
 }
 ```
 
-### response
+#### response
 ```
 //success
 ok:true
@@ -93,10 +96,10 @@ ok:false
 errCode:-1
 ```
 
-## 5) subscribe
+### 5) subscribe
 
 client can subscribe $pubid when it get "onPublish"
-### request
+#### request
 ```
 method:subscribe
 data:{
@@ -105,7 +108,7 @@ data:{
 }
 ```
 
-### response
+#### response
 ```
 //success
 ok:true
@@ -117,12 +120,12 @@ data:{
 ok:false
 errCode:-1
 ```
-## 6) onUnpublish
+### 6) onUnpublish
 
 when publisher leave room, SFU broadcast "onUnpublish"
 
 subscribers need to delete this pc and player when they receive "onUnpublish"
-###request
+####request
 ```
 method:onUnpublish
 data:{
@@ -130,7 +133,7 @@ data:{
 }
 ```
 
-###response
+####response
 ```
 //success
 ok:true
@@ -140,5 +143,105 @@ data:{}
 ok:false
 errCode:-1
 ```
-## 7) control [WIP]
+
+### 7) unpublish
+
+when publisher unpublish, SFU broadcast "onUnpublish"
+
+subscribers need to delete this pc and player when they receive "onUnpublish"
+####request
+```
+method:unpublish
+data:{
+
+}
+```
+
+####response
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 7) unsubscribe
+
+####request
+```
+method:unsubscribe
+data:{
+    "pubid": "$pubid"
+}
+```
+
+####response
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 8) control [WIP]
 publishers can control their devices, like "muted" "close camera"..
+
+## ion to ion protocol
+
+### 1) onPublish
+
+when publisher published success, ion broadcast "onPublish" to ion
+#### request
+
+```
+method:onPublish
+data:{
+    "rid": "$rid",
+    "pubid": "$pubid"
+}
+```
+
+#### response
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+
+```
+
+### 2) subscribe
+
+ion can subscribe $pubid when it get "onPublish"
+#### request
+```
+method:subscribe
+data:{
+    "rid":"$rid",
+    "pubid:"$pubid",
+    "addr":"$rtpaddr"
+}
+```
+
+#### response
+```
+//success
+ok:true
+data:{
+}
+
+//failed
+ok:false
+errCode:-1
+```
+
+

@@ -5,29 +5,21 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/pion/ion/gslb"
-
+	"github.com/pion/ion/biz"
 	"github.com/pion/ion/conf"
 	"github.com/pion/ion/log"
-	"github.com/pion/ion/service"
+	"github.com/pion/ion/signal"
 )
 
 func main() {
-	if conf.SFU.Pprof != "" {
+	if conf.Global.Pprof != "" {
 		go func() {
-			log.Infof("Start pprof on %s", conf.SFU.Pprof)
-			http.ListenAndServe(conf.SFU.Pprof, nil)
+			log.Infof("Start pprof on %s", conf.Global.Pprof)
+			http.ListenAndServe(conf.Global.Pprof, nil)
 		}()
 	}
+	signal.SetBizCall(biz.BizEntry)
+	signal.Start()
 
-	if !conf.SFU.Single {
-		g, err := gslb.New()
-		if err != nil {
-			log.Errorf("gslb err => %v", err)
-			return
-		}
-		g.KeepAlive()
-	}
-	service.Start()
 	select {}
 }
