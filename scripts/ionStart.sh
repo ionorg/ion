@@ -6,7 +6,7 @@ mkdir -p $APP_DIR/logs
 EXE=ion
 COMMAND=$APP_DIR/bin/$EXE
 STOP=$APP_DIR/scripts/stop.sh
-CONFIG=$APP_DIR/conf/conf.toml
+CONFIG=$APP_DIR/conf/ion.toml
 PID_FILE=$APP_DIR/conf/ion.pid
 LOG_FILE=$APP_DIR/logs/ion.log
 
@@ -44,6 +44,9 @@ if [ ! -r $CONFIG ]; then
     echo "$CONFIG not exsist"
     exit 1;
 fi
+
+## build first
+go build -o $COMMAND
 
 ## run command
 nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &

@@ -9,7 +9,7 @@ help()
 {
     echo ""
     echo "stop script"
-    echo "Usage:./stop.sh [-h]"
+    echo "Usage:./ionStop.sh [-h]"
     echo ""
 }
 

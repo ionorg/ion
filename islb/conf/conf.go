@@ -11,12 +11,10 @@ import (
 var (
 	cfg    = config{}
 	Global = &cfg.Global
-	WebRTC = &cfg.WebRTC
-	Rtp    = &cfg.Rtp
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
-	Signal = &cfg.Signal
 	Amqp   = &cfg.Amqp
+	Redis  = &cfg.Redis
 )
 
 func init() {
@@ -24,10 +22,10 @@ func init() {
 		showHelp()
 		os.Exit(-1)
 	}
+	fmt.Println("conf.init() ok")
 }
 
 type global struct {
-	Addr  string `mapstructure:"addr"`
 	Pprof string `mapstructure:"pprof"`
 	// TestIP []string `mapstructure:"testip"`
 }
@@ -40,33 +38,22 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
-type signal struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Cert string `mapstructure:"cert"`
-	Key  string `mapstructure:"key"`
-}
-
 type amqp struct {
-	URL string `mapstructure:"url"`
+	Url string `mapstructure:"url"`
 }
 
-type webrtc struct {
-	ICE []string `mapstructure:"ice"`
-}
-
-type rtp struct {
-	Port int `mapstructure:"port"`
+type redis struct {
+	Addrs []string `mapstructure:"addrs"`
+	Pwd   string   `mapstructure:"password"`
+	DB    int      `mapstructure:"db"`
 }
 
 type config struct {
 	Global  global `mapstructure:"global"`
-	WebRTC  webrtc `mapstructure:"webrtc"`
-	Rtp     rtp    `mapstructure:"rtp"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
-	Signal  signal `mapstructure:"signal"`
 	Amqp    amqp   `mapstructure:"amqp"`
+	Redis   redis  `mapstructure:"redis"`
 	CfgFile string
 }
 

@@ -2,62 +2,31 @@ package log
 
 import (
 	"os"
-	"time"
 
-	"github.com/pion/ion/conf"
 	"github.com/rs/zerolog"
 )
 
 var log zerolog.Logger
 
-// var log zerolog.ConsoleWriter
-
-// Level defines log levels.
-type Level uint8
-
 const (
-	// DebugLevel defines debug log level.
-	DebugLevel Level = iota
-	// InfoLevel defines info log level.
-	InfoLevel
-	// WarnLevel defines warn log level.
-	WarnLevel
-	// ErrorLevel defines error log level.
-	ErrorLevel
-	// FatalLevel defines fatal log level.
-	FatalLevel
-	// PanicLevel defines panic log level.
-	PanicLevel
-	// NoLevel defines an absent log level.
-	NoLevel
-	// Disabled disables the logger.
-	Disabled
+	timeFormat = "2006-01-02 15:04:05.999"
 )
 
-func init() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	// zerolog.TimestampFunc = func() time.Time {
-	// return time.Date(2008, 1, 8, 17, 5, 05, 0, time.UTC)
-	// }
-	// zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
-	// log = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	log = zerolog.New(output).With().Timestamp().Logger()
-	switch conf.Log.Level {
+func Init(level string) {
+	l := zerolog.GlobalLevel()
+	switch level {
 	case "debug":
-		SetLevel(DebugLevel)
+		l = zerolog.DebugLevel
 	case "info":
-		SetLevel(InfoLevel)
+		l = zerolog.InfoLevel
 	case "warn":
-		SetLevel(WarnLevel)
+		l = zerolog.WarnLevel
 	case "error":
-		SetLevel(ErrorLevel)
+		l = zerolog.ErrorLevel
 	}
-
-}
-
-func SetLevel(l Level) {
-	zerolog.SetGlobalLevel(zerolog.Level(l))
+	zerolog.TimeFieldFormat = timeFormat
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
+	log = zerolog.New(output).Level(l).With().Timestamp().Logger()
 }
 
 func Infof(format string, v ...interface{}) {
@@ -79,23 +48,3 @@ func Errorf(format string, v ...interface{}) {
 func Panicf(format string, v ...interface{}) {
 	log.Panic().Msgf(format, v...)
 }
-
-// func Info(msg string) {
-// log.Info().Msg(msg)
-// }
-
-// func Debug(msg string) {
-// log.Debug().Msg(msg)
-// }
-
-// func Warn(msg string) {
-// log.Warn().Msg(msg)
-// }
-
-// func Error(msg string) {
-// log.Error().Msg(msg)
-// }
-
-// func Panic(msg string) {
-// log.Panic().Msg(msg)
-// }
