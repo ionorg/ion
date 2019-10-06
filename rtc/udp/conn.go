@@ -148,7 +148,9 @@ readLoop:
 		select {
 		case cBuf := <-conn.readCh:
 			//copy buf to cBuf
+			log.Debugf("Listener.readLoop copy")
 			n = copy(cBuf, buf[:n])
+			log.Debugf("Listener.readLoop copy n=%d", n)
 			conn.sizeCh <- n
 		case <-conn.doneCh:
 			continue readLoop

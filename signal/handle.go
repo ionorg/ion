@@ -8,19 +8,6 @@ import (
 	"github.com/pion/ion/util"
 )
 
-var (
-	bizCall func(method string, peer *Peer, msg map[string]interface{}, accept AcceptFunc, reject RejectFunc)
-)
-
-const (
-	ErrInvalidMethod = "method not found"
-	ErrInvalidData   = "data not found"
-)
-
-func SetBizCall(i interface{}) {
-	bizCall = i.(func(method string, peer *Peer, msg map[string]interface{}, accept AcceptFunc, reject RejectFunc))
-}
-
 func in(transport *transport.WebSocketTransport, request *http.Request) {
 	vars := request.URL.Query()
 	peerID := vars["peer"]
@@ -33,18 +20,18 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	peer := newPeer(id, transport)
 
 	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
-		// defer util.Recover("signal.in handleRequest")
-		method := util.GetValue(request, "method")
+		defer util.Recover("signal.in handleRequest")
+		method := util.Val(request, "method")
 		if method == "" {
 			log.Errorf("method => %v", method)
-			reject(-1, ErrInvalidMethod)
+			reject(-1, errInvalidMethod)
 			return
 		}
 
 		data := request["data"]
 		if data == nil {
 			log.Errorf("data => %v", data)
-			reject(-1, ErrInvalidData)
+			reject(-1, errInvalidData)
 			return
 		}
 
@@ -55,17 +42,17 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 
 	handleNotification := func(notification map[string]interface{}) {
 		defer util.Recover("signal.in handleNotification")
-		method := util.GetValue(notification, "method")
+		method := util.Val(notification, "method")
 		if method == "" {
 			log.Errorf("method => %v", method)
-			reject(-1, ErrInvalidMethod)
+			reject(-1, errInvalidMethod)
 			return
 		}
 
 		data := notification["data"]
 		if data == nil {
 			log.Errorf("data => %v", data)
-			reject(-1, ErrInvalidData)
+			reject(-1, errInvalidData)
 			return
 		}
 

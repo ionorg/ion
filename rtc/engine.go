@@ -1,27 +1,16 @@
 package rtc
 
 import (
+	"fmt"
 	"net"
-	"sync"
+	"time"
 
-	"github.com/pion/ion/conf"
 	"github.com/pion/ion/log"
 	"github.com/pion/ion/rtc/udp"
 )
 
-var (
-	listener *udp.Listener
-	pipes    map[string]*Pipeline
-	pipeLock sync.RWMutex
-)
-
-func init() {
-	pipes = make(map[string]*Pipeline)
-	serve(conf.Rtp.Port)
-}
-
 func serve(port int) error {
-	log.Infof("udp listening:%d", port)
+	log.Infof("UDP listening:%d", port)
 	if listener != nil {
 		listener.Close()
 	}
@@ -46,32 +35,38 @@ func serve(port int) error {
 					t.receiveRTP()
 				}
 				pid := t.getPID()
-				for ; pid == ""; pid = t.getPID() {
-
+				cnt := 0
+				for pid == "" && cnt < 10 {
+					pid = t.getPID()
+					time.Sleep(time.Millisecond)
+					cnt++
 				}
-				log.Infof("accept new rtp %s len=%d", pid, len(pid))
-				getOrNewPipeline(pid).AddPub(pid, t)
+				if pid == "" && cnt >= 10 {
+					log.Infof("pid == \"\" && cnt >=10 return")
+					return
+				}
+				log.Infof("accept new rtp pid=%s conn=%s", pid, conn.RemoteAddr().String())
+				getOrNewPipeline(pid).addPub(pid, t)
 			}()
 		}
 	}()
 	return nil
 }
 
-func addPipeline(pid string) *Pipeline {
+func addPipeline(pid string) *pipeline {
 	pipeLock.Lock()
 	defer pipeLock.Unlock()
 	pipes[pid] = newPipeline(pid)
 	return pipes[pid]
 }
 
-func getPipeline(pid string) *Pipeline {
-	log.Infof("getPipeline pid=%s len=%d pipes=%v", pid, len(pid), pipes)
+func getPipeline(pid string) *pipeline {
 	pipeLock.RLock()
 	defer pipeLock.RUnlock()
 	return pipes[pid]
 }
 
-func getOrNewPipeline(pid string) *Pipeline {
+func getOrNewPipeline(pid string) *pipeline {
 	p := getPipeline(pid)
 	if p == nil {
 		p = addPipeline(pid)
@@ -79,14 +74,14 @@ func getOrNewPipeline(pid string) *Pipeline {
 	return p
 }
 
-func closePipeline(pid string) {
-	pipeLock.RLock()
-	p := pipes[pid]
-	pipeLock.RUnlock()
+func DelPub(pid string) {
+	log.Infof("DelPub pid=%s", pid)
+	p := getPipeline(pid)
 	if p == nil {
+		log.Infof("DelPub p=nil")
 		return
 	}
-	p.Stop()
+	p.Close()
 	pipeLock.Lock()
 	delete(pipes, pid)
 	pipeLock.Unlock()
@@ -96,7 +91,7 @@ func Close() {
 	pipeLock.Lock()
 	for pid, pipeline := range pipes {
 		if pipeline != nil {
-			pipeline.Stop()
+			pipeline.Close()
 			delete(pipes, pid)
 		}
 	}
@@ -109,7 +104,7 @@ func GetPub(pid string) Transport {
 	if p == nil {
 		return nil
 	}
-	return p.GetPub()
+	return p.getPub()
 }
 
 func GetSubs(pid string) map[string]Transport {
@@ -117,15 +112,20 @@ func GetSubs(pid string) map[string]Transport {
 	if p == nil {
 		return nil
 	}
-	return p.GetSubs()
+	return p.getSubs()
 }
 
-func DelPub(pid string) {
-	p := getPipeline(pid)
-	if p == nil {
-		return
+func DelSubFromAllPub(sid string) map[string]string {
+	m := make(map[string]string)
+	pipeLock.Lock()
+	defer pipeLock.Unlock()
+	for pid, p := range pipes {
+		p.delSub(sid)
+		if p.noSub() && p.isRtpPub() {
+			m[pid] = pid
+		}
 	}
-	p.DelPub()
+	return m
 }
 
 func DelSub(pid, sid string) {
@@ -133,27 +133,40 @@ func DelSub(pid, sid string) {
 	if p == nil {
 		return
 	}
-	p.DelSub(sid)
+	p.delSub(sid)
 }
 
 func AddNewRTPSub(pid, sid, addr string) {
-	log.Infof("AddNewRTPSub pid=%v sid=%v addr=%v", pid, sid, addr)
+	log.Infof("rtc.AddNewRTPSub pid=%v sid=%v addr=%v", pid, sid, addr)
 	p := getOrNewPipeline(pid)
 	if p.getSubByAddr(addr) == nil {
-		p.AddSub(sid, newPubRTPTransport(sid, pid, addr))
+		p.addSub(sid, newPubRTPTransport(sid, pid, addr))
 	}
 }
 
 func AddNewWebRTCPub(pid string) *WebRTCTransport {
-	log.Infof("AddNewWebRTCPub pid=%v", pid)
+	log.Infof("rtc.AddNewWebRTCPub pid=%v", pid)
 	wt := newWebRTCTransport(pid)
-	getOrNewPipeline(pid).AddPub(pid, wt).sendPLI()
+	getOrNewPipeline(pid).addPub(pid, wt).sendPLI()
 	return wt
 }
 
 func AddNewWebRTCSub(pid, sid string) *WebRTCTransport {
-	log.Infof("AddNewWebRTCSub pid=%v sid=%v", pid, sid)
+	log.Infof("rtc.AddNewWebRTCSub pid=%v sid=%v", pid, sid)
 	wt := newWebRTCTransport(sid)
-	getOrNewPipeline(pid).AddSub(sid, wt)
+	getOrNewPipeline(pid).addSub(sid, wt)
 	return wt
+}
+
+func Stat() {
+	var info string
+	info += "\n----------------pipeline-----------------\n"
+	pipeLock.RLock()
+	for id, pipeline := range pipes {
+		info += "pub: " + id + "\n"
+		subs := pipeline.getSubs()
+		info += fmt.Sprintf("subs: %d\n\n", len(subs))
+	}
+	pipeLock.RUnlock()
+	log.Infof(info)
 }

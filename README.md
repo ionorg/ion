@@ -11,42 +11,25 @@
 ## Roadmap
 
 [Projects](https://github.com/pion/ion/projects/1)
+Welcome contributing to ion!
 
 ## Project status
 [![Stargazers over time](https://starchart.cc/pion/ion.svg)](https://starchart.cc/pion/ion)
 
 ## How to use
-### 1. make key.pem|cert.pem
+### 1. make key
 ```
 ./scripts/makekey.sh
 ```
-### 2. install deps
+### 2. build
 ```
 ./scripts/installDeps.sh
 ```
-### 3. build web app
+### 3. run
 ```
-cd sdk/js
-npm i
+./scripts/allRestart.sh
 ```
-### 4. build ion
-```
-./scripts/build.sh
-```
-### 5. start web app
-```
-cd sdk/js
-npm start
-```
-### 6. start etcd
-```
-./scripts/start_etcd.sh
-```
-### 7. start ion
-```
-./scripts/start.sh
-```
-### 8. let's chat
+### 4. let's chat
 Open this url with chrome
 
 ```

@@ -6,9 +6,6 @@ import (
 	"github.com/pion/ion/log"
 )
 
-type AcceptFunc peer.AcceptFunc
-type RejectFunc peer.RejectFunc
-
 func newPeer(id string, t *transport.WebSocketTransport) *Peer {
 	return &Peer{
 		Peer: *peer.NewPeer(id, t),

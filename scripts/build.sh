@@ -1,8 +1,11 @@
 #!/bin/bash
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
-EXE=ion
-COMMAND=$APP_DIR/bin/$EXE
+EXE1=ion
+EXE2=islb
+
+COMMAND1=$APP_DIR/bin/$EXE1
+COMMAND2=$APP_DIR/bin/$EXE2
 
 
 if [ -f /etc/os-release ]; then
@@ -84,5 +87,18 @@ if [[ "$OS_TYPE" == "Ubuntu" || "$OS_TYPE" =~ "CentOS" || "$OS_TYPE" == "ubuntu"
     export GOOS=linux
 fi
 
-go build -o $COMMAND
-tar cvf build.tar bin conf/conf.toml conf/cert.pem conf/key.pem scripts/start.sh scripts/stop.sh
+echo "-------------build ion----------"
+echo "go build -o $COMMAND1"
+go build -o $COMMAND1
+
+echo "-------------build islb----------"
+echo "go build -o $COMMAND2"
+cd $APP_DIR/islb
+go build -o $COMMAND2
+
+cd $APP_DIR
+echo "------------tar ion-----------"
+tar cvzf ion.tar.gz bin/ion conf/ion.toml conf/cert.pem conf/key.pem scripts/ionStart.sh scripts/ionStop.sh
+
+echo "------------tar islb-----------"
+tar cvzf islb.tar.gz bin/islb conf/islb.toml conf/cert.pem conf/key.pem scripts/ionStart.sh scripts/ionStop.sh

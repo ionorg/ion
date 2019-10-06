@@ -3,35 +3,30 @@ package log
 import (
 	"os"
 
-	"github.com/pion/ion/conf"
 	"github.com/rs/zerolog"
 )
 
 var log zerolog.Logger
 
 const (
-	// timeFormat = "2006-01-02T15:04:05.999Z07:00"
 	timeFormat = "2006-01-02 15:04:05.999"
 )
 
-func init() {
+func Init(level string) {
+	l := zerolog.GlobalLevel()
+	switch level {
+	case "debug":
+		l = zerolog.DebugLevel
+	case "info":
+		l = zerolog.InfoLevel
+	case "warn":
+		l = zerolog.WarnLevel
+	case "error":
+		l = zerolog.ErrorLevel
+	}
 	zerolog.TimeFieldFormat = timeFormat
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
-	log = zerolog.New(output).Level(getLogLevel()).With().Timestamp().Logger()
-}
-
-func getLogLevel() zerolog.Level {
-	switch conf.Log.Level {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	}
-	return zerolog.GlobalLevel()
+	log = zerolog.New(output).Level(l).With().Timestamp().Logger()
 }
 
 func Infof(format string, v ...interface{}) {

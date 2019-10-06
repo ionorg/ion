@@ -1,39 +1,23 @@
 package rtc
 
 import (
-	"errors"
 	"io"
 	"time"
 
 	"sync"
 
-	"github.com/pion/ion/conf"
-	"github.com/pion/ion/gslb"
 	"github.com/pion/ion/log"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v2"
 )
 
-const (
-	pliDuration = 1 * time.Second
-)
-
-var (
-	cfg         webrtc.Configuration
-	mediaEngine webrtc.MediaEngine
-	api         *webrtc.API
-
-	errChanClosed   = errors.New("channel closed")
-	errInvalidTrack = errors.New("track not found")
-)
-
-func init() {
+func initICE(ices []string) {
 	cfg = webrtc.Configuration{
 		SDPSemantics: webrtc.SDPSemanticsUnifiedPlanWithFallback,
 		ICEServers: []webrtc.ICEServer{
 			{
-				URLs: conf.WebRTC.Ices,
+				URLs: ices,
 			},
 		},
 	}
@@ -44,34 +28,38 @@ func init() {
 }
 
 type WebRTCTransport struct {
-	id              string
-	pc              *webrtc.PeerConnection
-	track           map[uint32]*webrtc.Track
-	trackLock       sync.RWMutex
-	notify          chan struct{}
-	pli             chan int
-	rtpCh           chan *rtp.Packet
-	wg              sync.WaitGroup
-	payloadSSRC     map[uint8]uint32
-	payloadSSRCLock sync.RWMutex
+	id           string
+	pc           *webrtc.PeerConnection
+	track        map[uint32]*webrtc.Track
+	trackLock    sync.RWMutex
+	notify       chan struct{}
+	pli          chan int
+	rtpCh        chan *rtp.Packet
+	wg           sync.WaitGroup
+	ssrcPT       map[uint32]uint8
+	ssrcPTLock   sync.RWMutex
+	byteRate     uint64
+	isLostPacket bool
 }
 
 func newWebRTCTransport(id string) *WebRTCTransport {
-	return &WebRTCTransport{
-		id:          id,
-		track:       make(map[uint32]*webrtc.Track),
-		notify:      make(chan struct{}),
-		pli:         make(chan int),
-		rtpCh:       make(chan *rtp.Packet, 1000),
-		payloadSSRC: make(map[uint8]uint32),
+	w := &WebRTCTransport{
+		id:     id,
+		track:  make(map[uint32]*webrtc.Track),
+		notify: make(chan struct{}),
+		pli:    make(chan int),
+		rtpCh:  make(chan *rtp.Packet, 1000),
+		ssrcPT: make(map[uint32]uint8),
 	}
+
+	return w
 }
 
 func (t *WebRTCTransport) ID() string {
 	return t.id
 }
 
-func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescription) (answer webrtc.SessionDescription, err error) {
+func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescription, fn func(ssrc uint32, pt uint8)) (answer webrtc.SessionDescription, err error) {
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
@@ -90,9 +78,9 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 	}
 
 	t.pc.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		t.payloadSSRCLock.Lock()
-		t.payloadSSRC[remoteTrack.PayloadType()] = remoteTrack.SSRC()
-		t.payloadSSRCLock.Unlock()
+		t.ssrcPTLock.Lock()
+		t.ssrcPT[remoteTrack.SSRC()] = remoteTrack.PayloadType()
+		t.ssrcPTLock.Unlock()
 		if remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP8 ||
 			remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeVP9 ||
 			remoteTrack.PayloadType() == webrtc.DefaultPayloadTypeH264 {
@@ -101,20 +89,18 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 				for {
 					select {
 					case <-t.pli:
-						// log.Infof("WriteRTCP PLI %v", remoteTrack.SSRC())
-						t.pc.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: remoteTrack.SSRC()}})
+						log.Debugf("WebRTCTransport.AnswerPublish WriteRTCP PLI %v", remoteTrack.SSRC())
+						t.pc.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{SenderSSRC: remoteTrack.SSRC(), MediaSSRC: remoteTrack.SSRC()}})
 					case <-t.notify:
-						log.Infof("OnTrack t.wg.Done()")
 						t.wg.Done()
 						return
 					}
 				}
 			}()
-			gslb.KeepMediaInfo(rid, t.ID(), remoteTrack.PayloadType(), remoteTrack.SSRC())
+			fn(remoteTrack.SSRC(), remoteTrack.PayloadType())
 			t.receiveRTP(remoteTrack)
 		} else {
-			// t.AudioTrack, err = t.pc.NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), "audio", remoteTrack.Label())
-			gslb.KeepMediaInfo(rid, t.ID(), remoteTrack.PayloadType(), remoteTrack.SSRC())
+			fn(remoteTrack.SSRC(), remoteTrack.PayloadType())
 			t.receiveRTP(remoteTrack)
 		}
 	})
@@ -126,35 +112,34 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 
 	answer, err = t.pc.CreateAnswer(nil)
 	err = t.pc.SetLocalDescription(answer)
+	//TODO recently not use, fix panic?
+	// t.pubReceiveRTCP()
 	return answer, err
-
 }
 
-func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, payloadSSRC map[uint8]uint32, pid string) (answer webrtc.SessionDescription, err error) {
+func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, ssrcPT map[uint32]uint8, pid string) (answer webrtc.SessionDescription, err error) {
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
 	}
 
-	log.Infof("payloadSSRC=%v", payloadSSRC)
 	var track *webrtc.Track
-	for payloadType, ssrc := range payloadSSRC {
-		if payloadType == webrtc.DefaultPayloadTypeVP8 ||
-			payloadType == webrtc.DefaultPayloadTypeVP9 ||
-			payloadType == webrtc.DefaultPayloadTypeH264 {
-			track, _ = t.pc.NewTrack(payloadType, ssrc, "video", "pion")
-			// t.track[ssrc], _ = t.pc.NewTrack(payloadType, ssrc, "pion", "")
+	for ssrc, pt := range ssrcPT {
+		if pt == webrtc.DefaultPayloadTypeVP8 ||
+			pt == webrtc.DefaultPayloadTypeVP9 ||
+			pt == webrtc.DefaultPayloadTypeH264 {
+			track, _ = t.pc.NewTrack(pt, ssrc, "video", "pion")
 		} else {
-			track, _ = t.pc.NewTrack(payloadType, ssrc, "audio", "pion")
-			// t.track[ssrc], _ = t.pc.NewTrack(payloadType, ssrc, "pion", "")
+			track, _ = t.pc.NewTrack(pt, ssrc, "audio", "pion")
 		}
-		t.pc.AddTrack(track)
-		t.trackLock.Lock()
-		t.track[ssrc] = track
-		t.trackLock.Unlock()
+		if track != nil {
+			t.pc.AddTrack(track)
+			t.trackLock.Lock()
+			t.track[ssrc] = track
+			t.trackLock.Unlock()
+		}
 	}
 
-	//track is ready
 	err = t.pc.SetRemoteDescription(offer)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
@@ -162,14 +147,14 @@ func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, paylo
 
 	answer, err = t.pc.CreateAnswer(nil)
 	err = t.pc.SetLocalDescription(answer)
-	// TODO nack
-	// t.receiveRTCP(pid)
+	t.SubReceiveRTCP(pid)
 	return answer, err
 }
 
 func (t *WebRTCTransport) sendPLI() {
 	go func() {
 		ticker := time.NewTicker(pliDuration)
+		defer ticker.Stop()
 		t.wg.Add(1)
 		for {
 			select {
@@ -185,11 +170,18 @@ func (t *WebRTCTransport) sendPLI() {
 
 func (t *WebRTCTransport) receiveRTP(remoteTrack *webrtc.Track) {
 	t.wg.Add(1)
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	total := uint64(0)
 	for {
 		select {
 		case <-t.notify:
 			t.wg.Done()
 			return
+		case <-ticker.C:
+			t.byteRate = total / 3
+			total = 0
+			t.isLostPacket = false
 		default:
 			rtp, err := remoteTrack.ReadRTP()
 			if err != nil {
@@ -199,6 +191,7 @@ func (t *WebRTCTransport) receiveRTP(remoteTrack *webrtc.Track) {
 				}
 				log.Errorf("rtp err => %v", err)
 			}
+			total += uint64(rtp.MarshalSize())
 			t.rtpCh <- rtp
 		}
 	}
@@ -213,15 +206,17 @@ func (t *WebRTCTransport) ReadRTP() (*rtp.Packet, error) {
 }
 
 func (t *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
+	if pkt == nil {
+		return errInvalidPacket
+	}
 	t.trackLock.RLock()
 	track := t.track[pkt.SSRC]
 	t.trackLock.RUnlock()
 	if track != nil {
-		track.WriteRTP(pkt)
-		return nil
+		log.Debugf("WebRTCTransport.WriteRTP pkt=%v", pkt)
+		return track.WriteRTP(pkt)
 	}
-	log.Errorf("t.track=%v", t.track)
-	log.Errorf("WebRTCTransport.WriteRTP pkt.ssrc=%d err", pkt.SSRC)
+	log.Errorf("WebRTCTransport.WriteRTP track==nil pkt.SSRC=%d", pkt.SSRC)
 	return errInvalidTrack
 }
 
@@ -235,7 +230,69 @@ func (t *WebRTCTransport) Close() {
 	close(t.pli)
 }
 
-func (t *WebRTCTransport) receiveRTCP(pid string) {
+func (t *WebRTCTransport) pubReceiveRTCP() {
+	receivers := t.pc.GetReceivers()
+	for i := 0; i < len(receivers); i++ {
+		t.wg.Add(1)
+		go func(i int) {
+			for {
+				select {
+				case <-t.notify:
+					t.wg.Done()
+					return
+				default:
+					pkt, err := receivers[i].ReadRTCP()
+					if err != nil {
+						if err == io.EOF {
+							t.wg.Done()
+							return
+						}
+						log.Errorf("rtcp err => %v", err)
+					}
+					for i := 0; i < len(pkt); i++ {
+						switch pkt[i].(type) {
+						case *rtcp.PictureLossIndication:
+							// pub is already sending PLI now
+							// SendPLI(t.id)
+						case *rtcp.TransportLayerNack:
+							log.Debugf("pub rtcp.TransportLayerNack pkt[i]=%v", pkt[i])
+							// nack := pkt[i].(*rtcp.TransportLayerNack)
+							// for _, nackPair := range nack.Nacks {
+							// // sns := util.GetLostSN(nackPair.PacketID, uint16(nackPair.LostPackets))
+							// sns := nackPair.PacketList()
+							// for _, sn := range sns {
+							// if !getPipeline(t.id).WritePacket(t.id, nack.MediaSSRC, sn) {
+							// n := &rtcp.TransportLayerNack{
+							// //origin ssrc
+							// SenderSSRC: nack.SenderSSRC,
+							// MediaSSRC:  nack.MediaSSRC,
+							// Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: sn}},
+							// }
+							// log.Infof("sendNack to ion %v", n)
+							// getPipeline(t.id).GetPub().sendNack(n)
+							// }
+							// }
+							// }
+						case *rtcp.ReceiverEstimatedMaximumBitrate:
+						case *rtcp.ReceiverReport:
+						case *rtcp.SenderReport:
+							log.Debugf("pub rtcp.ReceiverReport = %+v", pkt[i])
+							rr := pkt[i].(*rtcp.SenderReport)
+							for _, report := range rr.Reports {
+								log.Debugf("report=%+v", report)
+							}
+
+						default:
+							log.Debugf("rtcp type = %v", pkt[i])
+						}
+					}
+				}
+			}
+		}(i)
+	}
+}
+
+func (t *WebRTCTransport) SubReceiveRTCP(pid string) {
 	senders := t.pc.GetSenders()
 	for i := 0; i < len(senders); i++ {
 		t.wg.Add(1)
@@ -261,10 +318,26 @@ func (t *WebRTCTransport) receiveRTCP(pid string) {
 							// SendPLI(pid)
 						case *rtcp.TransportLayerNack:
 							log.Debugf("rtcp.TransportLayerNack pkt[i]=%v", pkt[i])
+							nack := pkt[i].(*rtcp.TransportLayerNack)
+							for _, nackPair := range nack.Nacks {
+								sns := nackPair.PacketList()
+								for _, sn := range sns {
+									if !getPipeline(pid).writePacket(t.id, nack.MediaSSRC, sn) {
+										n := &rtcp.TransportLayerNack{
+											//origin ssrc
+											SenderSSRC: nack.SenderSSRC,
+											MediaSSRC:  nack.MediaSSRC,
+											Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: sn}},
+										}
+										log.Debugf("sendNack to pub %v", n)
+										getPipeline(pid).getPub().sendNack(n)
+									}
+								}
+							}
 						case *rtcp.ReceiverEstimatedMaximumBitrate:
 						case *rtcp.ReceiverReport:
 						default:
-							log.Debugf("rtcp type = %v", pkt[i])
+							log.Debugf("WebRTCTransport.SubReceiveRTCP rtcp type = %v", pkt[i])
 						}
 					}
 				}
@@ -273,8 +346,57 @@ func (t *WebRTCTransport) receiveRTCP(pid string) {
 	}
 }
 
-func (t *WebRTCTransport) PayloadSSRC() map[uint8]uint32 {
-	t.payloadSSRCLock.RLock()
-	defer t.payloadSSRCLock.RUnlock()
-	return t.payloadSSRC
+func (t *WebRTCTransport) SsrcPT() map[uint32]uint8 {
+	t.ssrcPTLock.RLock()
+	defer t.ssrcPTLock.RUnlock()
+	return t.ssrcPT
+}
+
+func (t *WebRTCTransport) sendNack(nack *rtcp.TransportLayerNack) {
+	if t.pc == nil {
+		return
+	}
+	t.isLostPacket = true
+	t.pc.WriteRTCP([]rtcp.Packet{nack})
+}
+
+func (t *WebRTCTransport) sendREMB(lostRate float64) {
+	if lostRate > 1 || lostRate < 0 {
+		return
+	}
+	var videoSSRC uint32
+	t.trackLock.RLock()
+	for ssrc, track := range t.track {
+		if track.PayloadType() == webrtc.DefaultPayloadTypeVP8 ||
+			track.PayloadType() == webrtc.DefaultPayloadTypeH264 ||
+			track.PayloadType() == webrtc.DefaultPayloadTypeVP9 {
+			videoSSRC = ssrc
+		}
+	}
+	t.trackLock.RUnlock()
+
+	var bw uint64
+	if lostRate == 0 && t.byteRate == 0 {
+		bw = rembHighBW
+	} else if lostRate >= 0 && lostRate < 0.1 {
+		bw = t.byteRate * 2
+	} else {
+		bw = uint64(float64(t.byteRate) * (1 - lostRate))
+	}
+
+	if bw < rembLowBW {
+		bw = rembLowBW
+	}
+
+	if bw > rembHighBW {
+		bw = rembHighBW
+	}
+
+	log.Debugf("WebRTCTransport.sendREMB lostRate=%v bw=%v", lostRate, bw*8)
+	remb := &rtcp.ReceiverEstimatedMaximumBitrate{
+		SenderSSRC: videoSSRC,
+		Bitrate:    bw * 8,
+		SSRCs:      []uint32{videoSSRC},
+	}
+	t.pc.WriteRTCP([]rtcp.Packet{remb})
 }

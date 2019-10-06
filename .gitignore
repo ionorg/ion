@@ -2,7 +2,13 @@ logs
 bin
 conf/cert.pem
 conf/key.pem
-sfu
+conf/ion.pid
+conf/islb.pid
+ion
 sdk/js/node_modules/
 build.tar
+ion.tar.gz
+islb.tar.gz
+islb/islb
+other
 

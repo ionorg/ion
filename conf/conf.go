@@ -16,6 +16,7 @@ var (
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
 	Signal = &cfg.Signal
+	Amqp   = &cfg.Amqp
 )
 
 func init() {
@@ -26,8 +27,8 @@ func init() {
 }
 
 type global struct {
-	AdveritiseIP string `mapstructure:"advertiseip"`
-	Pprof        string `mapstructure:"pprof"`
+	Addr  string `mapstructure:"addr"`
+	Pprof string `mapstructure:"pprof"`
 	// TestIP []string `mapstructure:"testip"`
 }
 
@@ -36,7 +37,7 @@ type log struct {
 }
 
 type etcd struct {
-	Servers []string `mapstructure:"servers"`
+	Addrs []string `mapstructure:"addrs"`
 }
 
 type signal struct {
@@ -46,8 +47,12 @@ type signal struct {
 	Key  string `mapstructure:"key"`
 }
 
+type amqp struct {
+	URL string `mapstructure:"url"`
+}
+
 type webrtc struct {
-	Ices []string `mapstructure:"ices"`
+	ICE []string `mapstructure:"ice"`
 }
 
 type rtp struct {
@@ -61,6 +66,7 @@ type config struct {
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
 	Signal  signal `mapstructure:"signal"`
+	Amqp    amqp   `mapstructure:"amqp"`
 	CfgFile string
 }
 
