@@ -40,7 +40,7 @@ Welcome contributing to ion!
 ## How to use
 ### 1. make key
 ```
-./scripts/makekey.sh
+./scripts/makeKey.sh
 ```
 ### 2. build
 ```
