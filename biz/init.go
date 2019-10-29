@@ -7,16 +7,6 @@ import (
 )
 
 const (
-	signalLogin       = "login"
-	signalJoin        = "join"
-	signalLeave       = "leave"
-	signalPublish     = "publish"
-	signalUnPublish   = "unpublish"
-	signalSubscribe   = "subscribe"
-	signalUnSubscribe = "unsubscribe"
-	signalOnPublish   = "onPublish"
-	signalOnUnpublish = "onUnpublish"
-
 	errInvalidJsep  = "jsep not found"
 	errInvalidSDP   = "sdp not found"
 	errInvalidRoom  = "room not found"

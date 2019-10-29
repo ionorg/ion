@@ -15,12 +15,12 @@ func handleRpcMsgMethod(from, method string, msg map[string]interface{}) {
 		id := util.Val(msg, "id")
 		rid := util.Val(msg, "rid")
 		onpublish := util.Map("rid", rid, "pubid", id)
-		signal.NotifyAll(rid, signalOnPublish, onpublish)
+		signal.NotifyAll(rid, proto.ClientOnPublish, onpublish)
 	case proto.IslbUnpublish:
 		id := util.Val(msg, "id")
 		rid := util.Val(msg, "rid")
 		onUnpublish := util.Map("rid", rid, "pubid", id)
-		signal.NotifyAll(rid, signalOnUnpublish, onUnpublish)
+		signal.NotifyAll(rid, proto.ClientOnUnpublish, onUnpublish)
 	case proto.IslbRelay:
 		pid := util.Val(msg, "pid")
 		sid := util.Val(msg, "sid")
@@ -95,12 +95,12 @@ func handleBroadCastMsgs() {
 				rid := util.Val(msg, "rid")
 				pid := util.Val(msg, "pid")
 				msg["pubid"] = pid
-				signal.NotifyAllWithoutID(rid, pid, signalOnPublish, msg)
+				signal.NotifyAllWithoutID(rid, pid, proto.ClientOnPublish, msg)
 			case proto.IslbOnUnpublish:
 				rid := util.Val(msg, "rid")
 				pid := util.Val(msg, "pid")
 				msg["pubid"] = pid
-				signal.NotifyAllWithoutID(rid, pid, signalOnUnpublish, msg)
+				signal.NotifyAllWithoutID(rid, pid, proto.ClientOnUnpublish, msg)
 			}
 		}
 	}()

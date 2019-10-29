@@ -14,21 +14,21 @@ import (
 
 func BizEntry(method string, peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	switch method {
-	case signalLogin:
+	case proto.ClientLogin:
 		login(peer, msg, accept, reject)
-	case signalJoin:
+	case proto.ClientJoin:
 		join(peer, msg, accept, reject)
-	case signalLeave:
+	case proto.ClientLeave:
 		leave(peer, msg, accept, reject)
-	case signalPublish:
+	case proto.ClientPublish:
 		publish(peer, msg, accept, reject)
-	case signalUnPublish:
+	case proto.ClientUnPublish:
 		unpublish(peer, msg, accept, reject)
-	case signalSubscribe:
+	case proto.ClientSubscribe:
 		subscribe(peer, msg, accept, reject)
-	case signalUnSubscribe:
+	case proto.ClientUnSubscribe:
 		unsubscribe(peer, msg, accept, reject)
-	case signalOnPublish:
+	case proto.ClientOnPublish:
 		onpublish(peer, msg, accept, reject)
 	}
 }
@@ -61,7 +61,7 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 		info := m["info"]
 		log.Infof("biz.join respHandler pid=%s info=%v", pid, info)
 		if pid != "" {
-			peer.Notify(signalOnPublish, util.Map("pubid", pid, "rid", rid))
+			peer.Notify(proto.ClientOnPublish, util.Map("pubid", pid, "rid", rid))
 		}
 	}
 	// find pubs from islb ,skip this ion
@@ -80,7 +80,7 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbUnpublish, "rid", rid, "pid", peer.ID()), "")
 
 	// tell other peer on this ion
-	signal.NotifyAllWithoutID(rid, peer.ID(), signalOnUnpublish, util.Map("pubid", peer.ID(), "rid", rid))
+	signal.NotifyAllWithoutID(rid, peer.ID(), proto.ClientOnUnpublish, util.Map("pubid", peer.ID(), "rid", rid))
 
 	rtc.DelPub(peer.ID())
 	//first, del sub and get the rtp's pub which has none sub
@@ -306,7 +306,7 @@ func onpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	}
 
 	// tell other subs onPublish
-	signal.NotifyAllWithoutPeer(rid, peer, signalOnPublish, msg)
+	signal.NotifyAllWithoutPeer(rid, peer, proto.ClientOnPublish, msg)
 
 	// upload the person number
 	accept(util.Unmarshal(`{}`))
