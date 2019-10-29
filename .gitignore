@@ -6,6 +6,8 @@ conf/ion.pid
 conf/islb.pid
 ion
 sdk/js/node_modules/
+sdk/js/nohup.out
+sdk/js/package-lock.json
 build.tar
 ion.tar.gz
 islb.tar.gz
