@@ -89,16 +89,17 @@ fi
 
 echo "-------------build ion----------"
 echo "go build -o $COMMAND1"
+cd $APP_DIR/cmd/ion
 go build -o $COMMAND1
 
 echo "-------------build islb----------"
 echo "go build -o $COMMAND2"
-cd $APP_DIR/islb
+cd $APP_DIR/cmd/islb
 go build -o $COMMAND2
 
 cd $APP_DIR
 echo "------------tar ion-----------"
-tar cvzf ion.tar.gz bin/ion conf/ion.toml conf/cert.pem conf/key.pem scripts/ionStart.sh scripts/ionStop.sh
+tar cvzf ion.tar.gz bin/ion configs/ion.toml configs/cert.pem configs/key.pem scripts/ionStart.sh scripts/ionStop.sh
 
 echo "------------tar islb-----------"
-tar cvzf islb.tar.gz bin/islb conf/islb.toml conf/cert.pem conf/key.pem scripts/ionStart.sh scripts/ionStop.sh
+tar cvzf islb.tar.gz bin/islb configs/islb.toml configs/cert.pem configs/key.pem scripts/ionStart.sh scripts/ionStop.sh

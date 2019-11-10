@@ -1,8 +1,9 @@
-# SFU
+# ION
+ION is a distributed RTC system written by pure go and flutter
 
 ## Architecture
 
-![arch](arch.png)
+![arch](docs/imgs/arch.png)
 ## Features
 
 - [x] Pure GO
