@@ -5,8 +5,8 @@ cd $APP_DIR
 mkdir -p $APP_DIR/logs
 EXE=islb
 COMMAND=$APP_DIR/bin/$EXE
-CONFIG=$APP_DIR/conf/islb.toml
-PID_FILE=$APP_DIR/conf/islb.pid
+CONFIG=$APP_DIR/configs/islb.toml
+PID_FILE=$APP_DIR/configs/islb.pid
 LOG_FILE=$APP_DIR/logs/islb.log
 
 help()
@@ -45,7 +45,7 @@ if [ ! -r $CONFIG ]; then
 fi
 
 ## build first
-cd $APP_DIR/islb
+cd $APP_DIR/cmd/islb
 go build -o $COMMAND
 cd $APP_DIR
 

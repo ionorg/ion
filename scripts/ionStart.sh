@@ -6,8 +6,8 @@ mkdir -p $APP_DIR/logs
 EXE=ion
 COMMAND=$APP_DIR/bin/$EXE
 STOP=$APP_DIR/scripts/stop.sh
-CONFIG=$APP_DIR/conf/ion.toml
-PID_FILE=$APP_DIR/conf/ion.pid
+CONFIG=$APP_DIR/configs/ion.toml
+PID_FILE=$APP_DIR/configs/ion.pid
 LOG_FILE=$APP_DIR/logs/ion.log
 
 help()
@@ -46,7 +46,9 @@ if [ ! -r $CONFIG ]; then
 fi
 
 ## build first
+cd $APP_DIR/cmd/ion
 go build -o $COMMAND
+cd $APP_DIR
 
 ## run command
 nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &

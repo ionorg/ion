@@ -3,7 +3,7 @@
 
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
-PATH=$APP_DIR/conf
+PATH=$APP_DIR/configs
 
 echo "****************************************"
 echo "building key.pem and cert.pem to $PATH"
