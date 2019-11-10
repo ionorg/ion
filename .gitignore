@@ -1,16 +1,15 @@
 logs
 bin
-conf/cert.pem
-conf/key.pem
-conf/ion.pid
-conf/islb.pid
-ion
+configs/cert.pem
+configs/key.pem
+configs/ion.pid
+configs/islb.pid
 sdk/js/node_modules/
 sdk/js/nohup.out
 sdk/js/package-lock.json
-build.tar
 ion.tar.gz
 islb.tar.gz
-islb/islb
+cmd/ion/ion
+cmd/islb/islb
 other
 
