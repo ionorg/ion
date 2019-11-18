@@ -107,6 +107,28 @@ func GetPub(pid string) Transport {
 	return p.getPub()
 }
 
+func IsWebRtcPub(pid string) bool {
+	p := getPipeline(pid)
+	if p != nil {
+		switch p.getPub().(type) {
+		case *WebRTCTransport:
+			return true
+		}
+	}
+	return false
+}
+
+func IsRtpPub(pid string) bool {
+	p := getPipeline(pid)
+	if p != nil {
+		switch p.getPub().(type) {
+		case *RTPTransport:
+			return true
+		}
+	}
+	return false
+}
+
 func GetSubs(pid string) map[string]Transport {
 	p := getPipeline(pid)
 	if p == nil {

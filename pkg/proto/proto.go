@@ -9,20 +9,26 @@ const (
 	ClientUnPublish   = "unpublish"
 	ClientSubscribe   = "subscribe"
 	ClientUnSubscribe = "unsubscribe"
-	ClientOnPublish   = "onPublish"
-	ClientOnUnpublish = "onUnpublish"
+	ClientClose       = "close"
+
+	// ion to client
+	ClientOnJoin         = "peer-join"
+	ClientOnLeave        = "peer-leave"
+	ClientOnStreamAdd    = "stream-add"
+	ClientOnStreamRemove = "stream-remove"
 
 	// ion to islb
 	IslbGetPubs      = "getPubs"
 	IslbGetMediaInfo = "getMediaInfo"
 	IslbRelay        = "relay"
 	IslbUnrelay      = "unRelay"
-	IslbPublish      = "publish"
-	IslbOnPublish    = "onPublish"
-	IslbUnpublish    = "unpublish"
-	IslbOnUnpublish  = "onUnpublish"
-	IslbSubscribe    = "subscribe"
-	IslbKeepAlive    = "keepAlive"
+
+	IslbSubscribe      = "subscribe"
+	IslbKeepAlive      = "keepAlive"
+	IslbClientOnJoin   = "peer-join"
+	IslbClientOnLeave  = "peer-leave"
+	IslbOnStreamAdd    = "stream-add"
+	IslbOnStreamRemove = "stream-remove"
 
 	IslbID = "islb"
 )

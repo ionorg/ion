@@ -22,7 +22,7 @@ func init() {
 	log.Init(conf.Log.Level)
 	biz.Init(ionID, conf.Amqp.URL)
 	rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE)
-	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, biz.BizEntry)
+	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, biz.Entry)
 	discovery.Init(conf.Global.Addr, conf.Rtp.Port, conf.Etcd.Addrs)
 }
 
