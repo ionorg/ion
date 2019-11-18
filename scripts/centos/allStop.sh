@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
 
@@ -27,23 +27,23 @@ done
 
 # run command
 echo "------------etcd--------------"
-$APP_DIR/scripts/etcdStop.sh
+$APP_DIR/scripts/centos/etcdStop.sh
 
 echo "------------redis--------------"
-$APP_DIR/scripts/redisStop.sh
+$APP_DIR/scripts/centos/redisStop.sh
 
 echo "-----------rabbitmq---------------"
-$APP_DIR/scripts/mqStop.sh
+$APP_DIR/scripts/centos/mqStop.sh
 
 echo "------------islb--------------"
-$APP_DIR/scripts/islbStop.sh
+$APP_DIR/scripts/centos/islbStop.sh
 
 echo "------------ion--------------"
-$APP_DIR/scripts/ionStop.sh
+$APP_DIR/scripts/centos/ionStop.sh
 
 
 echo "------------web--------------"
-$APP_DIR/scripts/webStop.sh
+$APP_DIR/scripts/centos/webStop.sh
 echo "--------------------------"
 
 

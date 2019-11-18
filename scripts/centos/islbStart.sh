@@ -1,20 +1,19 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
-EXE=ion
+EXE=islb
 COMMAND=$APP_DIR/bin/$EXE
-STOP=$APP_DIR/scripts/stop.sh
-CONFIG=$APP_DIR/configs/ion.toml
-PID_FILE=$APP_DIR/configs/ion.pid
-LOG_FILE=$APP_DIR/logs/ion.log
+CONFIG=$APP_DIR/configs/islb.toml
+PID_FILE=$APP_DIR/configs/islb.pid
+LOG_FILE=$APP_DIR/logs/islb.log
 
 help()
 {
     echo ""
     echo "start script"
-    echo "Usage: ./start.sh [-h]"
+    echo "Usage: ./islbStart.sh [-h]"
     echo ""
 }
 
@@ -46,7 +45,7 @@ if [ ! -r $CONFIG ]; then
 fi
 
 ## build first
-cd $APP_DIR/cmd/ion
+cd $APP_DIR/cmd/islb
 go build -o $COMMAND
 cd $APP_DIR
 

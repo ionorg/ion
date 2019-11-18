@@ -45,11 +45,19 @@ Welcome contributing to ion!
 ```
 ### 2. build
 ```
-./scripts/installDeps.sh
+//centos
+./scripts/centos/installDeps.sh
+
+//mac
+./scripts/centos/installDeps.sh
 ```
 ### 3. run
 ```
-./scripts/allRestart.sh
+//centos
+./scripts/centos/allRestart.sh
+
+//mac
+./scripts/mac/allRestart.sh
 ```
 ### 4. let's chat
 Open this url with chrome

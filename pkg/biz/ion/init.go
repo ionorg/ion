@@ -10,7 +10,7 @@ const (
 	errInvalidJsep  = "jsep not found"
 	errInvalidSDP   = "sdp not found"
 	errInvalidRoom  = "room not found"
-	errInvalidPubID = "pubid not found"
+	errInvalidPubID = "pub id not found"
 	errInvalidAddr  = "addr not found"
 )
 

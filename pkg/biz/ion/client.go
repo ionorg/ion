@@ -9,7 +9,7 @@ import (
 	"github.com/pion/ion/pkg/rtc"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
-	"github.com/pion/webrtc/v2"
+	webrtc "github.com/pion/webrtc/v2"
 )
 
 // Entry is the biz entry
@@ -69,7 +69,7 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 		info := m["info"]
 		log.Infof("biz.join respHandler pid=%s info=%v", pid, info)
 		if pid != "" {
-			peer.Notify(proto.ClientOnStreamAdd, util.Map("pubid", pid, "rid", rid))
+			peer.Notify(proto.ClientOnStreamAdd, util.Map("pid", pid, "rid", rid))
 		}
 	}
 	// find pubs from islb ,skip this ion
@@ -91,7 +91,7 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "pid", peer.ID()), "")
 
 		// tell other peer on this ion stream-remove
-		// signal.NotifyAllWithoutID(rid, peer.ID(), proto.ClientOnStreamRemove, util.Map("pubid", peer.ID(), "rid", rid))
+		// signal.NotifyAllWithoutID(rid, peer.ID(), proto.ClientOnStreamRemove, util.Map("pid", peer.ID(), "rid", rid))
 
 		rtc.DelPub(peer.ID())
 		quitLock.Lock()
@@ -209,7 +209,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		return
 	}
 
-	pid := util.Val(msg, "pubid")
+	pid := util.Val(msg, "pid")
 	if pid == "" {
 		log.Errorf(errInvalidPubID)
 		reject(-1, errInvalidPubID)
@@ -290,7 +290,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 
 func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	pid := util.Val(msg, "pubid")
+	pid := util.Val(msg, "pid")
 	if pid == "" {
 		log.Errorf(errInvalidPubID)
 		reject(-1, errInvalidPubID)

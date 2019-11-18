@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 PATH=$APP_DIR/configs

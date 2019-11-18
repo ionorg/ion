@@ -1,5 +1,5 @@
 #!/bin/bash
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR
 EXE1=ion
 EXE2=islb
@@ -99,7 +99,7 @@ go build -o $COMMAND2
 
 cd $APP_DIR
 echo "------------tar ion-----------"
-tar cvzf ion.tar.gz bin/ion configs/ion.toml configs/cert.pem configs/key.pem scripts/ionStart.sh scripts/ionStop.sh
+tar cvzf ion.tar.gz bin/ion configs/ion.toml configs/cert.pem configs/key.pem scripts/centos/ionStart.sh scripts/centos/ionStop.sh
 
 echo "------------tar islb-----------"
-tar cvzf islb.tar.gz bin/islb configs/islb.toml configs/cert.pem configs/key.pem scripts/ionStart.sh scripts/ionStop.sh
+tar cvzf islb.tar.gz bin/islb configs/islb.toml configs/cert.pem configs/key.pem scripts/centos/ionStart.sh scripts/centos/ionStop.sh
