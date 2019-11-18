@@ -110,7 +110,7 @@ errCode:-1
 ```
 method:subscribe
 data:{
-    "pubid:"$pubid",
+    "pid:"$pid",
     "jsep": {"type": "offer","sdp": "..."}
 }
 ```
@@ -134,7 +134,7 @@ errCode:-1
 ```
 method:unsubscribe
 data:{
-    "pubid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
@@ -217,7 +217,7 @@ People can subscribe while receiving "stream-add" in this room
 ```
 method:stream-add
 data:{
-    "pubid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
@@ -244,7 +244,7 @@ subscribers need to release resources(pc,player,etc.) when they receive "stream-
 ```
 method:stream-remove
 data:{
-    "pubid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
@@ -336,14 +336,14 @@ Then ion can send these infomation to this new joiner by signal
 {
     "method": "getPubs",
     "rid": "$roomid",
-    "pid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
 #### response1
 ```
 {
-    "pid": "$pubid1",
+    "pid": "$pid1",
     "info": "$info1"
 }
 
@@ -353,7 +353,7 @@ Then ion can send these infomation to this new joiner by signal
 
 ```
 {
-    "pid": "$pubid2",
+    "pid": "$pid2",
     "info": "$info2"
 }
 ```
