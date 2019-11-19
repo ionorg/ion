@@ -36,19 +36,19 @@ client.on('peer-leave', (id, rid) => {
 });
 
 client.on('transport-open', function () {
-    showStatus('Connected to Client!');
+    showStatus('transport open!');
     connected = true;
 });
 
 client.on('transport-closed', function () {
-    showStatus('Disconnect from Client!');
+    showStatus('transport closed!');
     connected = false;
 });
 
 client.on('stream-add', async (id, rid) => {
     let stream = await client.subscribe(id);
     streams[id] = stream;
-    insertVideoView('remote-video-container', stream.uid);
+    insertVideoView('remote-video-container', id);
     stream.render(stream.uid);
 });
 
@@ -64,23 +64,24 @@ function onJoinBtnClick() {
     var roomId = element.value;
     if (roomId === '')
         return;
-    showStatus('Join to [' + roomId + ']');
+    showStatus('join to [' + roomId + ']');
     client.join(roomId);
 }
 
 async function onPublishBtnClick() {
     if (!connected) {
-        alert('Not connected to the server!');
+        alert('not connected to the server!');
         return;
     }
     if (published) {
-        alert('Already published!');
+        alert('already published!');
         return;
     }
-    showStatus('Start publish!');
+    showStatus('start publish!');
     let stream = await client.publish();
-    insertVideoView('local-video-container', stream.uid);
-    stream.render(stream.uid);
+    let id = stream.uid;
+    insertVideoView('local-video-container', id);
+    stream.render(id);
     published = true;
 }
 
