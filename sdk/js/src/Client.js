@@ -100,7 +100,7 @@ export default class Client extends EventEmitter {
         try {
             let data = await this._protoo.request('unpublish', { 'rid': this._rid });
             console.log('unpublish success: result => ' + JSON.stringify(data));
-            _removePC(this._uid);
+            this._removePC(this._uid);
         } catch (error) {
             console.log('unpublish reject: error =>' + error);
         }
@@ -143,7 +143,7 @@ export default class Client extends EventEmitter {
         try {
             let data = await this._protoo.request('unsubscribe', { pid });
             console.log('unsubscribe success: result => ' + JSON.stringify(data));
-            _removePC(pid);
+            this._removePC(pid);
         } catch (error) {
             console.log('unsubscribe reject: error =>' + error);
         }
@@ -213,7 +213,7 @@ export default class Client extends EventEmitter {
                     let rid = notification.data.rid;
                     console.log('peer-leave peer id => ' + pid);
                     this.emit('peer-leave', pid, rid);
-                    _removePC(pid);
+                    this._removePC(pid);
                     break;
                 }
             case 'stream-add':
@@ -230,7 +230,7 @@ export default class Client extends EventEmitter {
                     let rid = notification.data.rid;
                     console.log('stream-remove peer id => ' + pid);
                     this.emit('stream-remove', pid, rid);
-                    _removePC(pid);
+                    this._removePC(pid);
                     break;
                 }
         }
