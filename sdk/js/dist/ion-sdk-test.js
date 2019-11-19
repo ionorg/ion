@@ -1,4 +1,4 @@
-var client;
+var client = new Client();
 var connected = false;
 var published = false;
 var streams = new Map();
@@ -6,26 +6,6 @@ var streams = new Map();
 window.onunload = function () {
     client.leave();
 }
-
-function insertVideoView(parentId, id) {
-    let parentNode = document.getElementById(parentId);
-    let element = document.createElement("div");
-    element.id = id;
-    parentNode.appendChild(element);
-}
-
-function removeVideoView(id) {
-    let element = document.getElementById(id);
-    element.parentNode.removeChild(element);
-}
-
-function showStatus(text) {
-    var element = document.getElementById('status');
-    element.value = text;
-    console.log(text);
-}
-
-client = new Client();
 
 client.on('peer-join', (id, rid) => {
     showStatus('peer => ' + id + ', join!');
@@ -58,6 +38,24 @@ client.on('stream-remove', async (id, rid) => {
     stream.stop();
     delete streams[id];
 });
+
+function insertVideoView(parentId, id) {
+    let parentNode = document.getElementById(parentId);
+    let element = document.createElement("div");
+    element.id = id;
+    parentNode.appendChild(element);
+}
+
+function removeVideoView(id) {
+    let element = document.getElementById(id);
+    element.parentNode.removeChild(element);
+}
+
+function showStatus(text) {
+    var element = document.getElementById('status');
+    element.value = text;
+    console.log(text);
+}
 
 function onJoinBtnClick() {
     var element = document.getElementById('roomId');
