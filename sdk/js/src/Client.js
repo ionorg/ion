@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import protooClient from 'protoo-client';
 import uuidv4 from 'uuid/v4';
-
 import Streeam from './Stream';
 
 const ices = 'stun:stun.stunprotocol.org:3478';
@@ -65,6 +64,7 @@ export default class Client extends EventEmitter {
     }
 
     async publish(options = { audio: true, video: true, screen: false }) {
+        console.log('publish options => %o', options);
         var promise = new Promise(async (resolve, reject) => {
             try {
                 if (this._pcs[this._uid] != null) {
@@ -96,20 +96,18 @@ export default class Client extends EventEmitter {
     }
 
     async unpublish() {
+        console.log('unpublish uid => %s', this._uid);
         try {
             let data = await this._protoo.request('unpublish', { 'rid': this._rid });
             console.log('unpublish success: result => ' + JSON.stringify(data));
-            let pc = this._pcs[this._uid];
-            if (pc) {
-                pc.close();
-                delete this._pcs[this._uid];
-            }
+            _removePC(this._uid);
         } catch (error) {
             console.log('unpublish reject: error =>' + error);
         }
     }
 
     async subscribe(pid) {
+        console.log('subscribe pid => %s', pid);
         var promise = new Promise(async (resolve, reject) => {
             try {
                 let pc = await this._createReceiver(pid);
@@ -141,14 +139,11 @@ export default class Client extends EventEmitter {
     }
 
     async unsubscribe(pid) {
+        console.log('unsubscribe pid => %s', pid);
         try {
             let data = await this._protoo.request('unsubscribe', { pid });
             console.log('unsubscribe success: result => ' + JSON.stringify(data));
-            let pc = this._pcs[pid];
-            if (pc) {
-                pc.close();
-                delete this._pcs[pid];
-            }
+            _removePC(pid);
         } catch (error) {
             console.log('unsubscribe reject: error =>' + error);
         }
@@ -159,6 +154,7 @@ export default class Client extends EventEmitter {
     }
 
     async _createSender(uid, stream) {
+        console.log('create sender => %s', uid);
         let pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] });
         pc.sendOffer = false;
         pc.addStream(stream);
@@ -170,6 +166,7 @@ export default class Client extends EventEmitter {
     }
 
     async _createReceiver(uid) {
+        console.log('create receiver => %s', uid);
         let pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] });
         pc.sendOffer = false;
         pc.addTransceiver('audio', { 'direction': 'recvonly' });
@@ -180,9 +177,18 @@ export default class Client extends EventEmitter {
         return pc;
     }
 
-    _getProtooUrl(peerId) {
+    _removePC(uid) {
+        let pc = this._pcs[uid];
+        if (pc) {
+            console.log('remove pc => %s', uid);
+            pc.close();
+            delete this._pcs[uid];
+        }
+    }
+
+    _getProtooUrl(pid) {
         const hostname = window.location.hostname;
-        let url = `wss://${hostname}:${this._port}/ws?peer=${peerId}`;
+        let url = `wss://${hostname}:${this._port}/ws?peer=${pid}`;
         return url;
     }
 
@@ -195,42 +201,36 @@ export default class Client extends EventEmitter {
         switch (notification.method) {
             case 'peer-join':
                 {
-                    let peerId = notification.data.id;
+                    let pid = notification.data.id;
                     let rid = notification.data.rid;
-                    console.log('peer-join peer id => ' + peerId);
-                    this.emit('peer-join', peerId, rid);
+                    console.log('peer-join peer id => ' + pid);
+                    this.emit('peer-join', pid, rid);
                     break;
                 }
             case 'peer-leave':
                 {
-                    let peerId = notification.data.id;
+                    let pid = notification.data.id;
                     let rid = notification.data.rid;
-                    console.log('peer-leave peer id => ' + peerId);
-                    this.emit('peer-leave', peerId, rid);
+                    console.log('peer-leave peer id => ' + pid);
+                    this.emit('peer-leave', pid, rid);
+                    _removePC(pid);
                     break;
                 }
             case 'stream-add':
                 {
-                    let peerId = notification.data.pid;
+                    let pid = notification.data.pid;
                     let rid = notification.data.rid;
-                    console.log('stream-add peer id => ' + peerId);
-                    this.emit('stream-add', peerId, rid);
+                    console.log('stream-add peer id => ' + pid);
+                    this.emit('stream-add', pid, rid);
                     break;
                 }
             case 'stream-remove':
                 {
-                    let peerId = notification.data.pid;
+                    let pid = notification.data.pid;
                     let rid = notification.data.rid;
-                    console.log('stream-remove peer id => ' + peerId);
-                    this.emit('stream-remove', peerId, rid);
-                    break;
-                }
-            case 'stream-subscribed':
-                {
-                    let peerId = notification.data.pid;
-                    let rid = notification.data.rid;
-                    console.log('stream-subscribed peer id => ' + peerId);
-                    this.emit('stream-subscribed', peerId, rid);
+                    console.log('stream-remove peer id => ' + pid);
+                    this.emit('stream-remove', pid, rid);
+                    _removePC(pid);
                     break;
                 }
         }
