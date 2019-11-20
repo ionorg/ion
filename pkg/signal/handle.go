@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )
 
@@ -61,10 +62,16 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		bizCall(method, peer, msg, accept, reject)
 	}
 
-	handleClose := func() {
+	handleClose := func(code int, err string) {
 		rooms := GetRoomsByPeer(peer.ID())
+		log.Infof("signal.in handleClose [%d] %s rooms=%v", code, err, rooms)
 		for _, room := range rooms {
 			if room != nil {
+				if code > 1000 {
+					msg := make(map[string]interface{})
+					msg["rid"] = room.ID()
+					bizCall(proto.ClientClose, peer, msg, accept, reject)
+				}
 				room.RemovePeer(peer.ID())
 			}
 		}

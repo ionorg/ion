@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -126,8 +128,11 @@ func Unmarshal(str string) map[string]interface{} {
 }
 
 func Recover(flag string) {
+	_, _, l, _ := runtime.Caller(1)
 	if err := recover(); err != nil {
-		log.Errorf("[%s] recover err => %v", flag, err)
+		log.Errorf("[%s] Recover panic line => %v", flag, l)
+		log.Errorf("[%s] Recover err => %v", flag, err)
+		debug.PrintStack()
 	}
 }
 

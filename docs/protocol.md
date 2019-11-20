@@ -33,7 +33,7 @@ ok:false
 errCode:-1
 
 ```
-when somebody join success, ion broadcast "onPublish" to him if there are some publishers
+Somebody will receive "stream-add"  if there are some publishers in this room
 
 ### 2) leave room
 #### request
@@ -55,7 +55,10 @@ data:{}
 ok:false
 errCode:-1
 ```
+Subscriber will receive "stream-remove" when  publisher leave this room
+
 ### 3) publish
+
 #### request
 
 ```
@@ -78,19 +81,19 @@ ok:false
 errCode:-1
 ```
 
-### 4) onPublish
+### 4) unpublish
 
-when publisher published success, ion broadcast "onPublish" to others
-#### request
+####request
 
 ```
-method:onPublish
+method:unpublish
 data:{
-    "pubid": "$pubid"
+    "rid":"$roomid"
 }
 ```
 
-#### response
+####response
+
 ```
 //success
 ok:true
@@ -103,12 +106,11 @@ errCode:-1
 
 ### 5) subscribe
 
-client could subscribe $pubid when it got "onPublish"
 #### request
 ```
 method:subscribe
 data:{
-    "pubid:"$pubid",
+    "pid:"$pid",
     "jsep": {"type": "offer","sdp": "..."}
 }
 ```
@@ -125,65 +127,19 @@ data:{
 ok:false
 errCode:-1
 ```
-### 6) onUnpublish
-
-when publisher leave room, ion broadcast "onUnpublish"
-
-subscribers need to delete this pc and player when they receive "onUnpublish"
-####request
-```
-method:onUnpublish
-data:{
-    "pubid": "$pubid"
-}
-```
-
-####response
-```
-//success
-ok:true
-data:{}
-
-//failed
-ok:false
-errCode:-1
-```
-
-### 7) unpublish
-
-when publisher unpublish, SFU broadcast "onUnpublish"
-
-subscribers need to delete this pc and player when they receive "onUnpublish"
-####request
-```
-method:unpublish
-data:{
-
-}
-```
-
-####response
-```
-//success
-ok:true
-data:{}
-
-//failed
-ok:false
-errCode:-1
-```
-
-### 7) unsubscribe
+### 6) unsubscribe
 
 ####request
+
 ```
 method:unsubscribe
 data:{
-    "pubid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
 ####response
+
 ```
 //success
 ok:true
@@ -194,82 +150,234 @@ ok:false
 errCode:-1
 ```
 
+## 
 
+## Events from ion
+
+### 1) peer-join
+
+Ion will broadcast "peer-join" when someone joined this room
+
+####request
+
+```
+method:peer-join
+data:{
+    "rid": "$rid"
+    "id": "$id"
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 2) peer-leave
+
+Ion will broadcast "peer-leave" when someone left from room
+
+####request
+
+```
+method:peer-leave
+data:{
+    "rid": "$rid"
+    "id": "$id"
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 3) stream-add
+
+Ion will broadcast "stream-add" when someone published success
+
+People can subscribe while receiving "stream-add" in this room
+
+#### request
+
+```
+method:stream-add
+data:{
+    "pid": "$pid"
+}
+```
+
+#### response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 4) stream-remove
+
+Ion will broadcast "stream-remove" when publisher leave room
+
+subscribers need to release resources(pc,player,etc.) when they receive "stream-remove"
+
+####request
+
+```
+method:stream-remove
+data:{
+    "pid": "$pid"
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+## 
 
 ## ion to islb
 
- ion send message to islb by rabbitmq
+ Ion exchange message from islb by rabbitmq
 
-### 1) getPubs
+### 1) peer-join
 
-when somebody join a room, ion will send "getPubs" to islb
+Ion will send "peer-join" when someone joined this room
+
+Islb will broadcast this msg to all ions
+
+####request
+
+```
+method:peer-join
+data:{
+    "rid": "$rid"
+    "id": "$id"
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 2) peer-leave
+
+Ion will send "peer-leave" when someone leave from room
+
+Islb will broadcast this msg to all ions
+
+####request
+
+```
+method:peer-leave
+data:{
+    "rid": "$rid"
+    "id": "$id"
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+### 3) getPubs
+
+Ion will  get all publiser's information from islb when somebody join a room
+
+Islb will response all publisher's information one by one
+
+Then ion can send these infomation to this new joiner by signal
+
 #### request
 
 ```
 {
     "method": "getPubs",
     "rid": "$roomid",
-    "pid": "$pubid"
+    "pid": "$pid"
 }
 ```
 
-#### response
+#### response1
 ```
 {
-    "pid": "$pubid1",
+    "pid": "$pid1",
     "info": "$info1"
 }
 
+```
+
+#### response2
+
+```
 {
-    "pid": "$pubid2",
+    "pid": "$pid2",
     "info": "$info2"
 }
-...
 ```
 
-### 2) unpublish
+### ...
 
-ion will send "unpublish" to islb when client end publishing
-#### request
-```
-{
-    "method": "unpublish",
-    "rid": "$roomid",
-    "pid": "$pid"
-}
-```
+### 4) stream-add
 
-#### 
-ion will send "unRelay" to islb when this rtp-pub has no sub, and islb will control other ion to stop this relay
+ion will send "stream-add" to islb when client start publishing
 
 #### request
 
 ```
 {
-    "method": "unRelay",
-    "rid": "$roomid",
-    "pid": "$pid"
-}
-```
-
-### 3) publish
-
-ion will send "publish" to islb when client start publishing
-
-#### request
-
-```
-{
-    "method": "publish",
+    "method": "stream-add",
     "rid": "$roomid",
     "pid": "$pid",
     "info": {"$SSRC": $payloadType}
 }
 ```
 
-### 4) keepAlive
+### 5) keepAlive
 
-ion send "keepAlive" to islb, islb will keep this status alive in redis
+ion send "keepAlive" to islb periodically when publish stream success
 
 #### request
 
@@ -282,9 +390,21 @@ ion send "keepAlive" to islb, islb will keep this status alive in redis
 }
 ```
 
+### 4) stream-remove
+
+Ion will send "stream-remove" to islb when client unpublish stream
+#### request
+```
+{
+    "method": "stream-remove",
+    "rid": "$roomid",
+    "pid": "$pid"
+}
+```
+
 ### 5) relay
 
-ion send "relay" to islb when publishing is on other ion
+Ion will send "relay" to islb when publisher is on other ion
 
 #### request
 
@@ -296,7 +416,9 @@ ion send "relay" to islb when publishing is on other ion
 }
 ```
 
-ion send "getMediaInfo" to islb when publishing is on other ion
+### 6) getMediaInfo
+
+Ion will send "getMediaInfo" to islb when publishing is on other ion
 
 ####request
 
@@ -307,4 +429,19 @@ ion send "getMediaInfo" to islb when publishing is on other ion
     "pid": "$pid"
 }
 ```
+
+### 7) unRelay
+
+Ion will send "unRelay" to islb when this rtp-pub has no sub, and islb will control origin ion to stop this relay
+
+#### request
+
+```
+{
+    "method": "unRelay",
+    "rid": "$roomid",
+    "pid": "$pid"
+}
+```
+
 

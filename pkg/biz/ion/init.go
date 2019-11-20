@@ -10,7 +10,7 @@ const (
 	errInvalidJsep  = "jsep not found"
 	errInvalidSDP   = "sdp not found"
 	errInvalidRoom  = "room not found"
-	errInvalidPubID = "pubid not found"
+	errInvalidPubID = "pub id not found"
 	errInvalidAddr  = "addr not found"
 )
 
@@ -25,13 +25,15 @@ func init() {
 	quit = make(map[string]chan struct{})
 }
 
+// Init func
 func Init(id, mqURL string) {
 	ionID = id
 	amqp = mq.New(id, mqURL)
-	handleRpcMsgs()
+	handleRPCMsgs()
 	handleBroadCastMsgs()
 }
 
+// Close func
 func Close() {
 	quitLock.Lock()
 	for _, v := range quit {

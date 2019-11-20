@@ -1,11 +1,10 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
 EXE=ion
 COMMAND=$APP_DIR/bin/$EXE
-STOP=$APP_DIR/scripts/stop.sh
 CONFIG=$APP_DIR/configs/ion.toml
 PID_FILE=$APP_DIR/configs/ion.pid
 LOG_FILE=$APP_DIR/logs/ion.log
@@ -14,7 +13,7 @@ help()
 {
     echo ""
     echo "start script"
-    echo "Usage: ./start.sh [-h]"
+    echo "Usage: ./ionStart.sh [-h]"
     echo ""
 }
 
@@ -31,7 +30,6 @@ do
     esac
 done
 
-echo "$COMMAND -c $CONFIG"
 
 count=`ps -ef |grep " $COMMAND " |grep -v "grep" |wc -l`
 if [ 0 != $count ];then
@@ -51,6 +49,7 @@ go build -o $COMMAND
 cd $APP_DIR
 
 ## run command
+echo "nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &"
 nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &
 pid=$!
 echo "$pid" > $PID_FILE

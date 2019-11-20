@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR/sdk/js
 npm i
 

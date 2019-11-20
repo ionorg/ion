@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
-	github.com/cloudwebrtc/go-protoo v0.0.0-20190706071103-7fd6b86d6978
+	github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe
 	github.com/coreos/etcd v3.3.17+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.0.0-beta.4
 	github.com/google/uuid v1.1.1 // indirect
@@ -17,4 +17,5 @@ require (
 	github.com/spf13/viper v1.5.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	go.etcd.io/etcd v3.3.17+incompatible
+	golang.org/x/sys v0.0.0-20191118133127-cf1e2d577169 // indirect
 )

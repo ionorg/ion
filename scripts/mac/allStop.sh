@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../; pwd)
+APP_DIR=$(cd `dirname $0`/../../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
 
@@ -25,25 +25,23 @@ do
     esac
 done
 
-# run command
-echo "------------etcd--------------"
-$APP_DIR/scripts/etcdStart.sh
-
-echo "------------redis--------------"
-$APP_DIR/scripts/redisStart.sh
-
-echo "-----------rabbitmq---------------"
-$APP_DIR/scripts/mqStart.sh
-
-echo "------------islb--------------"
-$APP_DIR/scripts/islbStart.sh
+echo "------------web--------------"
+$APP_DIR/scripts/mac/webStop.sh
 
 echo "------------ion--------------"
-$APP_DIR/scripts/ionStart.sh
+$APP_DIR/scripts/mac/ionStop.sh
 
+echo "------------islb--------------"
+$APP_DIR/scripts/mac/islbStop.sh
 
-echo "------------web--------------"
-$APP_DIR/scripts/webStart.sh
+echo "------------etcd--------------"
+$APP_DIR/scripts/mac/etcdStop.sh
+
+echo "------------redis--------------"
+$APP_DIR/scripts/mac/redisStop.sh
+
+echo "-----------rabbitmq---------------"
+$APP_DIR/scripts/mac/mqStop.sh
 echo "--------------------------"
 
 
