@@ -88,7 +88,7 @@ export default class Client extends EventEmitter {
                         var offer = pc.localDescription;
                         console.log('Send offer sdp => ' + offer.sdp);
                         pc.sendOffer = true
-                        let answer = await this._protoo.request('publish', { jsep: offer });
+                        let answer = await this._protoo.request('publish', { jsep: offer, options });
                         await pc.setRemoteDescription(answer.jsep);
                         console.log('publish success => ' + JSON.stringify(answer));
                         resolve(stream);
