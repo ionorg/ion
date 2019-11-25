@@ -1,9 +1,18 @@
 import { EventEmitter } from 'events';
 import protooClient from 'protoo-client';
 import uuidv4 from 'uuid/v4';
-import Streeam from './Stream';
+import Stream from './Stream';
+import * as sdpTransform from 'sdp-transform';
 
 const ices = 'stun:stun.stunprotocol.org:3478';
+
+const DefaultPayloadTypePCMU = 0;
+const DefaultPayloadTypePCMA = 8;
+const DefaultPayloadTypeG722 = 9;
+const DefaultPayloadTypeOpus = 111;
+const DefaultPayloadTypeVP8 = 96;
+const DefaultPayloadTypeVP9 = 98;
+const DefaultPayloadTypeH264 = 102;
 
 export default class Client extends EventEmitter {
 
@@ -63,7 +72,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    async publish(options = { audio: true, video: true, screen: false }) {
+    async publish(options = { audio: true, video: true, screen: false, codec: 'vp8' }) {
         console.log('publish options => %o', options);
         var promise = new Promise(async (resolve, reject) => {
             try {
@@ -72,18 +81,17 @@ export default class Client extends EventEmitter {
                 }
                 let stream = new Stream(this._uid);
                 await stream.init({ audio: options.audio, video: options.video, screen: options.screen });
-                let pc = await this._createSender(this._uid, stream.stream);
+                let pc = await this._createSender(this._uid, stream.stream, options.codec);
 
                 pc.onicecandidate = async (e) => {
                     if (!pc.sendOffer) {
                         var offer = pc.localDescription;
                         console.log('Send offer sdp => ' + offer.sdp);
                         pc.sendOffer = true
-
                         let answer = await this._protoo.request('publish', { jsep: offer });
                         await pc.setRemoteDescription(answer.jsep);
-                        resolve(stream);
                         console.log('publish success => ' + JSON.stringify(answer));
+                        resolve(stream);
                     }
                 }
             } catch (error) {
@@ -126,8 +134,8 @@ export default class Client extends EventEmitter {
                         console.log('Send offer sdp => ' + jsep.sdp);
                         pc.sendOffer = true
                         let answer = await this._protoo.request('subscribe', { pid, jsep });
-                        await pc.setRemoteDescription(answer.jsep);
                         console.log('subscribe success => answer(' + pid + ') sdp => ' + answer.jsep.sdp);
+                        await pc.setRemoteDescription(answer.jsep);
                     }
                 }
             } catch (error) {
@@ -153,13 +161,74 @@ export default class Client extends EventEmitter {
         this._protoo.close();
     }
 
-    async _createSender(uid, stream) {
+    _payloadModify(desc, codec) {
+
+        if (codec === undefined)
+            return desc;
+
+        const session = sdpTransform.parse(desc.sdp);
+        console.log('SDP object => %o', session);
+        var videoIdx = 1;
+        /*
+         * DefaultPayloadTypePCMU = 0
+         * DefaultPayloadTypePCMA = 8
+         * DefaultPayloadTypeG722 = 9
+         * DefaultPayloadTypeOpus = 111
+         * DefaultPayloadTypeVP8  = 96
+         * DefaultPayloadTypeVP9  = 98
+         * DefaultPayloadTypeH264 = 102
+        */
+        let payload;
+        let codeName = '';
+        if (codec.toLowerCase() === 'vp8') {
+            /*Add VP8 and RTX only.*/
+            payload = DefaultPayloadTypeVP8;
+            codeName = "VP8";
+        } else if (codec.toLowerCase() === 'vp9') {
+            payload = DefaultPayloadTypeVP9;
+            codeName = "VP9";
+        } else if (codec.toLowerCase() === 'h264') {
+            payload = DefaultPayloadTypeH264;
+            codeName = "H264";
+        } else {
+            return desc;
+        }
+
+        var rtp = [
+            { "payload": payload, "codec": codeName, "rate": 90000, "encoding": null },
+            { "payload": 97, "codec": "rtx", "rate": 90000, "encoding": null }
+        ];
+
+        session['media'][videoIdx]["payloads"] = payload + " 97";
+        session['media'][videoIdx]["rtp"] = rtp;
+
+        var fmtp = [
+            { "payload": 97, "config": "apt=" + payload }
+        ];
+
+        session['media'][videoIdx]["fmtp"] = fmtp;
+
+        var rtcpFB = [
+            { "payload": payload, "type": "transport-cc", "subtype": null },
+            { "payload": payload, "type": "ccm", "subtype": "fir" },
+            { "payload": payload, "type": "nack", "subtype": null },
+            { "payload": payload, "type": "nack", "subtype": "pli" }
+        ];
+        session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+
+        let tmp = desc;
+        tmp.sdp = sdpTransform.write(session);
+        return tmp;
+    }
+
+    async _createSender(uid, stream, codec) {
         console.log('create sender => %s', uid);
         let pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] });
         pc.sendOffer = false;
         pc.addStream(stream);
-        let desc = await
+        let offer = await
             pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
+        let desc = this._payloadModify(offer, codec);
         pc.setLocalDescription(desc);
         this._pcs[uid] = pc;
         return pc;

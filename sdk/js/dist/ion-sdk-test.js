@@ -76,7 +76,7 @@ async function onPublishBtnClick() {
         return;
     }
     showStatus('start publish!');
-    let stream = await client.publish();
+    let stream = await client.publish({ codec: 'H264' });
     let id = stream.uid;
     insertVideoView('local-video-container', id);
     stream.render(id);

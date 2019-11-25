@@ -26,6 +26,7 @@
     "events": "^3.0.0",
     "lodash": "^4.17.15",
     "protoo-client": "^4.0.3",
+    "sdp-transform": "^2.13.0",
     "uuid": "^3.3.2"
   },
   "keywords": [
