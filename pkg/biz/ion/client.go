@@ -147,7 +147,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 	}
 
 	sdp := util.Val(j, "sdp")
-
+	options := msg["options"].(map[string]interface{})
 	room := signal.GetRoomByPeer(peer.ID())
 	if room == nil {
 		reject(-1, errInvalidRoom)
@@ -174,7 +174,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 		}()
 	}
 
-	answer, err := rtc.AddNewWebRTCPub(peer.ID()).AnswerPublish(room.ID(), jsep, islbStoreSsrc)
+	answer, err := rtc.AddNewWebRTCPub(peer.ID()).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
 	if err != nil {
 		log.Errorf("biz.publish answer err=%s jsep=%v", err.Error(), jsep)
 		reject(-1, err.Error())

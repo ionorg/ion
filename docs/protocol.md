@@ -65,6 +65,7 @@ Subscriber will receive "stream-remove" when  publisher leave this room
 method:publish
 data:{
     "jsep": {"type": "offer","sdp": "..."}
+    "options": {"codec": "h264"}
 }
 ```
 

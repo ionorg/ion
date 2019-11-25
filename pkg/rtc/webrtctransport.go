@@ -21,10 +21,6 @@ func initICE(ices []string) {
 			},
 		},
 	}
-	mediaEngine = webrtc.MediaEngine{}
-	mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
-	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
-	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 }
 
 type WebRTCTransport struct {
@@ -59,7 +55,20 @@ func (t *WebRTCTransport) ID() string {
 	return t.id
 }
 
-func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescription, fn func(ssrc uint32, pt uint8)) (answer webrtc.SessionDescription, err error) {
+func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescription, options map[string]interface{}, fn func(ssrc uint32, pt uint8)) (answer webrtc.SessionDescription, err error) {
+	mediaEngine = webrtc.MediaEngine{}
+	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+	if options != nil && options["codec"] != nil {
+		switch options["codec"].(string) {
+		case "H264":
+			mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
+		case "VP9":
+			mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+		default:
+			mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+		}
+	}
+	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
