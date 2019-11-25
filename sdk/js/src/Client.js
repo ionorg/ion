@@ -166,9 +166,6 @@ export default class Client extends EventEmitter {
         if (codec === undefined)
             return desc;
 
-        const session = sdpTransform.parse(desc.sdp);
-        console.log('SDP object => %o', session);
-        var videoIdx = 1;
         /*
          * DefaultPayloadTypePCMU = 0
          * DefaultPayloadTypePCMA = 8
@@ -180,8 +177,10 @@ export default class Client extends EventEmitter {
         */
         let payload;
         let codeName = '';
+        const session = sdpTransform.parse(desc.sdp);
+        console.log('SDP object => %o', session);
+        var videoIdx = 1;
         if (codec.toLowerCase() === 'vp8') {
-            /*Add VP8 and RTX only.*/
             payload = DefaultPayloadTypeVP8;
             codeName = "VP8";
         } else if (codec.toLowerCase() === 'vp9') {
@@ -193,6 +192,8 @@ export default class Client extends EventEmitter {
         } else {
             return desc;
         }
+
+        console.log('Setup codec => ' + codeName + ', payload => ' + payload);
 
         var rtp = [
             { "payload": payload, "codec": codeName, "rate": 90000, "encoding": null },
