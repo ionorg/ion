@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - "1.13.4"
+  - master
+script:
+  - go build ./cmd/ion
+  - go build ./cmd/islb
+
