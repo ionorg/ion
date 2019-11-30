@@ -193,9 +193,21 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		reject(-1, errInvalidRoom)
 		return
 	}
+	rid := room.ID()
+	// if this is a webrtc pub
+	if rtc.IsWebRtcPub(peer.ID()) {
+		// tell islb stream-remove
+		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "pid", peer.ID()), "")
 
-	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", room.ID(), "pid", peer.ID()), "")
-	rtc.DelPub(peer.ID())
+		rtc.DelPub(peer.ID())
+		quitLock.Lock()
+		if quit[peer.ID()] != nil {
+			close(quit[peer.ID()])
+			quit[peer.ID()] = nil
+		}
+		quitLock.Unlock()
+	}
+
 	accept(util.Unmarshal(`{}`))
 }
 
