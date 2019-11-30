@@ -1,7 +1,7 @@
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: './src/index.jsx',
   devtool: 'source-map',//eval | source-map
   module: {
     rules: [
@@ -9,10 +9,9 @@ module.exports = {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         use: ['babel-loader']
-      },
-      {
+      }, {
         test: /\.(scss|less|css)$/,
-        use: ["style-loader", "css-loader", "sass-loader"]
+        use: ['style-loader', 'css-loader', 'sass-loader']
       },
     ]
   },
@@ -22,7 +21,7 @@ module.exports = {
   output: {
     path: __dirname + '/dist',
     publicPath: '/',
-    filename: 'ion-sdk.js'
+    filename: 'ion-conference.js'
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin()
@@ -30,6 +29,6 @@ module.exports = {
   devServer: {
     contentBase: './dist',
     hot: true,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
   }
 };

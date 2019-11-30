@@ -80,7 +80,7 @@ export default class Client extends EventEmitter {
                     throw 'already in publish, abort!';
                 }
                 let stream = new Stream(this._uid);
-                await stream.init({ audio: options.audio, video: options.video, screen: options.screen });
+                await stream.init(true, { audio: options.audio, video: options.video, screen: options.screen });
                 let pc = await this._createSender(this._uid, stream.stream, options.codec);
 
                 pc.onicecandidate = async (e) => {
@@ -179,7 +179,15 @@ export default class Client extends EventEmitter {
         let codeName = '';
         const session = sdpTransform.parse(desc.sdp);
         console.log('SDP object => %o', session);
-        var videoIdx = 1;
+        var videoIdx = -1;
+        session['media'].map((m, index) => {
+            if (m.type == 'video') {
+                videoIdx = index;
+            }
+        });
+
+        if (videoIdx == -1) return desc;
+
         if (codec.toLowerCase() === 'vp8') {
             payload = DefaultPayloadTypeVP8;
             codeName = "VP8";
