@@ -105,10 +105,10 @@ export default class Client extends EventEmitter {
 
     async unpublish() {
         console.log('unpublish uid => %s', this._uid);
+        this._removePC(this._uid);
         try {
-            let data = await this._protoo.request('unpublish', { 'rid': this._rid });
+            let data = await this._protoo.request('unpublish', { 'pid': this._uid });
             console.log('unpublish success: result => ' + JSON.stringify(data));
-            this._removePC(this._uid);
         } catch (error) {
             console.log('unpublish reject: error =>' + error);
         }

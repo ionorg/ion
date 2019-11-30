@@ -1,5 +1,4 @@
 import React from "react";
-import { Card, Row, Col } from "antd";
 import MainVideoView from "./MainVideoView";
 import LocalVideoView from "./LocalVideoView";
 import SmallVideoView from "./SmallVideoView";
@@ -14,9 +13,11 @@ class Conference extends React.Component {
       clientHeight: 0
     };
     this.saveRef = ref => {
-      const { clientWidth, clientHeight } = ref;
-      this.refDom = ref;
-      this.setState({ clientWidth, clientHeight });
+      if (ref !== null) {
+        const { clientWidth, clientHeight } = ref;
+        this.refDom = ref;
+        this.setState({ clientWidth, clientHeight });
+      }
     };
   }
 
@@ -32,11 +33,37 @@ class Conference extends React.Component {
     client.removeAllListeners("stream-add");
     client.removeAllListeners("stream-remove");
     window.removeEventListener("resize", this._onWindowResize);
+    this._unpublish();
   };
 
   _onWindowResize = () => {
     const { clientWidth, clientHeight } = this.refDom;
     this.setState({ clientWidth, clientHeight });
+  };
+
+  _publish = async type => {
+    const { client, id } = this.props;
+    let stream = await client.publish({
+      codec: "vp8",
+      audio: true,
+      video: type === "video",
+      screen: type === "screen"
+    });
+    this.localVideoView.stream = stream;
+  };
+
+  _unpublish = async () => {
+    const { client } = this.props;
+    if (this.localVideoView) this.localVideoView.stream = null;
+    await client.unpublish();
+  };
+
+  _handleStreamEnabled = (type, enabled) => {
+    if (enabled) {
+      this._publish(type);
+    } else {
+      this._unpublish();
+    }
   };
 
   _handleAddStream = async (id, rid) => {
@@ -48,12 +75,8 @@ class Conference extends React.Component {
   };
 
   _handleRemoveStream = async (id, rid) => {
-    const { client } = this.props;
     let streams = this.state.streams;
-    streams.splice(
-      streams.findIndex(item => item.id === id),
-      1
-    );
+    streams = streams.filter(item => item.id !== id);
     this.setState({ streams });
   };
 
@@ -89,13 +112,13 @@ class Conference extends React.Component {
             })}
           </div>
         </div>
-        <div style={{ position: "absolute", top: 90, right: 24 }}>
+        <div style={{ position: "absolute", top: 90, left: 24 }}>
           <div style={{ width: 220, height: 140 }}>
             <LocalVideoView
-              ref={id}
               id={id}
+              ref={ref => (this.localVideoView = ref)}
               client={client}
-              handleMediaSwitch={this._handleMediaSwitch}
+              handleStreamEnabled={this._handleStreamEnabled}
             />
           </div>
         </div>

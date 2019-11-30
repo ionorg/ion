@@ -2,7 +2,7 @@ import React from "react";
 import {
   Layout,
   Button,
-  Menu,
+  Modal,
   Icon,
   Input,
   notification,
@@ -10,8 +10,8 @@ import {
   Spin
 } from "antd";
 
+const { confirm } = Modal;
 const { Header, Content, Footer } = Layout;
-const { SubMenu } = Menu;
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -30,13 +30,13 @@ class App extends React.Component {
     window.onunload = () => {
       client.leave();
     };
-    
+
     client.on("peer-join", (id, rid) => {
-      notification("Peer Join", "peer => " + id + ", join!");
+      this._notification("Peer Join", "peer => " + id + ", join!");
     });
 
     client.on("peer-leave", (id, rid) => {
-      notification("Peer Leave", "peer => " + id + ", leave!");
+      this._notification("Peer Leave", "peer => " + id + ", leave!");
     });
 
     client.on("transport-open", function() {
@@ -51,7 +51,7 @@ class App extends React.Component {
     this.client = client;
   }
 
-  notification = (message, description) => {
+  _notification = (message, description) => {
     notification.open({
       message: message,
       description: description,
@@ -59,14 +59,31 @@ class App extends React.Component {
     });
   };
 
-  handleJoin = async values => {
+  _handleJoin = async values => {
     this.setState({ loading: true });
     await this.client.join(values.room_id);
     this.setState({ login: true, loading: false });
-    this.notification(
+    this._notification(
       "Connected!",
       "Welcome to the ion room => " + values.room_id
     );
+  };
+
+  _handleLeave = async () => {
+    let client = this.client;
+    let this2 = this;
+    confirm({
+      title: "Leave Now?",
+      content: "Do you want to leave the room?",
+      async onOk() {
+        console.log("OK");
+        await client.leave();
+        this2.setState({login: false});
+      },
+      onCancel() {
+        console.log("Cancel");
+      }
+    });
   };
 
   render() {
@@ -88,7 +105,12 @@ class App extends React.Component {
           </div>
           <div style={{ float: "right", marginRight: 24, color: "#001529" }}>
             {login ? (
-              <Button shape="circle" icon="logout" ghost />
+              <Button
+                shape="circle"
+                icon="logout"
+                ghost
+                onClick={this._handleLeave}
+              />
             ) : (
               <Button shape="circle" icon="setting" ghost />
             )}
@@ -110,7 +132,7 @@ class App extends React.Component {
             <Spin size="large" tip="Connecting..." />
           ) : (
             <Card title="Join to Ion" style={{ height: 280 }}>
-              <LoginForm handleLogin={this.handleJoin} />
+              <LoginForm handleLogin={this._handleJoin} />
             </Card>
           )}
         </Content>

@@ -1,5 +1,4 @@
 import React from "react";
-import { Button, Switch, Input } from "antd";
 
 class MainVideoView extends React.Component {
   componentDidMount = () => {

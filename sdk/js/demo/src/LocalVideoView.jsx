@@ -1,27 +1,20 @@
 import React from "react";
-import { Button, Icon, Input } from "antd";
+import { Button } from "antd";
 
 class LocalVideoView extends React.Component {
   state = {
-    type: "none",
-    playing: false
+    type: "video",
+    enabled: true
   };
 
-  _publish = async type => {
-    const { client, id } = this.props;
-    let stream = await client.publish({
-      codec: "vp8",
-      audio: true,
-      video: type === "video",
-      screen: type === "screen"
-    });
-    let video = this.refs[id];
-    video.srcObject = stream.stream;
-    this.setState({ playing: true });
+  componentDidMount = () => {
+    const { handleStreamEnabled } = this.props;
+    const { type, enabled } = this.state;
+    handleStreamEnabled(type, enabled);
   };
 
-  _unpublish = async () => {
-    const { client, id } = this.props;
+  componentWillUnmount = () => {
+    const {id } = this.props;
     let video = this.refs[id];
     let stream = video.srcObject;
     if (stream !== null) {
@@ -31,22 +24,35 @@ class LocalVideoView extends React.Component {
       }
     }
     video.srcObject = null;
-    await client.unpublish();
-    this.setState({ playing: false });
   };
 
-  _handleMediaSwitch = (type, playing) => {
-    this.setState({ type, playing });
-    if (playing) {
-      this._publish(type);
+  set stream(stream) {
+    const { id } = this.props;
+    let video = this.refs[id];
+    if (stream != null) {
+      let video = this.refs[id];
+      video.srcObject = stream.stream;
     } else {
-      this._unpublish();
+      stream = video.srcObject;
+      if (stream !== null) {
+        let tracks = stream.getTracks();
+        for (let i = 0, len = tracks.length; i < len; i++) {
+          tracks[i].stop();
+        }
+      }
+      video.srcObject = null;
     }
+  }
+
+  _handleStreamEnabled = (type, enabled) => {
+    const { handleStreamEnabled } = this.props;
+    this.setState({ type, enabled });
+    handleStreamEnabled(type, enabled);
   };
 
   render = () => {
     const { id } = this.props;
-    const { playing, type } = this.state;
+    const { enabled, type } = this.state;
     return (
       <div
         style={{
@@ -75,20 +81,20 @@ class LocalVideoView extends React.Component {
                 <Button
                   shape="circle"
                   icon="audio"
-                  disabled={playing && type != "audio"}
-                  onClick={() => this._handleMediaSwitch("audio", !playing)}
+                  disabled={enabled && type != "audio"}
+                  onClick={() => this._handleStreamEnabled("audio", !enabled)}
                 />
                 <Button
                   shape="circle"
                   icon="video-camera"
-                  disabled={playing && type != "video"}
-                  onClick={() => this._handleMediaSwitch("video", !playing)}
+                  disabled={enabled && type != "video"}
+                  onClick={() => this._handleStreamEnabled("video", !enabled)}
                 />
                 <Button
                   shape="circle"
                   icon="desktop"
-                  disabled={playing && type != "screen"}
-                  onClick={() => this._handleMediaSwitch("screen", !playing)}
+                  disabled={enabled && type != "screen"}
+                  onClick={() => this._handleStreamEnabled("screen", !enabled)}
                 />
               </div>
             </div>

@@ -1,5 +1,4 @@
 import React from "react";
-import { Button, Icon, Input } from "antd";
 
 class SmallVideoView extends React.Component {
   state = {
