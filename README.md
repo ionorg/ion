@@ -1,5 +1,6 @@
 # ION
 ION is a distributed RTC system written by pure go and flutter
+[![Build Status](https://travis-ci.com/pion/ion.svg?branch=master)](https://travis-ci.com/pion/ion)
 
 ## Architecture
 
