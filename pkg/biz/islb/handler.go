@@ -3,6 +3,7 @@ package biz
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pion/ion/pkg/db"
@@ -17,8 +18,10 @@ const (
 )
 
 var (
-	amqp  *mq.Amqp
-	redis *db.Redis
+	amqp               *mq.Amqp
+	redis              *db.Redis
+	streamAddCache     = make(map[string]bool)
+	streamAddCacheLock sync.RWMutex
 )
 
 // Init func
@@ -61,10 +64,20 @@ func handleRPCMsgs() {
 				for ssrc, pt := range ssrcPt {
 					redis.HSetTTL(key, ssrc, pt, redisKeyTTL)
 				}
-				if m := redis.HGetAll(rid + "/pub/media/" + pid); len(m) > 1 {
+				//receive more than one streamAdd in 1s, only send once
+				if _, ok := streamAddCache[pid]; !ok {
+					streamAddCacheLock.Lock()
+					streamAddCache[pid] = true
+					streamAddCacheLock.Unlock()
+					time.AfterFunc(1*time.Second, func() {
+						streamAddCacheLock.Lock()
+						delete(streamAddCache, pid)
+						streamAddCacheLock.Unlock()
+					})
 					onStreamAdd := util.Map("rid", rid, "method", proto.IslbOnStreamAdd, "pid", pid)
 					amqp.BroadCast(onStreamAdd)
 				}
+
 			case proto.IslbKeepAlive:
 				pid := util.Val(msg, "pid")
 				rid := util.Val(msg, "rid")
