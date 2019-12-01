@@ -4,7 +4,8 @@ import { Button } from "antd";
 class LocalVideoView extends React.Component {
   state = {
     type: "video",
-    enabled: true
+    enabled: true,
+    minimize: false,
   };
 
   componentDidMount = () => {
@@ -50,6 +51,10 @@ class LocalVideoView extends React.Component {
     handleStreamEnabled(type, enabled);
   };
 
+  changeToBigVideo = () => {
+    console.log('changeToBigVideo');
+  };
+
   render = () => {
     const { id } = this.props;
     const { enabled, type } = this.state;
@@ -76,21 +81,24 @@ class LocalVideoView extends React.Component {
             >
               Local
             </a>
-            <div style={{ position: "absolute", right: 8, top: 8 }}>
+            <div style={{ position: "absolute", right: 8, top: 8,}}>
               <div style={{ display: "inline" }}>
                 <Button
+                  size="small"
                   shape="circle"
                   icon="audio"
                   disabled={enabled && type != "audio"}
                   onClick={() => this._handleStreamEnabled("audio", !enabled)}
                 />
                 <Button
+                  size="small"
                   shape="circle"
                   icon="video-camera"
                   disabled={enabled && type != "video"}
                   onClick={() => this._handleStreamEnabled("video", !enabled)}
                 />
                 <Button
+                  size="small"
                   shape="circle"
                   icon="desktop"
                   disabled={enabled && type != "screen"}
@@ -107,6 +115,7 @@ class LocalVideoView extends React.Component {
             height: 140,
             zIndex: 0
           }}
+          onClick={this.changeToBigVideo}
         >
           <video
             ref={id}

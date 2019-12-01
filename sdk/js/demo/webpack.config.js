@@ -1,4 +1,6 @@
 const webpack = require('webpack');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
+
 
 module.exports = {
   entry: './src/index.jsx',
@@ -24,7 +26,11 @@ module.exports = {
     filename: 'ion-conference.js'
   },
   plugins: [
-    new webpack.HotModuleReplacementPlugin()
+    new webpack.HotModuleReplacementPlugin(),
+    new CopyWebpackPlugin([{
+      from: __dirname + '/styles',
+      to: __dirname + '/dist/styles',
+    }]),
   ],
   devServer: {
     contentBase: './dist',
