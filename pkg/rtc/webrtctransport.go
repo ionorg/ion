@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -36,6 +37,9 @@ type WebRTCTransport struct {
 	ssrcPTLock   sync.RWMutex
 	byteRate     uint64
 	isLostPacket bool
+	hasVideo     bool
+	hasAudio     bool
+	hasScreen    bool
 }
 
 func newWebRTCTransport(id string) *WebRTCTransport {
@@ -56,10 +60,15 @@ func (t *WebRTCTransport) ID() string {
 }
 
 func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescription, options map[string]interface{}, fn func(ssrc uint32, pt uint8)) (answer webrtc.SessionDescription, err error) {
+	if options == nil {
+		return webrtc.SessionDescription{}, errors.New("invalid options")
+	}
 	mediaEngine = webrtc.MediaEngine{}
 	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
-	if options != nil && options["codec"] != nil {
-		switch options["codec"].(string) {
+
+	// only register one video codec which client need
+	if codec, ok := options["codec"]; ok {
+		switch codec.(string) {
 		case "H264":
 			mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
 		case "VP9":
@@ -68,6 +77,16 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 			mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
 		}
 	}
+	if v, ok := options["video"].(bool); ok {
+		t.hasVideo = v
+	}
+	if a, ok := options["audio"].(bool); ok {
+		t.hasAudio = a
+	}
+	if s, ok := options["screen"].(bool); ok {
+		t.hasScreen = s
+	}
+
 	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
@@ -123,6 +142,8 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 	err = t.pc.SetLocalDescription(answer)
 	//TODO recently not use, fix panic?
 	// t.pubReceiveRTCP()
+
+	t.sendPLI()
 	return answer, err
 }
 
@@ -161,20 +182,22 @@ func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, ssrcP
 }
 
 func (t *WebRTCTransport) sendPLI() {
-	go func() {
-		ticker := time.NewTicker(pliDuration)
-		defer ticker.Stop()
-		t.wg.Add(1)
-		for {
-			select {
-			case <-ticker.C:
-				t.pli <- 1
-			case <-t.notify:
-				t.wg.Done()
-				return
+	if t.hasVideo || t.hasScreen {
+		go func() {
+			ticker := time.NewTicker(pliDuration)
+			defer ticker.Stop()
+			t.wg.Add(1)
+			for {
+				select {
+				case <-ticker.C:
+					t.pli <- 1
+				case <-t.notify:
+					t.wg.Done()
+					return
+				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 func (t *WebRTCTransport) receiveRTP(remoteTrack *webrtc.Track) {

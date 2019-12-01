@@ -2,6 +2,7 @@ package biz
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -95,9 +96,11 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 
 		rtc.DelPub(peer.ID())
 		quitLock.Lock()
-		if quit[peer.ID()] != nil {
-			close(quit[peer.ID()])
-			quit[peer.ID()] = nil
+		for k := range quit {
+			if strings.Contains(k, peer.ID()) {
+				close(quit[k])
+				delete(quit, k)
+			}
 		}
 		quitLock.Unlock()
 	}
@@ -159,7 +162,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 		ssrcPt := fmt.Sprintf("{\"%d\":%d}", ssrc, pt)
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "pid", peer.ID(), "info", ssrcPt), "")
 		quitLock.Lock()
-		quit[peer.ID()] = make(chan struct{})
+		quit[peer.ID()+fmt.Sprintf("-%d", ssrc)] = make(chan struct{})
 		quitLock.Unlock()
 		go func() {
 			t := time.NewTicker(time.Second)
@@ -167,7 +170,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 				select {
 				case <-t.C:
 					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "pid", peer.ID(), "info", ssrcPt), "")
-				case <-quit[peer.ID()]:
+				case <-quit[peer.ID()+fmt.Sprintf("-%d", ssrc)]:
 					return
 				}
 			}
@@ -201,9 +204,11 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 
 		rtc.DelPub(peer.ID())
 		quitLock.Lock()
-		if quit[peer.ID()] != nil {
-			close(quit[peer.ID()])
-			quit[peer.ID()] = nil
+		for k := range quit {
+			if strings.Contains(k, peer.ID()) {
+				close(quit[k])
+				delete(quit, k)
+			}
 		}
 		quitLock.Unlock()
 	}

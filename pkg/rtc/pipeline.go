@@ -283,12 +283,6 @@ func (p *pipeline) Close() {
 	close(p.subCh)
 }
 
-func (p *pipeline) SendPLI() {
-	if p.pub != nil {
-		p.pub.sendPLI()
-	}
-}
-
 func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
 	if p.pub == nil {
 		return false

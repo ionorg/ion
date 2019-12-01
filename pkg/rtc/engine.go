@@ -169,7 +169,7 @@ func AddNewRTPSub(pid, sid, addr string) {
 func AddNewWebRTCPub(pid string) *WebRTCTransport {
 	log.Infof("rtc.AddNewWebRTCPub pid=%v", pid)
 	wt := newWebRTCTransport(pid)
-	getOrNewPipeline(pid).addPub(pid, wt).sendPLI()
+	getOrNewPipeline(pid).addPub(pid, wt)
 	return wt
 }
 
