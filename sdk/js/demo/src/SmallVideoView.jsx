@@ -24,10 +24,15 @@ class SmallVideoView extends React.Component {
     video.srcObject = null;
   };
 
+  _onChangBigView = () => {
+    this.props.onClick({id:this.props.id,index:this.props.index});
+  }
+
   render = () => {
     const { id } = this.props;
     return (
       <div
+        onDoubleClick={this._onChangBigView}
         style={{
           borderWidth: "0.5px",
           borderStyle: "solid",
@@ -56,6 +61,9 @@ class SmallVideoView extends React.Component {
               objectFit: "cover"
             }}
           />
+          <div>
+            <a style={{ position: "absolute", left: -10, top: -16 }}>{id}</a>
+          </div>
         </div>
       </div>
     );
