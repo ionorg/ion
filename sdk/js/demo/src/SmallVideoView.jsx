@@ -11,19 +11,6 @@ class SmallVideoView extends React.Component {
     video.srcObject = stream.stream;
   };
 
-  componentWillUnmount = () => {
-    const {id } = this.props;
-    let video = this.refs[id];
-    let stream = video.srcObject;
-    if (stream !== null) {
-      let tracks = stream.getTracks();
-      for (let i = 0, len = tracks.length; i < len; i++) {
-        tracks[i].stop();
-      }
-    }
-    video.srcObject = null;
-  };
-
   _onChangeVideoPosition = () => {
     this.props.onClick({id:this.props.id,index:this.props.index});
   }
