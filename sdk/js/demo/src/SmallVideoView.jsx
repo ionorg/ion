@@ -19,7 +19,7 @@ class SmallVideoView extends React.Component {
     const { id } = this.props;
     return (
       <div
-        onDoubleClick={this._onChangeVideoPosition}
+        onClick={this._onChangeVideoPosition}
         style={{
           borderWidth: "0.5px",
           borderStyle: "solid",
