@@ -2,6 +2,15 @@ import React from "react";
 import { Form, Icon, Input, Button } from "antd";
 
 class LoginForm extends React.Component {
+
+  componentDidMount = () => {
+    const { form, loginInfo } = this.props;
+    form.setFieldsValue({
+      'roomId': loginInfo.roomId,
+      'displayName': loginInfo.displayName,
+    });
+  }
+
   handleSubmit = e => {
     e.preventDefault();
     this.props.form.validateFields((err, values) => {
@@ -15,10 +24,11 @@ class LoginForm extends React.Component {
 
   render() {
     const { getFieldDecorator } = this.props.form;
+
     return (
       <Form onSubmit={this.handleSubmit} style={{ minWidth: 300 }}>
         <Form.Item>
-          {getFieldDecorator("room_id", {
+          {getFieldDecorator("roomId", {
             rules: [{ required: true, message: "Please enter your room Id!" }]
           })(
             <Input
@@ -28,14 +38,13 @@ class LoginForm extends React.Component {
           )}
         </Form.Item>
         <Form.Item>
-          {getFieldDecorator("display_name", {
+          {getFieldDecorator("displayName", {
             rules: [{ required: true, message: "Please enter your Name!" }]
           })(
             <Input
               prefix={
                 <Icon type="contacts" style={{ color: "rgba(0,0,0,.25)" }} />
               }
-              type="display_name"
               placeholder="Display Name"
             />
           )}
@@ -50,5 +59,5 @@ class LoginForm extends React.Component {
   }
 }
 
-const WrappedLoginForm = Form.create({ name: "normal_login" })(LoginForm);
+const WrappedLoginForm = Form.create({ name: "login" })(LoginForm);
 export default WrappedLoginForm;

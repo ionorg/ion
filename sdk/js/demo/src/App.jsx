@@ -12,6 +12,7 @@ import {
 
 const { confirm } = Modal;
 const { Header, Content, Footer } = Layout;
+import { reactLocalStorage } from "reactjs-localstorage";
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -22,7 +23,11 @@ class App extends React.Component {
     super();
     this.state = {
       login: false,
-      loading: false
+      loading: false,
+      loginInfo: reactLocalStorage.getObject("loginInfo", {
+        roomId: "room1",
+        displayName: "Guest"
+      })
     };
 
     let client = new Client();
@@ -47,6 +52,16 @@ class App extends React.Component {
       console.log("transport closed!");
     });
 
+    client.on("stream-add", (id, rid) => {
+      console.log("stream-add %s,%s!", id, rid);
+      this._notification("Stream Add", "id => " + id + ", rid => " + rid);
+    });
+
+    client.on("stream-remove", (id, rid) => {
+      console.log("stream-remove %s,%s!", id, rid);
+      this._notification("Stream Remove", "id => " + id + ", rid => " + rid);
+    });
+
     client.init();
     this.client = client;
   }
@@ -61,11 +76,13 @@ class App extends React.Component {
 
   _handleJoin = async values => {
     this.setState({ loading: true });
-    await this.client.join(values.room_id);
+    reactLocalStorage.clear("loginInfo");
+    reactLocalStorage.setObject("loginInfo", values);
+    await this.client.join(values.roomId);
     this.setState({ login: true, loading: false });
     this._notification(
       "Connected!",
-      "Welcome to the ion room => " + values.room_id
+      "Welcome to the ion room => " + values.roomId
     );
   };
 
@@ -78,7 +95,7 @@ class App extends React.Component {
       async onOk() {
         console.log("OK");
         await client.leave();
-        this2.setState({login: false});
+        this2.setState({ login: false });
       },
       onCancel() {
         console.log("Cancel");
@@ -87,7 +104,7 @@ class App extends React.Component {
   };
 
   render() {
-    const { login, loading } = this.state;
+    const { login, loading, loginInfo } = this.state;
     return (
       <Layout style={{ height: "100%" }}>
         <Header
@@ -132,7 +149,7 @@ class App extends React.Component {
             <Spin size="large" tip="Connecting..." />
           ) : (
             <Card title="Join to Ion" style={{ height: 280 }}>
-              <LoginForm handleLogin={this._handleJoin} />
+              <LoginForm loginInfo={loginInfo} handleLogin={this._handleJoin} />
             </Card>
           )}
         </Content>

@@ -30,8 +30,8 @@ class Conference extends React.Component {
 
   componentWillUnmount = () => {
     const { client } = this.props;
-    client.removeAllListeners("stream-add");
-    client.removeAllListeners("stream-remove");
+    client.off("stream-add", this._handleAddStream);
+    client.off("stream-remove", this._handleAddStream);
     window.removeEventListener("resize", this._onWindowResize);
     this._unpublish();
   };
