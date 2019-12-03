@@ -80,33 +80,33 @@ class Conference extends React.Component {
     this.setState({ streams });
   };
 
-  _onChangeVideoPosition = (data) => {
+  _onChangeVideoPosition = data => {
     let id = data.id;
     let index = data.index;
-    console.log("_onChangeVideoPosition id:" + id + "  index:" +  index);
+    console.log("_onChangeVideoPosition id:" + id + "  index:" + index);
 
     if (index == 0) {
-        return;
+      return;
     }
 
     const streams = this.state.streams;
     let first = 0;
     let big = 0;
     for (let i = 0; i < streams.length; i++) {
-        let item = streams[i];
-        if (item.id == id) {
-            big = i;
-            break;
-        }
+      let item = streams[i];
+      if (item.id == id) {
+        big = i;
+        break;
+      }
     }
 
     let c = streams[first];
     streams[first] = streams[big];
     streams[big] = c;
 
-    this.setState({streams: streams});
+    this.setState({ streams: streams });
     setTimeout(this.replay, 1000);
-  }
+  };
 
   render = () => {
     const { client } = this.props;
@@ -133,7 +133,11 @@ class Conference extends React.Component {
           >
             {streams.map((item, index) => {
               return index == 0 ? (
-                <MainVideoView id={item.id} stream={item.stream} />
+                <MainVideoView
+                  key={item.id}
+                  id={item.id}
+                  stream={item.stream}
+                />
               ) : (
                 ""
               );
@@ -164,7 +168,13 @@ class Conference extends React.Component {
                   <div
                     style={{ display: "inline-block", width: 220, height: 140 }}
                   >
-                    <SmallVideoView id={item.id} stream={item.stream} index={index} onClick={this._onChangeVideoPosition}/>
+                    <SmallVideoView
+                      key={item.id}
+                      id={item.id}
+                      stream={item.stream}
+                      index={index}
+                      onClick={this._onChangeVideoPosition}
+                    />
                   </div>
                 ) : (
                   ""
