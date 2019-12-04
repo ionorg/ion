@@ -53,7 +53,7 @@ Welcome contributing to ion!
 ./scripts/centos/installDeps.sh
 
 //mac
-./scripts/centos/installDeps.sh
+./scripts/mac/installDeps.sh
 ```
 ### 3. run
 ```
