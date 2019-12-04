@@ -28,7 +28,8 @@ func init() {
 // Init func
 func Init(id, mqURL string) {
 	ionID = id
-	amqp = mq.New(id, mqURL)
+	//amqp = mq.New(id, mqURL)
+	amqp = mq.NewKcp(id, mqURL) //todo kcp
 	handleRPCMsgs()
 	handleBroadCastMsgs()
 }

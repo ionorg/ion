@@ -1,7 +1,10 @@
 package mq
 
 import (
+	"crypto/sha1"
 	"encoding/json"
+	"github.com/xtaci/kcp-go"
+	"golang.org/x/crypto/pbkdf2"
 	"net"
 	"time"
 
@@ -35,6 +38,37 @@ func New(id, url string) *Amqp {
 	a.conn, err = amqp.DialConfig(url, amqp.Config{
 		Dial: func(network, addr string) (net.Conn, error) {
 			return net.DialTimeout(network, addr, connTimeout)
+		},
+	})
+	if err != nil {
+		log.Panicf(err.Error())
+		return nil
+	}
+
+	err = a.initRPC(id)
+	if err != nil {
+		log.Panicf(err.Error())
+		return nil
+	}
+
+	err = a.initBroadCast()
+	if err != nil {
+		log.Panicf(err.Error())
+		return nil
+	}
+	return a
+}
+
+func NewKcp(id, url string) *Amqp {
+	a := &Amqp{
+		Emitter: *emission.NewEmitter(),
+	}
+	var err error
+	a.conn, err = amqp.DialConfig(url, amqp.Config{
+		Dial: func(network, addr string) (net.Conn, error) {
+			key := pbkdf2.Key([]byte("demo pass"), []byte("demo salt"), 1024, 32, sha1.New)
+			block, _ := kcp.NewAESBlockCrypt(key)
+			return kcp.DialWithOptions(id, block, 10, 3)
 		},
 	})
 	if err != nil {

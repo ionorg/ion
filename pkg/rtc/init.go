@@ -49,7 +49,8 @@ func init() {
 }
 
 func Init(port int, ices []string) {
-	serve(port)
+	//serve(port)
+	serveKcp(port) //kcp
 	initICE(ices)
 	go func() {
 		t := time.NewTicker(statDuration)

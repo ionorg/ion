@@ -1,12 +1,15 @@
 package rtc
 
 import (
+	"crypto/sha1"
 	"fmt"
+	"golang.org/x/crypto/pbkdf2"
 	"net"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/udp"
+	kcp "github.com/xtaci/kcp-go"
 )
 
 func serve(port int) error {
@@ -51,6 +54,50 @@ func serve(port int) error {
 		}
 	}()
 	return nil
+}
+
+func serveKcp(port int) error {
+	log.Infof("[kcp] listening:%d", port)
+	key := pbkdf2.Key([]byte("demo pass"), []byte("demo salt"), 1024, 32, sha1.New)
+	block, _ := kcp.NewAESBlockCrypt(key)
+	listener, err := kcp.ListenWithOptions("0.0.0.0:"+string(port), block, 10, 3)
+
+	if err != nil {
+		log.Errorf("[kcp] failed to listen %v", err)
+		return err
+	}
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				log.Errorf("[kcp] failed to accept conn %v", err)
+				return
+			}
+			log.Infof("[kcp] accept new rtp conn %s", conn.RemoteAddr().String())
+			go func() {
+				t := newRTPTransport(conn)
+				if t != nil {
+					t.receiveRTP()
+				}
+				pid := t.getPID()
+				cnt := 0
+				for pid == "" && cnt < 10 {
+					pid = t.getPID()
+					time.Sleep(time.Millisecond)
+					cnt++
+				}
+				if pid == "" && cnt >= 10 {
+					log.Infof("[kcp] pid == \"\" && cnt >=10 return")
+					return
+				}
+				log.Infof("[kcp] accept new rtp pid=%s conn=%s", pid, conn.RemoteAddr().String())
+				getOrNewPipeline(pid).addPub(pid, t)
+			}()
+		}
+	}()
+	return nil
+
 }
 
 func addPipeline(pid string) *pipeline {
