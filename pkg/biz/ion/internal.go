@@ -38,11 +38,7 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 func handleRPCMsgResp(corrID, from, resp string, msg map[string]interface{}) {
 	log.Infof("biz.handleRPCMsgResp corrID=%s, from=%s, resp=%s msg=%v", corrID, from, resp, msg)
 	switch resp {
-	case proto.IslbGetPubs:
-		amqp.Emit(corrID, msg)
-	case proto.IslbGetMediaInfo:
-		amqp.Emit(corrID, msg)
-	case proto.IslbUnrelay:
+	case proto.IslbGetPubs, proto.IslbGetMediaInfo, proto.IslbUnrelay:
 		amqp.Emit(corrID, msg)
 	default:
 		log.Warnf("biz.handleRPCMsgResp invalid protocol corrID=%s, from=%s, resp=%s msg=%v", corrID, from, resp, msg)

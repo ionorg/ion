@@ -58,19 +58,22 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 		return
 	}
 
+	info := util.Val(msg, "info")
+
 	// add peer to signal room
 	signal.AddPeer(rid, peer)
 
 	// tell other client "peer-join"
 	// signal.NotifyAllWithoutID(rid, peer.ID(), proto.ClientOnJoin, util.Map("rid", rid, "id", peer.ID()))
-	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnJoin, "rid", rid, "id", peer.ID()), "")
+	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnJoin, "rid", rid, "id", peer.ID(), "info", info), "")
 
 	respHandler := func(m map[string]interface{}) {
-		pid := m["pid"]
 		info := m["info"]
-		log.Infof("biz.join respHandler pid=%s info=%v", pid, info)
-		if pid != "" {
-			peer.Notify(proto.ClientOnStreamAdd, util.Map("pid", pid, "rid", rid))
+		mid := m["mid"]
+		pid := m["pid"]
+		log.Infof("biz.join respHandler mid=%v info=%v", mid, info)
+		if mid != "" {
+			peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "pid", pid, "mid", mid, "info", info))
 		}
 	}
 	// find pubs from islb ,skip this ion
@@ -157,10 +160,11 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 		return
 	}
 
+	mid := fmt.Sprintf("%s#%s", peer.ID(), util.RandStr(6))
 	jsep := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	islbStoreSsrc := func(ssrc uint32, pt uint8) {
 		ssrcPt := fmt.Sprintf("{\"%d\":%d}", ssrc, pt)
-		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "pid", peer.ID(), "info", ssrcPt), "")
+		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "pid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
 		quitLock.Lock()
 		quit[peer.ID()+fmt.Sprintf("-%d", ssrc)] = make(chan struct{})
 		quitLock.Unlock()
@@ -169,7 +173,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 			for {
 				select {
 				case <-t.C:
-					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "pid", peer.ID(), "info", ssrcPt), "")
+					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "pid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
 				case <-quit[peer.ID()+fmt.Sprintf("-%d", ssrc)]:
 					return
 				}
@@ -184,7 +188,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 		return
 	}
 
-	accept(util.Map("jsep", answer))
+	accept(util.Map("jsep", answer, "mid", mid))
 }
 
 // unpublish from app
