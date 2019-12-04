@@ -78,7 +78,7 @@ class App extends React.Component {
     this.setState({ loading: true });
     reactLocalStorage.clear("loginInfo");
     reactLocalStorage.setObject("loginInfo", values);
-    await this.client.join(values.roomId);
+    await this.client.join(values.roomId, { name: values.displayName });
     this.setState({ login: true, loading: false });
     this._notification(
       "Connected!",
