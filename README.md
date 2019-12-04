@@ -32,6 +32,8 @@ ION is a distributed RTC system written by pure go and flutter
 ## Contributing
 * [adwpc](https://github.com/adwpc) - *Original Author - ion sfu server*
 * [cloudwebrtc](https://github.com/cloudwebrtc) - *Original Author - ion sfu sdk*
+* [kangshaojun](https://github.com/kangshaojun) - *Contributor UI(flutter/react.js)
+
 
 ## Roadmap
 
