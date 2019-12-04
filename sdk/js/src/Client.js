@@ -53,10 +53,10 @@ export default class Client extends EventEmitter {
         this._protoo.on('notification', this._handleNotification.bind(this));
     }
 
-    async join(channelId) {
-        this._rid = channelId;
+    async join(roomId, info = { name: 'Guest' }) {
+        this._rid = roomId;
         try {
-            let data = await this._protoo.request('join', { 'rid': this._rid, 'id': this._uid });
+            let data = await this._protoo.request('join', { 'rid': this._rid, 'id': this._uid, info });
             console.log('join success: result => ' + JSON.stringify(data));
         } catch (error) {
             console.log('join reject: error =>' + error);
