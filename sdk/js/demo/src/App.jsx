@@ -106,21 +106,17 @@ class App extends React.Component {
   render() {
     const { login, loading, loginInfo } = this.state;
     return (
-      <Layout style={{ height: "100%" }}>
-        <Header
-          style={{
-            padding: 0
-          }}
-        >
-          <div style={{ float: "left", marginLeft: 8 }}>
+      <Layout className="app-layout">
+        <Header className="app-header">
+          <div className="app-header-left">
             <a href="https://pion.ly" target="_blank">
               <img
                 src="https://pion.ly/img/pion-logo.svg"
-                style={{ width: 112, height: 28 }}
+                className="app-logo-img"
               />
             </a>
           </div>
-          <div style={{ float: "right", marginRight: 24, color: "#001529" }}>
+          <div className="app-header-right">
             {login ? (
               <Button
                 shape="circle"
@@ -134,28 +130,20 @@ class App extends React.Component {
           </div>
         </Header>
 
-        <Content
-          style={{
-            width: "100%",
-            minHeight: "540px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}
-        >
+        <Content className="app-center-layout">
           {login ? (
             <Conference client={this.client} />
           ) : loading ? (
             <Spin size="large" tip="Connecting..." />
           ) : (
-            <Card title="Join to Ion" style={{ height: 280 }}>
+            <Card title="Join to Ion" className="app-login-card">
               <LoginForm loginInfo={loginInfo} handleLogin={this._handleJoin} />
             </Card>
           )}
         </Content>
 
         {!login && (
-          <Footer style={{ textAlign: "center" }}>
+          <Footer className=".app-footer">
             Powered by{" "}
             <a href="https://pion.ly" target="_blank">
               Pion
