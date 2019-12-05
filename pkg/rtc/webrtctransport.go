@@ -3,6 +3,7 @@ package rtc
 import (
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"sync"
@@ -68,15 +69,17 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 
 	// only register one video codec which client need
 	if codec, ok := options["codec"]; ok {
-		switch codec.(string) {
-		case "H264":
+		codecStr := codec.(string)
+		if strings.EqualFold(codecStr, "h264") {
 			mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
-		case "VP9":
+		} else if strings.EqualFold(codecStr, "vp9") {
 			mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
-		default:
+		} else {
 			mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
 		}
 	}
+
+	//check video audio screen
 	if v, ok := options["video"].(bool); ok {
 		t.hasVideo = v
 	}

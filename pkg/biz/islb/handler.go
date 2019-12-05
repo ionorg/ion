@@ -57,7 +57,6 @@ func handleRPCMsgs() {
 			switch method {
 			case proto.IslbOnStreamAdd:
 				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
 				mid := util.Val(msg, "mid")
 				ssrcPt := util.Unmarshal(util.Val(msg, "mediaInfo"))
 				key := rid + "/pub/node/" + mid
@@ -76,7 +75,7 @@ func handleRPCMsgs() {
 						delete(streamAddCache, mid)
 						streamAddCacheLock.Unlock()
 					})
-					onStreamAdd := util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "pid", pid, "mid", mid)
+					onStreamAdd := util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "mid", mid)
 					amqp.BroadCast(onStreamAdd)
 				}
 
@@ -115,12 +114,12 @@ func handleRPCMsgs() {
 				}
 			case proto.IslbOnStreamRemove:
 				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
-				key := rid + "/pub/media/" + pid
+				mid := util.Val(msg, "mid")
+				key := rid + "/pub/media/" + mid
 				redis.Del(key)
-				key = rid + "/pub/node/" + pid
+				key = rid + "/pub/node/" + mid
 				redis.Del(key)
-				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "pid", pid)
+				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "mid", mid)
 				log.Infof("amqp.BroadCast onStreamRemove=%v", onStreamRemove)
 				amqp.BroadCast(onStreamRemove)
 			case proto.IslbClientOnJoin:

@@ -11,6 +11,7 @@ const (
 	errInvalidSDP   = "sdp not found"
 	errInvalidRoom  = "room not found"
 	errInvalidPubID = "pub id not found"
+	errInvalidMID   = "media id not found"
 	errInvalidAddr  = "addr not found"
 )
 

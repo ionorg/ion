@@ -201,10 +201,16 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		return
 	}
 	rid := room.ID()
+	mid := util.Val(msg, "mid")
+	if mid == "" {
+		log.Errorf(errInvalidMID)
+		reject(-1, errInvalidMID)
+		return
+	}
 	// if this is a webrtc pub
 	if rtc.IsWebRtcPub(peer.ID()) {
 		// tell islb stream-remove
-		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "pid", peer.ID()), "")
+		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "mid", mid), "")
 
 		rtc.DelPub(peer.ID())
 		quitLock.Lock()
@@ -230,10 +236,10 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		return
 	}
 
-	pid := util.Val(msg, "pid")
-	if pid == "" {
-		log.Errorf(errInvalidPubID)
-		reject(-1, errInvalidPubID)
+	mid := util.Val(msg, "mid")
+	if mid == "" {
+		log.Errorf(errInvalidMID)
+		reject(-1, errInvalidMID)
 		return
 	}
 
@@ -241,8 +247,8 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	jsep := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	var answer webrtc.SessionDescription
 	var err error
-	webrtcSub := rtc.AddNewWebRTCSub(pid, peer.ID())
-	pub := rtc.GetPub(pid)
+	webrtcSub := rtc.AddNewWebRTCSub(mid, peer.ID())
+	pub := rtc.GetPub(mid)
 	switch pub.(type) {
 	case *rtc.WebRTCTransport:
 		//pub is on this ion
@@ -256,7 +262,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 			time.Sleep(5 * time.Millisecond)
 			i++
 		}
-		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, pid)
+		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 		if err != nil {
 			log.Warnf("biz subscribe answer err=%v", err.Error())
 			reject(-1, err.Error())
@@ -274,7 +280,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 			time.Sleep(5 * time.Millisecond)
 			i++
 		}
-		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, pid)
+		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 		if err != nil {
 			log.Errorf("biz.subscribe answer err=%v", err.Error())
 			reject(-1, err.Error())
@@ -292,7 +298,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 					ssrcPT[util.StrToUint32(ssrc)] = util.StrToUint8(pt.(string))
 				}
 			}
-			answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, pid)
+			answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 			if err != nil {
 				log.Errorf("biz.subscribe answer err=%v", err.Error())
 				reject(-1, err.Error())
@@ -301,33 +307,36 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 			relayRespHandler := func(m map[string]string) {
 				log.Infof("biz.subscribe relayRespHandler m=%v", m)
 			}
-			amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbRelay, "rid", room.ID(), "pid", pid), relayRespHandler)
+			amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbRelay, "rid", room.ID(), "mid", mid), relayRespHandler)
 			accept(util.Map("jsep", answer))
 		}
 		// the pub is on other ion, rtp pub not exist
-		amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbGetMediaInfo, "rid", room.ID(), "pid", pid), respHandler)
+		amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbGetMediaInfo, "rid", room.ID(), "mid", mid), respHandler)
 	}
 }
 
 func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	pid := util.Val(msg, "pid")
-	if pid == "" {
-		log.Errorf(errInvalidPubID)
-		reject(-1, errInvalidPubID)
-		return
-	}
+
 	rid := util.Val(msg, "rid")
 	if rid == "" {
 		log.Errorf(errInvalidRoom)
 		reject(-1, errInvalidRoom)
 		return
 	}
+
+	mid := util.Val(msg, "mid")
+	if mid == "" {
+		log.Errorf(errInvalidMID)
+		reject(-1, errInvalidMID)
+		return
+	}
+
 	// if this is on this ion, ion delete the webrtctransport sub
-	rtc.DelSub(pid, peer.ID())
+	rtc.DelSub(mid, peer.ID())
 	// if no sub, delete pub
-	if len(rtc.GetSubs(pid)) == 0 {
-		rtc.DelPub(pid)
+	if len(rtc.GetSubs(mid)) == 0 {
+		rtc.DelPub(mid)
 	}
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
 	accept(util.Unmarshal(`{}`))
@@ -342,9 +351,9 @@ func streamAdd(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		return
 	}
 
-	pid := util.Val(msg, "pid")
-	if pid == "" {
-		reject(-1, errInvalidPubID)
+	mid := util.Val(msg, "mid")
+	if mid == "" {
+		reject(-1, errInvalidMID)
 		return
 	}
 
