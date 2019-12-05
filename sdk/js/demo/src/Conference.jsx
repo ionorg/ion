@@ -1,6 +1,5 @@
 import React from "react";
 import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
-import styles from "../styles/scss/styles.scss";
 
 class Conference extends React.Component {
   constructor() {
