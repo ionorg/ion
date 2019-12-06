@@ -63,8 +63,6 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 	// add peer to signal room
 	signal.AddPeer(rid, peer)
 
-	// tell other client "peer-join"
-	// signal.NotifyAllWithoutID(rid, peer.ID(), proto.ClientOnJoin, util.Map("rid", rid, "id", peer.ID()))
 	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnJoin, "rid", rid, "id", peer.ID(), "info", info), "")
 
 	respHandler := func(m map[string]interface{}) {
@@ -181,7 +179,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 		}()
 	}
 
-	answer, err := rtc.AddNewWebRTCPub(peer.ID()).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
+	answer, err := rtc.AddNewWebRTCPub(mid).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
 	if err != nil {
 		log.Errorf("biz.publish answer err=%s jsep=%v", err.Error(), jsep)
 		reject(-1, err.Error())
