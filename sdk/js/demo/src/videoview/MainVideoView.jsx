@@ -11,31 +11,19 @@ class MainVideoView extends React.Component {
     const { id } = this.props;
     return (
       <div>
-        <div
-          style={{
-            position: "absolute",
-            top: 64,
-            left: 0,
-            right: 0,
-            bottom: 0
-          }}
-        >
+        <div className="main-video-layout">
           <video
             ref={id}
             id={id}
             autoPlay
             playsInline
             muted={false}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover"
-            }}
+            className="main-video-size"
           />
         </div>
-        <div style={{ position: "absolute", left: 0, right: 0 }}>
+        <div className="main-video-id-container">
           <div>
-            <a style={{ position: "absolute", left: 8, top: 8 }}>{id}</a>
+            <a className="main-video-id-a">{id}</a>
           </div>
         </div>
       </div>

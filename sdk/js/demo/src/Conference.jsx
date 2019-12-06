@@ -111,15 +111,8 @@ class Conference extends React.Component {
     var id = client.uid;
     const { clientWidth, clientHeight } = this.state;
     return (
-      <div style={{ width: "100%", height: "100%" }} ref={this.saveRef}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignContent: "center"
-          }}
-        >
+      <div className="conference-size" ref={this.saveRef}>
+        <div className="conference-layout">
           <div
             style={{
               display: "flex",
@@ -141,8 +134,8 @@ class Conference extends React.Component {
             })}
           </div>
         </div>
-        <div style={{ position: "absolute", top: 90, left: 24 }}>
-          <div style={{ width: 220, height: 140 }}>
+        <div className="conference-local-video-layout">
+          <div className="conference-local-video-size">
             <LocalVideoView
               id={id}
               ref={ref => (this.localVideoView = ref)}
@@ -162,9 +155,7 @@ class Conference extends React.Component {
             <div style={{ whiteSpace: "nowrap", overflow: "scroll" }}>
               {streams.map((item, index) => {
                 return index > 0 ? (
-                  <div
-                    style={{ display: "inline-block", width: 220, height: 140 }}
-                  >
+                  <div className="conference-small-video-layout">
                     <SmallVideoView
                       key={item.id}
                       id={item.id}

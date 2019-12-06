@@ -18,38 +18,18 @@ class SmallVideoView extends React.Component {
   render = () => {
     const { id } = this.props;
     return (
-      <div
-        onClick={this._onChangeVideoPosition}
-        style={{
-          borderWidth: "0.5px",
-          borderStyle: "solid",
-          borderColor: "#ffffff",
-          overflow: "hidden",
-          borderRadius: "2px",
-          backgroundColor: 'rgb(0, 21, 42)'
-        }}
-      >
-        <div
-          style={{
-            width: 220,
-            height: 140,
-            zIndex: 0
-          }}
-        >
+      <div onClick={this._onChangeVideoPosition} className="small-video-border">
+        <div className="small-video-container">
           <video
             ref={id}
             id={id}
             autoPlay
             playsInline
             muted={false}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover"
-            }}
+            className="small-video-size"
           />
           <div>
-            <a style={{ position: "absolute", left: -10, top: -16 }}>{id}</a>
+            <a className="small-video-id-a">{id}</a>
           </div>
         </div>
       </div>

@@ -54,29 +54,13 @@ class LocalVideoView extends React.Component {
     const { id } = this.props;
     const { enabled, type } = this.state;
     return (
-      <div
-        style={{
-          borderWidth: "0.5px",
-          borderStyle: "solid",
-          borderColor: "#ffffff",
-          overflow: "hidden",
-          borderRadius: "2px",
-          backgroundColor: "rgb(0, 21, 42)"
-        }}
-      >
-        <div style={{ position: "relative", left: 0, right: 0, zIndex: 99 }}>
+      <div className="local-video-border">
+        <div className="local-video-layout">
           <div>
-            <a
-              style={{
-                position: "absolute",
-                left: 8,
-                top: 8,
-                color: "#ffffff"
-              }}
-            >
+            <a className="local-video-name">
               Local
             </a>
-            <div style={{ position: "absolute", right: 8, top: 8 }}>
+            <div className="local-video-tool">
               <div style={{ display: "inline" }}>
                 <Button
                   shape="circle"
@@ -101,24 +85,14 @@ class LocalVideoView extends React.Component {
           </div>
         </div>
 
-        <div
-          style={{
-            width: 220,
-            height: 140,
-            zIndex: 0
-          }}
-        >
+        <div className="local-video-container">
           <video
             ref={id}
             id={id}
             autoPlay
             playsInline
             muted={true}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover"
-            }}
+            className="local-video-size"
           />
         </div>
       </div>
