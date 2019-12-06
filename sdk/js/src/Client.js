@@ -76,53 +76,53 @@ export default class Client extends EventEmitter {
         console.log('publish options => %o', options);
         var promise = new Promise(async (resolve, reject) => {
             try {
-                if (this._pcs[this._uid] != null) {
-                    throw 'already in publish, abort!';
-                }
-                let stream = new Stream(this._uid);
+                let stream = new Stream();
                 await stream.init(true, { audio: options.audio, video: options.video, screen: options.screen });
-                let pc = await this._createSender(this._uid, stream.stream, options.codec);
+                let pc = await this._createSender(stream.stream, options.codec);
 
                 pc.onicecandidate = async (e) => {
                     if (!pc.sendOffer) {
                         var offer = pc.localDescription;
                         console.log('Send offer sdp => ' + offer.sdp);
                         pc.sendOffer = true
-                        let answer = await this._protoo.request('publish', { jsep: offer, options });
-                        await pc.setRemoteDescription(answer.jsep);
-                        console.log('publish success => ' + JSON.stringify(answer));
+                        let result = await this._protoo.request('publish', { jsep: offer, options });
+                        await pc.setRemoteDescription(result.jsep);
+                        console.log('publish success => ' + JSON.stringify(result));
+                        stream.mid = result.mid;
+                        this._pcs[stream.mid] = pc;
                         resolve(stream);
                     }
                 }
             } catch (error) {
                 throw error;
                 console.log('publish request error  => ' + error);
+                pc.close();
                 reject(error);
             }
         });
         return promise;
     }
 
-    async unpublish() {
-        console.log('unpublish uid => %s', this._uid);
-        this._removePC(this._uid);
+    async unpublish(mid) {
+        console.log('unpublish rid => %s, mid => %s', this._rid, mid);
+        this._removePC(mid);
         try {
-            let data = await this._protoo.request('unpublish', { 'pid': this._uid });
+            let data = await this._protoo.request('unpublish', { rid: this._rid, mid });
             console.log('unpublish success: result => ' + JSON.stringify(data));
         } catch (error) {
             console.log('unpublish reject: error =>' + error);
         }
     }
 
-    async subscribe(pid) {
-        console.log('subscribe pid => %s', pid);
+    async subscribe(rid, mid) {
+        console.log('subscribe rid => %s, mid => %a', rid, mid);
         var promise = new Promise(async (resolve, reject) => {
             try {
-                let pc = await this._createReceiver(pid);
+                let pc = await this._createReceiver(mid);
                 pc.onaddstream = (e) => {
                     var stream = e.stream;
                     console.log('Stream::pc::onaddstream', stream.id);
-                    resolve(new Stream(pid, stream));
+                    resolve(new Stream(mid, stream));
                 }
                 pc.onremovestream = (e) => {
                     var stream = e.stream;
@@ -133,9 +133,9 @@ export default class Client extends EventEmitter {
                         var jsep = pc.localDescription;
                         console.log('Send offer sdp => ' + jsep.sdp);
                         pc.sendOffer = true
-                        let answer = await this._protoo.request('subscribe', { pid, jsep });
-                        console.log('subscribe success => answer(' + pid + ') sdp => ' + answer.jsep.sdp);
-                        await pc.setRemoteDescription(answer.jsep);
+                        let result = await this._protoo.request('subscribe', { rid, jsep, mid });
+                        console.log('subscribe success => result(' + mid + ') sdp => ' + result.jsep.sdp);
+                        await pc.setRemoteDescription(result.jsep);
                     }
                 }
             } catch (error) {
@@ -146,12 +146,12 @@ export default class Client extends EventEmitter {
         return promise;
     }
 
-    async unsubscribe(pid) {
-        console.log('unsubscribe pid => %s', pid);
+    async unsubscribe(rid, mid) {
+        console.log('unsubscribe rid => %s, mid => %s', rid, mid);
         try {
-            let data = await this._protoo.request('unsubscribe', { pid });
+            let data = await this._protoo.request('unsubscribe', { rid, mid });
             console.log('unsubscribe success: result => ' + JSON.stringify(data));
-            this._removePC(pid);
+            this._removePC(mid);
         } catch (error) {
             console.log('unsubscribe reject: error =>' + error);
         }
@@ -230,8 +230,8 @@ export default class Client extends EventEmitter {
         return tmp;
     }
 
-    async _createSender(uid, stream, codec) {
-        console.log('create sender => %s', uid);
+    async _createSender(stream, codec) {
+        console.log('create sender => %s', codec);
         let pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] });
         pc.sendOffer = false;
         pc.addStream(stream);
@@ -239,7 +239,6 @@ export default class Client extends EventEmitter {
             pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
         let desc = this._payloadModify(offer, codec);
         pc.setLocalDescription(desc);
-        this._pcs[uid] = pc;
         return pc;
     }
 
@@ -255,12 +254,12 @@ export default class Client extends EventEmitter {
         return pc;
     }
 
-    _removePC(uid) {
-        let pc = this._pcs[uid];
+    _removePC(id) {
+        let pc = this._pcs[id];
         if (pc) {
-            console.log('remove pc => %s', uid);
+            console.log('remove pc mid => %s', id);
             pc.close();
-            delete this._pcs[uid];
+            delete this._pcs[id];
         }
     }
 
@@ -279,35 +278,35 @@ export default class Client extends EventEmitter {
         switch (notification.method) {
             case 'peer-join':
                 {
-                    let pid = notification.data.id;
-                    let rid = notification.data.rid;
-                    console.log('peer-join peer id => ' + pid);
-                    this.emit('peer-join', pid, rid);
+                    let rid = notification.data.id;
+                    let id = notification.data.id;
+                    let info = notification.data.info;
+                    console.log('peer-join peer rid => %s, id => %s, info => %o', rid, id, info);
+                    this.emit('peer-join', rid, id, info);
                     break;
                 }
             case 'peer-leave':
                 {
-                    let pid = notification.data.id;
                     let rid = notification.data.rid;
-                    console.log('peer-leave peer id => ' + pid);
-                    this.emit('peer-leave', pid, rid);
-                    this._removePC(pid);
+                    let id = notification.data.id;
+                    console.log('peer-leave peer rid => %s, id => %s', rid, id);
+                    this.emit('peer-leave', rid, id);
                     break;
                 }
             case 'stream-add':
                 {
-                    let pid = notification.data.pid;
                     let rid = notification.data.rid;
-                    console.log('stream-add peer id => ' + pid);
-                    this.emit('stream-add', pid, rid);
+                    let mid = notification.data.mid;
+                    console.log('stream-add peer rid => %s, mid => %s', rid, mid);
+                    this.emit('stream-add', rid, mid);
                     break;
                 }
             case 'stream-remove':
                 {
-                    let pid = notification.data.pid;
                     let rid = notification.data.rid;
-                    console.log('stream-remove peer id => ' + pid);
-                    this.emit('stream-remove', pid, rid);
+                    let mid = notification.data.mid;
+                    console.log('stream-remove peer rid => %s, mid => %s', rid, mid);
+                    this.emit('stream-remove', rid, mid);
                     this._removePC(pid);
                     break;
                 }

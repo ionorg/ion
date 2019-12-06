@@ -36,8 +36,8 @@ class App extends React.Component {
       client.leave();
     };
 
-    client.on("peer-join", (id, rid) => {
-      this._notification("Peer Join", "peer => " + id + ", join!");
+    client.on("peer-join", (id, rid, info) => {
+      this._notification("Peer Join", "peer => " + info.name + ", join!");
     });
 
     client.on("peer-leave", (id, rid) => {

@@ -49,13 +49,17 @@ class Conference extends React.Component {
       video: type === "video",
       screen: type === "screen"
     });
+    this.localStream = stream;
     this.localVideoView.stream = stream;
   };
 
   _unpublish = async () => {
     const { client } = this.props;
     if (this.localVideoView) this.localVideoView.stream = null;
-    await client.unpublish();
+    if (this.localStream) {
+      await client.unpublish(this.localStream.mid);
+      this.localStream = null;
+    }
   };
 
   _handleStreamEnabled = (type, enabled) => {
@@ -66,17 +70,17 @@ class Conference extends React.Component {
     }
   };
 
-  _handleAddStream = async (id, rid) => {
+  _handleAddStream = async (rid, mid) => {
     const { client } = this.props;
     let streams = this.state.streams;
-    let stream = await client.subscribe(id);
-    streams.push({ id, stream });
+    let stream = await client.subscribe(rid, mid);
+    streams.push({ mid, stream });
     this.setState({ streams });
   };
 
-  _handleRemoveStream = async (id, rid) => {
+  _handleRemoveStream = async (rid, mid) => {
     let streams = this.state.streams;
-    streams = streams.filter(item => item.id !== id);
+    streams = streams.filter(item => item.mid !== mid);
     this.setState({ streams });
   };
 
