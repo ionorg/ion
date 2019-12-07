@@ -76,10 +76,12 @@ func handleRPCMsgs() {
 						delete(streamAddCache, mid)
 						streamAddCacheLock.Unlock()
 					})
-					onStreamAdd := util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "pid", pid, "mid", mid)
-					amqp.BroadCast(onStreamAdd)
+					infoMap := redis.HGetAll(rid + "/peer/info/" + pid)
+					for info := range infoMap {
+						onStreamAdd := util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "pid", pid, "mid", mid, "info", info)
+						amqp.BroadCast(onStreamAdd)
+					}
 				}
-
 			case proto.IslbKeepAlive:
 				rid := util.Val(msg, "rid")
 				pid := util.Val(msg, "pid")

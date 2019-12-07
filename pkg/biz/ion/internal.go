@@ -8,9 +8,19 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+// strToMap make string value to map
+func strToMap(msg map[string]interface{}, key string) {
+	val := util.Val(msg, key)
+	if val != "" {
+		m := util.Unmarshal(val)
+		msg[key] = m
+	}
+}
+
 // request msg from islb
 func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 	log.Infof("biz.handleRPCMsgMethod from=%s, method=%s msg=%v", from, method, msg)
+
 	switch method {
 	case proto.IslbOnStreamAdd:
 		id := util.Val(msg, "id")
@@ -37,6 +47,7 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 // response msg from islb
 func handleRPCMsgResp(corrID, from, resp string, msg map[string]interface{}) {
 	log.Infof("biz.handleRPCMsgResp corrID=%s, from=%s, resp=%s msg=%v", corrID, from, resp, msg)
+	strToMap(msg, "info")
 	switch resp {
 	case proto.IslbGetPubs, proto.IslbGetMediaInfo, proto.IslbUnrelay:
 		amqp.Emit(corrID, msg)
@@ -61,6 +72,7 @@ func handleRPCMsgs() {
 			if from == ionID {
 				continue
 			}
+
 			log.Infof("biz.handleRPCMsgs msg=%v", msg)
 			method := util.Val(msg, "method")
 			resp := util.Val(msg, "response")
@@ -92,6 +104,9 @@ func handleBroadCastMsgs() {
 				continue
 			}
 			log.Infof("biz.handleBroadCastMsgs msg=%v", msg)
+
+			//make signal.Notify send "info" as a json object, otherwise is a string (:
+			strToMap(msg, "info")
 			switch method {
 			case proto.IslbOnStreamAdd:
 				rid := util.Val(msg, "rid")

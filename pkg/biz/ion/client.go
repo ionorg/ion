@@ -52,7 +52,7 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 		return
 	}
 
-	//aleady joined this room
+	//already joined this room
 	if signal.HasPeer(rid, peer) {
 		accept(util.Unmarshal(`{}`))
 		return
