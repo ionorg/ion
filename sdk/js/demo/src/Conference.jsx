@@ -1,5 +1,10 @@
 import React from "react";
-import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
+import {
+  LocalVideoView,
+  MainVideoView,
+  SmallVideoView,
+  LocalScreenView
+} from "./videoview";
 
 class Conference extends React.Component {
   constructor() {
@@ -45,24 +50,49 @@ class Conference extends React.Component {
       video: type === "video",
       screen: type === "screen"
     });
-    this.localStream = stream;
-    this.localVideoView.stream = stream;
+    return stream;
   };
 
   unpublish = async () => {
     const { client } = this.props;
     if (this.localVideoView) this.localVideoView.stream = null;
-    if (this.localStream) {
-      await client.unpublish(this.localStream.mid);
-      this.localStream = null;
+    if (this.localVideoStream) {
+      await client.unpublish(this.localVideoStream.mid);
+      this.localVideoStream = null;
+    }
+    if (this.localScreenView) {
+      await client.unpublish(this.localScreenView.mid);
+      this.localScreenView = null;
     }
   };
 
-  _handleStreamEnabled = (type, enabled) => {
-    if (enabled) {
-      this._publish(type);
+  _handleStreamEnabled = async (type, enabled) => {
+    if (type === "screen") {
+      if (enabled) {
+        let stream = await this._publish(type);
+        this.localScreenStream = stream;
+        this.localScreenView.stream = stream;
+      } else {
+        if (this.localScreenStream) {
+          const { client } = this.props;
+          await client.unpublish(this.localScreenStream.mid);
+          this.localScreenStream = null;
+          this.localScreenView.stream = null;
+        }
+      }
     } else {
-      this.unpublish();
+      if (enabled) {
+        let stream = await this._publish(type);
+        this.localVideoStream = stream;
+        this.localVideoView.stream = stream;
+      } else {
+        if (this.localVideoStream) {
+          const { client } = this.props;
+          await client.unpublish(this.localVideoStream.mid);
+          this.localVideoStream = null;
+          this.localVideoView.stream = null;
+        }
+      }
     }
   };
 
@@ -140,9 +170,21 @@ class Conference extends React.Component {
         <div className="conference-local-video-layout">
           <div className="conference-local-video-size">
             <LocalVideoView
-              id={id}
+              id={id + "-video"}
               ref={ref => {
                 this.localVideoView = ref;
+              }}
+              client={client}
+              handleStreamEnabled={this._handleStreamEnabled}
+            />
+          </div>
+        </div>
+        <div className="conference-local-screen-layout">
+          <div className="conference-local-video-size">
+            <LocalScreenView
+              id={id + "-screen"}
+              ref={ref => {
+                this.localScreenView = ref;
               }}
               client={client}
               handleStreamEnabled={this._handleStreamEnabled}
