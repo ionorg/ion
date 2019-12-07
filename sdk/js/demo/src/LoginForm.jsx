@@ -26,13 +26,13 @@ class LoginForm extends React.Component {
     const { getFieldDecorator } = this.props.form;
 
     return (
-      <Form onSubmit={this.handleSubmit} style={{ minWidth: 300 }}>
+      <Form onSubmit={this.handleSubmit} className="login-form">
         <Form.Item>
           {getFieldDecorator("roomId", {
             rules: [{ required: true, message: "Please enter your room Id!" }]
           })(
             <Input
-              prefix={<Icon type="team" style={{ color: "rgba(0,0,0,.25)" }} />}
+              prefix={<Icon type="team" className="login-input-icon" />}
               placeholder="Room Id"
             />
           )}
@@ -43,14 +43,14 @@ class LoginForm extends React.Component {
           })(
             <Input
               prefix={
-                <Icon type="contacts" style={{ color: "rgba(0,0,0,.25)" }} />
+                <Icon type="contacts" className="login-input-icon" />
               }
               placeholder="Display Name"
             />
           )}
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit" style={{ width: "100%" }}>
+          <Button type="primary" htmlType="submit" className="login-join-button">
             Join
           </Button>
         </Form.Item>

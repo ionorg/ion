@@ -1,8 +1,5 @@
 import React from "react";
-import MainVideoView from "./MainVideoView";
-import LocalVideoView from "./LocalVideoView";
-import SmallVideoView from "./SmallVideoView";
-import styles from "../styles/scss/styles.scss";
+import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
 
 class Conference extends React.Component {
   constructor() {
@@ -83,21 +80,42 @@ class Conference extends React.Component {
     this.setState({ streams });
   };
 
+  _onChangeVideoPosition = data => {
+    let id = data.id;
+    let index = data.index;
+    console.log("_onChangeVideoPosition id:" + id + "  index:" + index);
+
+    if (index == 0) {
+      return;
+    }
+
+    const streams = this.state.streams;
+    let first = 0;
+    let big = 0;
+    for (let i = 0; i < streams.length; i++) {
+      let item = streams[i];
+      if (item.mid == id) {
+        big = i;
+        break;
+      }
+    }
+
+    let c = streams[first];
+    streams[first] = streams[big];
+    streams[big] = c;
+
+    this.setState({ streams: streams });
+    setTimeout(this.replay, 1000);
+  };
+
   render = () => {
     const { client } = this.props;
     const { streams } = this.state;
     var id = client.uid;
     const { clientWidth, clientHeight } = this.state;
     return (
-      <div style={{ width: "100%", height: "100%" }} ref={this.saveRef}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignContent: "center"
-          }}
-        >
+      <div className="conference-size" ref={this.saveRef}>
+        <div className="conference-layout">
           <div
             style={{
               display: "flex",
@@ -108,15 +126,19 @@ class Conference extends React.Component {
           >
             {streams.map((item, index) => {
               return index == 0 ? (
-                <MainVideoView id={item.id} stream={item.stream} />
+                <MainVideoView
+                  key={item.mid}
+                  id={item.mid}
+                  stream={item.stream}
+                />
               ) : (
                 ""
               );
             })}
           </div>
         </div>
-        <div style={{ position: "absolute", top: 90, left: 24 }}>
-          <div style={{ width: 220, height: 140 }}>
+        <div className="conference-local-video-layout">
+          <div className="conference-local-video-size">
             <LocalVideoView
               id={id}
               ref={ref => {
@@ -138,10 +160,14 @@ class Conference extends React.Component {
             <div style={{ whiteSpace: "nowrap", overflow: "scroll" }}>
               {streams.map((item, index) => {
                 return index > 0 ? (
-                  <div
-                    style={{ display: "inline-block", width: 220, height: 140 }}
-                  >
-                    <SmallVideoView id={item.id} stream={item.stream} />
+                  <div className="conference-small-video-layout">
+                    <SmallVideoView
+                      key={item.mid}
+                      id={item.mid}
+                      stream={item.stream}
+                      index={index}
+                      onClick={this._onChangeVideoPosition}
+                    />
                   </div>
                 ) : (
                   ""
