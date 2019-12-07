@@ -31,22 +31,16 @@ const (
 )
 
 var (
-	cfg         webrtc.Configuration
-	mediaEngine webrtc.MediaEngine
-	api         *webrtc.API
+	cfg webrtc.Configuration
 
 	errChanClosed    = errors.New("channel closed")
 	errInvalidTrack  = errors.New("track not found")
 	errInvalidPacket = errors.New("packet is nil")
 
 	listener *udp.Listener
-	pipes    map[string]*pipeline
+	pipes    = make(map[string]*pipeline)
 	pipeLock sync.RWMutex
 )
-
-func init() {
-	pipes = make(map[string]*pipeline)
-}
 
 func Init(port int, ices []string) {
 	serve(port)

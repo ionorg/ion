@@ -64,7 +64,7 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 	if options == nil {
 		return webrtc.SessionDescription{}, errors.New("invalid options")
 	}
-	mediaEngine = webrtc.MediaEngine{}
+	mediaEngine := webrtc.MediaEngine{}
 	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
 
 	// only register one video codec which client need
@@ -90,7 +90,7 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 		t.hasScreen = s
 	}
 
-	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
@@ -151,6 +151,10 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 }
 
 func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, ssrcPT map[uint32]uint8, pid string) (answer webrtc.SessionDescription, err error) {
+
+	mediaEngine := webrtc.MediaEngine{}
+	mediaEngine.RegisterDefaultCodecs()
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err

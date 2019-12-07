@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtp"
 )
 
@@ -15,23 +16,25 @@ type Handler interface {
 }
 
 type pipeline struct {
-	pub         Transport
-	sub         map[string]Transport
-	subLock     sync.RWMutex
-	handler     []Handler
-	handlerLock sync.RWMutex
-	pubCh       chan *rtp.Packet
-	subCh       chan *rtp.Packet
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
+	pub                               Transport
+	sub                               map[string]Transport
+	subLock                           sync.RWMutex
+	handler                           []Handler
+	handlerLock                       sync.RWMutex
+	pubCh                             chan *rtp.Packet
+	subCh                             chan *rtp.Packet
+	stopInCh, stopHandleCh, stopOutCh chan struct{}
+	wg                                sync.WaitGroup
 }
 
 func newPipeline(id string) *pipeline {
 	p := &pipeline{
-		sub:    make(map[string]Transport),
-		pubCh:  make(chan *rtp.Packet, maxPipelineSize),
-		subCh:  make(chan *rtp.Packet, maxPipelineSize),
-		stopCh: make(chan struct{}),
+		sub:          make(map[string]Transport),
+		pubCh:        make(chan *rtp.Packet, maxPipelineSize),
+		subCh:        make(chan *rtp.Packet, maxPipelineSize),
+		stopInCh:     make(chan struct{}),
+		stopHandleCh: make(chan struct{}),
+		stopOutCh:    make(chan struct{}),
 	}
 	p.addHandler(jitterBuffer, newBuffer(jitterBuffer, p))
 	p.start()
@@ -40,9 +43,10 @@ func newPipeline(id string) *pipeline {
 
 func (p *pipeline) in() {
 	go func() {
+		defer util.Recover("[pipeline.in]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopInCh:
 				log.Debugf("pipeline.in stop ok!")
 				p.wg.Done()
 				return
@@ -61,9 +65,10 @@ func (p *pipeline) in() {
 
 func (p *pipeline) handle() {
 	go func() {
+		defer util.Recover("[pipeline.handle]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopHandleCh:
 				p.wg.Done()
 				return
 			default:
@@ -87,9 +92,10 @@ func (p *pipeline) handle() {
 
 func (p *pipeline) out() {
 	go func() {
+		defer util.Recover("[pipeline.out]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopOutCh:
 				p.wg.Done()
 				return
 			default:
@@ -275,7 +281,9 @@ func (p *pipeline) delHandlers() {
 func (p *pipeline) Close() {
 	// for ReadRTP not block
 	p.delPub()
-	close(p.stopCh)
+	close(p.stopInCh)
+	close(p.stopHandleCh)
+	close(p.stopOutCh)
 	close(p.pubCh)
 	p.wg.Wait()
 	p.delSubs()

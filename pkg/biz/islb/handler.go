@@ -33,6 +33,10 @@ func Init(mqURL string, config db.Config) {
 	handleBroadCastMsgs()
 }
 
+func getPIDFromMID(mid string) string {
+	return strings.Split(mid, "#")[0]
+}
+
 func handleRPCMsgs() {
 	rpcMsgs, err := amqp.ConsumeRPC()
 	if err != nil {
@@ -119,9 +123,10 @@ func handleRPCMsgs() {
 			case proto.IslbOnStreamRemove:
 				rid := util.Val(msg, "rid")
 				mid := util.Val(msg, "mid")
+				pid := getPIDFromMID(mid)
 				key := rid + "/pub/media/" + mid
 				redis.Del(key)
-				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "mid", mid)
+				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "pid", pid, "mid", mid)
 				log.Infof("amqp.BroadCast onStreamRemove=%v", onStreamRemove)
 				amqp.BroadCast(onStreamRemove)
 			case proto.IslbClientOnJoin:
@@ -152,8 +157,8 @@ func handleRPCMsgs() {
 				amqp.RpcCall(from, resp, corrID)
 			case proto.IslbRelay:
 				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
 				mid := util.Val(msg, "mid")
+				pid := getPIDFromMID(mid)
 				info := redis.HGetAll(rid + "/pub/node/" + pid)
 				for ip := range info {
 					method := util.Map("method", proto.IslbRelay, "pid", pid, "sid", from, "mid", mid)
