@@ -10,8 +10,7 @@ class MainVideoView extends React.Component {
   render = () => {
     const { id } = this.props;
     return (
-      <div>
-        <div className="main-video-layout">
+      <div className="main-video-layout">
           <video
             ref={id}
             id={id}
@@ -20,12 +19,7 @@ class MainVideoView extends React.Component {
             muted={false}
             className="main-video-size"
           />
-        </div>
-        <div className="main-video-id-container">
-          <div>
-            <a className="main-video-id-a">{id}</a>
-          </div>
-        </div>
+        <a className="main-video-id-a">{id}</a>
       </div>
     );
   };

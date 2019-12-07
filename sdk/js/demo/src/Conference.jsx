@@ -111,16 +111,7 @@ class Conference extends React.Component {
     var id = client.uid;
     const { clientWidth, clientHeight } = this.state;
     return (
-      <div className="conference-size" ref={this.saveRef}>
-        <div className="conference-layout">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              width: clientWidth,
-              height: clientHeight - 64
-            }}
-          >
+      <div className="conference-layout" ref={this.saveRef}>
             {streams.map((item, index) => {
               return index == 0 ? (
                 <MainVideoView
@@ -132,30 +123,16 @@ class Conference extends React.Component {
                 ""
               );
             })}
-          </div>
-        </div>
         <div className="conference-local-video-layout">
-          <div className="conference-local-video-size">
             <LocalVideoView
               id={id}
               ref={ref => (this.localVideoView = ref)}
               client={client}
               handleStreamEnabled={this._handleStreamEnabled}
             />
-          </div>
-        </div>
-        <div style={{ position: "absolute", left: 16, right: 16, bottom: 24 }}>
-          <div
-            style={{
-              position: "relative",
-              display: "block",
-              width: clientWidth
-            }}
-          >
-            <div style={{ whiteSpace: "nowrap", overflow: "scroll" }}>
+        </div>   
               {streams.map((item, index) => {
                 return index > 0 ? (
-                  <div className="conference-small-video-layout">
                     <SmallVideoView
                       key={item.id}
                       id={item.id}
@@ -163,15 +140,13 @@ class Conference extends React.Component {
                       index={index}
                       onClick={this._onChangeVideoPosition}
                     />
-                  </div>
                 ) : (
                   ""
                 );
               })}
             </div>
-          </div>
-        </div>
-      </div>
+
+        // </div>
     );
   };
 }

@@ -11,7 +11,7 @@ import {
 } from "antd";
 
 const { confirm } = Modal;
-const { Header, Content, Footer } = Layout;
+const { Header, Content, Footer,Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
 
 import LoginForm from "./LoginForm";
@@ -132,7 +132,23 @@ class App extends React.Component {
 
         <Content className="app-center-layout">
           {login ? (
-            <Conference client={this.client} />
+            
+            <Layout className="app-content-layout">
+              <Sider 
+                width={320}
+                style={{ background: '#f5f5f5' }}
+                collapsedWidth={0}
+                trigger={null}
+                collapsible
+                collapsed={false}>
+              </Sider>
+              <Layout className="app-right-layout">
+                <Content style={{ flex: 1 }}>
+                  <Conference client={this.client} />
+                </Content>
+              </Layout>
+            </Layout>
+           
           ) : loading ? (
             <Spin size="large" tip="Connecting..." />
           ) : (
