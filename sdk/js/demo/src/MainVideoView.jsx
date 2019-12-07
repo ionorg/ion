@@ -3,13 +3,13 @@ import React from "react";
 class MainVideoView extends React.Component {
   componentDidMount = () => {
     const { id, stream } = this.props;
-    let video = this.refs[id];
+    let video = this.video;
     video.srcObject = stream.stream;
   };
 
   componentWillUnmount = () => {
     const {id } = this.props;
-    let video = this.refs[id];
+    let video = this.video;
     let stream = video.srcObject;
     if (stream !== null) {
       let tracks = stream.getTracks();
@@ -34,7 +34,9 @@ class MainVideoView extends React.Component {
           }}
         >
           <video
-            ref={id}
+            ref={ref => {
+              this.video = ref;
+            }}
             id={id}
             autoPlay
             playsInline

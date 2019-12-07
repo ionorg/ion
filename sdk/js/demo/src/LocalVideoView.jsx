@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "antd";
+import { setTimeout } from "timers";
 
 class LocalVideoView extends React.Component {
   state = {
@@ -10,12 +11,14 @@ class LocalVideoView extends React.Component {
   componentDidMount = () => {
     const { handleStreamEnabled } = this.props;
     const { type, enabled } = this.state;
-    handleStreamEnabled(type, enabled);
+    setTimeout(() => {
+      handleStreamEnabled(type, enabled);
+    }, 500);
   };
 
   componentWillUnmount = () => {
-    const {id } = this.props;
-    let video = this.refs[id];
+    const { id } = this.props;
+    let video = this.video;
     let stream = video.srcObject;
     if (stream !== null) {
       let tracks = stream.getTracks();
@@ -28,9 +31,8 @@ class LocalVideoView extends React.Component {
 
   set stream(stream) {
     const { id } = this.props;
-    let video = this.refs[id];
+    let video = this.video;
     if (stream != null) {
-      let video = this.refs[id];
       video.srcObject = stream.stream;
     } else {
       stream = video.srcObject;
@@ -109,7 +111,9 @@ class LocalVideoView extends React.Component {
           }}
         >
           <video
-            ref={id}
+            ref={ref => {
+              this.video = ref;
+            }}
             id={id}
             autoPlay
             playsInline

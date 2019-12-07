@@ -7,13 +7,13 @@ class SmallVideoView extends React.Component {
 
   componentDidMount = () => {
     const { id, stream } = this.props;
-    let video = this.refs[id];
+    let video = this.video;
     video.srcObject = stream.stream;
   };
 
   componentWillUnmount = () => {
-    const {id } = this.props;
-    let video = this.refs[id];
+    const { id } = this.props;
+    let video = this.video;
     let stream = video.srcObject;
     if (stream !== null) {
       let tracks = stream.getTracks();
@@ -34,7 +34,7 @@ class SmallVideoView extends React.Component {
           borderColor: "#ffffff",
           overflow: "hidden",
           borderRadius: "2px",
-          backgroundColor: 'rgb(0, 21, 42)'
+          backgroundColor: "rgb(0, 21, 42)"
         }}
       >
         <div
@@ -45,7 +45,9 @@ class SmallVideoView extends React.Component {
           }}
         >
           <video
-            ref={id}
+            ref={ref => {
+              this.video = ref;
+            }}
             id={id}
             autoPlay
             playsInline

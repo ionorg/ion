@@ -33,7 +33,6 @@ class Conference extends React.Component {
     client.off("stream-add", this._handleAddStream);
     client.off("stream-remove", this._handleAddStream);
     window.removeEventListener("resize", this._onWindowResize);
-    this._unpublish();
   };
 
   _onWindowResize = () => {
@@ -53,7 +52,7 @@ class Conference extends React.Component {
     this.localVideoView.stream = stream;
   };
 
-  _unpublish = async () => {
+  unpublish = async () => {
     const { client } = this.props;
     if (this.localVideoView) this.localVideoView.stream = null;
     if (this.localStream) {
@@ -66,7 +65,7 @@ class Conference extends React.Component {
     if (enabled) {
       this._publish(type);
     } else {
-      this._unpublish();
+      this.unpublish();
     }
   };
 
@@ -120,7 +119,9 @@ class Conference extends React.Component {
           <div style={{ width: 220, height: 140 }}>
             <LocalVideoView
               id={id}
-              ref={ref => (this.localVideoView = ref)}
+              ref={ref => {
+                this.localVideoView = ref;
+              }}
               client={client}
               handleStreamEnabled={this._handleStreamEnabled}
             />

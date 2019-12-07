@@ -32,8 +32,8 @@ class App extends React.Component {
 
     let client = new Client();
 
-    window.onunload = () => {
-      client.leave();
+    window.onunload = async () => {
+      await this._cleanUp();
     };
 
     client.on("peer-join", (id, rid, info) => {
@@ -66,6 +66,11 @@ class App extends React.Component {
     this.client = client;
   }
 
+  _cleanUp = async () => {
+    await this.conference.unpublish();
+    await this.client.leave();
+  }
+
   _notification = (message, description) => {
     notification.open({
       message: message,
@@ -94,7 +99,7 @@ class App extends React.Component {
       content: "Do you want to leave the room?",
       async onOk() {
         console.log("OK");
-        await client.leave();
+        await this2._cleanUp();
         this2.setState({ login: false });
       },
       onCancel() {
@@ -144,7 +149,12 @@ class App extends React.Component {
           }}
         >
           {login ? (
-            <Conference client={this.client} />
+            <Conference
+              client={this.client}
+              ref={ref => {
+                this.conference = ref;
+              }}
+            />
           ) : loading ? (
             <Spin size="large" tip="Connecting..." />
           ) : (
