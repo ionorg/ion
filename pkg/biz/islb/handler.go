@@ -60,7 +60,7 @@ func handleRPCMsgs() {
 				pid := util.Val(msg, "pid")
 				mid := util.Val(msg, "mid")
 				ssrcPt := util.Unmarshal(util.Val(msg, "mediaInfo"))
-				key := rid + "/pub/node/" + mid
+				key := rid + "/pub/node/" + pid
 				redis.HSetTTL(key, from, "", redisKeyTTL)
 				key = rid + "/pub/media/" + mid
 				for ssrc, pt := range ssrcPt {
@@ -81,10 +81,11 @@ func handleRPCMsgs() {
 				}
 
 			case proto.IslbKeepAlive:
-				mid := util.Val(msg, "mid")
 				rid := util.Val(msg, "rid")
+				pid := util.Val(msg, "pid")
+				mid := util.Val(msg, "mid")
 				ssrcPt := util.Unmarshal(util.Val(msg, "mediaInfo"))
-				key := rid + "/pub/node/" + mid
+				key := rid + "/pub/node/" + pid
 				redis.HSetTTL(key, from, "", redisKeyTTL)
 				key = rid + "/pub/media/" + mid
 				for ssrc, pt := range ssrcPt {
@@ -118,8 +119,6 @@ func handleRPCMsgs() {
 				mid := util.Val(msg, "mid")
 				key := rid + "/pub/media/" + mid
 				redis.Del(key)
-				key = rid + "/pub/node/" + mid
-				redis.Del(key)
 				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "mid", mid)
 				log.Infof("amqp.BroadCast onStreamRemove=%v", onStreamRemove)
 				amqp.BroadCast(onStreamRemove)
@@ -136,41 +135,40 @@ func handleRPCMsgs() {
 			case proto.IslbClientOnLeave:
 				rid := util.Val(msg, "rid")
 				id := util.Val(msg, "id")
-				key := rid + "/pub/media/" + id
-				redis.Del(key)
-				key = rid + "/pub/node/" + id
+				key := rid + "/pub/node/" + id
 				redis.Del(key)
 				onLeave := util.Map("rid", rid, "method", proto.IslbClientOnLeave, "id", id)
 				log.Infof("amqp.BroadCast onLeave=%v", onLeave)
 				amqp.BroadCast(onLeave)
 			case proto.IslbGetMediaInfo:
 				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
-				info := redis.HGetAll(rid + "/pub/media/" + pid)
+				mid := util.Val(msg, "mid")
+				info := redis.HGetAll(rid + "/pub/media/" + mid)
 				infoStr := util.MarshalStrMap(info)
-				resp := util.Map("response", proto.IslbGetMediaInfo, "pid", pid, "info", infoStr)
+				resp := util.Map("response", proto.IslbGetMediaInfo, "mid", mid, "info", infoStr)
 				log.Infof("amqp.RpcCall from=%s resp=%v corrID=%s", from, resp, corrID)
 				amqp.RpcCall(from, resp, corrID)
 			case proto.IslbRelay:
 				rid := util.Val(msg, "rid")
 				pid := util.Val(msg, "pid")
+				mid := util.Val(msg, "mid")
 				info := redis.HGetAll(rid + "/pub/node/" + pid)
 				for ip := range info {
-					method := util.Map("method", proto.IslbRelay, "pid", pid, "sid", from)
+					method := util.Map("method", proto.IslbRelay, "pid", pid, "sid", from, "mid", mid)
 					log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
 					amqp.RpcCall(ip, method, "")
 				}
 			case proto.IslbUnrelay:
 				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
-				info := redis.HGetAll(rid + "/pub/node/" + pid)
+				mid := util.Val(msg, "mid")
+				info := redis.HGetAll(rid + "/pub/node/" + mid)
 				for ip := range info {
-					method := util.Map("method", proto.IslbUnrelay, "pid", pid, "sid", from)
+					method := util.Map("method", proto.IslbUnrelay, "mid", mid, "sid", from)
 					log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
 					amqp.RpcCall(ip, method, "")
 				}
 				// time.Sleep(time.Millisecond * 10)
-				resp := util.Map("response", proto.IslbUnrelay, "pid", pid, "sid", from)
+				resp := util.Map("response", proto.IslbUnrelay, "mid", mid, "sid", from)
 				log.Infof("amqp.RpcCall from=%s resp=%v corrID=%s", from, resp, corrID)
 				amqp.RpcCall(from, resp, corrID)
 			}

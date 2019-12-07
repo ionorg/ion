@@ -3,6 +3,7 @@ package rtc
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -66,6 +67,18 @@ func getPipeline(pid string) *pipeline {
 	return pipes[pid]
 }
 
+func getPipelinesByPrefix(pid string) map[string]*pipeline {
+	pipeLock.RLock()
+	defer pipeLock.RUnlock()
+	m := make(map[string]*pipeline)
+	for mid := range pipes {
+		if strings.Contains(mid, pid) {
+			m[mid] = pipes[mid]
+		}
+	}
+	return m
+}
+
 func getOrNewPipeline(pid string) *pipeline {
 	p := getPipeline(pid)
 	if p == nil {
@@ -116,6 +129,21 @@ func IsWebRtcPub(pid string) bool {
 		}
 	}
 	return false
+}
+
+func GetWebRtcMIDByPID(pid string) []string {
+	m := getPipelinesByPrefix(pid)
+	var mids []string
+
+	//find webrtc pub mid
+	for mid, p := range m {
+		switch p.getPub().(type) {
+		case *WebRTCTransport:
+		default:
+			mids = append(mids, mid)
+		}
+	}
+	return mids
 }
 
 func IsRtpPub(pid string) bool {

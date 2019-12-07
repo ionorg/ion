@@ -23,13 +23,13 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 		streamRemove := util.Map("rid", rid, "pid", id)
 		signal.NotifyAll(rid, proto.ClientOnStreamRemove, streamRemove)
 	case proto.IslbRelay:
-		pid := util.Val(msg, "pid")
 		sid := util.Val(msg, "sid")
-		rtc.AddNewRTPSub(pid, sid, sid)
+		mid := util.Val(msg, "mid")
+		rtc.AddNewRTPSub(mid, sid, sid)
 	case proto.IslbUnrelay:
-		pid := util.Val(msg, "pid")
+		mid := util.Val(msg, "mid")
 		sid := util.Val(msg, "sid")
-		rtc.DelSub(pid, sid)
+		rtc.DelSub(mid, sid)
 	}
 
 }
