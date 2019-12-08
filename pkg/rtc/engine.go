@@ -96,8 +96,8 @@ func DelPub(pid string) {
 	}
 	p.Close()
 	pipeLock.Lock()
+	defer pipeLock.Unlock()
 	delete(pipes, pid)
-	pipeLock.Unlock()
 }
 
 func Close() {

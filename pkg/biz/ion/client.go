@@ -32,12 +32,7 @@ func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept 
 		subscribe(peer, msg, accept, reject)
 	case proto.ClientUnSubscribe:
 		unsubscribe(peer, msg, accept, reject)
-	case proto.ClientOnStreamAdd:
-		streamAdd(peer, msg, accept, reject)
-	case proto.ClientOnStreamRemove:
-		streamRemove(peer, msg, accept, reject)
 	}
-
 }
 
 func login(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
@@ -207,10 +202,8 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	}
 	// if this mid is a webrtc pub
 	if rtc.IsWebRtcPub(mid) {
-		// tell islb stream-remove
+		// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb braodcast stream-remove
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "mid", mid), "")
-
-		rtc.DelPub(mid)
 		quitLock.Lock()
 		for k := range quit {
 			if strings.Contains(k, mid) {

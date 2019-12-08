@@ -9,6 +9,10 @@ import (
 	"github.com/pion/rtp"
 )
 
+const (
+	maxErrCnt = 100
+)
+
 type Handler interface {
 	ID() string
 	Push(*rtp.Packet) error
@@ -118,16 +122,24 @@ func (p *pipeline) out() {
 						case *WebRTCTransport:
 							wt := t.(*WebRTCTransport)
 							if err := wt.WriteRTP(pkt); err != nil {
-								log.Debugf("wt.WriteRTP err=%v", err)
+								log.Errorf("wt.WriteRTP err=%v", err)
+								if wt.errCnt() > maxErrCnt {
+									p.delSub(t.ID())
+								}
+								wt.addErrCnt()
 							}
+							wt.clearErrCnt()
 						case *RTPTransport:
 							rt := t.(*RTPTransport)
 							if err := rt.WriteRTP(pkt); err != nil {
 								log.Errorf("rt.WriteRTP err=%v", err)
 								rt.ResetExtSent()
-								p.delSub(rt.ID())
+								if rt.errCnt() > maxErrCnt {
+									p.delSub(t.ID())
+								}
+								rt.addErrCnt()
 							}
-
+							rt.clearErrCnt()
 							// log.Debugf("send RTP: %v", pkt)
 						}
 					}
@@ -236,6 +248,7 @@ func (p *pipeline) delSubs() {
 			sub.Close()
 		}
 	}
+	p.sub = make(map[string]Transport)
 }
 
 func (p *pipeline) addHandler(id string, t Handler) {

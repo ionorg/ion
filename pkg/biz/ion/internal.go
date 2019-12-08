@@ -27,11 +27,6 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 		rid := util.Val(msg, "rid")
 		streamAdd := util.Map("rid", rid, "pid", id)
 		signal.NotifyAll(rid, proto.ClientOnStreamAdd, streamAdd)
-	case proto.IslbOnStreamRemove:
-		id := util.Val(msg, "id")
-		rid := util.Val(msg, "rid")
-		streamRemove := util.Map("rid", rid, "pid", id)
-		signal.NotifyAll(rid, proto.ClientOnStreamRemove, streamRemove)
 	case proto.IslbRelay:
 		sid := util.Val(msg, "sid")
 		mid := util.Val(msg, "mid")
@@ -115,7 +110,9 @@ func handleBroadCastMsgs() {
 			case proto.IslbOnStreamRemove:
 				rid := util.Val(msg, "rid")
 				pid := util.Val(msg, "pid")
+				mid := util.Val(msg, "mid")
 				signal.NotifyAllWithoutID(rid, pid, proto.ClientOnStreamRemove, msg)
+				rtc.DelPub(mid)
 			case proto.IslbClientOnJoin:
 				rid := util.Val(msg, "rid")
 				id := util.Val(msg, "id")

@@ -41,6 +41,7 @@ type WebRTCTransport struct {
 	hasVideo     bool
 	hasAudio     bool
 	hasScreen    bool
+	errCount     int
 }
 
 func newWebRTCTransport(id string) *WebRTCTransport {
@@ -260,6 +261,7 @@ func (t *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 }
 
 func (t *WebRTCTransport) Close() {
+	log.Infof("WebRTCTransport.Close t.ID()=%v", t.ID())
 	// close pc first, otherwise remoteTrack.ReadRTP will be blocked
 	t.pc.Close()
 	// close notify before rtpCh, otherwise panic: send on closed channel
@@ -438,4 +440,16 @@ func (t *WebRTCTransport) sendREMB(lostRate float64) {
 		SSRCs:      []uint32{videoSSRC},
 	}
 	t.pc.WriteRTCP([]rtcp.Packet{remb})
+}
+
+func (t *WebRTCTransport) errCnt() int {
+	return t.errCount
+}
+
+func (t *WebRTCTransport) addErrCnt() {
+	t.errCount++
+}
+
+func (t *WebRTCTransport) clearErrCnt() {
+	t.errCount = 0
 }
