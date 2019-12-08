@@ -52,39 +52,8 @@ class LocalVideoView extends React.Component {
 
   render = () => {
     const { id } = this.props;
-    const { enabled, type } = this.state;
     return (
-      <div className="local-video-border">
-        <div className="local-video-layout">
-          <div>
-            <a className="local-video-name">
-              Local
-            </a>
-            <div className="local-video-tool">
-              <div style={{ display: "inline" }}>
-                <Button
-                  shape="circle"
-                  icon="audio"
-                  disabled={enabled && type != "audio"}
-                  onClick={() => this._handleStreamEnabled("audio", !enabled)}
-                />
-                <Button
-                  shape="circle"
-                  icon="video-camera"
-                  disabled={enabled && type != "video"}
-                  onClick={() => this._handleStreamEnabled("video", !enabled)}
-                />
-                <Button
-                  shape="circle"
-                  icon="desktop"
-                  disabled={enabled && type != "screen"}
-                  onClick={() => this._handleStreamEnabled("screen", !enabled)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div className="local-video-layout">
         <div className="local-video-container">
           <video
             ref={id}
@@ -94,8 +63,12 @@ class LocalVideoView extends React.Component {
             muted={true}
             className="local-video-size"
           />
-        </div>
+          <a className="local-video-name">Local</a>
+        </div>  
       </div>
+    
+        
+      
     );
   };
 }

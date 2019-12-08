@@ -13,6 +13,12 @@ import {
 const { confirm } = Modal;
 const { Header, Content, Footer,Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
+import MicrophoneIcon from 'mdi-react/MicrophoneIcon';
+import MicrophoneOffIcon from 'mdi-react/MicrophoneOffIcon';
+import PhoneHangupOutlineIcon from 'mdi-react/PhoneHangupOutlineIcon';
+import DesktopMacIcon from 'mdi-react/DesktopMacIcon';
+import VideoIcon from 'mdi-react/VideoIcon';
+import VideocamOffIcon from 'mdi-react/VideocamOffIcon';
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -27,7 +33,10 @@ class App extends React.Component {
       loginInfo: reactLocalStorage.getObject("loginInfo", {
         roomId: "room1",
         displayName: "Guest"
-      })
+      }),
+      localAudio: true,
+      localVideo: true,
+      localScreen: false,
     };
 
     let client = new Client();
@@ -103,8 +112,31 @@ class App extends React.Component {
     });
   };
 
+  _handleStreamEnabled = (type, enabled) => {
+    if(type == 'audio'){
+      this.setState({
+        localAudio:enabled,
+      });
+    }
+    if(type == 'video'){
+      this.setState({
+        localVideo:enabled,
+      });
+    }
+    if(type == 'screen'){
+      this.setState({
+        localScreen:enabled,
+      });
+    }
+    this.conference._handleStreamEnabled(type, enabled);
+  };
+
+  _onRef = (ref) => {
+    this.conference = ref;
+  }
+
   render() {
-    const { login, loading, loginInfo } = this.state;
+    const { login, loading, loginInfo,localAudio, localVideo,localScreen } = this.state;
     return (
       <Layout className="app-layout">
         <Header className="app-header">
@@ -116,6 +148,31 @@ class App extends React.Component {
               />
             </a>
           </div>
+          {
+            login?
+            (
+              <div className="app-header-tool">
+              {
+                localAudio?
+                <MicrophoneIcon className="app-header-tool-button" size={32} 
+                onClick={() => this._handleStreamEnabled("audio", !localAudio)}/>
+                :
+                <MicrophoneOffIcon className="app-header-tool-button" size={32}
+                onClick={() => this._handleStreamEnabled("audio", !localAudio)}/>
+              }
+              <DesktopMacIcon className="app-header-tool-button" size={26}
+              onClick={() => this._handleStreamEnabled("screen", !localScreen)}/>
+              {
+                localVideo ? 
+                <VideoIcon className="app-header-tool-button" size={32}
+                onClick={() => this._handleStreamEnabled("video", !localVideo)}/>
+                :
+                <VideocamOffIcon className="app-header-tool-button" size={32}
+                onClick={() => this._handleStreamEnabled("video", !localVideo)}/>
+              }
+              </div>
+            ): (<div></div>)
+          }
           <div className="app-header-right">
             {login ? (
               <Button
@@ -144,7 +201,7 @@ class App extends React.Component {
               </Sider>
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
-                  <Conference client={this.client} />
+                  <Conference onRef={this._onRef} client={this.client} />
                 </Content>
               </Layout>
             </Layout>

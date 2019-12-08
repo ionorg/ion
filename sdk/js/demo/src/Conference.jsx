@@ -19,6 +19,7 @@ class Conference extends React.Component {
   }
 
   componentDidMount = () => {
+    this.props.onRef(this);
     const { client } = this.props;
     client.on("stream-add", this._handleAddStream);
     client.on("stream-remove", this._handleRemoveStream);
@@ -123,14 +124,13 @@ class Conference extends React.Component {
                 ""
               );
             })}
-        <div className="conference-local-video-layout">
+        
             <LocalVideoView
               id={id}
               ref={ref => (this.localVideoView = ref)}
               client={client}
               handleStreamEnabled={this._handleStreamEnabled}
             />
-        </div>   
               {streams.map((item, index) => {
                 return index > 0 ? (
                     <SmallVideoView
