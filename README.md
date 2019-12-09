@@ -12,24 +12,24 @@ ION is a distributed RTC system written by pure go and flutter
 
 - [x] Server
     - [x] OS
-	      - [x] CentOS 7
-	      - [x] macOS Mojave
-	- [x] WebSocket signal
-          - [x] go-protoo
-	- [x] Media
-	      - [x] WebRTC
-	      - [x] RTP/RTCP
-	      - [x] Nack
-	      - [x] PLI
-	      - [x] Anti-Loss-Package 30%~50%(local test by Eye/Network-Link-Conditioner)
+        - [x] CentOS 7
+        - [x] macOS Mojave
+    - [x] Signal
+        - [x] WebSocket
+    - [x] Media
+        - [x] WebRTC
+        - [x] RTP/RTCP
+        - [x] Nack
+        - [x] PLI
+        - [x] Anti-Loss-Package 30%~50%
     - [x] Distributed System
-    	- [x] ION-ION RTP relay
-    	- [x] MQ support
+        - [x] ION-ION RTP relay
+        - [x] MQ support
 - [x] Client
-	- [x] SDK
-	  - [x] Flutter
-	  - [x] JS
-	- [x] Demo
+    - [x] SDK
+        - [x] Flutter
+        - [x] JS
+    - [x] Demo
 
 
 ## Contributing
