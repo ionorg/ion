@@ -24,7 +24,6 @@ class Conference extends React.Component {
   }
 
   componentDidMount = () => {
-    this.props.onRef(this);
     const { client } = this.props;
     client.on("stream-add", this._handleAddStream);
     client.on("stream-remove", this._handleRemoveStream);
@@ -67,7 +66,7 @@ class Conference extends React.Component {
     }
   };
 
-  _handleStreamEnabled = async (type, enabled) => {
+  handleStreamEnabled = async (type, enabled) => {
     if (type === "screen") {
       if (enabled) {
         let stream = await this._publish(type);
@@ -146,25 +145,21 @@ class Conference extends React.Component {
     const { clientWidth, clientHeight } = this.state;
     return (
       <div className="conference-layout" ref={this.saveRef}>
-            {streams.map((item, index) => {
-              return index == 0 ? (
-                <MainVideoView
-                  key={item.mid}
-                  id={item.mid}
-                  stream={item.stream}
-                />
-              ) : (
-                ""
-              );
-            })}
-        
+        {streams.map((item, index) => {
+          return index == 0 ? (
+            <MainVideoView key={item.mid} id={item.mid} stream={item.stream} />
+          ) : (
+            ""
+          );
+        })}
+        <div className="conference-local-video-layout">
+          <div className="conference-local-video-size">
             <LocalVideoView
               id={id + "-video"}
               ref={ref => {
                 this.localVideoView = ref;
               }}
               client={client}
-              handleStreamEnabled={this._handleStreamEnabled}
             />
           </div>
         </div>
@@ -176,24 +171,23 @@ class Conference extends React.Component {
                 this.localScreenView = ref;
               }}
               client={client}
-              handleStreamEnabled={this._handleStreamEnabled}
             />
-              {streams.map((item, index) => {
-                return index > 0 ? (
-                    <SmallVideoView
-                      key={item.mid}
-                      id={item.mid}
-                      stream={item.stream}
-                      index={index}
-                      onClick={this._onChangeVideoPosition}
-                    />
-                ) : (
-                  ""
-                );
-              })}
-            </div>
-
-        // </div>
+          </div>
+        </div>
+        {streams.map((item, index) => {
+          return index > 0 ? (
+            <SmallVideoView
+              key={item.mid}
+              id={item.mid}
+              stream={item.stream}
+              index={index}
+              onClick={this._onChangeVideoPosition}
+            />
+          ) : (
+            ""
+          );
+        })}
+      </div>
     );
   };
 }

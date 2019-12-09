@@ -1,24 +1,16 @@
 import React from "react";
-import {
-  Layout,
-  Button,
-  Modal,
-  Icon,
-  notification,
-  Card,
-  Spin
-} from "antd";
+import { Layout, Button, Modal, Icon, notification, Card, Spin } from "antd";
 
 const { confirm } = Modal;
-const { Header, Content, Footer,Sider } = Layout;
+const { Header, Content, Footer, Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
-import MicrophoneIcon from 'mdi-react/MicrophoneIcon';
-import MicrophoneOffIcon from 'mdi-react/MicrophoneOffIcon';
-import ArrowLeftIcon from 'mdi-react/ArrowLeftIcon';
-import ArrowRightIcon from 'mdi-react/ArrowRightIcon';
-import DesktopMacIcon from 'mdi-react/DesktopMacIcon';
-import VideoIcon from 'mdi-react/VideoIcon';
-import VideocamOffIcon from 'mdi-react/VideocamOffIcon';
+import MicrophoneIcon from "mdi-react/MicrophoneIcon";
+import MicrophoneOffIcon from "mdi-react/MicrophoneOffIcon";
+import ArrowLeftIcon from "mdi-react/ArrowLeftIcon";
+import ArrowRightIcon from "mdi-react/ArrowRightIcon";
+import DesktopMacIcon from "mdi-react/DesktopMacIcon";
+import VideoIcon from "mdi-react/VideoIcon";
+import VideocamOffIcon from "mdi-react/VideocamOffIcon";
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -37,7 +29,7 @@ class App extends React.Component {
       localAudio: true,
       localVideo: true,
       localScreen: false,
-      collapsed:true,
+      collapsed: true
     };
 
     let client = new Client();
@@ -79,7 +71,7 @@ class App extends React.Component {
   _cleanUp = async () => {
     await this.conference.unpublish();
     await this.client.leave();
-  }
+  };
 
   _notification = (message, description) => {
     notification.open({
@@ -119,36 +111,44 @@ class App extends React.Component {
   };
 
   _handleStreamEnabled = (type, enabled) => {
-    if(type == 'audio'){
+    if (type == "audio") {
       this.setState({
-        localAudio:enabled,
+        localAudio: enabled
       });
     }
-    if(type == 'video'){
+    if (type == "video") {
       this.setState({
-        localVideo:enabled,
+        localVideo: enabled
       });
     }
-    if(type == 'screen'){
+    if (type == "screen") {
       this.setState({
-        localScreen:enabled,
+        localScreen: enabled
       });
     }
-    this.conference._handleStreamEnabled(type, enabled);
+    this.conference.handleStreamEnabled(type, enabled);
   };
 
-  _onRef = (ref) => {
+  _onRef = ref => {
     this.conference = ref;
-  }
+  };
 
-  _openOrCloseLeftContainer = (collapsed) => {
+  _openOrCloseLeftContainer = collapsed => {
     this.setState({
-      collapsed:collapsed,
+      collapsed: collapsed
     });
-  }
+  };
 
   render() {
-    const { login, loading, loginInfo,localAudio, localVideo,localScreen,collapsed } = this.state;
+    const {
+      login,
+      loading,
+      loginInfo,
+      localAudio,
+      localVideo,
+      localScreen,
+      collapsed
+    } = this.state;
     return (
       <Layout className="app-layout">
         <Header className="app-header">
@@ -160,31 +160,53 @@ class App extends React.Component {
               />
             </a>
           </div>
-          {
-            login?
-            (
-              <div className="app-header-tool">
-              {
-                localAudio?
-                <MicrophoneIcon className="app-header-tool-button" size={32} 
-                onClick={() => this._handleStreamEnabled("audio", !localAudio)}/>
-                :
-                <MicrophoneOffIcon className="app-header-tool-button" size={32}
-                onClick={() => this._handleStreamEnabled("audio", !localAudio)}/>
-              }
-              <DesktopMacIcon className="app-header-tool-button" size={26}
-              onClick={() => this._handleStreamEnabled("screen", !localScreen)}/>
-              {
-                localVideo ? 
-                <VideoIcon className="app-header-tool-button" size={32}
-                onClick={() => this._handleStreamEnabled("video", !localVideo)}/>
-                :
-                <VideocamOffIcon className="app-header-tool-button" size={32}
-                onClick={() => this._handleStreamEnabled("video", !localVideo)}/>
-              }
-              </div>
-            ): (<div></div>)
-          }
+          {login ? (
+            <div className="app-header-tool">
+              {localAudio ? (
+                <MicrophoneIcon
+                  className="app-header-tool-button"
+                  size={32}
+                  onClick={() =>
+                    this._handleStreamEnabled("audio", !localAudio)
+                  }
+                />
+              ) : (
+                <MicrophoneOffIcon
+                  className="app-header-tool-button"
+                  size={32}
+                  onClick={() =>
+                    this._handleStreamEnabled("audio", !localAudio)
+                  }
+                />
+              )}
+              <DesktopMacIcon
+                className="app-header-tool-button"
+                size={26}
+                onClick={() =>
+                  this._handleStreamEnabled("screen", !localScreen)
+                }
+              />
+              {localVideo ? (
+                <VideoIcon
+                  className="app-header-tool-button"
+                  size={32}
+                  onClick={() =>
+                    this._handleStreamEnabled("video", !localVideo)
+                  }
+                />
+              ) : (
+                <VideocamOffIcon
+                  className="app-header-tool-button"
+                  size={32}
+                  onClick={() =>
+                    this._handleStreamEnabled("video", !localVideo)
+                  }
+                />
+              )}
+            </div>
+          ) : (
+            <div></div>
+          )}
           <div className="app-header-right">
             {login ? (
               <Button
@@ -202,14 +224,14 @@ class App extends React.Component {
         <Content className="app-center-layout">
           {login ? (
             <Layout className="app-content-layout">
-              <Sider 
+              <Sider
                 width={320}
-                style={{ background: '#f5f5f5' }}
+                style={{ background: "#f5f5f5" }}
                 collapsedWidth={0}
                 trigger={null}
                 collapsible
-                collapsed={this.state.collapsed}>
-              </Sider>
+                collapsed={this.state.collapsed}
+              ></Sider>
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
                   <Conference
@@ -217,16 +239,21 @@ class App extends React.Component {
                     ref={ref => {
                       this.conference = ref;
                     }}
-                    />
+                  />
                 </Content>
-                {
-                  this.state.collapsed ? 
-                  <ArrowRightIcon className="app-collapsed-button" size={32} 
-                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}/> 
-                  : 
-                  <ArrowLeftIcon className="app-collapsed-button" size={32} 
-                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}/>
-                }
+                {this.state.collapsed ? (
+                  <ArrowRightIcon
+                    className="app-collapsed-button"
+                    size={32}
+                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
+                  />
+                ) : (
+                  <ArrowLeftIcon
+                    className="app-collapsed-button"
+                    size={32}
+                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
+                  />
+                )}
               </Layout>
             </Layout>
           ) : loading ? (

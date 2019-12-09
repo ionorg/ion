@@ -26,10 +26,6 @@ module.exports = {
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
-    new copyWebpackPlugin([{
-      from: __dirname + '/styles',
-      to: __dirname + '/dist/styles',
-    }]),
   ],
   devServer: {
     contentBase: './dist',
