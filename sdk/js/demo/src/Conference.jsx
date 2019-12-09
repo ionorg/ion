@@ -28,6 +28,10 @@ class Conference extends React.Component {
     client.on("stream-add", this._handleAddStream);
     client.on("stream-remove", this._handleRemoveStream);
     window.addEventListener("resize", this._onWindowResize);
+
+    setTimeout(() => {
+      this.handleStreamEnabled("video", true);
+    }, 500);
   };
 
   componentWillUnmount = () => {

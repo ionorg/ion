@@ -2,19 +2,6 @@ import React from "react";
 import { setTimeout } from "timers";
 
 class LocalVideoView extends React.Component {
-  state = {
-    type: "video",
-    enabled: true
-  };
-
-  componentDidMount = () => {
-    const { handleStreamEnabled } = this.props;
-    const { type, enabled } = this.state;
-    setTimeout(() => {
-      handleStreamEnabled(type, enabled);
-    }, 500);
-  };
-
   componentWillUnmount = () => {
     let stream = this.video.srcObject;
     if (stream !== null) {
@@ -40,12 +27,6 @@ class LocalVideoView extends React.Component {
       this.video.srcObject = null;
     }
   }
-
-  _handleStreamEnabled = (type, enabled) => {
-    const { handleStreamEnabled } = this.props;
-    this.setState({ type, enabled });
-    handleStreamEnabled(type, enabled);
-  };
 
   render = () => {
     const { id } = this.props;
