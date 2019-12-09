@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "antd";
 
 class LocalVideoView extends React.Component {
   state = {
@@ -66,9 +65,6 @@ class LocalVideoView extends React.Component {
           <a className="local-video-name">Local</a>
         </div>  
       </div>
-    
-        
-      
     );
   };
 }

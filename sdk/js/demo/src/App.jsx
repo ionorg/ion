@@ -4,7 +4,6 @@ import {
   Button,
   Modal,
   Icon,
-  Input,
   notification,
   Card,
   Spin
@@ -15,7 +14,8 @@ const { Header, Content, Footer,Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
 import MicrophoneIcon from 'mdi-react/MicrophoneIcon';
 import MicrophoneOffIcon from 'mdi-react/MicrophoneOffIcon';
-import PhoneHangupOutlineIcon from 'mdi-react/PhoneHangupOutlineIcon';
+import ArrowLeftIcon from 'mdi-react/ArrowLeftIcon';
+import ArrowRightIcon from 'mdi-react/ArrowRightIcon';
 import DesktopMacIcon from 'mdi-react/DesktopMacIcon';
 import VideoIcon from 'mdi-react/VideoIcon';
 import VideocamOffIcon from 'mdi-react/VideocamOffIcon';
@@ -37,6 +37,7 @@ class App extends React.Component {
       localAudio: true,
       localVideo: true,
       localScreen: false,
+      collapsed:true,
     };
 
     let client = new Client();
@@ -135,8 +136,14 @@ class App extends React.Component {
     this.conference = ref;
   }
 
+  _openOrCloseLeftContainer = (collapsed) => {
+    this.setState({
+      collapsed:collapsed,
+    });
+  }
+
   render() {
-    const { login, loading, loginInfo,localAudio, localVideo,localScreen } = this.state;
+    const { login, loading, loginInfo,localAudio, localVideo,localScreen,collapsed } = this.state;
     return (
       <Layout className="app-layout">
         <Header className="app-header">
@@ -189,7 +196,6 @@ class App extends React.Component {
 
         <Content className="app-center-layout">
           {login ? (
-            
             <Layout className="app-content-layout">
               <Sider 
                 width={320}
@@ -197,12 +203,20 @@ class App extends React.Component {
                 collapsedWidth={0}
                 trigger={null}
                 collapsible
-                collapsed={false}>
+                collapsed={this.state.collapsed}>
               </Sider>
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
                   <Conference onRef={this._onRef} client={this.client} />
                 </Content>
+                {
+                  this.state.collapsed ? 
+                  <ArrowRightIcon className="app-collapsed-button" size={32} 
+                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}/> 
+                  : 
+                  <ArrowLeftIcon className="app-collapsed-button" size={32} 
+                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}/>
+                }
               </Layout>
             </Layout>
            
