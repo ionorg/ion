@@ -148,7 +148,10 @@ func Val(msg map[string]interface{}, key string) string {
 	switch val.(type) {
 	case string:
 		return val.(string)
+	case map[string]interface{}:
+		return Marshal(val.(map[string]interface{}))
 	default:
+		log.Errorf("util.Val val=%v", val)
 		return ""
 	}
 }

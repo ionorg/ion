@@ -31,6 +31,7 @@ type RTPTransport struct {
 	pid          string
 	idLock       sync.RWMutex
 	addr         string
+	errCount     int
 }
 
 func newRTPTransport(conn net.Conn) *RTPTransport {
@@ -191,7 +192,7 @@ func (t *RTPTransport) receiveRTCP() {
 											MediaSSRC:  nack.MediaSSRC,
 											Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
 										}
-										log.Infof("getPipeline(t.pid).GetPub().sendNack(n) %v", n)
+										log.Debugf("getPipeline(t.pid).GetPub().sendNack(n) %v", n)
 										getPipeline(t.pid).getPub().sendNack(n)
 									}
 								}
@@ -277,9 +278,6 @@ func (t *RTPTransport) ResetExtSent() {
 }
 
 func (t *RTPTransport) sendNack(nack *rtcp.TransportLayerNack) {
-	if t == nil {
-		return
-	}
 	bin, _ := nack.Marshal()
 	t.WriteRawRTCP(bin)
 }
@@ -288,10 +286,14 @@ func (t *RTPTransport) sendREMB(lostRate float64) {
 	return
 }
 
-func (t *RTPTransport) sendUnsubscribe(sid string) {
-	if t == nil {
-		return
-	}
-	unSub := "unsubscribe:" + sid
-	t.WriteRawRTCP([]byte(unSub))
+func (t *RTPTransport) errCnt() int {
+	return t.errCount
+}
+
+func (t *RTPTransport) addErrCnt() {
+	t.errCount++
+}
+
+func (t *RTPTransport) clearErrCnt() {
+	t.errCount = 0
 }

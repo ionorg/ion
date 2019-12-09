@@ -5,7 +5,12 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtp"
+)
+
+const (
+	maxErrCnt = 100
 )
 
 type Handler interface {
@@ -15,23 +20,25 @@ type Handler interface {
 }
 
 type pipeline struct {
-	pub         Transport
-	sub         map[string]Transport
-	subLock     sync.RWMutex
-	handler     []Handler
-	handlerLock sync.RWMutex
-	pubCh       chan *rtp.Packet
-	subCh       chan *rtp.Packet
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
+	pub                               Transport
+	sub                               map[string]Transport
+	subLock                           sync.RWMutex
+	handler                           []Handler
+	handlerLock                       sync.RWMutex
+	pubCh                             chan *rtp.Packet
+	subCh                             chan *rtp.Packet
+	stopInCh, stopHandleCh, stopOutCh chan struct{}
+	wg                                sync.WaitGroup
 }
 
 func newPipeline(id string) *pipeline {
 	p := &pipeline{
-		sub:    make(map[string]Transport),
-		pubCh:  make(chan *rtp.Packet, maxPipelineSize),
-		subCh:  make(chan *rtp.Packet, maxPipelineSize),
-		stopCh: make(chan struct{}),
+		sub:          make(map[string]Transport),
+		pubCh:        make(chan *rtp.Packet, maxPipelineSize),
+		subCh:        make(chan *rtp.Packet, maxPipelineSize),
+		stopInCh:     make(chan struct{}),
+		stopHandleCh: make(chan struct{}),
+		stopOutCh:    make(chan struct{}),
 	}
 	p.addHandler(jitterBuffer, newBuffer(jitterBuffer, p))
 	p.start()
@@ -40,9 +47,10 @@ func newPipeline(id string) *pipeline {
 
 func (p *pipeline) in() {
 	go func() {
+		defer util.Recover("[pipeline.in]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopInCh:
 				log.Debugf("pipeline.in stop ok!")
 				p.wg.Done()
 				return
@@ -61,9 +69,10 @@ func (p *pipeline) in() {
 
 func (p *pipeline) handle() {
 	go func() {
+		defer util.Recover("[pipeline.handle]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopHandleCh:
 				p.wg.Done()
 				return
 			default:
@@ -87,9 +96,10 @@ func (p *pipeline) handle() {
 
 func (p *pipeline) out() {
 	go func() {
+		defer util.Recover("[pipeline.out]")
 		for {
 			select {
-			case <-p.stopCh:
+			case <-p.stopOutCh:
 				p.wg.Done()
 				return
 			default:
@@ -112,16 +122,24 @@ func (p *pipeline) out() {
 						case *WebRTCTransport:
 							wt := t.(*WebRTCTransport)
 							if err := wt.WriteRTP(pkt); err != nil {
-								log.Debugf("wt.WriteRTP err=%v", err)
+								log.Errorf("wt.WriteRTP err=%v", err)
+								if wt.errCnt() > maxErrCnt {
+									p.delSub(t.ID())
+								}
+								wt.addErrCnt()
 							}
+							wt.clearErrCnt()
 						case *RTPTransport:
 							rt := t.(*RTPTransport)
 							if err := rt.WriteRTP(pkt); err != nil {
 								log.Errorf("rt.WriteRTP err=%v", err)
 								rt.ResetExtSent()
-								p.delSub(rt.ID())
+								if rt.errCnt() > maxErrCnt {
+									p.delSub(t.ID())
+								}
+								rt.addErrCnt()
 							}
-
+							rt.clearErrCnt()
 							// log.Debugf("send RTP: %v", pkt)
 						}
 					}
@@ -230,6 +248,7 @@ func (p *pipeline) delSubs() {
 			sub.Close()
 		}
 	}
+	p.sub = make(map[string]Transport)
 }
 
 func (p *pipeline) addHandler(id string, t Handler) {
@@ -275,7 +294,9 @@ func (p *pipeline) delHandlers() {
 func (p *pipeline) Close() {
 	// for ReadRTP not block
 	p.delPub()
-	close(p.stopCh)
+	close(p.stopInCh)
+	close(p.stopHandleCh)
+	close(p.stopOutCh)
 	close(p.pubCh)
 	p.wg.Wait()
 	p.delSubs()

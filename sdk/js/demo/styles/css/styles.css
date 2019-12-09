@@ -144,6 +144,15 @@ a,a:hover{color:#333;}
     position: absolute;
     top: 30px; 
     left: 24px; 
+}
+
+.conference-local-screen-layout{
+    position: absolute;
+    top: 90px;
+    right: 24px;
+}
+
+.conference-local-video-size{
     width: 220px; 
     height: 140px;
     z-index: 99;

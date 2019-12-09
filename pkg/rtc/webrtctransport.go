@@ -3,6 +3,7 @@ package rtc
 import (
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"sync"
@@ -40,6 +41,7 @@ type WebRTCTransport struct {
 	hasVideo     bool
 	hasAudio     bool
 	hasScreen    bool
+	errCount     int
 }
 
 func newWebRTCTransport(id string) *WebRTCTransport {
@@ -63,20 +65,22 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 	if options == nil {
 		return webrtc.SessionDescription{}, errors.New("invalid options")
 	}
-	mediaEngine = webrtc.MediaEngine{}
+	mediaEngine := webrtc.MediaEngine{}
 	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
 
 	// only register one video codec which client need
 	if codec, ok := options["codec"]; ok {
-		switch codec.(string) {
-		case "H264":
+		codecStr := codec.(string)
+		if strings.EqualFold(codecStr, "h264") {
 			mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
-		case "VP9":
+		} else if strings.EqualFold(codecStr, "vp9") {
 			mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
-		default:
+		} else {
 			mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
 		}
 	}
+
+	//check video audio screen
 	if v, ok := options["video"].(bool); ok {
 		t.hasVideo = v
 	}
@@ -87,7 +91,7 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 		t.hasScreen = s
 	}
 
-	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
@@ -148,6 +152,10 @@ func (t *WebRTCTransport) AnswerPublish(rid string, offer webrtc.SessionDescript
 }
 
 func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, ssrcPT map[uint32]uint8, pid string) (answer webrtc.SessionDescription, err error) {
+
+	mediaEngine := webrtc.MediaEngine{}
+	mediaEngine.RegisterDefaultCodecs()
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
 	t.pc, err = api.NewPeerConnection(cfg)
 	if err != nil {
 		return webrtc.SessionDescription{}, err
@@ -253,6 +261,7 @@ func (t *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 }
 
 func (t *WebRTCTransport) Close() {
+	log.Infof("WebRTCTransport.Close t.ID()=%v", t.ID())
 	// close pc first, otherwise remoteTrack.ReadRTP will be blocked
 	t.pc.Close()
 	// close notify before rtpCh, otherwise panic: send on closed channel
@@ -431,4 +440,16 @@ func (t *WebRTCTransport) sendREMB(lostRate float64) {
 		SSRCs:      []uint32{videoSSRC},
 	}
 	t.pc.WriteRTCP([]rtcp.Packet{remb})
+}
+
+func (t *WebRTCTransport) errCnt() int {
+	return t.errCount
+}
+
+func (t *WebRTCTransport) addErrCnt() {
+	t.errCount++
+}
+
+func (t *WebRTCTransport) clearErrCnt() {
+	t.errCount = 0
 }

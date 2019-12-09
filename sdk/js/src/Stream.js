@@ -3,9 +3,9 @@ import VideoElement from './VideoElement';
 
 export default class Stream extends EventEmitter {
 
-    constructor(uid, stream = null) {
+    constructor(mid = null, stream = null) {
         super();
-        this._uid = uid;
+        this._mid = mid;
         this._stream = stream;
         this._videoElement = new VideoElement();
     }
@@ -20,12 +20,14 @@ export default class Stream extends EventEmitter {
         }
     }
 
-    get uid() { return this._uid; }
+    set mid(id) { this._mid = id; }
+
+    get mid() { return this._mid; }
 
     get stream() { return this._stream };
 
     render(elementId) {
-        this._videoElement.play({ id: this._uid, stream: this._stream, elementId });
+        this._videoElement.play({ id: this._mid, stream: this._stream, elementId });
     }
 
     async stop() {

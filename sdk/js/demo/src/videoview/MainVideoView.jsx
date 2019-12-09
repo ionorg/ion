@@ -2,9 +2,8 @@ import React from "react";
 
 class MainVideoView extends React.Component {
   componentDidMount = () => {
-    const { id, stream } = this.props;
-    let video = this.refs[id];
-    video.srcObject = stream.stream;
+    const { stream } = this.props;
+    this.video.srcObject = stream.stream;
   };
 
   render = () => {
@@ -12,7 +11,9 @@ class MainVideoView extends React.Component {
     return (
       <div className="main-video-layout">
           <video
-            ref={id}
+            ref={ref => {
+              this.video = ref;
+            }}
             id={id}
             autoPlay
             playsInline

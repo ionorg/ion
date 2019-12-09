@@ -1,18 +1,11 @@
 import React from "react";
+import { Button } from "antd";
 import { setTimeout } from "timers";
 
-class LocalVideoView extends React.Component {
+class LocalScreenView extends React.Component {
   state = {
     type: "video",
-    enabled: true
-  };
-
-  componentDidMount = () => {
-    const { handleStreamEnabled } = this.props;
-    const { type, enabled } = this.state;
-    setTimeout(() => {
-      handleStreamEnabled(type, enabled);
-    }, 500);
+    enabled: false
   };
 
   componentWillUnmount = () => {
@@ -49,8 +42,25 @@ class LocalVideoView extends React.Component {
 
   render = () => {
     const { id } = this.props;
+    const { enabled, type } = this.state;
     return (
-      <div className="local-video-layout">
+      <div className="local-video-border">
+        <div className="local-video-layout">
+          <div>
+            <a className="local-video-name">Screen Sharing</a>
+            <div className="local-video-tool">
+              <div style={{ display: "inline" }}>
+                <Button
+                  shape="circle"
+                  icon="desktop"
+                  disabled={enabled && type != "screen"}
+                  onClick={() => this._handleStreamEnabled("screen", !enabled)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="local-video-container">
           <video
             ref={ref => {
@@ -62,11 +72,10 @@ class LocalVideoView extends React.Component {
             muted={true}
             className="local-video-size"
           />
-          <a className="local-video-name">Local</a>
-        </div>  
+        </div>
       </div>
     );
   };
 }
 
-export default LocalVideoView;
+export default LocalScreenView;
