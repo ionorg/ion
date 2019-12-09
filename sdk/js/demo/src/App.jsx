@@ -32,12 +32,12 @@ class App extends React.Component {
 
     let client = new Client();
 
-    window.onunload = () => {
-      client.leave();
+    window.onunload = async () => {
+      await this._cleanUp();
     };
 
-    client.on("peer-join", (id, rid) => {
-      this._notification("Peer Join", "peer => " + id + ", join!");
+    client.on("peer-join", (id, rid, info) => {
+      this._notification("Peer Join", "peer => " + info.name + ", join!");
     });
 
     client.on("peer-leave", (id, rid) => {
@@ -64,6 +64,11 @@ class App extends React.Component {
 
     client.init();
     this.client = client;
+  }
+
+  _cleanUp = async () => {
+    await this.conference.unpublish();
+    await this.client.leave();
   }
 
   _notification = (message, description) => {
@@ -94,7 +99,7 @@ class App extends React.Component {
       content: "Do you want to leave the room?",
       async onOk() {
         console.log("OK");
-        await client.leave();
+        await this2._cleanUp();
         this2.setState({ login: false });
       },
       onCancel() {
@@ -132,7 +137,12 @@ class App extends React.Component {
 
         <Content className="app-center-layout">
           {login ? (
-            <Conference client={this.client} />
+            <Conference
+              client={this.client}
+              ref={ref => {
+                this.conference = ref;
+              }}
+            />
           ) : loading ? (
             <Spin size="large" tip="Connecting..." />
           ) : (

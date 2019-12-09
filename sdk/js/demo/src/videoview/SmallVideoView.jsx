@@ -6,14 +6,13 @@ class SmallVideoView extends React.Component {
   };
 
   componentDidMount = () => {
-    const { id, stream } = this.props;
-    let video = this.refs[id];
-    video.srcObject = stream.stream;
+    const { stream } = this.props;
+    this.video.srcObject = stream.stream;
   };
 
   _onChangeVideoPosition = () => {
-    this.props.onClick({id:this.props.id,index:this.props.index});
-  }
+    this.props.onClick({ id: this.props.id, index: this.props.index });
+  };
 
   render = () => {
     const { id } = this.props;
@@ -21,7 +20,9 @@ class SmallVideoView extends React.Component {
       <div onClick={this._onChangeVideoPosition} className="small-video-border">
         <div className="small-video-container">
           <video
-            ref={id}
+            ref={ref => {
+              this.video = ref;
+            }}
             id={id}
             autoPlay
             playsInline

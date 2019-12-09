@@ -18,7 +18,8 @@ This protocol base on [protoo](https://protoojs.org/#protoo)
 ```
 method:join
 data:{
-    "rid":"$roomid"
+    "rid": "$roomId",
+    "info":{"name": "$name"}
 }
 ```
 
@@ -41,7 +42,7 @@ Somebody will receive "stream-add"  if there are some publishers in this room
 ```
 method:leave
 data:{
-    "rid":"$roomid"
+    "rid":"$roomId"
 }
 ```
 
@@ -64,16 +65,18 @@ Subscriber will receive "stream-remove" when  publisher leave this room
 ```
 method:publish
 data:{
-    "jsep": {"type": "offer","sdp": "..."}
-    "options": {"codec": "h264"}
+    "jsep": {"type": "offer","sdp": "..."},
+    "options": {"codec": "H264", "video": true, "audio": true, "screen": false}
 }
 ```
+codec should be H264 or VP8
 
 #### response
 ```
 //success
 ok:true
 data:{
+    "mid": "$mediaId"
     "jsep": {"type": "answer","sdp": "..."}
 }
 
@@ -89,7 +92,8 @@ errCode:-1
 ```
 method:unpublish
 data:{
-    "rid":"$roomid"
+    "rid": "$roomId",
+    "mid": "$mediaId"
 }
 ```
 
@@ -111,7 +115,8 @@ errCode:-1
 ```
 method:subscribe
 data:{
-    "pid:"$pid",
+    "rid": "$roomId",
+    "mid": "$mediaId",
     "jsep": {"type": "offer","sdp": "..."}
 }
 ```
@@ -135,7 +140,8 @@ errCode:-1
 ```
 method:unsubscribe
 data:{
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$mediaId"
 }
 ```
 
@@ -218,7 +224,8 @@ People can subscribe while receiving "stream-add" in this room
 ```
 method:stream-add
 data:{
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$mediaId"
 }
 ```
 
@@ -245,7 +252,8 @@ subscribers need to release resources(pc,player,etc.) when they receive "stream-
 ```
 method:stream-remove
 data:{
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$mediaId"
 }
 ```
 
@@ -278,8 +286,9 @@ Islb will broadcast this msg to all ions
 ```
 method:peer-join
 data:{
-    "rid": "$rid"
-    "id": "$id"
+    "rid": "$rid",
+    "id": "$id",
+    "info":{"name": "$name"}
 }
 ```
 
@@ -336,15 +345,15 @@ Then ion can send these infomation to this new joiner by signal
 ```
 {
     "method": "getPubs",
-    "rid": "$roomid",
-    "pid": "$pid"
+    "rid": "$roomId",
+    "skipId": "$skipId"
 }
 ```
 
 #### response1
 ```
 {
-    "pid": "$pid1",
+    "mid": "$mediaId1",
     "info": "$info1"
 }
 
@@ -354,7 +363,7 @@ Then ion can send these infomation to this new joiner by signal
 
 ```
 {
-    "pid": "$pid2",
+    "mid": "$mediaId2",
     "info": "$info2"
 }
 ```
@@ -370,9 +379,9 @@ ion will send "stream-add" to islb when client start publishing
 ```
 {
     "method": "stream-add",
-    "rid": "$roomid",
-    "pid": "$pid",
-    "info": {"$SSRC": $payloadType}
+    "rid": "$roomId",
+    "mid": "$meidaId",
+    "mediaInfo": {"$SSRC": $payloadType}
 }
 ```
 
@@ -385,8 +394,8 @@ ion send "keepAlive" to islb periodically when publish stream success
 ```
 {
     "method": "keepAlive",
-    "rid": "$roomid",
-    "pid": "$pid",
+    "rid": "$roomId",
+    "mid": "$meidaId",
     "info": {"$SSRC": $payloadType}
 }
 ```
@@ -398,8 +407,8 @@ Ion will send "stream-remove" to islb when client unpublish stream
 ```
 {
     "method": "stream-remove",
-    "rid": "$roomid",
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$meidaId"
 }
 ```
 
@@ -412,8 +421,8 @@ Ion will send "relay" to islb when publisher is on other ion
 ```
 {
     "method": "relay",
-    "rid": "$roomid",
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$meidaId"
 }
 ```
 
@@ -426,8 +435,8 @@ Ion will send "getMediaInfo" to islb when publishing is on other ion
 ```
 {
     "method": "getMediaInfo",
-    "rid": "$roomid",
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$meidaId"
 }
 ```
 
@@ -440,8 +449,8 @@ Ion will send "unRelay" to islb when this rtp-pub has no sub, and islb will cont
 ```
 {
     "method": "unRelay",
-    "rid": "$roomid",
-    "pid": "$pid"
+    "rid": "$roomId",
+    "mid": "$meidaId"
 }
 ```
 

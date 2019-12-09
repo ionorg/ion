@@ -91,8 +91,14 @@ a,a:hover{color:#333;}
 
 .conference-local-video-layout{
     position: absolute;
-    top: 90px; 
-    left: 24px; 
+    top: 90px;
+    left: 24px;
+}
+
+.conference-local-screen-layout{
+    position: absolute;
+    top: 90px;
+    right: 24px;
 }
 
 .conference-local-video-size{

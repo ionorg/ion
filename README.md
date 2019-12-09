@@ -7,26 +7,29 @@ ION is a distributed RTC system written by pure go and flutter
 
 ## Architecture
 
-![arch](docs/imgs/arch.png)
+![ion](docs/imgs/ion.png)
 ## Features
 
-- [x] Pure GO
-	- [x] GO mod support
-- [x] CentOS support
-	- [x] Script support CentOS
-- [x] SFU
-	- [x] Signal protocol by protoo
-	- [x] WebRTC stack by pion
-	- [x] Nack support
-	- [x] PLI support
-	- [x] Anti-Loss-Package 30%~50%(local test by Eye/Network-Link-Conditioner)
-- [x] Distributed System
-	- [x] Ion-Ion rtp relay
-	- [x] MQ support
-
-- [x] SDK
-	- [x] JS SDK
-	- [x] Flutter SDK
+- [x] Server
+    - [x] OS
+        - [x] CentOS 7
+        - [x] macOS Mojave
+    - [x] Signal
+        - [x] WebSocket
+    - [x] Media
+        - [x] WebRTC
+        - [x] RTP/RTCP
+        - [x] Nack
+        - [x] PLI
+        - [x] Anti-Loss-Package 30%~50%
+    - [x] Distributed System
+        - [x] ION-ION RTP relay
+        - [x] MQ support
+- [x] Client
+    - [x] SDK
+        - [x] Flutter
+        - [x] JS
+    - [x] Demo
 
 
 ## Contributing
@@ -51,18 +54,18 @@ Welcome contributing to ion!
 ```
 ### 2. build
 ```
-//centos
+#centos
 ./scripts/centos/installDeps.sh
 
-//mac
+#mac
 ./scripts/mac/installDeps.sh
 ```
 ### 3. run
 ```
-//centos
+#centos
 ./scripts/centos/allRestart.sh
 
-//mac
+#mac
 ./scripts/mac/allRestart.sh
 ```
 ### 4. let's chat

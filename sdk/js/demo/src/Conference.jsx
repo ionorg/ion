@@ -1,5 +1,10 @@
 import React from "react";
-import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
+import {
+  LocalVideoView,
+  MainVideoView,
+  SmallVideoView,
+  LocalScreenView
+} from "./videoview";
 
 class Conference extends React.Component {
   constructor() {
@@ -30,7 +35,6 @@ class Conference extends React.Component {
     client.off("stream-add", this._handleAddStream);
     client.off("stream-remove", this._handleAddStream);
     window.removeEventListener("resize", this._onWindowResize);
-    this._unpublish();
   };
 
   _onWindowResize = () => {
@@ -46,34 +50,63 @@ class Conference extends React.Component {
       video: type === "video",
       screen: type === "screen"
     });
-    this.localVideoView.stream = stream;
+    return stream;
   };
 
-  _unpublish = async () => {
+  unpublish = async () => {
     const { client } = this.props;
     if (this.localVideoView) this.localVideoView.stream = null;
-    await client.unpublish();
-  };
-
-  _handleStreamEnabled = (type, enabled) => {
-    if (enabled) {
-      this._publish(type);
-    } else {
-      this._unpublish();
+    if (this.localVideoStream) {
+      await client.unpublish(this.localVideoStream.mid);
+      this.localVideoStream = null;
+    }
+    if (this.localScreenView) {
+      await client.unpublish(this.localScreenView.mid);
+      this.localScreenView = null;
     }
   };
 
-  _handleAddStream = async (id, rid) => {
+  _handleStreamEnabled = async (type, enabled) => {
+    if (type === "screen") {
+      if (enabled) {
+        let stream = await this._publish(type);
+        this.localScreenStream = stream;
+        this.localScreenView.stream = stream;
+      } else {
+        if (this.localScreenStream) {
+          const { client } = this.props;
+          await client.unpublish(this.localScreenStream.mid);
+          this.localScreenStream = null;
+          this.localScreenView.stream = null;
+        }
+      }
+    } else {
+      if (enabled) {
+        let stream = await this._publish(type);
+        this.localVideoStream = stream;
+        this.localVideoView.stream = stream;
+      } else {
+        if (this.localVideoStream) {
+          const { client } = this.props;
+          await client.unpublish(this.localVideoStream.mid);
+          this.localVideoStream = null;
+          this.localVideoView.stream = null;
+        }
+      }
+    }
+  };
+
+  _handleAddStream = async (rid, mid) => {
     const { client } = this.props;
     let streams = this.state.streams;
-    let stream = await client.subscribe(id);
-    streams.push({ id, stream });
+    let stream = await client.subscribe(rid, mid);
+    streams.push({ mid, stream });
     this.setState({ streams });
   };
 
-  _handleRemoveStream = async (id, rid) => {
+  _handleRemoveStream = async (rid, mid) => {
     let streams = this.state.streams;
-    streams = streams.filter(item => item.id !== id);
+    streams = streams.filter(item => item.mid !== mid);
     this.setState({ streams });
   };
 
@@ -91,7 +124,7 @@ class Conference extends React.Component {
     let big = 0;
     for (let i = 0; i < streams.length; i++) {
       let item = streams[i];
-      if (item.id == id) {
+      if (item.mid == id) {
         big = i;
         break;
       }
@@ -124,8 +157,8 @@ class Conference extends React.Component {
             {streams.map((item, index) => {
               return index == 0 ? (
                 <MainVideoView
-                  key={item.id}
-                  id={item.id}
+                  key={item.mid}
+                  id={item.mid}
                   stream={item.stream}
                 />
               ) : (
@@ -137,8 +170,22 @@ class Conference extends React.Component {
         <div className="conference-local-video-layout">
           <div className="conference-local-video-size">
             <LocalVideoView
-              id={id}
-              ref={ref => (this.localVideoView = ref)}
+              id={id + "-video"}
+              ref={ref => {
+                this.localVideoView = ref;
+              }}
+              client={client}
+              handleStreamEnabled={this._handleStreamEnabled}
+            />
+          </div>
+        </div>
+        <div className="conference-local-screen-layout">
+          <div className="conference-local-video-size">
+            <LocalScreenView
+              id={id + "-screen"}
+              ref={ref => {
+                this.localScreenView = ref;
+              }}
               client={client}
               handleStreamEnabled={this._handleStreamEnabled}
             />
@@ -157,8 +204,8 @@ class Conference extends React.Component {
                 return index > 0 ? (
                   <div className="conference-small-video-layout">
                     <SmallVideoView
-                      key={item.id}
-                      id={item.id}
+                      key={item.mid}
+                      id={item.mid}
                       stream={item.stream}
                       index={index}
                       onClick={this._onChangeVideoPosition}
