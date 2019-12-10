@@ -1,16 +1,15 @@
 import React from "react";
 import { Layout, Button, Modal, Icon, notification, Card, Spin } from "antd";
-
 const { confirm } = Modal;
 const { Header, Content, Footer, Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
 import MicrophoneIcon from "mdi-react/MicrophoneIcon";
 import MicrophoneOffIcon from "mdi-react/MicrophoneOffIcon";
-import ArrowLeftIcon from "mdi-react/ArrowLeftIcon";
-import ArrowRightIcon from "mdi-react/ArrowRightIcon";
+import HangupIcon from "mdi-react/PhoneHangupIcon";
 import DesktopMacIcon from "mdi-react/DesktopMacIcon";
 import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
+import DotsVerticalIcon from "mdi-react/DotsVerticalIcon";
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -54,9 +53,9 @@ class App extends React.Component {
       console.log("transport closed!");
     });
 
-    client.on("stream-add", (id, rid) => {
+    client.on("stream-add", (id, rid, info) => {
       console.log("stream-add %s,%s!", id, rid);
-      this._notification("Stream Add", "id => " + id + ", rid => " + rid);
+      this._notification("Stream Add", "id => " + id + ", rid => " + rid + ", name => " + info.name);
     });
 
     client.on("stream-remove", (id, rid) => {
@@ -69,7 +68,7 @@ class App extends React.Component {
   }
 
   _cleanUp = async () => {
-    await this.conference.unpublish();
+    await this.conference.cleanUp();
     await this.client.leave();
   };
 
@@ -110,7 +109,7 @@ class App extends React.Component {
     });
   };
 
-  _handleStreamEnabled = (type, enabled) => {
+  _handleMediaStreamSwitch = (type, enabled) => {
     if (type == "audio") {
       this.setState({
         localAudio: enabled
@@ -126,7 +125,7 @@ class App extends React.Component {
         localScreen: enabled
       });
     }
-    this.conference.handleStreamEnabled(type, enabled);
+    this.conference.handleMediaStreamSwitch(type, enabled);
   };
 
   _onRef = ref => {
@@ -155,69 +154,78 @@ class App extends React.Component {
           <div className="app-header-left">
             <a href="https://pion.ly" target="_blank">
               <img
-                src="https://pion.ly/img/pion-logo.svg"
+                src="/pion-logo.svg"
                 className="app-logo-img"
               />
             </a>
           </div>
           {login ? (
             <div className="app-header-tool">
-              {localAudio ? (
-                <MicrophoneIcon
-                  className="app-header-tool-button"
-                  size={32}
-                  onClick={() =>
-                    this._handleStreamEnabled("audio", !localAudio)
-                  }
+              <Button
+                ghost
+                size="large"
+                style={{ color: localAudio ? "" : "red" }}
+                type="link"
+                onClick={() => this._handleMediaStreamSwitch("audio", !localAudio)}
+              >
+                <Icon
+                  component={localAudio ? MicrophoneIcon : MicrophoneOffIcon}
+                  style={{ display: "flex", justifyContent: "center" }}
                 />
-              ) : (
-                <MicrophoneOffIcon
-                  className="app-header-tool-button"
-                  size={32}
-                  onClick={() =>
-                    this._handleStreamEnabled("audio", !localAudio)
-                  }
+              </Button>
+
+              <Button
+                ghost
+                size="large"
+                style={{ color: localVideo ? "" : "red" }}
+                type="link"
+                onClick={() => this._handleMediaStreamSwitch("video", !localVideo)}
+              >
+                <Icon
+                  component={localVideo ? VideoIcon : VideocamOffIcon}
+                  style={{ display: "flex", justifyContent: "center" }}
                 />
-              )}
-              <DesktopMacIcon
-                className="app-header-tool-button"
-                size={26}
-                onClick={() =>
-                  this._handleStreamEnabled("screen", !localScreen)
-                }
-              />
-              {localVideo ? (
-                <VideoIcon
-                  className="app-header-tool-button"
-                  size={32}
-                  onClick={() =>
-                    this._handleStreamEnabled("video", !localVideo)
-                  }
-                />
-              ) : (
-                <VideocamOffIcon
-                  className="app-header-tool-button"
-                  size={32}
-                  onClick={() =>
-                    this._handleStreamEnabled("video", !localVideo)
-                  }
-                />
-              )}
-            </div>
-          ) : (
-            <div></div>
-          )}
-          <div className="app-header-right">
-            {login ? (
+              </Button>
+
               <Button
                 shape="circle"
-                icon="logout"
                 ghost
+                size="large"
+                type="danger"
+                style={{ marginLeft: 16, marginRight: 16 }}
                 onClick={this._handleLeave}
-              />
-            ) : (
-              <Button shape="circle" icon="setting" ghost />
-            )}
+              >
+                <Icon
+                  component={HangupIcon}
+                  style={{ display: "flex", justifyContent: "center" }}
+                />
+              </Button>
+              <Button
+                ghost
+                size="large"
+                type="link"
+                style={{ color: localScreen ? "" : "red" }}
+                onClick={() =>
+                  this._handleMediaStreamSwitch("screen", !localScreen)
+                }
+              >
+                <Icon
+                  component={DesktopMacIcon}
+                  style={{ display: "flex", justifyContent: "center" }}
+                />
+              </Button>
+              <Button ghost size="large" type="link">
+                <Icon
+                  component={DotsVerticalIcon}
+                  style={{ display: "flex", justifyContent: "center" }}
+                />
+              </Button>
+            </div>
+          ) : (
+            <div />
+          )}
+          <div className="app-header-right">
+            <Button shape="circle" icon="setting" ghost />
           </div>
         </Header>
 
@@ -231,7 +239,7 @@ class App extends React.Component {
                 trigger={null}
                 collapsible
                 collapsed={this.state.collapsed}
-              ></Sider>
+              />
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
                   <Conference
@@ -241,19 +249,14 @@ class App extends React.Component {
                     }}
                   />
                 </Content>
-                {this.state.collapsed ? (
-                  <ArrowRightIcon
-                    className="app-collapsed-button"
-                    size={32}
-                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
-                  />
-                ) : (
-                  <ArrowLeftIcon
-                    className="app-collapsed-button"
-                    size={32}
-                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
-                  />
-                )}
+                <Button
+                  style={{ margin: 16 }}
+                  icon={this.state.collapsed ? "left" : "right"}
+                  size="large"
+                  shape="circle"
+                  ghost
+                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}
+                />
               </Layout>
             </Layout>
           ) : loading ? (

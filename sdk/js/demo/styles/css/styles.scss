@@ -188,8 +188,12 @@ body {
 }
 
 .app-header-right {
-  margin-right: 24px;
-  color: #001529;
+  margin-right: 16px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .app-header-tool {
@@ -340,6 +344,8 @@ body {
   position: absolute;
   left: 8px;
   top: 8px;
+  font-size: large;
+  color: #dbdbdb;
 }
 
 .small-video-size {
@@ -352,4 +358,6 @@ body {
   position: absolute;
   left: 8px;
   top: 8px;
+  font-size: larger;
+  color: #dbdbdb;
 }

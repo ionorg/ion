@@ -7,7 +7,7 @@ class MainVideoView extends React.Component {
   };
 
   render = () => {
-    const { id } = this.props;
+    const { id, stream } = this.props;
     return (
       <div className="main-video-layout">
           <video
@@ -20,7 +20,7 @@ class MainVideoView extends React.Component {
             muted={false}
             className="main-video-size"
           />
-        <a className="main-video-id-a">{id}</a>
+        <a className="main-video-id-a">{stream.info.name}</a>
       </div>
     );
   };

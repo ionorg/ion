@@ -274,37 +274,33 @@ export default class Client extends EventEmitter {
     }
 
     _handleNotification(notification) {
-        console.log('Handle notification from server: [method:%s, data:%o]', notification.method, notification.data);
-        switch (notification.method) {
+        const { method, data } = notification;
+        console.log('Handle notification from server: [method:%s, data:%o]', method, data);
+        switch (method) {
             case 'peer-join':
                 {
-                    let rid = notification.data.id;
-                    let id = notification.data.id;
-                    let info = notification.data.info;
+                    const { rid, id, info } = data;
                     console.log('peer-join peer rid => %s, id => %s, info => %o', rid, id, info);
                     this.emit('peer-join', rid, id, info);
                     break;
                 }
             case 'peer-leave':
                 {
-                    let rid = notification.data.rid;
-                    let id = notification.data.id;
+                    const { rid, id } = data;
                     console.log('peer-leave peer rid => %s, id => %s', rid, id);
                     this.emit('peer-leave', rid, id);
                     break;
                 }
             case 'stream-add':
                 {
-                    let rid = notification.data.rid;
-                    let mid = notification.data.mid;
+                    const { rid, mid, info } = data;
                     console.log('stream-add peer rid => %s, mid => %s', rid, mid);
-                    this.emit('stream-add', rid, mid);
+                    this.emit('stream-add', rid, mid, info);
                     break;
                 }
             case 'stream-remove':
                 {
-                    let rid = notification.data.rid;
-                    let mid = notification.data.mid;
+                    const { rid, mid } = data;
                     console.log('stream-remove peer rid => %s, mid => %s', rid, mid);
                     this.emit('stream-remove', rid, mid);
                     this._removePC(pid);
