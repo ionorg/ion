@@ -180,14 +180,14 @@ class App extends React.Component {
               <Button
                 ghost
                 size="large"
-                style={{ color: localVideo ? "red" : "" }}
+                style={{ color: localVideo ? "" : "red" }}
                 type="link"
                 onClick={() =>
                   this._handleMediaStreamSwitch("video", !localVideo)
                 }
               >
                 <Icon
-                  component={localVideo ? VideocamOffIcon : VideoIcon}
+                  component={localVideo ? VideoIcon : VideocamOffIcon}
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
