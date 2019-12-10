@@ -6,7 +6,8 @@ import { reactLocalStorage } from "reactjs-localstorage";
 import MicrophoneIcon from "mdi-react/MicrophoneIcon";
 import MicrophoneOffIcon from "mdi-react/MicrophoneOffIcon";
 import HangupIcon from "mdi-react/PhoneHangupIcon";
-import DesktopMacIcon from "mdi-react/DesktopMacIcon";
+import TelevisionIcon from "mdi-react/TelevisionIcon";
+import TelevisionOffIcon from "mdi-react/TelevisionOffIcon";
 import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
 import DotsVerticalIcon from "mdi-react/DotsVerticalIcon";
@@ -55,7 +56,10 @@ class App extends React.Component {
 
     client.on("stream-add", (id, rid, info) => {
       console.log("stream-add %s,%s!", id, rid);
-      this._notification("Stream Add", "id => " + id + ", rid => " + rid + ", name => " + info.name);
+      this._notification(
+        "Stream Add",
+        "id => " + id + ", rid => " + rid + ", name => " + info.name
+      );
     });
 
     client.on("stream-remove", (id, rid) => {
@@ -153,10 +157,7 @@ class App extends React.Component {
         <Header className="app-header">
           <div className="app-header-left">
             <a href="https://pion.ly" target="_blank">
-              <img
-                src="/pion-logo.svg"
-                className="app-logo-img"
-              />
+              <img src="/pion-logo.svg" className="app-logo-img" />
             </a>
           </div>
           {login ? (
@@ -166,7 +167,9 @@ class App extends React.Component {
                 size="large"
                 style={{ color: localAudio ? "" : "red" }}
                 type="link"
-                onClick={() => this._handleMediaStreamSwitch("audio", !localAudio)}
+                onClick={() =>
+                  this._handleMediaStreamSwitch("audio", !localAudio)
+                }
               >
                 <Icon
                   component={localAudio ? MicrophoneIcon : MicrophoneOffIcon}
@@ -177,12 +180,14 @@ class App extends React.Component {
               <Button
                 ghost
                 size="large"
-                style={{ color: localVideo ? "" : "red" }}
+                style={{ color: localVideo ? "red" : "" }}
                 type="link"
-                onClick={() => this._handleMediaStreamSwitch("video", !localVideo)}
+                onClick={() =>
+                  this._handleMediaStreamSwitch("video", !localVideo)
+                }
               >
                 <Icon
-                  component={localVideo ? VideoIcon : VideocamOffIcon}
+                  component={localVideo ? VideocamOffIcon : VideoIcon}
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
@@ -204,13 +209,13 @@ class App extends React.Component {
                 ghost
                 size="large"
                 type="link"
-                style={{ color: localScreen ? "" : "red" }}
+                style={{ color: localScreen ? "red" : "" }}
                 onClick={() =>
                   this._handleMediaStreamSwitch("screen", !localScreen)
                 }
               >
                 <Icon
-                  component={DesktopMacIcon}
+                  component={localScreen ? TelevisionOffIcon : TelevisionIcon}
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
