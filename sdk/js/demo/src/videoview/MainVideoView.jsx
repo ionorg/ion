@@ -20,7 +20,10 @@ class MainVideoView extends React.Component {
             muted={false}
             className="main-video-size"
           />
-        <a className="main-video-id-a">{stream.info.name}</a>
+        <div className="main-video-name">
+          <a className="main-video-name-a">{stream.info.name}</a>
+        </div>  
+        
       </div>
     );
   };

@@ -340,10 +340,18 @@ body {
   object-fit: cover;
 }
 
-.main-video-id-a {
+.main-video-name{
   position: absolute;
-  left: 8px;
+  left: 0px;
+  right: 0px;
   top: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-video-name-a {
   font-size: large;
   color: #dbdbdb;
 }
