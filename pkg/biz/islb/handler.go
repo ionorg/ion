@@ -178,6 +178,13 @@ func handleRPCMsgs() {
 				resp := util.Map("response", proto.IslbUnrelay, "mid", mid, "sid", from)
 				log.Infof("amqp.RpcCall from=%s resp=%v corrID=%s", from, resp, corrID)
 				amqp.RpcCall(from, resp, corrID)
+			case proto.IslbOnBroadcast:
+				rid := util.Val(msg, "rid")
+				uid := util.Val(msg, "uid")
+				info := util.Val(msg, "info")
+				msg := util.Map("method", proto.IslbOnBroadcast, "rid", rid, "uid", uid, "info", info)
+				log.Infof("amqp.BroadCast msg=%v", msg)
+				amqp.BroadCast(msg)
 			}
 		}
 	}()

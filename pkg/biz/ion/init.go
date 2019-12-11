@@ -13,6 +13,7 @@ const (
 	errInvalidPubID = "pub id not found"
 	errInvalidMID   = "media id not found"
 	errInvalidAddr  = "addr not found"
+	errInvalidUID   = "uid not found"
 )
 
 var (

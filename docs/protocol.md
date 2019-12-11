@@ -157,6 +157,34 @@ ok:false
 errCode:-1
 ```
 
+## 7) broadcast
+
+####request
+
+```
+method:broadcast
+data:{
+    "rid":"$roomId",
+    "uid":"$uid",
+    "info": {
+        "name":"$name",
+        "msg":"$message"
+    }
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
 ## 
 
 ## Events from ion
@@ -269,7 +297,35 @@ ok:false
 errCode:-1
 ```
 
-## 
+## 5) broadcast
+
+####request
+
+```
+method:broadcast
+data:{
+    "rid":"$roomId",
+    "uid":"$uid",
+    "info": {
+        "name":"$name",
+        "msg":"$message"
+    }
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+##
 
 ## ion to islb
 
@@ -454,4 +510,32 @@ Ion will send "unRelay" to islb when this rtp-pub has no sub, and islb will cont
 }
 ```
 
+##8) broadcast
 
+####request
+
+```
+method:broadcast
+data:{
+    "rid":"$roomId",
+    "uid":"$uid",
+    "info": {
+        "name":"$name",
+        "msg":"$message"
+    }
+}
+```
+
+####response
+
+```
+//success
+ok:true
+data:{}
+
+//failed
+ok:false
+errCode:-1
+```
+
+##

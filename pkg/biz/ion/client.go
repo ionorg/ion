@@ -32,6 +32,8 @@ func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept 
 		subscribe(peer, msg, accept, reject)
 	case proto.ClientUnSubscribe:
 		unsubscribe(peer, msg, accept, reject)
+	case proto.ClientBroadcast:
+		broadcast(peer, msg, accept, reject)
 	}
 }
 
@@ -386,5 +388,24 @@ func streamRemove(peer *signal.Peer, msg map[string]interface{}, accept signal.A
 	}
 
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
+	accept(util.Unmarshal(`{}`))
+}
+
+func broadcast(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
+	rid := util.Val(msg, "rid")
+	if rid == "" {
+		log.Errorf(errInvalidRoom)
+		reject(-1, errInvalidRoom)
+		return
+	}
+	uid := util.Val(msg, "uid")
+	if rid == "" {
+		log.Errorf(errInvalidRoom)
+		reject(-1, errInvalidRoom)
+		return
+	}
+	info := util.Val(msg, "info")
+	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnBroadcast, "rid", rid, "uid", uid, "info", info), "")
 	accept(util.Unmarshal(`{}`))
 }

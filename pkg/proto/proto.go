@@ -10,6 +10,7 @@ const (
 	ClientSubscribe   = "subscribe"
 	ClientUnSubscribe = "unsubscribe"
 	ClientClose       = "close"
+	ClientBroadcast   = "broadcast"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"
@@ -23,12 +24,12 @@ const (
 	IslbRelay        = "relay"
 	IslbUnrelay      = "unRelay"
 
-	IslbSubscribe      = "subscribe"
 	IslbKeepAlive      = "keepAlive"
-	IslbClientOnJoin   = "peer-join"
-	IslbClientOnLeave  = "peer-leave"
-	IslbOnStreamAdd    = "stream-add"
-	IslbOnStreamRemove = "stream-remove"
+	IslbClientOnJoin   = ClientOnJoin
+	IslbClientOnLeave  = ClientOnLeave
+	IslbOnStreamAdd    = ClientOnStreamAdd
+	IslbOnStreamRemove = ClientOnStreamRemove
+	IslbOnBroadcast    = ClientBroadcast
 
 	IslbID = "islb"
 )
