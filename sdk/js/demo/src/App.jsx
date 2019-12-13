@@ -77,10 +77,9 @@ class App extends React.Component {
   };
 
   _notification = (message, description) => {
-    notification.open({
+    notification.info({
       message: message,
       description: description,
-      icon: <Icon type="info" style={{ color: "#108ee9" }} />,
       placement: 'bottomRight',
     });
   };
