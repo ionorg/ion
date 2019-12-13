@@ -1,9 +1,20 @@
 import React from "react";
 
 class SmallVideoView extends React.Component {
+
+  constructor(props) {
+    super(props)
+    this.state = {
+      clientWidth:document.body.offsetWidth,
+      clientHeight:document.body.offsetHeight,
+    }
+  }
+
   componentDidMount = () => {
     const { stream } = this.props;
     this.video.srcObject = stream.stream;
+
+    
   };
 
   _handleClick = () => {
@@ -13,11 +24,19 @@ class SmallVideoView extends React.Component {
 
   render = () => {
     const { id, stream } = this.props;
+
+    let videoCount = this.props.videoCount;
+    let leftWidth = this.props.collapsed ? 0 : 320;
+
+    let clientWidth = this.state.clientWidth;
+    let videoContainerW = clientWidth - leftWidth;
+    let startX = (videoContainerW - (videoCount-1) * 220)/2;
+
     const small = {
       position: "absolute",
       width: "220px",
       height: "140px",
-      left: 24 + (this.props.index - 1) * 220 + "px",
+      left: startX + (this.props.index - 1) * 220 + "px",
       bottom: "30px",
       borderWidth: "0.5px",
       borderStyle: "solid",

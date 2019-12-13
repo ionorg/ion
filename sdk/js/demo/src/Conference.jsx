@@ -205,6 +205,8 @@ class Conference extends React.Component {
               key={item.mid}
               id={item.mid}
               stream={item.stream}
+              videoCount={streams.length}
+              collapsed={this.props.collapsed}
               index={index}
               onClick={this._onChangeVideoPosition}
             />

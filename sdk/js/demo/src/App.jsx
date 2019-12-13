@@ -29,7 +29,8 @@ class App extends React.Component {
       localAudioEnabled: true,
       localVideoEnabled: true,
       screenSharingEnabled: false,
-      collapsed: true
+      collapsed: true,
+      isFullScreen:false
     };
 
     let client = new Client();
@@ -145,6 +146,54 @@ class App extends React.Component {
     });
   };
 
+  _onFullScreenClickHandler = () => {
+    let docElm = document.documentElement;
+
+    if (this._fullscreenState()) {
+
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+        else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        }
+        else if (document.webkitCancelFullScreen) {
+            document.webkitCancelFullScreen();
+        }
+        else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+
+        this.setState({ isFullScreen: false });
+
+    } else {
+        if (docElm.requestFullscreen) {
+            docElm.requestFullscreen();
+        }
+        //FireFox
+        else if (docElm.mozRequestFullScreen) {
+            docElm.mozRequestFullScreen();
+        }
+        //Chrome等
+        else if (docElm.webkitRequestFullScreen) {
+            docElm.webkitRequestFullScreen();
+        }
+        //IE11
+        else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+
+        this.setState({ isFullScreen: true });
+    }
+  }
+
+  _fullscreenState = () => {
+      return document.fullscreen ||
+          document.webkitIsFullScreen ||
+          document.mozFullScreen ||
+          false;
+  }
+
   render() {
     const {
       login,
@@ -253,6 +302,7 @@ class App extends React.Component {
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
                   <Conference
+                    collapsed={this.state.collapsed}
                     client={this.client}
                     ref={ref => {
                       this.conference = ref;
@@ -267,6 +317,17 @@ class App extends React.Component {
                   ghost
                   onClick={() => this._openOrCloseLeftContainer(!collapsed)}
                 />
+                <div className="app-fullscreen-button">
+                  <Button
+                    style={{ margin: 16 }}
+                    icon={this.state.fullscreen ? "fullscreen-exit" : "fullscreen"}
+                    size="large"
+                    shape="circle"
+                    ghost
+                    onClick={() => this._onFullScreenClickHandler()}
+                  />
+                </div>
+                
               </Layout>
             </Layout>
           ) : loading ? (
