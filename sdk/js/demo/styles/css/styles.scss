@@ -329,8 +329,6 @@ body {
 }
 
 .local-video-container {
-  width: 220px;
-  height: 140px;
   z-index: 0;
 }
 
@@ -346,6 +344,17 @@ body {
   right: 8px;
   flex-direction: row;
   justify-content: flex-end;
+  align-items: center;
+}
+
+.local-video-avatar{
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 

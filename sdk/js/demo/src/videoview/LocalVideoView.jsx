@@ -1,9 +1,8 @@
 import React from "react";
 import { setTimeout } from "timers";
-import MicrophoneIcon from "mdi-react/MicrophoneIcon";
 import MicrophoneOffIcon from "mdi-react/MicrophoneOffIcon";
-import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
+import { Avatar } from 'antd';
 
 class LocalVideoView extends React.Component {
   componentDidMount = () => {
@@ -14,7 +13,6 @@ class LocalVideoView extends React.Component {
   render = () => {
     const { id, label, audioMuted, videoMuted } = this.props;
     return (
-      <div className="local-video-layout">
         <div className="local-video-container">
           <video
             ref={ref => {
@@ -33,13 +31,19 @@ class LocalVideoView extends React.Component {
             {
               videoMuted ? <VideocamOffIcon size={18} color="white"/> :""
             }
-            
           </div>
+          {
+            videoMuted ?
+            <div className="local-video-avatar">
+              <Avatar size={64} icon="user"/>
+            </div>
+            : ""
+          }
+          
           <a className="local-video-name">
             {label}
           </a>
         </div>
-      </div>
     );
   };
 }
