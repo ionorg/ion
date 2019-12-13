@@ -80,7 +80,8 @@ class App extends React.Component {
     notification.open({
       message: message,
       description: description,
-      icon: <Icon type="smile" style={{ color: "#108ee9" }} />
+      icon: <Icon type="info" style={{ color: "#108ee9" }} />,
+      placement: 'bottomRight',
     });
   };
 
