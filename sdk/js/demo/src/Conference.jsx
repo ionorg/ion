@@ -83,6 +83,12 @@ class Conference extends React.Component {
     let { localScreen } = this.state;
     if (enabled) {
       localScreen = await this._publish("screen");
+      let track = localScreen.stream.getVideoTracks()[0];
+      if (track) {
+        track.addEventListener("ended", () => {
+          this.handleScreenSharing(false);
+        });
+      }
     } else {
       if (localScreen) {
         this._unpublish(localScreen);

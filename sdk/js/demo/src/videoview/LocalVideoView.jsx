@@ -1,5 +1,4 @@
 import React from "react";
-import { setTimeout } from "timers";
 import MicrophoneOffIcon from "mdi-react/MicrophoneOffIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
 import { Avatar } from 'antd';
@@ -25,12 +24,8 @@ class LocalVideoView extends React.Component {
             className="local-video-size"
           />
           <div className="local-video-icon-layout">
-            {
-              audioMuted ? <MicrophoneOffIcon size={18} color="white"/> : ""
-            }
-            {
-              videoMuted ? <VideocamOffIcon size={18} color="white"/> :""
-            }
+            {audioMuted && <MicrophoneOffIcon size={18} color="white" />}
+            {videoMuted && <VideocamOffIcon size={18} color="white" />}
           </div>
           {
             videoMuted ?
@@ -39,10 +34,7 @@ class LocalVideoView extends React.Component {
             </div>
             : ""
           }
-          
-          <a className="local-video-name">
-            {label}
-          </a>
+          <a className="local-video-name">{label}</a>
         </div>
     );
   };
