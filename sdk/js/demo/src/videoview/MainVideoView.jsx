@@ -10,20 +10,19 @@ class MainVideoView extends React.Component {
     const { id, stream } = this.props;
     return (
       <div className="main-video-layout">
-          <video
-            ref={ref => {
-              this.video = ref;
-            }}
-            id={id}
-            autoPlay
-            playsInline
-            muted={false}
-            className="main-video-size"
-          />
+        <video
+          ref={ref => {
+            this.video = ref;
+          }}
+          id={id}
+          autoPlay
+          playsInline
+          muted={false}
+          className="main-video-size"
+        />
         <div className="main-video-name">
           <a className="main-video-name-a">{stream.info.name}</a>
-        </div>  
-        
+        </div>
       </div>
     );
   };
