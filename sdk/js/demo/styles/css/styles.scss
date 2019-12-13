@@ -283,6 +283,18 @@ body {
   padding: 0px;
 }
 
+.conference-layout-wating {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
 .conference-local-video-layout {
   position: absolute;
   top: 30px;

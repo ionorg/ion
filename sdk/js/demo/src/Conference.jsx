@@ -1,4 +1,5 @@
 import React from "react";
+import { Spin } from "antd";
 import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
 
 class Conference extends React.Component {
@@ -152,6 +153,11 @@ class Conference extends React.Component {
     const id = client.uid;
     return (
       <div className="conference-layout">
+        {streams.length === 0 && (
+          <div className="conference-layout-wating">
+            <Spin size="large" tip="Wait for other people joining ..." />
+          </div>
+        )}
         {streams.map((item, index) => {
           return index == 0 ? (
             <MainVideoView key={item.mid} id={item.mid} stream={item.stream} />
@@ -173,7 +179,6 @@ class Conference extends React.Component {
             </div>
           </div>
         )}
-
         {localScreen && (
           <div className="conference-local-screen-layout">
             <div className="conference-local-video-size">
@@ -188,7 +193,6 @@ class Conference extends React.Component {
             </div>
           </div>
         )}
-
         {streams.map((item, index) => {
           return index > 0 ? (
             <SmallVideoView
