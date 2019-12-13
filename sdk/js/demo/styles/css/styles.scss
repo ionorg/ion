@@ -222,19 +222,6 @@ body {
   color: red;
 }
 
-.app-collapsed-button {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  color: #000000;
-  cursor: pointer;
-  z-index: 100;
-}
-
-.app-collapsed-button:hover {
-  color: #00000091;
-}
-
 .app-center-layout {
   display: flex;
   justify-content: center;
@@ -262,10 +249,16 @@ body {
   height: 100%;
 }
 
+.app-collapsed-button {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+}
+
 .app-fullscreen-button{
   position: absolute;
-  right: 8px;
-  bottom: 8px;
+  right: 16px;
+  bottom: 16px;
 }
 
 .login-form {
@@ -287,6 +280,7 @@ body {
   top: 0px;
   bottom: 0px;
   padding: 0px;
+  background-color: #4a4a4a;
 }
 
 .conference-layout-wating {

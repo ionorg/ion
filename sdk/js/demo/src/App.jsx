@@ -293,7 +293,7 @@ class App extends React.Component {
             <Layout className="app-content-layout">
               <Sider
                 width={320}
-                style={{ background: "#f5f5f5" }}
+                style={{ background: "#333" }}
                 collapsedWidth={0}
                 trigger={null}
                 collapsible
@@ -309,18 +309,18 @@ class App extends React.Component {
                     }}
                   />
                 </Content>
-                <Button
-                  style={{ margin: 16 }}
-                  icon={this.state.collapsed ? "left" : "right"}
-                  size="large"
-                  shape="circle"
-                  ghost
-                  onClick={() => this._openOrCloseLeftContainer(!collapsed)}
-                />
+                <div className="app-collapsed-button">
+                  <Button
+                    icon={this.state.collapsed ? "left" : "right"}
+                    size="large"
+                    shape="circle"
+                    ghost
+                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
+                  />
+                </div>  
                 <div className="app-fullscreen-button">
                   <Button
-                    style={{ margin: 16 }}
-                    icon={this.state.fullscreen ? "fullscreen-exit" : "fullscreen"}
+                    icon={this.state.isFullScreen ? "fullscreen-exit" : "fullscreen"}
                     size="large"
                     shape="circle"
                     ghost
