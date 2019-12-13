@@ -8,7 +8,7 @@ class LocalVideoView extends React.Component {
   };
 
   render = () => {
-    const { id, label } = this.props;
+    const { id, label, audioMuted, videoMuted } = this.props;
     return (
       <div className="local-video-layout">
         <div className="local-video-container">
@@ -22,7 +22,10 @@ class LocalVideoView extends React.Component {
             muted={true}
             className="local-video-size"
           />
-          <a className="local-video-name">{label}</a>
+          <a className="local-video-name">
+            {label} audio: {audioMuted ? "off" : "on"} video:{" "}
+            {videoMuted ? "off" : "on"}
+          </a>
         </div>
       </div>
     );

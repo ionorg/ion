@@ -7,14 +7,16 @@ class Conference extends React.Component {
     this.state = {
       streams: [],
       localStream: null,
-      localScreen: null
+      localScreen: null,
+      audioMuted: false,
+      videoMuted: false
     };
   }
+
   componentDidMount = () => {
     const { client } = this.props;
     client.on("stream-add", this._handleAddStream);
     client.on("stream-remove", this._handleRemoveStream);
-    this.handleMediaStreamSwitch("video", true);
   };
 
   componentWillUnmount = () => {
@@ -49,30 +51,44 @@ class Conference extends React.Component {
     }
   };
 
-  handleMediaStreamSwitch = async (type, enabled) => {
-    let { localStream, localScreen } = this.state;
+  muteMediaTrack = (type, enabled) => {
+    let { localStream } = this.state;
+    let tracks = localStream.stream.getTracks();
+    let track = tracks.find(track => track.kind === type);
+    if (track) {
+      track.enabled = enabled;
+    }
+    if (type === "audio") {
+      this.setState({ audioMuted: !enabled });
+    } else if (type === "video") {
+      this.setState({ videoMuted: !enabled });
+    }
+  };
 
-    if (type === "screen") {
-      if (enabled) {
-        localScreen = await this._publish(type);
-      } else {
-        if (localScreen) {
-          this._unpublish(localScreen);
-          localScreen = null;
-        }
-      }
+  handleLocalStream = async enabled => {
+    let { localStream } = this.state;
+    if (enabled) {
+      localStream = await this._publish("video");
     } else {
-      if (enabled) {
-        localStream = await this._publish(type);
-      } else {
-        if (localStream) {
-          this._unpublish(localStream);
-          localStream = null;
-        }
+      if (localStream) {
+        this._unpublish(localStream);
+        localStream = null;
       }
     }
+    this.setState({ localStream });
+  };
 
-    this.setState({ localStream, localScreen });
+  handleScreenSharing = async enabled => {
+    let { localScreen } = this.state;
+    if (enabled) {
+      localScreen = await this._publish("screen");
+    } else {
+      if (localScreen) {
+        this._unpublish(localScreen);
+        localScreen = null;
+      }
+    }
+    this.setState({ localScreen });
   };
 
   _stopMediaStream = mediaStream => {
@@ -126,7 +142,13 @@ class Conference extends React.Component {
 
   render = () => {
     const { client } = this.props;
-    const { streams, localStream, localScreen } = this.state;
+    const {
+      streams,
+      localStream,
+      localScreen,
+      audioMuted,
+      videoMuted
+    } = this.state;
     const id = client.uid;
     return (
       <div className="conference-layout">
@@ -145,6 +167,8 @@ class Conference extends React.Component {
                 label="Local Stream"
                 client={client}
                 stream={localStream}
+                audioMuted={audioMuted}
+                videoMuted={videoMuted}
               />
             </div>
           </div>
@@ -158,6 +182,8 @@ class Conference extends React.Component {
                 label="Screen Sharing"
                 client={client}
                 stream={localScreen}
+                audioMuted={false}
+                videoMuted={false}
               />
             </div>
           </div>

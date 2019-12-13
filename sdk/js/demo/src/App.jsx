@@ -26,9 +26,9 @@ class App extends React.Component {
         roomId: "room1",
         displayName: "Guest"
       }),
-      localAudio: true,
-      localVideo: true,
-      localScreen: false,
+      localAudioEnabled: true,
+      localVideoEnabled: true,
+      screenSharingEnabled: false,
       collapsed: true
     };
 
@@ -94,6 +94,7 @@ class App extends React.Component {
       "Connected!",
       "Welcome to the ion room => " + values.roomId
     );
+    await this.conference.handleLocalStream(true);
   };
 
   _handleLeave = async () => {
@@ -113,23 +114,25 @@ class App extends React.Component {
     });
   };
 
-  _handleMediaStreamSwitch = (type, enabled) => {
-    if (type == "audio") {
-      this.setState({
-        localAudio: enabled
-      });
-    }
-    if (type == "video") {
-      this.setState({
-        localVideo: enabled
-      });
-    }
-    if (type == "screen") {
-      this.setState({
-        localScreen: enabled
-      });
-    }
-    this.conference.handleMediaStreamSwitch(type, enabled);
+  _handleAudioTrackEnabled = enabled => {
+    this.setState({
+      localAudioEnabled: enabled
+    });
+    this.conference.muteMediaTrack("audio", enabled);
+  };
+
+  _handleVideoTrackEnabled = enabled => {
+    this.setState({
+      localVideoEnabled: enabled
+    });
+    this.conference.muteMediaTrack("video", enabled);
+  };
+
+  _handleScreenSharing = enabled => {
+    this.setState({
+      screenSharingEnabled: enabled
+    });
+    this.conference.handleScreenSharing(enabled);
   };
 
   _onRef = ref => {
@@ -147,9 +150,9 @@ class App extends React.Component {
       login,
       loading,
       loginInfo,
-      localAudio,
-      localVideo,
-      localScreen,
+      localAudioEnabled,
+      localVideoEnabled,
+      screenSharingEnabled,
       collapsed
     } = this.state;
     return (
@@ -165,14 +168,16 @@ class App extends React.Component {
               <Button
                 ghost
                 size="large"
-                style={{ color: localAudio ? "" : "red" }}
+                style={{ color: localAudioEnabled ? "" : "red" }}
                 type="link"
                 onClick={() =>
-                  this._handleMediaStreamSwitch("audio", !localAudio)
+                  this._handleAudioTrackEnabled(!localAudioEnabled)
                 }
               >
                 <Icon
-                  component={localAudio ? MicrophoneIcon : MicrophoneOffIcon}
+                  component={
+                    localAudioEnabled ? MicrophoneIcon : MicrophoneOffIcon
+                  }
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
@@ -180,14 +185,14 @@ class App extends React.Component {
               <Button
                 ghost
                 size="large"
-                style={{ color: localVideo ? "" : "red" }}
+                style={{ color: localVideoEnabled ? "" : "red" }}
                 type="link"
                 onClick={() =>
-                  this._handleMediaStreamSwitch("video", !localVideo)
+                  this._handleVideoTrackEnabled(!localVideoEnabled)
                 }
               >
                 <Icon
-                  component={localVideo ? VideoIcon : VideocamOffIcon}
+                  component={localVideoEnabled ? VideoIcon : VideocamOffIcon}
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
@@ -209,13 +214,13 @@ class App extends React.Component {
                 ghost
                 size="large"
                 type="link"
-                style={{ color: localScreen ? "red" : "" }}
-                onClick={() =>
-                  this._handleMediaStreamSwitch("screen", !localScreen)
-                }
+                style={{ color: screenSharingEnabled ? "red" : "" }}
+                onClick={() => this._handleScreenSharing(!screenSharingEnabled)}
               >
                 <Icon
-                  component={localScreen ? TelevisionOffIcon : TelevisionIcon}
+                  component={
+                    screenSharingEnabled ? TelevisionOffIcon : TelevisionIcon
+                  }
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
