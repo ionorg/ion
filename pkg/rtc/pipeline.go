@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -237,7 +238,21 @@ func (p *pipeline) delSub(id string) {
 		p.sub[id].Close()
 	}
 	delete(p.sub, id)
-	log.Infof("pipeline.DelSub id=%s", id)
+	log.Infof("pipeline.delSub id=%s", id)
+}
+
+func (p *pipeline) delSubByPrefix(id string) {
+	p.subLock.Lock()
+	defer p.subLock.Unlock()
+	for k, sub := range p.sub {
+		if strings.Contains(k, id) {
+			if sub != nil {
+				sub.Close()
+				delete(p.sub, k)
+				log.Infof("pipeline.delSubByPrefix id=%s", id)
+			}
+		}
+	}
 }
 
 func (p *pipeline) delSubs() {

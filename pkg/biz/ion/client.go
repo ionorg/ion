@@ -116,10 +116,8 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 			// tell islb stop relay
 			amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbUnrelay, "rid", rid, "mid", mid), respUnrelayHandler)
 		}
-
-		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnLeave, "rid", rid, "id", peer.ID()), "")
-
 	}
+	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnLeave, "rid", rid, "id", peer.ID()), "")
 
 	accept(util.Unmarshal(`{}`))
 	signal.DelPeer(rid, peer.ID())

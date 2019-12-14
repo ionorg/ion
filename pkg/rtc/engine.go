@@ -139,8 +139,8 @@ func GetWebRtcMIDByPID(pid string) []string {
 	for mid, p := range m {
 		switch p.getPub().(type) {
 		case *WebRTCTransport:
-		default:
 			mids = append(mids, mid)
+		default:
 		}
 	}
 	return mids
@@ -163,6 +163,19 @@ func GetSubs(pid string) map[string]Transport {
 		return nil
 	}
 	return p.getSubs()
+}
+
+func DelSubFromAllPubByPrefix(sid string) map[string]string {
+	m := make(map[string]string)
+	pipeLock.Lock()
+	defer pipeLock.Unlock()
+	for pid, p := range pipes {
+		p.delSub(sid)
+		if p.noSub() && p.isRtpPub() {
+			m[pid] = pid
+		}
+	}
+	return m
 }
 
 func DelSubFromAllPub(sid string) map[string]string {

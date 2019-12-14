@@ -81,4 +81,5 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	peer.On("request", handleRequest)
 	peer.On("notification", handleNotification)
 	peer.On("close", handleClose)
+	peer.On("error", handleClose)
 }

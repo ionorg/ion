@@ -121,6 +121,7 @@ func handleBroadCastMsgs() {
 				rid := util.Val(msg, "rid")
 				id := util.Val(msg, "id")
 				signal.NotifyAllWithoutID(rid, id, proto.ClientOnLeave, msg)
+				rtc.DelSubFromAllPubByPrefix(id)
 			case proto.IslbOnBroadcast:
 				rid := util.Val(msg, "rid")
 				uid := util.Val(msg, "uid")
