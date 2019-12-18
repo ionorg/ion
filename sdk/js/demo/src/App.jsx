@@ -311,7 +311,7 @@ class App extends React.Component {
                 </Content>
                 <div className="app-collapsed-button">
                   <Button
-                    icon={this.state.collapsed ? "left" : "right"}
+                    icon={this.state.collapsed ? "right" : "left"}
                     size="large"
                     shape="circle"
                     ghost
