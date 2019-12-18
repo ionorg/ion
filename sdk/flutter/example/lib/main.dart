@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_pion/flutter_pion.dart';
+import 'package:flutter_ion/flutter_ion.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 
 void main() => runApp(MyApp());
@@ -75,9 +75,9 @@ class VideoRendererAdapter {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _server;
-  String _roomId;
+  String _channelId;
   SharedPreferences prefs;
-  SFU _sfu;
+  Client _client;
   bool _inCalling = false;
   bool _connected = false;
   List<VideoRendererAdapter> _videoRendererAdapters = new List();
@@ -92,84 +92,84 @@ class _MyHomePageState extends State<MyHomePage> {
     prefs = await SharedPreferences.getInstance();
     setState(() {
       _server = prefs.getString('server');
-      _roomId = prefs.getString('room');
+      _channelId = prefs.getString('client');
     });
   }
 
   handleConnect() async {
-    if (_sfu == null) {
+    if (_client == null) {
       var url = 'https://' + _server + ':8443/ws';
-      _sfu = new SFU(url);
-      _sfu.on('connect', () {
+      _client = new Client(url);
+      _client.on('connect', () {
         print('connected');
         setState(() {
           _connected = true;
         });
       });
-      _sfu.on('disconnect', () {
+      _client.on('disconnect', () {
         print('disconnected');
         setState(() {
           _connected = false;
         });
       });
-      _sfu.on('addLocalStream',(id, stream) async {
-          var adapter = new VideoRendererAdapter(id);
-          await adapter.setSrcObject(stream);
-          setState(() {
-            _videoRendererAdapters.add(adapter);
-          });
-      });
-
-      _sfu.on('removeLocalStream', (id, stream) async {
-        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
-        await adapter.dispose();
+      _client.on('addLocalStream', (id, stream) async {
+        var adapter = new VideoRendererAdapter(id);
+        await adapter.setSrcObject(stream);
         setState(() {
-            _videoRendererAdapters.remove(adapter);
+          _videoRendererAdapters.add(adapter);
         });
       });
 
-      _sfu.on('addRemoteStream',(id, stream) async {
-          var adapter = new VideoRendererAdapter(id);
-          await adapter.setSrcObject(stream);
-          setState(() {
-            _videoRendererAdapters.add(adapter);
-          });
-      });
-
-      _sfu.on('removeRemoteStream', (id, stream) async {
-        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
+      _client.on('removeLocalStream', (id, stream) async {
+        var adapter =
+            _videoRendererAdapters.firstWhere((item) => item.id == id);
         await adapter.dispose();
         setState(() {
-            _videoRendererAdapters.remove(adapter);
+          _videoRendererAdapters.remove(adapter);
+        });
+      });
+
+      _client.on('addRemoteStream', (id, stream) async {
+        var adapter = new VideoRendererAdapter(id);
+        await adapter.setSrcObject(stream);
+        setState(() {
+          _videoRendererAdapters.add(adapter);
+        });
+      });
+
+      _client.on('removeRemoteStream', (id, stream) async {
+        var adapter =
+            _videoRendererAdapters.firstWhere((item) => item.id == id);
+        await adapter.dispose();
+        setState(() {
+          _videoRendererAdapters.remove(adapter);
         });
       });
     }
   }
 
   handleJoin() async {
-    try{
-      await _sfu.join(_roomId);
+    try {
+      await _client.join(_channelId, {'name': 'Guest'});
       setState(() {
         _inCalling = true;
       });
-      await _sfu.publish();
-    }catch(error){
-
-    }
+      await _client.publish();
+    } catch (error) {}
   }
 
   handleLeave() async {
     setState(() {
       _inCalling = false;
     });
-    if (_sfu != null) {
-      await _sfu.leave();
-      _sfu.close();
-      _sfu = null;
+    if (_client != null) {
+      await _client.leave();
+      _client.close();
+      _client = null;
     }
   }
 
-Widget buildJoinView(context) {
+  Widget buildJoinView(context) {
     return new Align(
         alignment: Alignment(0, 0),
         child: Column(
@@ -185,11 +185,11 @@ Widget buildJoinView(context) {
                       contentPadding: EdgeInsets.all(10.0),
                       border: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _roomId ?? 'Enter RoomID.',
+                      hintText: _channelId ?? 'Enter RoomID.',
                     ),
                     onChanged: (value) {
                       setState(() {
-                        _roomId = value;
+                        _channelId = value;
                       });
                     },
                   )),
@@ -205,9 +205,9 @@ Widget buildJoinView(context) {
                     color: Colors.blue,
                     textColor: Colors.white,
                     onPressed: () {
-                      if (_roomId != null) {
+                      if (_channelId != null) {
                         handleJoin();
-                        prefs.setString('room', _roomId);
+                        prefs.setString('client', _channelId);
                         return;
                       }
                       showDialog<Null>(
@@ -215,8 +215,8 @@ Widget buildJoinView(context) {
                         barrierDismissible: false,
                         builder: (BuildContext context) {
                           return new AlertDialog(
-                            title: new Text('Room id is empty'),
-                            content: new Text('Please enter Pion-SFU RoomID!'),
+                            title: new Text('Client id is empty'),
+                            content: new Text('Please enter Ion room id!'),
                             actions: <Widget>[
                               new FlatButton(
                                 child: new Text('Ok'),
@@ -231,8 +231,7 @@ Widget buildJoinView(context) {
                     },
                   ))
             ]));
-}
-
+  }
 
   Widget buildConnectView(context) {
     return new Align(
@@ -250,7 +249,7 @@ Widget buildJoinView(context) {
                       contentPadding: EdgeInsets.all(10.0),
                       border: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _server ?? 'Enter Pion-SFU address.',
+                      hintText: _server ?? 'Enter Pion-Client address.',
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -281,7 +280,8 @@ Widget buildJoinView(context) {
                         builder: (BuildContext context) {
                           return new AlertDialog(
                             title: new Text('Server is empty'),
-                            content: new Text('Please enter Pion-SFU address!'),
+                            content:
+                                new Text('Please enter Pion-Client address!'),
                             actions: <Widget>[
                               new FlatButton(
                                 child: new Text('Ok'),
@@ -306,7 +306,7 @@ Widget buildJoinView(context) {
     );
   }
 
- List<Widget> _buildVideoViews() {
+  List<Widget> _buildVideoViews() {
     List<Widget> views = new List<Widget>();
     _videoRendererAdapters.forEach((adapter) {
       views.add(buildVideoView(adapter));
@@ -334,7 +334,9 @@ Widget buildJoinView(context) {
               )
             : null,
         body: Center(
-          child: _connected?  _inCalling ? buildStreamsGridView() : buildJoinView(context) : buildConnectView(context),
+          child: _connected
+              ? _inCalling ? buildStreamsGridView() : buildJoinView(context)
+              : buildConnectView(context),
         ),
         floatingActionButton: _inCalling
             ? FloatingActionButton(
