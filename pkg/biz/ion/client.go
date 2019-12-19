@@ -10,8 +10,16 @@ import (
 	"github.com/pion/ion/pkg/rtc"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
-	webrtc "github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v2"
 )
+
+func getMID(uid string) string {
+	return fmt.Sprintf("%s#%s", uid, util.RandStr(6))
+}
+
+func getKeepAliveID(mid string, ssrc uint32) string {
+	return fmt.Sprintf("%s#%d", mid, ssrc)
+}
 
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
@@ -40,68 +48,87 @@ func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept 
 func login(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.login peer.ID()=%s msg=%v", peer.ID(), msg)
 	//TODO auth check, maybe jwt
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
+}
+
+func invalid(msg map[string]interface{}, key string, reject signal.RejectFunc) bool {
+	val := util.Val(msg, key)
+	if val == "" {
+		switch key {
+		case "rid":
+			reject(codeRoomErr, codeStr(codeRoomErr))
+			return true
+		case "jsep":
+			reject(codeJsepErr, codeStr(codeJsepErr))
+			return true
+		case "sdp":
+			reject(codeSDPErr, codeStr(codeSDPErr))
+			return true
+		case "mid":
+			reject(codeMIDErr, codeStr(codeMIDErr))
+			return true
+		}
+	}
+	return false
 }
 
 // join room
 func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		reject(-1, errInvalidRoom)
+	if invalid(msg, "rid", reject) {
 		return
 	}
 
+	rid := util.Val(msg, "rid")
 	//already joined this room
 	if signal.HasPeer(rid, peer) {
-		accept(util.Unmarshal(`{}`))
+		accept(emptyMap)
 		return
 	}
 
 	info := util.Val(msg, "info")
-
-	// add peer to signal room
 	signal.AddPeer(rid, peer)
 
-	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnJoin, "rid", rid, "id", peer.ID(), "info", info), "")
+	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnJoin, "rid", rid, "uid", peer.ID(), "info", info), "")
 
 	respHandler := func(m map[string]interface{}) {
 		info := m["info"]
 		mid := m["mid"]
-		pid := m["pid"]
+		uid := m["uid"]
 		log.Infof("biz.join respHandler mid=%v info=%v", mid, info)
 		if mid != "" {
-			peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "pid", pid, "mid", mid, "info", info))
+			peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", info))
 		}
 	}
 	// find pubs from islb ,skip this ion
-	amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbGetPubs, "rid", rid, "pid", peer.ID()), respHandler)
-	accept(util.Unmarshal(`{}`))
+	log.Infof("amqp.RpcCallWithResp")
+	amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbGetPubs, "rid", rid, "uid", peer.ID()), respHandler)
+	accept(emptyMap)
 }
 
 func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.leave peer.ID()=%s msg=%v", peer.ID(), msg)
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		reject(-1, errInvalidRoom)
+	defer util.Recover("biz.leave")
+	if invalid(msg, "rid", reject) {
 		return
 	}
 
+	rid := util.Val(msg, "rid")
 	// if this is a webrtc pub
 	mids := rtc.GetWebRtcMIDByPID(peer.ID())
 	for _, mid := range mids {
 		// tell islb stream-remove
-		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "pid", peer.ID(), "mid", mid), "")
+		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "uid", peer.ID(), "mid", mid), "")
 
 		rtc.DelPub(mid)
-		quitLock.Lock()
-		for k := range quit {
+		quitChMapLock.Lock()
+		for k := range quitChMap {
 			if strings.Contains(k, mid) {
-				close(quit[k])
-				delete(quit, k)
+				close(quitChMap[k])
+				delete(quitChMap, k)
 			}
 		}
-		quitLock.Unlock()
+		quitChMapLock.Unlock()
 
 		// del sub and get the rtp's pub which has none sub
 		noSubRtpPubMid := rtc.DelSubFromAllPub(mid)
@@ -117,57 +144,52 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 			amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbUnrelay, "rid", rid, "mid", mid), respUnrelayHandler)
 		}
 	}
-	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnLeave, "rid", rid, "id", peer.ID()), "")
+	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbClientOnLeave, "rid", rid, "uid", peer.ID()), "")
 
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 	signal.DelPeer(rid, peer.ID())
 }
 
 func clientClose(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
 	leave(peer, msg, accept, reject)
-	accept(util.Unmarshal(`{}`))
 }
 
 func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.publish peer.ID()=%s msg=%v", peer.ID(), msg)
-	if msg["jsep"] == nil {
-		log.Errorf(errInvalidJsep)
-		reject(-1, errInvalidJsep)
+	if invalid(msg, "rid", reject) || invalid(msg, "jsep", reject) {
 		return
 	}
 
 	j := msg["jsep"].(map[string]interface{})
-	if j["sdp"] == nil {
-		log.Errorf(errInvalidSDP)
-		reject(-1, errInvalidSDP)
+	if invalid(j, "sdp", reject) {
+		return
+	}
+
+	room := signal.GetRoomByPeer(peer.ID())
+	if room == nil {
+		reject(codeRoomErr, codeStr(codeRoomErr))
 		return
 	}
 
 	sdp := util.Val(j, "sdp")
 	options := msg["options"].(map[string]interface{})
-	room := signal.GetRoomByPeer(peer.ID())
-	if room == nil {
-		reject(-1, errInvalidRoom)
-		return
-	}
-
-	mid := fmt.Sprintf("%s#%s", peer.ID(), util.RandStr(6))
+	mid := getMID(peer.ID())
 	jsep := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	islbStoreSsrc := func(ssrc uint32, pt uint8) {
 		ssrcPt := fmt.Sprintf("{\"%d\":%d}", ssrc, pt)
-		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "pid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
-		keepAlive := fmt.Sprintf("%s#%d", mid, ssrc)
-		quitLock.Lock()
-		quit[keepAlive] = make(chan struct{})
-		quitLock.Unlock()
+		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "uid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
+		keepAlive := getKeepAliveID(mid, ssrc)
+		quitChMapLock.Lock()
+		quitChMap[keepAlive] = make(chan struct{})
+		quitChMapLock.Unlock()
 		go func() {
 			t := time.NewTicker(time.Second)
 			for {
 				select {
 				case <-t.C:
-					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "pid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
-				case <-quit[keepAlive]:
+					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "uid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
+				case <-quitChMap[keepAlive]:
 					return
 				}
 			}
@@ -177,7 +199,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 	answer, err := rtc.AddNewWebRTCPub(mid).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
 	if err != nil {
 		log.Errorf("biz.publish answer err=%s jsep=%v", err.Error(), jsep)
-		reject(-1, err.Error())
+		reject(codePublishErr, codeStr(codePublishErr))
 		return
 	}
 
@@ -189,51 +211,39 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
 	//get rid from msg, because room may be already deleted from signal
 	//so we can't get rid from signal's room
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		reject(-1, errInvalidRoom)
+	if invalid(msg, "rid", reject) || invalid(msg, "mid", reject) {
 		return
 	}
-	mid := util.Val(msg, "mid")
-	if mid == "" {
-		log.Errorf(errInvalidMID)
-		reject(-1, errInvalidMID)
-		return
-	}
+
+	rid, mid := util.Val(msg, "rid"), util.Val(msg, "mid")
 	// if this mid is a webrtc pub
 	if rtc.IsWebRtcPub(mid) {
 		// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb braodcast stream-remove
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "mid", mid), "")
-		quitLock.Lock()
-		for k := range quit {
+		quitChMapLock.Lock()
+		for k := range quitChMap {
 			if strings.Contains(k, mid) {
-				close(quit[k])
-				delete(quit, k)
+				close(quitChMap[k])
+				delete(quitChMap, k)
 			}
 		}
-		quitLock.Unlock()
+		quitChMapLock.Unlock()
 	}
 
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 }
 
 func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.subscribe peer.ID()=%s msg=%v", peer.ID(), msg)
+	if invalid(msg, "jsep", reject) || invalid(msg, "mid", reject) {
+		return
+	}
 	j := msg["jsep"].(map[string]interface{})
-	sdp := util.Val(j, "sdp")
-	if sdp == "" {
-		log.Errorf(errInvalidSDP)
-		reject(-1, errInvalidSDP)
+	if invalid(j, "sdp", reject) {
 		return
 	}
 
-	mid := util.Val(msg, "mid")
-	if mid == "" {
-		log.Errorf(errInvalidMID)
-		reject(-1, errInvalidMID)
-		return
-	}
-
+	mid, sdp := util.Val(msg, "mid"), util.Val(j, "sdp")
 	room := signal.GetRoomByPeer(peer.ID())
 	jsep := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	var answer webrtc.SessionDescription
@@ -256,7 +266,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 		if err != nil {
 			log.Warnf("biz subscribe answer err=%v", err.Error())
-			reject(-1, err.Error())
+			reject(codeUnknownErr, err.Error())
 			return
 		}
 		accept(util.Map("jsep", answer))
@@ -274,7 +284,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 		if err != nil {
 			log.Errorf("biz.subscribe answer err=%v", err.Error())
-			reject(-1, err.Error())
+			reject(codeUnknownErr, err.Error())
 			return
 		}
 		accept(util.Map("jsep", answer))
@@ -293,7 +303,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 			answer, err = webrtcSub.AnswerSubscribe(jsep, ssrcPT, mid)
 			if err != nil {
 				log.Errorf("biz.subscribe answer err=%v", err.Error())
-				reject(-1, err.Error())
+				reject(codeUnknownErr, err.Error())
 				return
 			}
 			relayRespHandler := func(m map[string]string) {
@@ -309,21 +319,10 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 
 func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		log.Errorf(errInvalidRoom)
-		reject(-1, errInvalidRoom)
+	if invalid(msg, "mid", reject) {
 		return
 	}
-
 	mid := util.Val(msg, "mid")
-	if mid == "" {
-		log.Errorf(errInvalidMID)
-		reject(-1, errInvalidMID)
-		return
-	}
-
 	// if this is on this ion, ion delete the webrtctransport sub
 	rtc.DelSub(mid, peer.ID())
 	// if no sub, delete pub
@@ -331,79 +330,51 @@ func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Ac
 		rtc.DelPub(mid)
 	}
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 }
 
 // streamAdd from other ion
 func streamAdd(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.streamAdd peer.ID()=%s msg=%v", peer.ID(), msg)
+	if invalid(msg, "rid", reject) || invalid(msg, "mid", reject) {
+		return
+	}
+
 	rid := util.Val(msg, "rid")
-	if rid == "" {
-		reject(-1, errInvalidRoom)
-		return
-	}
-
-	mid := util.Val(msg, "mid")
-	if mid == "" {
-		reject(-1, errInvalidMID)
-		return
-	}
-
-	// tell other subs onPublish
+	// tell other subs stream-add
 	signal.NotifyAllWithoutPeer(rid, peer, proto.ClientOnStreamAdd, msg)
 
-	// upload the person number
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 }
 
 func streamRemove(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.streamRemove peer.ID()=%s msg=%v", peer.ID(), msg)
-
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		log.Errorf(errInvalidRoom)
-		reject(-1, errInvalidRoom)
+	if invalid(msg, "rid", reject) || invalid(msg, "mid", reject) {
 		return
 	}
-
 	mid := util.Val(msg, "mid")
-	if mid == "" {
-		log.Errorf(errInvalidMID)
-		reject(-1, errInvalidMID)
-		return
-	}
-
 	if rtc.IsWebRtcPub(mid) {
 		rtc.DelPub(mid)
-		quitLock.Lock()
-		for k := range quit {
+		quitChMapLock.Lock()
+		for k := range quitChMap {
 			if strings.Contains(k, mid) {
-				close(quit[k])
-				delete(quit, k)
+				close(quitChMap[k])
+				delete(quitChMap, k)
 			}
 		}
-		quitLock.Unlock()
+		quitChMapLock.Unlock()
 	}
 
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 }
 
 func broadcast(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	rid := util.Val(msg, "rid")
-	if rid == "" {
-		log.Errorf(errInvalidRoom)
-		reject(-1, errInvalidRoom)
+	if invalid(msg, "rid", reject) || invalid(msg, "uid", reject) || invalid(msg, "info", reject) {
 		return
 	}
-	uid := util.Val(msg, "uid")
-	if rid == "" {
-		log.Errorf(errInvalidRoom)
-		reject(-1, errInvalidRoom)
-		return
-	}
-	info := util.Val(msg, "info")
+	rid, uid, info := util.Val(msg, "rid"), util.Val(msg, "uid"), util.Val(msg, "info")
 	amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnBroadcast, "rid", rid, "uid", uid, "info", info), "")
-	accept(util.Unmarshal(`{}`))
+	accept(emptyMap)
 }

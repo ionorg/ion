@@ -131,11 +131,11 @@ func (a *Amqp) ConsumeBroadcast() (<-chan amqp.Delivery, error) {
 
 func (a *Amqp) RpcCall(id string, msg map[string]interface{}, corrID string) (string, error) {
 	str := util.Marshal(msg)
-	correlatioId := ""
+	correlatioID := ""
 	if corrID == "" {
-		correlatioId = util.RandStr(8)
+		correlatioID = util.RandStr(8)
 	} else {
-		correlatioId = corrID
+		correlatioID = corrID
 	}
 	err := a.rpcChannel.Publish(
 		rpcExchange, // exchange
@@ -144,14 +144,14 @@ func (a *Amqp) RpcCall(id string, msg map[string]interface{}, corrID string) (st
 		false,       // immediate
 		amqp.Publishing{
 			ContentType:   "text/plain",
-			CorrelationId: correlatioId,
+			CorrelationId: correlatioID,
 			ReplyTo:       a.rpcQueue.Name,
 			Body:          []byte(str),
 		})
 	if err != nil {
 		return "", err
 	}
-	return correlatioId, nil
+	return correlatioID, nil
 }
 
 func (a *Amqp) RpcCallWithResp(id string, msg map[string]interface{}, callback interface{}) error {

@@ -6,26 +6,12 @@ import (
 	"github.com/pion/ion/pkg/mq"
 )
 
-const (
-	errInvalidJsep  = "jsep not found"
-	errInvalidSDP   = "sdp not found"
-	errInvalidRoom  = "room not found"
-	errInvalidPubID = "pub id not found"
-	errInvalidMID   = "media id not found"
-	errInvalidAddr  = "addr not found"
-	errInvalidUID   = "uid not found"
-)
-
 var (
-	amqp     *mq.Amqp
-	ionID    string
-	quit     map[string]chan struct{}
-	quitLock sync.RWMutex
+	amqp          *mq.Amqp
+	ionID         string
+	quitChMap     = make(map[string]chan struct{})
+	quitChMapLock sync.RWMutex
 )
-
-func init() {
-	quit = make(map[string]chan struct{})
-}
 
 // Init func
 func Init(id, mqURL string) {
@@ -37,13 +23,13 @@ func Init(id, mqURL string) {
 
 // Close func
 func Close() {
-	quitLock.Lock()
-	for _, v := range quit {
+	quitChMapLock.Lock()
+	for _, v := range quitChMap {
 		if v != nil {
 			close(v)
 		}
 	}
-	quitLock.Unlock()
+	quitChMapLock.Unlock()
 	if amqp != nil {
 		amqp.Close()
 	}

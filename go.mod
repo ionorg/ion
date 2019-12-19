@@ -11,11 +11,10 @@ require (
 	github.com/pion/rtcp v1.2.1
 	github.com/pion/rtp v1.1.4
 	github.com/pion/stun v0.3.3
-	github.com/pion/webrtc/v2 v2.1.12
+	github.com/pion/webrtc/v2 v2.1.18
 	github.com/rs/zerolog v1.16.0
 	github.com/shirou/gopsutil v2.19.10+incompatible
 	github.com/spf13/viper v1.5.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	go.etcd.io/etcd v3.3.17+incompatible
-	golang.org/x/sys v0.0.0-20191118133127-cf1e2d577169 // indirect
 )

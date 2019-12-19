@@ -23,9 +23,9 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 
 	switch method {
 	case proto.IslbOnStreamAdd:
-		id := util.Val(msg, "id")
+		uid := util.Val(msg, "uid")
 		rid := util.Val(msg, "rid")
-		streamAdd := util.Map("rid", rid, "pid", id)
+		streamAdd := util.Map("rid", rid, "uid", uid)
 		signal.NotifyAll(rid, proto.ClientOnStreamAdd, streamAdd)
 	case proto.IslbRelay:
 		sid := util.Val(msg, "sid")
@@ -92,6 +92,7 @@ func handleBroadCastMsgs() {
 	}
 
 	go func() {
+		defer util.Recover("biz.handleBroadCastMsgs")
 		for m := range broadCastMsgs {
 			msg := util.Unmarshal(string(m.Body))
 			method := util.Val(msg, "method")
@@ -100,31 +101,23 @@ func handleBroadCastMsgs() {
 			}
 			log.Infof("biz.handleBroadCastMsgs msg=%v", msg)
 
+			rid := util.Val(msg, "rid")
+			uid := util.Val(msg, "uid")
 			//make signal.Notify send "info" as a json object, otherwise is a string (:
 			strToMap(msg, "info")
 			switch method {
 			case proto.IslbOnStreamAdd:
-				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
-				signal.NotifyAllWithoutID(rid, pid, proto.ClientOnStreamAdd, msg)
+				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, msg)
 			case proto.IslbOnStreamRemove:
-				rid := util.Val(msg, "rid")
-				pid := util.Val(msg, "pid")
 				mid := util.Val(msg, "mid")
-				signal.NotifyAllWithoutID(rid, pid, proto.ClientOnStreamRemove, msg)
+				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, msg)
 				rtc.DelPub(mid)
 			case proto.IslbClientOnJoin:
-				rid := util.Val(msg, "rid")
-				id := util.Val(msg, "id")
-				signal.NotifyAllWithoutID(rid, id, proto.ClientOnJoin, msg)
+				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnJoin, msg)
 			case proto.IslbClientOnLeave:
-				rid := util.Val(msg, "rid")
-				id := util.Val(msg, "id")
-				signal.NotifyAllWithoutID(rid, id, proto.ClientOnLeave, msg)
-				rtc.DelSubFromAllPubByPrefix(id)
+				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnLeave, msg)
+				rtc.DelSubFromAllPubByPrefix(uid)
 			case proto.IslbOnBroadcast:
-				rid := util.Val(msg, "rid")
-				uid := util.Val(msg, "uid")
 				signal.NotifyAllWithoutID(rid, uid, proto.ClientBroadcast, msg)
 			}
 
