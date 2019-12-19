@@ -56,7 +56,7 @@ export default class Client extends EventEmitter {
     async join(roomId, info = { name: 'Guest' }) {
         this._rid = roomId;
         try {
-            let data = await this._protoo.request('join', { 'rid': this._rid, 'id': this._uid, info });
+            let data = await this._protoo.request('join', { 'rid': this._rid, 'uid': this._uid, info });
             console.log('join success: result => ' + JSON.stringify(data));
         } catch (error) {
             console.log('join reject: error =>' + error);
@@ -65,7 +65,7 @@ export default class Client extends EventEmitter {
 
     async leave() {
         try {
-            let data = await this._protoo.request('leave', { 'rid': this._rid, 'id': this._uid });
+            let data = await this._protoo.request('leave', { 'rid': this._rid, 'uid': this._uid });
             console.log('leave success: result => ' + JSON.stringify(data));
         } catch (error) {
             console.log('leave reject: error =>' + error);
@@ -85,7 +85,7 @@ export default class Client extends EventEmitter {
                         var offer = pc.localDescription;
                         console.log('Send offer sdp => ' + offer.sdp);
                         pc.sendOffer = true
-                        let result = await this._protoo.request('publish', { jsep: offer, options });
+                        let result = await this._protoo.request('publish', { rid: this._rid, jsep: offer, options });
                         await pc.setRemoteDescription(result.jsep);
                         console.log('publish success => ' + JSON.stringify(result));
                         stream.mid = result.mid;
