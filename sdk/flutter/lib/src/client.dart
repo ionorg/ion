@@ -22,10 +22,8 @@ class Client extends EventEmitter {
   JsonEncoder _encoder = JsonEncoder();
   var logger = new Logger("Ion::Client");
   var _uuid = new Uuid();
-  var _uid;
   var _pcs = new Map();
-  var _streams = new Map();
-  var _port = 8443;
+  var _uid;
   var _rid;
   var _url;
   Peer _protoo;
@@ -93,17 +91,18 @@ class Client extends EventEmitter {
     }
   }
 
-  leave() async {
+  Future<dynamic> leave() async {
     try {
       var data =
           await this._protoo.send('leave', {'rid': this._rid, 'id': this._uid});
       logger.debug('leave success: result => ' + _encoder.convert(data));
+      return data;
     } catch (error) {
       logger.debug('leave reject: error =>' + error);
     }
   }
 
-  publish([audio = true, video = true, screen = false, codec = 'vp8']) async {
+  Future<Stream> publish([audio = true, video = true, screen = false, codec = 'vp8']) async {
     logger.debug('publish');
     Completer completer = new Completer();
     var pc;
@@ -138,22 +137,23 @@ class Client extends EventEmitter {
       pc.close();
       completer.completeError(error);
     }
-    return completer;
+    return completer.future;
   }
 
-  unpublish(mid) async {
+  Future<dynamic> unpublish(mid) async {
     logger.debug('unpublish rid => ${this._rid}, mid => $mid');
     this._removePC(mid);
     try {
       var data =
           await this._protoo.send('unpublish', {'rid': this._rid, 'mid': mid});
       logger.debug('unpublish success: result => ' + _encoder.convert(data));
+      return data;
     } catch (error) {
       logger.debug('unpublish reject: error =>' + error);
     }
   }
 
-  subscribe(rid, mid) async {
+  Future<Stream> subscribe(rid, mid) async {
     logger.debug('subscribe rid => $rid, mid => $mid');
     Completer completer = new Completer();
     try {
@@ -175,9 +175,7 @@ class Client extends EventEmitter {
           var result = await this
               ._protoo
               .send('subscribe', {'rid': rid, 'jsep': jsep, 'mid': mid});
-          logger.debug('subscribe success => result(' +
-              mid +
-              ') sdp => ' +
+          logger.debug('subscribe success => result($mid) sdp => ' +
               result.jsep.sdp);
           await pc.setRemoteDescription(result.jsep);
         }
@@ -187,16 +185,17 @@ class Client extends EventEmitter {
       completer.completeError(error);
     }
 
-    return completer;
+    return completer.future;
   }
 
-  unsubscribe(rid, mid) async {
+  Future<dynamic> unsubscribe(rid, mid) async {
     logger.debug('unsubscribe rid => $rid, mid => $mid');
     try {
       var data =
           await this._protoo.send('unsubscribe', {'rid': rid, 'mid': mid});
       logger.debug('unsubscribe success: result => ' + _encoder.convert(data));
       this._removePC(mid);
+      return data;
     } catch (error) {
       logger.debug('unsubscribe reject: error =>' + error);
     }
@@ -316,11 +315,6 @@ class Client extends EventEmitter {
     }
   }
 
-  _getProtooUrl(pid, hostname) {
-    var url = 'wss://${hostname}:${this._port}/ws?peer=${pid}';
-    return url;
-  }
-
   _handleRequest(request, accept, reject) {
     logger.debug(
         'Handle request from server: [method:${request['method']}, data:${request['data']}]');
@@ -330,7 +324,7 @@ class Client extends EventEmitter {
     var method = notification['method'];
     var data = notification['data'];
     logger.debug(
-        'Handle notification from server: [method:${method}, data:${data}]');
+        'Handle notification from server: [method:$method, data:$data]');
     switch (method) {
       case 'peer-join':
         {
