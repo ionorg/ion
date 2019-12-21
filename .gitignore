@@ -13,6 +13,6 @@ islb.tar.gz
 cmd/ion/ion
 cmd/islb/islb
 other
-ion
-islb
+./ion
+./islb
 
