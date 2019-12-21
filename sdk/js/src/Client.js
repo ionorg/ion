@@ -303,7 +303,7 @@ export default class Client extends EventEmitter {
                     const { rid, mid } = data;
                     console.log('stream-remove peer rid => %s, mid => %s', rid, mid);
                     this.emit('stream-remove', rid, mid);
-                    this._removePC(pid);
+                    this._removePC(mid);
                     break;
                 }
         }
