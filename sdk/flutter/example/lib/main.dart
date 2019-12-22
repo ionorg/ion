@@ -191,20 +191,26 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(
                   width: 260.0,
                   child: TextField(
-                    keyboardType: TextInputType.text,
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(10.0),
-                      border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _roomID ?? 'Enter RoomID.',
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _roomID = value;
-                      });
-                    },
-                  )),
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(10.0),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _roomID ?? 'Enter RoomID.',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _roomID = value;
+                        });
+                      },
+                      controller:
+                          TextEditingController.fromValue(TextEditingValue(
+                        text: '${this._roomID == null ? "" : this._roomID}',
+                        selection: TextSelection.fromPosition(TextPosition(
+                            affinity: TextAffinity.downstream,
+                            offset: '${this._roomID}'.length)),
+                      )))),
               SizedBox(width: 260.0, height: 48.0),
               SizedBox(
                   width: 220.0,
@@ -255,20 +261,26 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(
                   width: 260.0,
                   child: TextField(
-                    keyboardType: TextInputType.text,
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(10.0),
-                      border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _server ?? 'Enter Ion server.',
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _server = value;
-                      });
-                    },
-                  )),
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(10.0),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _server ?? 'Enter Ion server.',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _server = value;
+                        });
+                      },
+                      controller:
+                          TextEditingController.fromValue(TextEditingValue(
+                        text: '${this._server == null ? "" : this._server}',
+                        selection: TextSelection.fromPosition(TextPosition(
+                            affinity: TextAffinity.downstream,
+                            offset: '${this._server}'.length)),
+                      )))),
               SizedBox(width: 260.0, height: 48.0),
               SizedBox(
                   width: 220.0,
