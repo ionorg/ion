@@ -1,8 +1,9 @@
-# Flutter sdk for ion.
+# Flutter sdk for ion
 
 ## Usage
 
-### Create example project (for mobile only).
+### Create example project (for mobile only)
+
 `cd sdk/flutter/example`
 
 `./scripts/project_tools.sh create`
