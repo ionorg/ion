@@ -4,7 +4,7 @@ author: pion
 description: Ion SFU client SDK.
 homepage: https://github.com/pion/ion
 environment:
-  sdk: '>1.8.0 <3.0.0'
+  sdk: '>2.2.0 <3.0.0'
 
 dependencies:
   uuid: ^2.0.1

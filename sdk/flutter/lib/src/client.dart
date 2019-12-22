@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:events2/events2.dart';
-import 'package:flutter_webrtc/web/rtc_peerconnection_factory.dart';
+import 'package:flutter_webrtc/webrtc.dart';
 import 'package:protoo_client/protoo_client.dart';
 import 'package:sdp_transform/sdp_transform.dart' as sdpTransform;
 import 'package:uuid/uuid.dart';
@@ -102,20 +102,23 @@ class Client extends EventEmitter {
     }
   }
 
-  Future<Stream> publish([audio = true, video = true, screen = false, codec = 'vp8']) async {
+  Future<Stream> publish(
+      [audio = true, video = true, screen = false, codec = 'vp8']) async {
     logger.debug('publish');
-    Completer completer = new Completer();
-    var pc;
+    Completer completer = new Completer<Stream>();
+    RTCPeerConnection pc;
     try {
       var stream = new Stream();
       await stream.init(true, audio, video, screen);
-      pc = await this._createSender(stream.stream, codec);
-
-      pc.onicecandidate = (e) async {
-        if (!pc.sendOffer) {
-          var offer = pc.localDescription;
+      logger.debug('create sender => $codec');
+      pc = await createPeerConnection(_iceServers, _config);
+      await pc.addStream(stream.stream);
+      bool sendOffer = false;
+      pc.onIceCandidate = (candidate) async {
+        if (sendOffer == false) {
+          sendOffer = true;
+          var offer = await pc.getLocalDescription();
           logger.debug('Send offer sdp => ' + offer.sdp);
-          pc.sendOffer = true;
           var options = {
             'audio': audio,
             'video': video,
@@ -124,14 +127,24 @@ class Client extends EventEmitter {
           };
           var result = await this
               ._protoo
-              .send('publish', {'jsep': offer, 'options': options});
-          await pc.setRemoteDescription(result.jsep);
+              .send('publish', {'jsep': offer.toMap(), 'options': options});
+          await pc.setRemoteDescription(RTCSessionDescription(
+              result['jsep']['sdp'], result['jsep']['type']));
           logger.debug('publish success => ' + _encoder.convert(result));
-          stream.mid = result.mid;
+          stream.mid = result['mid'];
           this._pcs[stream.mid] = pc;
           completer.complete(stream);
         }
       };
+      var offer = await pc.createOffer({
+        'mandatory': {
+          'OfferToReceiveAudio': false,
+          'OfferToReceiveVideo': false,
+        },
+        'optional': [],
+      });
+      var desc = this._payloadModify(offer, codec);
+      await pc.setLocalDescription(desc);
     } catch (error) {
       logger.debug('publish request error  => ' + error);
       pc.close();
@@ -155,31 +168,40 @@ class Client extends EventEmitter {
 
   Future<Stream> subscribe(rid, mid) async {
     logger.debug('subscribe rid => $rid, mid => $mid');
-    Completer completer = new Completer();
+    Completer completer = new Completer<Stream>();
     try {
-      var pc = await this._createReceiver(mid);
-      pc.onaddstream = (e) {
-        var stream = e.stream;
+      logger.debug('create receiver => $mid');
+      RTCPeerConnection pc = await createPeerConnection(_iceServers, _config);
+      bool sendOffer = false;
+      pc.onAddStream = (stream) {
         logger.debug('Stream::pc::onaddstream ' + stream.id);
         completer.complete(new Stream(mid, stream));
       };
-      pc.onremovestream = (e) {
-        var stream = e.stream;
+      pc.onRemoveStream = (stream) {
         logger.debug('Stream::pc::onremovestream ' + stream.id);
       };
-      pc.onicecandidate = (e) async {
-        if (!pc.sendOffer) {
-          var jsep = pc.localDescription;
+      pc.onIceCandidate = (candidate) async {
+        if (sendOffer == false) {
+          sendOffer = true;
+          RTCSessionDescription jsep = await pc.getLocalDescription();
           logger.debug('Send offer sdp => ' + jsep.sdp);
-          pc.sendOffer = true;
-          var result = await this
-              ._protoo
-              .send('subscribe', {'rid': rid, 'jsep': jsep, 'mid': mid});
+          var result = await this._protoo.send(
+              'subscribe', {'rid': rid, 'jsep': jsep.toMap(), 'mid': mid});
           logger.debug('subscribe success => result($mid) sdp => ' +
-              result.jsep.sdp);
-          await pc.setRemoteDescription(result.jsep);
+              result['jsep']['sdp']);
+          await pc.setRemoteDescription(RTCSessionDescription(
+              result['jsep']['sdp'], result['jsep']['type']));
         }
       };
+      var desc = await pc.createOffer({
+        'mandatory': {
+          'OfferToReceiveAudio': true,
+          'OfferToReceiveVideo': true,
+        },
+        'optional': [],
+      });
+      pc.setLocalDescription(desc);
+      this._pcs[mid] = pc;
     } catch (error) {
       logger.debug('subscribe request error  => ' + error);
       completer.completeError(error);
@@ -220,13 +242,7 @@ class Client extends EventEmitter {
     var codeName = '';
     var session = sdpTransform.parse(desc.sdp);
     logger.debug('SDP object => $session');
-    var videoIdx = -1;
-    session['media'].map((m, index) {
-      if (m.type == 'video') {
-        videoIdx = index;
-      }
-    });
-
+    var videoIdx = session['media'].indexWhere((e)  => e['type'] == 'video');
     if (videoIdx == -1) return desc;
 
     if (codec.toLowerCase() == 'vp8') {
@@ -242,18 +258,18 @@ class Client extends EventEmitter {
       return desc;
     }
 
-    logger.debug('Setup codec => ' + codeName + ', payload => ' + payload);
+    logger.debug('Setup codec => $codeName, payload => $payload');
 
     var rtp = [
       {"payload": payload, "codec": codeName, "rate": 90000, "encoding": null},
       {"payload": 97, "codec": "rtx", "rate": 90000, "encoding": null}
     ];
 
-    session['media'][videoIdx]["payloads"] = payload + " 97";
+    session['media'][videoIdx]["payloads"] =  '$payload 97';
     session['media'][videoIdx]["rtp"] = rtp;
 
     var fmtp = [
-      {"payload": 97, "config": "apt=" + payload}
+      {"payload": 97, "config": "apt=$payload"}
     ];
 
     session['media'][videoIdx]["fmtp"] = fmtp;
@@ -271,47 +287,13 @@ class Client extends EventEmitter {
     return tmp;
   }
 
-  _createSender(stream, codec) async {
-    logger.debug('create sender => $codec');
-    var pc = await createPeerConnection(_iceServers, _config);
-    //pc.sendOffer = false;
-    pc.addStream(stream);
-    var offer = await pc.createOffer({
-      'mandatory': {
-        'OfferToReceiveAudio': false,
-        'OfferToReceiveVideo': false,
-      },
-      'optional': [],
-    });
-    var desc = this._payloadModify(offer, codec);
-    pc.setLocalDescription(desc);
-    return pc;
-  }
-
-  _createReceiver(uid) async {
-    logger.debug('create receiver => $uid');
-    var pc = await createPeerConnection(_iceServers, _config);
-    //pc.sendOffer = false;
-    //pc.addTransceiver('audio', { 'direction': 'recvonly' });
-    //pc.addTransceiver('video', { 'direction': 'recvonly' });
-    var desc = await pc.createOffer({
-      'mandatory': {
-        'OfferToReceiveAudio': true,
-        'OfferToReceiveVideo': true,
-      },
-      'optional': [],
-    });
-    pc.setLocalDescription(desc);
-    this._pcs[uid] = pc;
-    return pc;
-  }
-
-  _removePC(id) {
-    var pc = this._pcs[id];
-    if (pc) {
-      logger.debug('remove pc mid => $id');
+  _removePC(mid) {
+    RTCPeerConnection pc = this._pcs[mid];
+    if (pc != null) {
+      logger.debug('remove pc mid => $mid');
+      pc.dispose();
       pc.close();
-      this._pcs.remove(id);
+      this._pcs.remove(mid);
     }
   }
 
@@ -323,8 +305,8 @@ class Client extends EventEmitter {
   _handleNotification(notification) {
     var method = notification['method'];
     var data = notification['data'];
-    logger.debug(
-        'Handle notification from server: [method:$method, data:$data]');
+    logger
+        .debug('Handle notification from server: [method:$method, data:$data]');
     switch (method) {
       case 'peer-join':
         {

@@ -9,11 +9,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Ion Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Pion SDK Demo'),
+      home: MyHomePage(title: 'Ion Flutter Demo'),
     );
   }
 }
@@ -100,50 +100,42 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_client == null) {
       var url = 'https://' + _server + ':8443/ws';
       _client = new Client(url);
-      _client.on('connect', () {
-        print('connected');
+      _client.on('transport-open', () {
+        print('transport-open');
         setState(() {
           _connected = true;
         });
       });
-      _client.on('disconnect', () {
-        print('disconnected');
+      _client.on('transport-closed', () {
+        print('transport-closed');
         setState(() {
           _connected = false;
         });
       });
-      _client.on('addLocalStream', (id, stream) async {
-        var adapter = new VideoRendererAdapter(id);
-        await adapter.setSrcObject(stream);
+
+      _client.on('stream-add', (rid, mid, info) async {
+        var stream = await _client.subscribe(rid, mid);
+        var adapter = new VideoRendererAdapter(stream.mid);
+        await adapter.setSrcObject(stream.stream);
         setState(() {
           _videoRendererAdapters.add(adapter);
         });
       });
 
-      _client.on('removeLocalStream', (id, stream) async {
+      _client.on('stream-remove', (rid, mid) async {
         var adapter =
-            _videoRendererAdapters.firstWhere((item) => item.id == id);
+            _videoRendererAdapters.firstWhere((item) => item.id == mid);
         await adapter.dispose();
         setState(() {
           _videoRendererAdapters.remove(adapter);
         });
       });
 
-      _client.on('addRemoteStream', (id, stream) async {
-        var adapter = new VideoRendererAdapter(id);
-        await adapter.setSrcObject(stream);
-        setState(() {
-          _videoRendererAdapters.add(adapter);
-        });
+      _client.on('peer-join', (rid, id, info) async {
+
       });
 
-      _client.on('removeRemoteStream', (id, stream) async {
-        var adapter =
-            _videoRendererAdapters.firstWhere((item) => item.id == id);
-        await adapter.dispose();
-        setState(() {
-          _videoRendererAdapters.remove(adapter);
-        });
+      _client.on('peer-leave', (rid, id) async {
       });
     }
   }
@@ -154,7 +146,12 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         _inCalling = true;
       });
-      await _client.publish();
+      var stream = await _client.publish();
+      var adapter = new VideoRendererAdapter(stream.mid);
+      await adapter.setSrcObject(stream.stream);
+      setState(() {
+          _videoRendererAdapters.add(adapter);
+      });
     } catch (error) {}
   }
 
@@ -249,7 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       contentPadding: EdgeInsets.all(10.0),
                       border: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _server ?? 'Enter Pion-Client address.',
+                      hintText: _server ?? 'Enter Ion server.',
                     ),
                     onChanged: (value) {
                       setState(() {
