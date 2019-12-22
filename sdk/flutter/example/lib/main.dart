@@ -75,7 +75,7 @@ class VideoRendererAdapter {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _server;
-  String _channelId;
+  String _roomID;
   SharedPreferences prefs;
   Client _client;
   bool _inCalling = false;
@@ -91,8 +91,8 @@ class _MyHomePageState extends State<MyHomePage> {
   init() async {
     prefs = await SharedPreferences.getInstance();
     setState(() {
-      _server = prefs.getString('server');
-      _channelId = prefs.getString('client');
+      _server = prefs.getString('server') ?? 'pionion.org';
+      _roomID = prefs.getString('room') ?? 'room1';
     });
   }
 
@@ -142,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   handleJoin() async {
     try {
-      await _client.join(_channelId, {'name': 'Guest'});
+      await _client.join(_roomID, {'name': 'Guest'});
       setState(() {
         _inCalling = true;
       });
@@ -182,11 +182,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       contentPadding: EdgeInsets.all(10.0),
                       border: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _channelId ?? 'Enter RoomID.',
+                      hintText: _roomID ?? 'Enter RoomID.',
                     ),
                     onChanged: (value) {
                       setState(() {
-                        _channelId = value;
+                        _roomID = value;
                       });
                     },
                   )),
@@ -202,9 +202,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: Colors.blue,
                     textColor: Colors.white,
                     onPressed: () {
-                      if (_channelId != null) {
+                      if (_roomID != null) {
                         handleJoin();
-                        prefs.setString('client', _channelId);
+                        prefs.setString('room', _roomID);
                         return;
                       }
                       showDialog<Null>(
