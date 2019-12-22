@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_pion/flutter_pion.dart';
+import 'package:flutter_ion/flutter_ion.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 
 void main() => runApp(MyApp());
@@ -9,11 +9,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Ion Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Pion SDK Demo'),
+      home: MyHomePage(title: 'Ion Flutter Demo'),
     );
   }
 }
@@ -27,11 +27,12 @@ class MyHomePage extends StatefulWidget {
 
 class VideoRendererAdapter {
   String _id;
+  bool _local;
   RTCVideoRenderer _renderer;
   MediaStream _stream;
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
-  VideoRendererAdapter(this._id);
+  VideoRendererAdapter(this._id, this._local);
 
   setSrcObject(MediaStream stream, {bool localVideo = false}) async {
     if (_renderer == null) {
@@ -64,6 +65,8 @@ class VideoRendererAdapter {
     }
   }
 
+  get local => _local;
+
   get id => _id;
 
   get renderer => _renderer;
@@ -75,9 +78,9 @@ class VideoRendererAdapter {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _server;
-  String _roomId;
+  String _roomID;
   SharedPreferences prefs;
-  SFU _sfu;
+  Client _client;
   bool _inCalling = false;
   bool _connected = false;
   List<VideoRendererAdapter> _videoRendererAdapters = new List();
@@ -91,85 +94,94 @@ class _MyHomePageState extends State<MyHomePage> {
   init() async {
     prefs = await SharedPreferences.getInstance();
     setState(() {
-      _server = prefs.getString('server');
-      _roomId = prefs.getString('room');
+      _server = prefs.getString('server') ?? 'pionion.org';
+      _roomID = prefs.getString('room') ?? 'room1';
     });
   }
 
+  _cleanUp() async {
+    _videoRendererAdapters.forEach((item) async {
+      if (item.local) {
+        await item.stream.dispose();
+        await _client.unpublish(item.id);
+      } else {
+        await item.stream.dispose();
+        await _client.unsubscribe(this._roomID, item.id);
+      }
+    });
+    _videoRendererAdapters.clear();
+    if (_client != null) {
+      await _client.leave();
+      _client.close();
+      _client = null;
+    }
+    this.setState(() {});
+  }
+
   handleConnect() async {
-    if (_sfu == null) {
+    if (_client == null) {
       var url = 'https://' + _server + ':8443/ws';
-      _sfu = new SFU(url);
-      _sfu.on('connect', () {
-        print('connected');
+      _client = new Client(url);
+      _client.on('transport-open', () {
+        print('transport-open');
         setState(() {
           _connected = true;
         });
       });
-      _sfu.on('disconnect', () {
-        print('disconnected');
+      _client.on('transport-closed', () {
+        print('transport-closed');
         setState(() {
           _connected = false;
         });
       });
-      _sfu.on('addLocalStream',(id, stream) async {
-          var adapter = new VideoRendererAdapter(id);
-          await adapter.setSrcObject(stream);
-          setState(() {
-            _videoRendererAdapters.add(adapter);
-          });
-      });
 
-      _sfu.on('removeLocalStream', (id, stream) async {
-        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
-        await adapter.dispose();
+      _client.on('stream-add', (rid, mid, info) async {
+        var stream = await _client.subscribe(rid, mid);
+        var adapter = new VideoRendererAdapter(stream.mid, false);
+        await adapter.setSrcObject(stream.stream);
         setState(() {
-            _videoRendererAdapters.remove(adapter);
+          _videoRendererAdapters.add(adapter);
         });
       });
 
-      _sfu.on('addRemoteStream',(id, stream) async {
-          var adapter = new VideoRendererAdapter(id);
-          await adapter.setSrcObject(stream);
-          setState(() {
-            _videoRendererAdapters.add(adapter);
-          });
-      });
-
-      _sfu.on('removeRemoteStream', (id, stream) async {
-        var adapter = _videoRendererAdapters.firstWhere((item) => item.id == id);
+      _client.on('stream-remove', (rid, mid) async {
+        var adapter =
+            _videoRendererAdapters.firstWhere((item) => item.id == mid);
         await adapter.dispose();
         setState(() {
-            _videoRendererAdapters.remove(adapter);
+          _videoRendererAdapters.remove(adapter);
         });
       });
+
+      _client.on('peer-join', (rid, id, info) async {});
+
+      _client.on('peer-leave', (rid, id) async {});
     }
   }
 
   handleJoin() async {
-    try{
-      await _sfu.join(_roomId);
+    try {
+      await _client.join(_roomID, {'name': 'Guest'});
       setState(() {
         _inCalling = true;
       });
-      await _sfu.publish();
-    }catch(error){
-
-    }
+      var stream = await _client.publish();
+      var adapter = new VideoRendererAdapter(stream.mid, true);
+      await adapter.setSrcObject(stream.stream);
+      setState(() {
+        _videoRendererAdapters.add(adapter);
+      });
+    } catch (error) {}
   }
 
   handleLeave() async {
     setState(() {
       _inCalling = false;
     });
-    if (_sfu != null) {
-      await _sfu.leave();
-      _sfu.close();
-      _sfu = null;
-    }
+    await _cleanUp();
   }
 
-Widget buildJoinView(context) {
+  Widget buildJoinView(context) {
     return new Align(
         alignment: Alignment(0, 0),
         child: Column(
@@ -179,20 +191,26 @@ Widget buildJoinView(context) {
               SizedBox(
                   width: 260.0,
                   child: TextField(
-                    keyboardType: TextInputType.text,
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(10.0),
-                      border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _roomId ?? 'Enter RoomID.',
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _roomId = value;
-                      });
-                    },
-                  )),
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(10.0),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _roomID ?? 'Enter RoomID.',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _roomID = value;
+                        });
+                      },
+                      controller:
+                          TextEditingController.fromValue(TextEditingValue(
+                        text: '${this._roomID == null ? "" : this._roomID}',
+                        selection: TextSelection.fromPosition(TextPosition(
+                            affinity: TextAffinity.downstream,
+                            offset: '${this._roomID}'.length)),
+                      )))),
               SizedBox(width: 260.0, height: 48.0),
               SizedBox(
                   width: 220.0,
@@ -205,9 +223,9 @@ Widget buildJoinView(context) {
                     color: Colors.blue,
                     textColor: Colors.white,
                     onPressed: () {
-                      if (_roomId != null) {
+                      if (_roomID != null) {
                         handleJoin();
-                        prefs.setString('room', _roomId);
+                        prefs.setString('room', _roomID);
                         return;
                       }
                       showDialog<Null>(
@@ -215,8 +233,8 @@ Widget buildJoinView(context) {
                         barrierDismissible: false,
                         builder: (BuildContext context) {
                           return new AlertDialog(
-                            title: new Text('Room id is empty'),
-                            content: new Text('Please enter Pion-SFU RoomID!'),
+                            title: new Text('Client id is empty'),
+                            content: new Text('Please enter Ion room id!'),
                             actions: <Widget>[
                               new FlatButton(
                                 child: new Text('Ok'),
@@ -231,8 +249,7 @@ Widget buildJoinView(context) {
                     },
                   ))
             ]));
-}
-
+  }
 
   Widget buildConnectView(context) {
     return new Align(
@@ -244,20 +261,26 @@ Widget buildJoinView(context) {
               SizedBox(
                   width: 260.0,
                   child: TextField(
-                    keyboardType: TextInputType.text,
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(10.0),
-                      border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                      hintText: _server ?? 'Enter Pion-SFU address.',
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _server = value;
-                      });
-                    },
-                  )),
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(10.0),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _server ?? 'Enter Ion server.',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _server = value;
+                        });
+                      },
+                      controller:
+                          TextEditingController.fromValue(TextEditingValue(
+                        text: '${this._server == null ? "" : this._server}',
+                        selection: TextSelection.fromPosition(TextPosition(
+                            affinity: TextAffinity.downstream,
+                            offset: '${this._server}'.length)),
+                      )))),
               SizedBox(width: 260.0, height: 48.0),
               SizedBox(
                   width: 220.0,
@@ -281,7 +304,8 @@ Widget buildJoinView(context) {
                         builder: (BuildContext context) {
                           return new AlertDialog(
                             title: new Text('Server is empty'),
-                            content: new Text('Please enter Pion-SFU address!'),
+                            content:
+                                new Text('Please enter Pion-Client address!'),
                             actions: <Widget>[
                               new FlatButton(
                                 child: new Text('Ok'),
@@ -306,7 +330,7 @@ Widget buildJoinView(context) {
     );
   }
 
- List<Widget> _buildVideoViews() {
+  List<Widget> _buildVideoViews() {
     List<Widget> views = new List<Widget>();
     _videoRendererAdapters.forEach((adapter) {
       views.add(buildVideoView(adapter));
@@ -334,7 +358,9 @@ Widget buildJoinView(context) {
               )
             : null,
         body: Center(
-          child: _connected?  _inCalling ? buildStreamsGridView() : buildJoinView(context) : buildConnectView(context),
+          child: _connected
+              ? _inCalling ? buildStreamsGridView() : buildJoinView(context)
+              : buildConnectView(context),
         ),
         floatingActionButton: _inCalling
             ? FloatingActionButton(

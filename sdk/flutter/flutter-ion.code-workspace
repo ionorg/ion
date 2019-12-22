@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "example",
+			"name": "example"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"__locale": "cpp"
+		},
+		"git.ignoreLimitWarning": true
+	}
+}
