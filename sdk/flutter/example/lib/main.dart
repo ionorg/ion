@@ -27,11 +27,12 @@ class MyHomePage extends StatefulWidget {
 
 class VideoRendererAdapter {
   String _id;
+  bool _local;
   RTCVideoRenderer _renderer;
   MediaStream _stream;
   RTCVideoViewObjectFit _objectFit =
       RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
-  VideoRendererAdapter(this._id);
+  VideoRendererAdapter(this._id, this._local);
 
   setSrcObject(MediaStream stream, {bool localVideo = false}) async {
     if (_renderer == null) {
@@ -63,6 +64,8 @@ class VideoRendererAdapter {
       _renderer = null;
     }
   }
+
+  get local => _local;
 
   get id => _id;
 
@@ -96,6 +99,25 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  _cleanUp() async {
+    _videoRendererAdapters.forEach((item) async {
+      if (item.local) {
+        await item.stream.dispose();
+        await _client.unpublish(item.id);
+      } else {
+        await item.stream.dispose();
+        await _client.unsubscribe(this._roomID, item.id);
+      }
+    });
+    _videoRendererAdapters.clear();
+    if (_client != null) {
+      await _client.leave();
+      _client.close();
+      _client = null;
+    }
+    this.setState(() {});
+  }
+
   handleConnect() async {
     if (_client == null) {
       var url = 'https://' + _server + ':8443/ws';
@@ -115,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       _client.on('stream-add', (rid, mid, info) async {
         var stream = await _client.subscribe(rid, mid);
-        var adapter = new VideoRendererAdapter(stream.mid);
+        var adapter = new VideoRendererAdapter(stream.mid, false);
         await adapter.setSrcObject(stream.stream);
         setState(() {
           _videoRendererAdapters.add(adapter);
@@ -131,12 +153,9 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       });
 
-      _client.on('peer-join', (rid, id, info) async {
+      _client.on('peer-join', (rid, id, info) async {});
 
-      });
-
-      _client.on('peer-leave', (rid, id) async {
-      });
+      _client.on('peer-leave', (rid, id) async {});
     }
   }
 
@@ -147,10 +166,10 @@ class _MyHomePageState extends State<MyHomePage> {
         _inCalling = true;
       });
       var stream = await _client.publish();
-      var adapter = new VideoRendererAdapter(stream.mid);
+      var adapter = new VideoRendererAdapter(stream.mid, true);
       await adapter.setSrcObject(stream.stream);
       setState(() {
-          _videoRendererAdapters.add(adapter);
+        _videoRendererAdapters.add(adapter);
       });
     } catch (error) {}
   }
@@ -159,11 +178,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _inCalling = false;
     });
-    if (_client != null) {
-      await _client.leave();
-      _client.close();
-      _client = null;
-    }
+    await _cleanUp();
   }
 
   Widget buildJoinView(context) {
