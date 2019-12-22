@@ -125,9 +125,8 @@ class Client extends EventEmitter {
             'screen': screen,
             'codec': codec
           };
-          var result = await this
-              ._protoo
-              .send('publish', {'jsep': offer.toMap(), 'options': options});
+          var result = await this._protoo.send('publish',
+              {'rid': this._rid, 'jsep': offer.toMap(), 'options': options});
           await pc.setRemoteDescription(RTCSessionDescription(
               result['jsep']['sdp'], result['jsep']['type']));
           logger.debug('publish success => ' + _encoder.convert(result));
@@ -242,7 +241,7 @@ class Client extends EventEmitter {
     var codeName = '';
     var session = sdpTransform.parse(desc.sdp);
     logger.debug('SDP object => $session');
-    var videoIdx = session['media'].indexWhere((e)  => e['type'] == 'video');
+    var videoIdx = session['media'].indexWhere((e) => e['type'] == 'video');
     if (videoIdx == -1) return desc;
 
     if (codec.toLowerCase() == 'vp8') {
@@ -265,7 +264,7 @@ class Client extends EventEmitter {
       {"payload": 97, "codec": "rtx", "rate": 90000, "encoding": null}
     ];
 
-    session['media'][videoIdx]["payloads"] =  '$payload 97';
+    session['media'][videoIdx]["payloads"] = '$payload 97';
     session['media'][videoIdx]["rtp"] = rtp;
 
     var fmtp = [
