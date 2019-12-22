@@ -14,6 +14,7 @@ ION is a distributed RTC system written by pure go and flutter
 - [x] Server
     - [x] OS
         - [x] CentOS 7
+        - [x] Ubuntu 16.04.6 LTS
         - [x] macOS Mojave
     - [x] Signal
         - [x] WebSocket
@@ -58,12 +59,18 @@ Welcome contributing to ion!
 #centos
 ./scripts/centos/installDeps.sh
 
+#ubuntu
+./scripts/ubuntu/installDeps.sh
+
 #mac
 ./scripts/mac/installDeps.sh
 ```
 ### 3. run
 ```
 #centos
+./scripts/centos/allRestart.sh
+
+#ubuntu
 ./scripts/centos/allRestart.sh
 
 #mac
