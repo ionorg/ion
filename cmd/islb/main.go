@@ -6,6 +6,7 @@ import (
 	biz "github.com/pion/ion/pkg/biz/islb"
 	conf "github.com/pion/ion/pkg/conf/islb"
 	"github.com/pion/ion/pkg/db"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 )
 
@@ -17,6 +18,7 @@ func main() {
 			http.ListenAndServe(conf.Global.Pprof, nil)
 		}()
 	}
+	discovery.Init(conf.Etcd.Addrs)
 	config := db.Config{
 		Addrs: conf.Redis.Addrs,
 		Pwd:   conf.Redis.Pwd,

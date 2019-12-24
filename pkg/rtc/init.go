@@ -1,56 +1,58 @@
 package rtc
 
 import (
-	"errors"
-	"sync"
 	"time"
 
-	"github.com/pion/ion/pkg/rtc/udp"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/rtc/rtpengine"
 )
 
 const (
-	maxPipelineSize = 1024
-
-	pktSize = 100
-
-	jitterBuffer = "JB"
-
-	//for remb
-	rembDuration = 3 * time.Second
-	rembLowBW    = 30 * 1000
-	rembHighBW   = 100 * 1000
-
-	receiveMTU  = 8192
-	extSentInit = 30
-
-	//for pli
-	pliDuration = 1 * time.Second
-
 	statDuration = 3 * time.Second
 )
 
-var (
-	cfg webrtc.Configuration
-
-	errChanClosed    = errors.New("channel closed")
-	errInvalidTrack  = errors.New("track not found")
-	errInvalidPacket = errors.New("packet is nil")
-
-	listener *udp.Listener
-	pipes    = make(map[string]*pipeline)
-	pipeLock sync.RWMutex
-)
-
+// Init init port and ice urls
 func Init(port int, ices []string) {
-	serve(port)
+
+	//init ice
 	initICE(ices)
+
+	// show stat about all pipelines
 	go func() {
 		t := time.NewTicker(statDuration)
 		for {
 			select {
 			case <-t.C:
 				Stat()
+			}
+		}
+	}()
+
+	// accept relay conn
+	connCh := rtpengine.Serve(port)
+	go func() {
+		for {
+			select {
+			case conn := <-connCh:
+				t := newRTPTransport(conn)
+				if t != nil {
+					t.receiveRTP()
+				}
+				mid := t.getMID()
+				cnt := 0
+				for mid == "" && cnt < 10 {
+					mid = t.getMID()
+					time.Sleep(time.Millisecond)
+					cnt++
+				}
+				if mid == "" && cnt >= 10 {
+					log.Infof("mid == \"\" && cnt >=10 return")
+					return
+				}
+				log.Infof("accept new rtp mid=%s conn=%s", mid, conn.RemoteAddr().String())
+				if p := newPipeline(mid); p != nil {
+					p.addPub(mid, t)
+				}
 			}
 		}
 	}()

@@ -24,12 +24,15 @@ func init() {
 	quit = make(chan struct{})
 }
 
-func Init(ip string, port int, etcds []string) {
+func Init(etcds []string) {
 	var err error
 	etcd, err = newEtcd(etcds)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func UpdateLoad(ip string, port int) {
 	nodeIP = ip
 	nodePort = port
 	etcdBase = "ion://"
@@ -37,10 +40,6 @@ func Init(ip string, port int, etcds []string) {
 	etcdRtp = etcdBase + "rtp"
 	etcdNode = etcdBase + "node/" + nodeIP + ":" + strconv.Itoa(nodePort)
 
-	updateLoad()
-}
-
-func updateLoad() {
 	go func() {
 		etcd.keep(etcdNode, "")
 		for {
@@ -93,4 +92,34 @@ func getScore() string {
 
 func Close() {
 	close(quit)
+}
+
+func Keep(key, val string) {
+	log.Infof("discovery.Keep etcd=%v", etcd)
+	if etcd != nil {
+		etcd.keep(key, val)
+	}
+}
+
+func Watch(key string, watchFunc WatchCallback, prefix bool) {
+	if etcd != nil {
+		etcd.watch(key, watchFunc, prefix)
+	}
+}
+
+func Del(key string, prefix bool) {
+	if etcd != nil {
+		etcd.del(key, prefix)
+	}
+}
+
+func GetByPrefix(key string) map[string]string {
+	if etcd == nil {
+		return nil
+	}
+	m, err := etcd.getByPrefix(key)
+	if err != nil {
+		return nil
+	}
+	return m
 }
