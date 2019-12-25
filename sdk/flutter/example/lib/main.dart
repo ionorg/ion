@@ -166,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _inCalling = true;
       });
       var stream = await _client.publish();
-      var adapter = new VideoRendererAdapter(stream.mid, true);
+      var adapter = VideoRendererAdapter(stream.mid, true);
       await adapter.setSrcObject(stream.stream);
       setState(() {
         _videoRendererAdapters.add(adapter);
@@ -182,7 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildJoinView(context) {
-    return new Align(
+    return Align(
         alignment: Alignment(0, 0),
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -232,12 +232,12 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         barrierDismissible: false,
                         builder: (BuildContext context) {
-                          return new AlertDialog(
-                            title: new Text('Client id is empty'),
-                            content: new Text('Please enter Ion room id!'),
+                          return AlertDialog(
+                            title: Text('Client id is empty'),
+                            content: Text('Please enter Ion room id!'),
                             actions: <Widget>[
-                              new FlatButton(
-                                child: new Text('Ok'),
+                              FlatButton(
+                                child: Text('Ok'),
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
@@ -252,7 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildConnectView(context) {
-    return new Align(
+    return Align(
         alignment: Alignment(0, 0),
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -302,13 +302,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         context: context,
                         barrierDismissible: false,
                         builder: (BuildContext context) {
-                          return new AlertDialog(
-                            title: new Text('Server is empty'),
+                          return AlertDialog(
+                            title: Text('Server is empty'),
                             content:
-                                new Text('Please enter Pion-Client address!'),
+                                Text('Please enter Pion-Client address!'),
                             actions: <Widget>[
-                              new FlatButton(
-                                child: new Text('Ok'),
+                              FlatButton(
+                                child: Text('Ok'),
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
@@ -331,7 +331,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<Widget> _buildVideoViews() {
-    List<Widget> views = new List<Widget>();
+    List<Widget> views = List<Widget>();
     _videoRendererAdapters.forEach((adapter) {
       views.add(buildVideoView(adapter));
     });
@@ -339,7 +339,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget buildStreamsGridView() {
-    return new GridView.extent(
+    return GridView.extent(
       maxCrossAxisExtent: 300.0,
       padding: const EdgeInsets.all(1.0),
       mainAxisSpacing: 1.0,
