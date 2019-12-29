@@ -71,9 +71,9 @@ class Client extends EventEmitter {
 
     this._protoo.on('request', this._handleRequest);
     this._protoo.on('notification', this._handleNotification);
-
-    this._protoo.connect();
   }
+
+  connect() async => this._protoo.connect();
 
   String get uid => _uid;
 
@@ -83,7 +83,7 @@ class Client extends EventEmitter {
     try {
       var data = await this
           ._protoo
-          .send('join', {'rid': this._rid, 'id': this._uid, 'info': info});
+          .send('join', {'rid': this._rid, 'uid': this._uid, 'info': info});
       logger.debug('join success: result => ' + _encoder.convert(data));
       return data;
     } catch (error) {
@@ -94,7 +94,7 @@ class Client extends EventEmitter {
   Future<dynamic> leave() async {
     try {
       var data =
-          await this._protoo.send('leave', {'rid': this._rid, 'id': this._uid});
+          await this._protoo.send('leave', {'rid': this._rid, 'uid': this._uid});
       logger.debug('leave success: result => ' + _encoder.convert(data));
       return data;
     } catch (error) {

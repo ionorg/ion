@@ -29,18 +29,13 @@ class _LoginPageState extends State<LoginPage> {
       _server = prefs.getString('server') ?? 'pionion.org';
       _roomID = prefs.getString('room') ?? 'room1';
     });
-    handleConnect();
-  }
-
-  handleConnect() async {
-    Provider.of<ClientProvider>(context).init();
   }
 
   handleJoin() async {
-    if(Provider.of<ClientProvider>(context).connected){
-      Provider.of<ClientProvider>(context).join(_roomID);
-      Application.router.navigateTo(context, "/meeting");
-    }
+    ClientProvider client = Provider.of<ClientProvider>(context);
+    await client.connect(_server);
+    await client.join(_roomID);
+    Application.router.navigateTo(context, "/meeting");
   }
 
   Widget buildJoinView(context) {
@@ -51,6 +46,29 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              SizedBox(
+                  width: 260.0,
+                  child: TextField(
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(10.0),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _server ?? 'Enter Ion Server.',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _server = value;
+                        });
+                      },
+                      controller:
+                      TextEditingController.fromValue(TextEditingValue(
+                        text: '${this._server == null ? "" : this._server}',
+                        selection: TextSelection.fromPosition(TextPosition(
+                            affinity: TextAffinity.downstream,
+                            offset: '${this._server}'.length)),
+                      )))),
               SizedBox(
                   width: 260.0,
                   child: TextField(
