@@ -6,27 +6,13 @@ import '../widget/video_render_adapter.dart';
 import '../provider/client_provider.dart';
 import '../router/application.dart';
 
-class MeetingPage extends StatelessWidget {
+
+class MeetingPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ion Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Ion Flutter Demo'),
-    );
-  }
+  _MeetingPageState createState() => _MeetingPageState();
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-  final String title;
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
+class _MeetingPageState extends State<MeetingPage> {
   SharedPreferences prefs;
   bool _inCalling = false;
   List<VideoRendererAdapter> _videoRendererAdapters = List();
@@ -79,12 +65,13 @@ class _MyHomePageState extends State<MyHomePage> {
       return Scaffold(
         appBar: orientation == Orientation.portrait
             ? AppBar(
-          title: Text(widget.title),
+                title: Text('Ion Flutter Demo'),
+                centerTitle: true,
+                automaticallyImplyLeading: false,
         )
             : null,
         body: Center(
           child: Consumer<ClientProvider>(builder: (BuildContext context, ClientProvider clientProvider, Widget child) {
-            //获取消息列表数据
             _videoRendererAdapters = clientProvider.videoRendererAdapters;
             return buildStreamsGridView();
           }),

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../provider/client_provider.dart';
 import '../router/application.dart';
+import '../utils/utils.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({Key key, this.title}) : super(key: key);
@@ -77,13 +78,12 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(
                   width: 220.0,
                   height: 48.0,
-                  child: MaterialButton(
+                  child: OutlineButton(
                     child: Text(
                       'Join',
-                      style: TextStyle(fontSize: 16.0, color: Colors.white),
+                      style: TextStyle(fontSize: 16.0, color: Colors.black),
                     ),
-                    color: Colors.blue,
-                    textColor: Colors.white,
+                    borderSide: BorderSide(color: string2Color('#e13b3f')),
                     onPressed: () {
                       if (_roomID != null) {
                         handleJoin();

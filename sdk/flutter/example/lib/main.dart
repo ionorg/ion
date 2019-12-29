@@ -5,6 +5,7 @@ import 'page/login_page.dart';
 import 'provider/client_provider.dart';
 import 'router/application.dart';
 import 'router/routes.dart';
+import 'utils/utils.dart';
 
 void main() => runApp(MyApp());
 
@@ -24,8 +25,13 @@ class MyApp extends StatelessWidget {
         title: '',
         onGenerateRoute: Application.router.generator,
         home: LoginPage(),
+        theme: mDefaultTheme,
       ),
     );
   }
 }
 
+//自定义主题
+final ThemeData mDefaultTheme = ThemeData(
+  primaryColor: string2Color('#0a0a0a'),
+);
