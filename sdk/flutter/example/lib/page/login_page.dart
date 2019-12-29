@@ -75,41 +75,53 @@ class _LoginPageState extends State<LoginPage> {
                             offset: '${this._roomID}'.length)),
                       )))),
               SizedBox(width: 260.0, height: 48.0),
-              SizedBox(
+              InkWell(
+                child: Container(
                   width: 220.0,
                   height: 48.0,
-                  child: OutlineButton(
-                    child: Text(
-                      'Join',
-                      style: TextStyle(fontSize: 16.0, color: Colors.black),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color:string2Color('#e13b3f'),
+                        width: 1,
                     ),
-                    borderSide: BorderSide(color: string2Color('#e13b3f')),
-                    onPressed: () {
-                      if (_roomID != null) {
-                        handleJoin();
-                        prefs.setString('room', _roomID);
-                        return;
-                      }
-                      showDialog<Null>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Client id is empty'),
-                            content: Text('Please enter Ion room id!'),
-                            actions: <Widget>[
-                              FlatButton(
-                                child: Text('Ok'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                            ],
-                          );
-                        },
+                  ),
+                    child: Center(
+                      child: Text(
+                        'Join',
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.black,
+                          fontWeight:FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ),
+                onTap: () {
+                  if (_roomID != null) {
+                    handleJoin();
+                    prefs.setString('room', _roomID);
+                    return;
+                  }
+                  showDialog<Null>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text('Client id is empty'),
+                        content: Text('Please enter Ion room id!'),
+                        actions: <Widget>[
+                          FlatButton(
+                            child: Text('Ok'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
                       );
                     },
-                  ))
+                  );
+                },
+              ),
             ]));
   }
 
