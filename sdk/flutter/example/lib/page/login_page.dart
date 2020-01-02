@@ -54,8 +54,8 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(10.0),
                         border: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black12)),
-                        hintText: _server ?? 'Enter Ion Server.',
+                          borderSide: BorderSide(color: Colors.black12)),
+                          hintText: _server ?? 'Enter Ion Server.',
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -77,8 +77,8 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(10.0),
                         border: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black12)),
-                        hintText: _roomID ?? 'Enter RoomID.',
+                          borderSide: BorderSide(color: Colors.black12)),
+                          hintText: _roomID ?? 'Enter RoomID.',
                       ),
                       onChanged: (value) {
                         setState(() {

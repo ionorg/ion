@@ -31,7 +31,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//自定义主题
 final ThemeData mDefaultTheme = ThemeData(
   primaryColor: string2Color('#0a0a0a'),
 );

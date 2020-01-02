@@ -6,7 +6,6 @@ import '../widget/video_render_adapter.dart';
 import '../provider/client_provider.dart';
 import '../router/application.dart';
 
-
 class MeetingPage extends StatefulWidget {
   @override
   _MeetingPageState createState() => _MeetingPageState();
@@ -27,7 +26,7 @@ class _MeetingPageState extends State<MeetingPage> {
     prefs = await SharedPreferences.getInstance();
   }
 
-  handleLeave() async{
+  handleLeave() async {
     await Provider.of<ClientProvider>(context).cleanUp();
     Application.router.navigateTo(context, "/login");
   }
@@ -40,21 +39,64 @@ class _MeetingPageState extends State<MeetingPage> {
     );
   }
 
+  Widget _buildMainVideo() {
+    if (_videoRendererAdapters.length == 0)
+      return Image.asset(
+        'assets/images/loading.jpeg',
+        fit: BoxFit.cover,
+      );
+
+    var adapter = _videoRendererAdapters[0];
+    return GestureDetector(
+        onDoubleTap: () {
+          adapter.switchObjFit();
+        },
+        child: RTCVideoView(adapter.renderer));
+  }
+
   List<Widget> _buildVideoViews() {
-    List<Widget> views = List<Widget>();
-    _videoRendererAdapters.forEach((adapter) {
-      views.add(buildVideoView(adapter));
-    });
+    List<Widget> views = new List<Widget>();
+    if (_videoRendererAdapters.length > 1)
+      _videoRendererAdapters
+          .getRange(1, _videoRendererAdapters.length)
+          .forEach((adapter) {
+        views.add(_buildVideo(adapter));
+      });
     return views;
   }
 
-  Widget buildStreamsGridView() {
-    return GridView.extent(
-      maxCrossAxisExtent: 300.0,
-      padding: const EdgeInsets.all(1.0),
-      mainAxisSpacing: 1.0,
-      crossAxisSpacing: 1.0,
-      children: _buildVideoViews(),
+  swapVideoPostion(int x, int y) {
+    var src = _videoRendererAdapters[x];
+    var dest = _videoRendererAdapters[y];
+    var srcStream = src.stream;
+    src.setSrcObject(null);
+    dest.setSrcObject(srcStream);
+  }
+
+  Widget _buildVideo(VideoRendererAdapter adapter) {
+    return SizedBox(
+      width: 120,
+      height: 90,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          border: Border.all(
+            color: Colors.white,
+            width: 1.0,
+          ),
+        ),
+        child: GestureDetector(
+            onTap: () async {
+              var mainVideoAdapter = _videoRendererAdapters[0];
+              var mainStream = mainVideoAdapter.stream;
+              await mainVideoAdapter.setSrcObject(adapter.stream);
+              await adapter.setSrcObject(mainStream);
+            },
+            onDoubleTap: () {
+              adapter.switchObjFit();
+            },
+            child: RTCVideoView(adapter.renderer)),
+      ),
     );
   }
 
@@ -68,24 +110,90 @@ class _MeetingPageState extends State<MeetingPage> {
                 title: Text('Ion Flutter Demo'),
                 centerTitle: true,
                 automaticallyImplyLeading: false,
-        )
+              )
             : null,
-        body: Center(
-          child: Consumer<ClientProvider>(builder: (BuildContext context, ClientProvider clientProvider, Widget child) {
-            _videoRendererAdapters = clientProvider.videoRendererAdapters;
-            return buildStreamsGridView();
-          }),
-        ),
-        floatingActionButton: _inCalling
-            ? FloatingActionButton(
-          onPressed: (){
-            handleLeave();
-          },
-          backgroundColor: Colors.red,
-          tooltip: 'Increment',
-          child: Icon(Icons.call_end),
-        )
-            : null,
+        body: Consumer<ClientProvider>(builder: (BuildContext context,
+            ClientProvider clientProvider, Widget child) {
+          _videoRendererAdapters = clientProvider.videoRendererAdapters;
+          return orientation == Orientation.portrait
+              ? Container(
+                  color: Colors.black87,
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          color: Colors.black54,
+                          child: Stack(
+                            children: <Widget>[
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  child: _buildMainVideo(),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 48,
+                                height: 90,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  children: _buildVideoViews(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  color: Colors.black54,
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          color: Colors.black87,
+                          child: Stack(
+                            children: <Widget>[
+                              Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    child: _buildMainVideo(),
+                                  )),
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: 120,
+                                child: ListView(
+                                  scrollDirection: Axis.vertical,
+                                  children: _buildVideoViews(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+        }),
       );
     });
   }
