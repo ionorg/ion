@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_webrtc/webrtc.dart';
+import 'package:flutter_icons/flutter_icons.dart';
 import '../widget/video_render_adapter.dart';
 import '../provider/client_provider.dart';
 import '../router/application.dart';
@@ -15,6 +16,8 @@ class _MeetingPageState extends State<MeetingPage> {
   SharedPreferences prefs;
   bool _inCalling = false;
   List<VideoRendererAdapter> _videoRendererAdapters = List();
+  bool _cameraOff = false;
+  bool _microphoneOff = false;
 
   @override
   initState() {
@@ -100,6 +103,99 @@ class _MeetingPageState extends State<MeetingPage> {
     );
   }
 
+  //Switch local camera
+  _switchCamera() {
+  }
+
+  //Open or close local video
+  _turnCamera() {
+    var muted = !_cameraOff;
+    setState(() {
+      _cameraOff = muted;
+    });
+  }
+
+  //Open or close local audio
+  _turnMicrophone() {
+    var muted = !_microphoneOff;
+    setState(() {
+      _microphoneOff = muted;
+    });
+  }
+
+  _hangUp() {
+  }
+
+  Widget _buildLoading() {
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Colors.white),
+            ),
+          ),
+          SizedBox(
+            width: 10,
+          ),
+          Text(
+            'Waiting for others to join...',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 22.0,
+                fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //tools
+  List<Widget> _buildTools() {
+    return <Widget>[
+      IconButton(
+        icon: Icon(
+          _cameraOff
+              ? MaterialCommunityIcons.getIconData("video-off")
+              : MaterialCommunityIcons.getIconData("video"),
+          color: _cameraOff ? Colors.red : Colors.white,
+        ),
+        onPressed: _turnCamera,
+      ),
+      IconButton(
+        icon: Icon(
+          MaterialCommunityIcons.getIconData("video-switch"),
+          color: Colors.white,
+        ),
+        onPressed: _switchCamera,
+      ),
+      IconButton(
+        icon: Icon(
+          _microphoneOff
+              ? MaterialCommunityIcons.getIconData("microphone-off")
+              : MaterialCommunityIcons.getIconData("microphone"),
+          color: _microphoneOff ? Colors.red : Colors.white,
+        ),
+        onPressed: _turnMicrophone,
+      ),
+      IconButton(
+        icon: Icon(
+          MaterialIcons.getIconData("volume-up"),
+          color: Colors.white,
+        ),
+        onPressed: () {},
+      ),
+      IconButton(
+        icon: Icon(
+          MaterialCommunityIcons.getIconData("phone-hangup"),
+          color: Colors.red,
+        ),
+        onPressed: _hangUp,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     _inCalling = Provider.of<ClientProvider>(context).inCalling;
@@ -152,6 +248,29 @@ class _MeetingPageState extends State<MeetingPage> {
                           ),
                         ),
                       ),
+                      (_videoRendererAdapters.length == 0)
+                          ? _buildLoading()
+                          : Container(),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: 48,
+                        child: Card(
+                          elevation: 0.0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(0.0),
+                          ),
+                          margin: EdgeInsets.all(0.0),
+                          color: Colors.black87,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: _buildTools(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -187,6 +306,29 @@ class _MeetingPageState extends State<MeetingPage> {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                      (_videoRendererAdapters.length == 0)
+                          ? _buildLoading()
+                          : Container(),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: 48,
+                        child: Card(
+                          elevation: 0.0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(0.0),
+                          ),
+                          margin: EdgeInsets.all(0.0),
+                          color: Colors.black87,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: _buildTools(),
                           ),
                         ),
                       ),
