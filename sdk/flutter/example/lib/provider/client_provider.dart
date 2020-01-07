@@ -11,8 +11,10 @@ class ClientProvider with ChangeNotifier {
   bool _connected = false;
   String roomId;
   List<VideoRendererAdapter> _videoRendererAdapters = List();
+  VideoRendererAdapter _localVideoAdapter;
 
   get videoRendererAdapters => _videoRendererAdapters;
+  get localVideoAdapter => _localVideoAdapter;
   get connected => _connected;
   get inCalling => _inCalling;
 
@@ -64,7 +66,7 @@ class ClientProvider with ChangeNotifier {
       var stream = await _client.publish();
       var adapter = VideoRendererAdapter(stream.mid, true);
       await adapter.setSrcObject(stream.stream);
-      _videoRendererAdapters.add(adapter);
+      _localVideoAdapter = adapter;
       notifyListeners();
     } catch (error) {}
   }

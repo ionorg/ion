@@ -16,8 +16,12 @@ class _MeetingPageState extends State<MeetingPage> {
   SharedPreferences prefs;
   bool _inCalling = false;
   List<VideoRendererAdapter> _videoRendererAdapters = List();
+  VideoRendererAdapter _localVideoAdapter = null;
   bool _cameraOff = false;
   bool _microphoneOff = false;
+
+  final double LOCAL_VIDEO_WIDTH = 114.0;
+  final double LOCAL_VIDEO_HEIGHT = 72.0;
 
   @override
   initState() {
@@ -55,6 +59,38 @@ class _MeetingPageState extends State<MeetingPage> {
           adapter.switchObjFit();
         },
         child: RTCVideoView(adapter.renderer));
+  }
+
+  Widget _buildLocalVideo(Orientation orientation) {
+    if (_localVideoAdapter != null) {
+      return SizedBox(
+          width: (orientation == Orientation.portrait)
+              ? LOCAL_VIDEO_HEIGHT
+              : LOCAL_VIDEO_WIDTH,
+          height: (orientation == Orientation.portrait)
+              ? LOCAL_VIDEO_WIDTH
+              : LOCAL_VIDEO_HEIGHT,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              border: Border.all(
+                //边框颜色
+                color: Colors.white,
+                //边框粗细
+                width: 0.5,
+              ),
+            ),
+            child: GestureDetector(
+                onTap: () {
+                  _switchCamera();
+                },
+                onDoubleTap: () {
+                  _localVideoAdapter.switchObjFit();
+                },
+                child: RTCVideoView(_localVideoAdapter.renderer)),
+          ));
+    }
+    return Container();
   }
 
   List<Widget> _buildVideoViews() {
@@ -104,8 +140,7 @@ class _MeetingPageState extends State<MeetingPage> {
   }
 
   //Switch local camera
-  _switchCamera() {
-  }
+  _switchCamera() {}
 
   //Open or close local video
   _turnCamera() {
@@ -123,8 +158,7 @@ class _MeetingPageState extends State<MeetingPage> {
     });
   }
 
-  _hangUp() {
-  }
+  _hangUp() {}
 
   Widget _buildLoading() {
     return Center(
@@ -200,142 +234,160 @@ class _MeetingPageState extends State<MeetingPage> {
   Widget build(BuildContext context) {
     _inCalling = Provider.of<ClientProvider>(context).inCalling;
     return OrientationBuilder(builder: (context, orientation) {
-      return Scaffold(
-        appBar: orientation == Orientation.portrait
-            ? AppBar(
-                title: Text('Ion Flutter Demo'),
-                centerTitle: true,
-                automaticallyImplyLeading: false,
-              )
-            : null,
-        body: Consumer<ClientProvider>(builder: (BuildContext context,
-            ClientProvider clientProvider, Widget child) {
-          _videoRendererAdapters = clientProvider.videoRendererAdapters;
-          return orientation == Orientation.portrait
-              ? Container(
-                  color: Colors.black87,
-                  child: Stack(
-                    children: <Widget>[
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          color: Colors.black54,
-                          child: Stack(
-                            children: <Widget>[
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                top: 0,
-                                bottom: 0,
-                                child: Container(
-                                  child: _buildMainVideo(),
-                                ),
+      return SafeArea(
+        child: Scaffold(
+          appBar: orientation == Orientation.portrait
+              ? AppBar(
+            title: Text('Ion Flutter Demo'),
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+          )
+              : null,
+          body: Consumer<ClientProvider>(builder: (BuildContext context,
+              ClientProvider clientProvider, Widget child) {
+            _videoRendererAdapters = clientProvider.videoRendererAdapters;
+            _localVideoAdapter = clientProvider.localVideoAdapter;
+            return orientation == Orientation.portrait
+                ? Container(
+              color: Colors.black87,
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      color: Colors.black54,
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              child: _buildMainVideo(),
+                            ),
+                          ),
+                          Positioned(
+                              right: 10,
+                              top: 10,
+                              child: Container(
+                                child: _buildLocalVideo(orientation),
                               ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 48,
-                                height: 90,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: _buildVideoViews(),
-                                ),
-                              ),
-                            ],
                           ),
-                        ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 48,
+                            height: 90,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: _buildVideoViews(),
+                            ),
+                          ),
+                        ],
                       ),
-                      (_videoRendererAdapters.length == 0)
-                          ? _buildLoading()
-                          : Container(),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: 48,
-                        child: Card(
-                          elevation: 0.0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(0.0),
-                          ),
-                          margin: EdgeInsets.all(0.0),
-                          color: Colors.black87,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: _buildTools(),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                )
-              : Container(
-                  color: Colors.black54,
-                  child: Stack(
-                    children: <Widget>[
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          color: Colors.black87,
-                          child: Stack(
-                            children: <Widget>[
-                              Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    child: _buildMainVideo(),
-                                  )),
-                              Positioned(
-                                left: 0,
-                                top: 0,
-                                bottom: 0,
-                                width: 120,
-                                child: ListView(
-                                  scrollDirection: Axis.vertical,
-                                  children: _buildVideoViews(),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                  (_videoRendererAdapters.length == 0)
+                      ? _buildLoading()
+                      : Container(),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 48,
+                    child: Card(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(0.0),
                       ),
-                      (_videoRendererAdapters.length == 0)
-                          ? _buildLoading()
-                          : Container(),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: 48,
-                        child: Card(
-                          elevation: 0.0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(0.0),
-                          ),
-                          margin: EdgeInsets.all(0.0),
-                          color: Colors.black87,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: _buildTools(),
-                          ),
-                        ),
+                      margin: EdgeInsets.all(0.0),
+                      color: Colors.black87,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: _buildTools(),
                       ),
-                    ],
+                    ),
                   ),
-                );
-        }),
+                ],
+              ),
+            )
+                : Container(
+              color: Colors.black54,
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      color: Colors.black87,
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned(
+                              left: 0,
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              child: Container(
+                                child: _buildMainVideo(),
+                              ),
+                          ),
+                          Positioned(
+                              right: 60,
+                              top: 10,
+                              child: Container(
+                                child: _buildLocalVideo(orientation),
+                              ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 120,
+                            child: ListView(
+                              scrollDirection: Axis.vertical,
+                              children: _buildVideoViews(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  (_videoRendererAdapters.length == 0)
+                      ? _buildLoading()
+                      : Container(),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 48,
+                    child: Card(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(0.0),
+                      ),
+                      margin: EdgeInsets.all(0.0),
+                      color: Colors.black87,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: _buildTools(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
       );
     });
   }
