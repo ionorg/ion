@@ -236,156 +236,189 @@ class _MeetingPageState extends State<MeetingPage> {
     return OrientationBuilder(builder: (context, orientation) {
       return SafeArea(
         child: Scaffold(
-          appBar: orientation == Orientation.portrait
-              ? AppBar(
-            title: Text('Ion Flutter Demo'),
-            centerTitle: true,
-            automaticallyImplyLeading: false,
-          )
-              : null,
           body: Consumer<ClientProvider>(builder: (BuildContext context,
               ClientProvider clientProvider, Widget child) {
             _videoRendererAdapters = clientProvider.videoRendererAdapters;
             _localVideoAdapter = clientProvider.localVideoAdapter;
             return orientation == Orientation.portrait
                 ? Container(
-              color: Colors.black87,
-              child: Stack(
-                children: <Widget>[
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Container(
-                      color: Colors.black54,
-                      child: Stack(
-                        children: <Widget>[
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              child: _buildMainVideo(),
+                    color: Colors.black87,
+                    child: Stack(
+                      children: <Widget>[
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            color: Colors.black54,
+                            child: Stack(
+                              children: <Widget>[
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    child: _buildMainVideo(),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 10,
+                                  top: 48,
+                                  child: Container(
+                                    child: _buildLocalVideo(orientation),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 48,
+                                  height: 90,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: _buildVideoViews(),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Positioned(
-                              right: 10,
-                              top: 10,
-                              child: Container(
-                                child: _buildLocalVideo(orientation),
+                        ),
+                        (_videoRendererAdapters.length == 0)
+                            ? _buildLoading()
+                            : Container(),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: 48,
+                          child: Stack(
+                            children: <Widget>[
+                              Opacity(
+                                opacity: 0.5,
+                                child: Container(
+                                  color: Colors.black,
+                                ),
                               ),
+                              Container(
+                                margin: EdgeInsets.all(0.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: _buildTools(),
+                                ),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 48,
-                            height: 90,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: _buildVideoViews(),
-                            ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: 48,
+                          child: Stack(
+                            children: <Widget>[
+                              Opacity(
+                                opacity: 0.5,
+                                child: Container(
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Container(
+                                margin: EdgeInsets.all(0.0),
+                                child: Center(
+                                  child: Text(
+                                    'Ion Flutter Demo',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                  (_videoRendererAdapters.length == 0)
-                      ? _buildLoading()
-                      : Container(),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 48,
-                    child: Card(
-                      elevation: 0.0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(0.0),
-                      ),
-                      margin: EdgeInsets.all(0.0),
-                      color: Colors.black87,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: _buildTools(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
+                  )
                 : Container(
-              color: Colors.black54,
-              child: Stack(
-                children: <Widget>[
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Container(
-                      color: Colors.black87,
-                      child: Stack(
-                        children: <Widget>[
-                          Positioned(
-                              left: 0,
-                              right: 0,
-                              top: 0,
-                              bottom: 0,
-                              child: Container(
-                                child: _buildMainVideo(),
-                              ),
-                          ),
-                          Positioned(
-                              right: 60,
-                              top: 10,
-                              child: Container(
-                                child: _buildLocalVideo(orientation),
-                              ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: 120,
-                            child: ListView(
-                              scrollDirection: Axis.vertical,
-                              children: _buildVideoViews(),
+                    color: Colors.black54,
+                    child: Stack(
+                      children: <Widget>[
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            color: Colors.black87,
+                            child: Stack(
+                              children: <Widget>[
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    child: _buildMainVideo(),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 60,
+                                  top: 10,
+                                  child: Container(
+                                    child: _buildLocalVideo(orientation),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: 120,
+                                  child: ListView(
+                                    scrollDirection: Axis.vertical,
+                                    children: _buildVideoViews(),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        (_videoRendererAdapters.length == 0)
+                            ? _buildLoading()
+                            : Container(),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          width: 48,
+                          child: Stack(
+                            children: <Widget>[
+                              Opacity(
+                                opacity: 0.5,
+                                child: Container(
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Container(
+                                margin: EdgeInsets.all(0.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: _buildTools(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  (_videoRendererAdapters.length == 0)
-                      ? _buildLoading()
-                      : Container(),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: 48,
-                    child: Card(
-                      elevation: 0.0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(0.0),
-                      ),
-                      margin: EdgeInsets.all(0.0),
-                      color: Colors.black87,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: _buildTools(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
+                  );
           }),
         ),
       );
