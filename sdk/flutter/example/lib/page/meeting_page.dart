@@ -177,38 +177,40 @@ class _MeetingPageState extends State<MeetingPage> {
       } else {
         _showSnackBar(":::The microphone is unmuted:::");
       }
-    } else {
-    }
+    } else {}
   }
 
   //Leave current video room
   _hangUp() {
-    if (Provider.of<ClientProvider>(context).client!= null) {
+    if (Provider.of<ClientProvider>(context).client != null) {
       showDialog(
           context: context,
           builder: (_) => AlertDialog(
-              title: Text("Hangup"),
-              content: Text("Are you sure to leave the room?"),
-              actions: <Widget>[
-                FlatButton(
-                  child: Text("Cancel"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                FlatButton(
-                  child: Text("Hangup", style: TextStyle(color: Colors.red),),
-                  onPressed: () {
-                    Provider.of<ClientProvider>(context).cleanUp();
-                    this.setState(() {
-                      _inCalling = false;
-                      _localVideoAdapter = null;
-                      _videoRendererAdapters.clear();
-                    });
-                    Application.router.navigateTo(context, "/login");
-                  },
-                )
-              ]));
+                  title: Text("Hangup"),
+                  content: Text("Are you sure to leave the room?"),
+                  actions: <Widget>[
+                    FlatButton(
+                      child: Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    FlatButton(
+                      child: Text(
+                        "Hangup",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onPressed: () {
+                        Provider.of<ClientProvider>(context).cleanUp();
+                        this.setState(() {
+                          _inCalling = false;
+                          _localVideoAdapter = null;
+                          _videoRendererAdapters.clear();
+                        });
+                        Application.router.navigateTo(context, "/login");
+                      },
+                    )
+                  ]));
     } else {
       Navigator.of(context).pop();
     }
@@ -255,44 +257,96 @@ class _MeetingPageState extends State<MeetingPage> {
   //tools
   List<Widget> _buildTools() {
     return <Widget>[
-      IconButton(
-        icon: Icon(
-          _cameraOff
-              ? MaterialCommunityIcons.getIconData("video-off")
-              : MaterialCommunityIcons.getIconData("video"),
-          color: _cameraOff ? Colors.red : Colors.white,
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: RawMaterialButton(
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            _cameraOff
+                ? MaterialCommunityIcons.getIconData("video-off")
+                : MaterialCommunityIcons.getIconData("video"),
+            color: _cameraOff ? Colors.red : Colors.white,
+          ),
+          onPressed: _turnCamera,
         ),
-        onPressed: _turnCamera,
       ),
-      IconButton(
-        icon: Icon(
-          MaterialCommunityIcons.getIconData("video-switch"),
-          color: Colors.white,
+
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: RawMaterialButton(
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            MaterialCommunityIcons.getIconData("video-switch"),
+            color: Colors.white,
+          ),
+          onPressed: _switchCamera,
         ),
-        onPressed: _switchCamera,
       ),
-      IconButton(
-        icon: Icon(
-          _microphoneOff
-              ? MaterialCommunityIcons.getIconData("microphone-off")
-              : MaterialCommunityIcons.getIconData("microphone"),
-          color: _microphoneOff ? Colors.red : Colors.white,
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: RawMaterialButton(
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            _microphoneOff
+                ? MaterialCommunityIcons.getIconData("microphone-off")
+                : MaterialCommunityIcons.getIconData("microphone"),
+            color: _microphoneOff ? Colors.red : Colors.white,
+          ),
+          onPressed: _turnMicrophone,
         ),
-        onPressed: _turnMicrophone,
       ),
-      IconButton(
-        icon: Icon(
-          MaterialIcons.getIconData("volume-up"),
-          color: Colors.white,
+
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: RawMaterialButton(
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            MaterialIcons.getIconData("volume-up"),
+            color: Colors.white,
+          ),
+          onPressed: () {},
         ),
-        onPressed: () {},
       ),
-      IconButton(
-        icon: Icon(
-          MaterialCommunityIcons.getIconData("phone-hangup"),
-          color: Colors.red,
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: RawMaterialButton(
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            MaterialCommunityIcons.getIconData("phone-hangup"),
+            color: Colors.red,
+          ),
+          onPressed: _hangUp,
         ),
-        onPressed: _hangUp,
       ),
     ];
   }
@@ -369,11 +423,10 @@ class _MeetingPageState extends State<MeetingPage> {
                                 ),
                               ),
                               Container(
+                                height: 48,
                                 margin: EdgeInsets.all(0.0),
                                 child: Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: _buildTools(),
                                 ),
@@ -472,6 +525,7 @@ class _MeetingPageState extends State<MeetingPage> {
                                 ),
                               ),
                               Container(
+                                width: 48,
                                 margin: EdgeInsets.all(0.0),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.max,
