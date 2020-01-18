@@ -17,6 +17,7 @@ class ClientProvider with ChangeNotifier {
   get localVideoAdapter => _localVideoAdapter;
   get connected => _connected;
   get inCalling => _inCalling;
+  get client => _client;
 
   connect(host) async {
     if (_client == null) {

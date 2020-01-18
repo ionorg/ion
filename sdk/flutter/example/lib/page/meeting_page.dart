@@ -19,6 +19,7 @@ class _MeetingPageState extends State<MeetingPage> {
   VideoRendererAdapter _localVideoAdapter = null;
   bool _cameraOff = false;
   bool _microphoneOff = false;
+  BuildContext _context;
 
   final double LOCAL_VIDEO_WIDTH = 114.0;
   final double LOCAL_VIDEO_HEIGHT = 72.0;
@@ -74,9 +75,7 @@ class _MeetingPageState extends State<MeetingPage> {
             decoration: BoxDecoration(
               color: Colors.black87,
               border: Border.all(
-                //边框颜色
                 color: Colors.white,
-                //边框粗细
                 width: 0.5,
               ),
             ),
@@ -140,25 +139,93 @@ class _MeetingPageState extends State<MeetingPage> {
   }
 
   //Switch local camera
-  _switchCamera() {}
+  _switchCamera() {
+    if (_localVideoAdapter != null &&
+        _localVideoAdapter.stream.getVideoTracks().length > 0) {
+      _localVideoAdapter.stream.getVideoTracks()[0].switchCamera();
+    } else {
+      _showSnackBar(":::Unable to switch the camera:::");
+    }
+  }
 
   //Open or close local video
   _turnCamera() {
-    var muted = !_cameraOff;
-    setState(() {
-      _cameraOff = muted;
-    });
+    if (_localVideoAdapter != null &&
+        _localVideoAdapter.stream.getVideoTracks().length > 0) {
+      var muted = !_cameraOff;
+      setState(() {
+        _cameraOff = muted;
+      });
+      _localVideoAdapter.stream.getVideoTracks()[0].enabled = !muted;
+    } else {
+      _showSnackBar(":::Unable to operate the camera:::");
+    }
   }
 
   //Open or close local audio
   _turnMicrophone() {
-    var muted = !_microphoneOff;
-    setState(() {
-      _microphoneOff = muted;
-    });
+    if (_localVideoAdapter != null &&
+        _localVideoAdapter.stream.getAudioTracks().length > 0) {
+      var muted = !_microphoneOff;
+      setState(() {
+        _microphoneOff = muted;
+      });
+      _localVideoAdapter.stream.getAudioTracks()[0].enabled = !muted;
+
+      if (muted) {
+        _showSnackBar(":::The microphone is muted:::");
+      } else {
+        _showSnackBar(":::The microphone is unmuted:::");
+      }
+    } else {
+    }
   }
 
-  _hangUp() {}
+  //Leave current video room
+  _hangUp() {
+    if (Provider.of<ClientProvider>(context).client!= null) {
+      showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+              title: Text("Hangup"),
+              content: Text("Are you sure to leave the room?"),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                FlatButton(
+                  child: Text("Hangup", style: TextStyle(color: Colors.red),),
+                  onPressed: () {
+                    Provider.of<ClientProvider>(context).cleanUp();
+                    this.setState(() {
+                      _inCalling = false;
+                      _localVideoAdapter = null;
+                      _videoRendererAdapters.clear();
+                    });
+                    Application.router.navigateTo(context, "/login");
+                  },
+                )
+              ]));
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  _showSnackBar(String msg) {
+    final snackBar = SnackBar(
+      content: Text(
+        msg,
+        style: TextStyle(color: Colors.white),
+      ),
+      duration: Duration(
+        milliseconds: 1000,
+      ),
+    );
+    Scaffold.of(_context).showSnackBar(snackBar);
+  }
 
   Widget _buildLoading() {
     return Center(
@@ -232,6 +299,7 @@ class _MeetingPageState extends State<MeetingPage> {
 
   @override
   Widget build(BuildContext context) {
+    _context = context;
     _inCalling = Provider.of<ClientProvider>(context).inCalling;
     return OrientationBuilder(builder: (context, orientation) {
       return SafeArea(
