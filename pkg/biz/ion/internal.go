@@ -30,7 +30,7 @@ func handleRPCMsgMethod(from, method string, msg map[string]interface{}) {
 	case proto.IslbRelay:
 		sid := util.Val(msg, "sid")
 		mid := util.Val(msg, "mid")
-		rtc.AddNewRTPSub(mid, sid, sid)
+		rtc.NewRTPTransportSub(mid, sid, sid)
 	case proto.IslbUnrelay:
 		mid := util.Val(msg, "mid")
 		sid := util.Val(msg, "sid")

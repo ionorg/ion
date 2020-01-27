@@ -5,32 +5,50 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	"go.etcd.io/etcd/clientv3"
 )
 
-func watchStream(rid, uid, mid string, ssrcPt map[string]interface{}) {
-	key := getPubMediaPath(rid, mid)
-	t := time.NewTicker(time.Second)
-	for {
-		select {
-		case <-t.C:
-			info := redis.HGetAll(key)
-			if len(info) == 0 {
-				onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "uid", uid, "mid", mid)
-				log.Infof("amqp.BroadCast onStreamRemove=%v", onStreamRemove)
-				amqp.BroadCast(onStreamRemove)
-				return
+func Watch(ch clientv3.WatchChan) {
+	go func() {
+		for {
+			msg := <-ch
+			for _, ev := range msg.Events {
+				fmt.Printf("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				if ev.Type == clientv3.EventTypeDelete {
+					//room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ
+					rid, mid, uid := proto.GetRIDMIDUIDFromMediaKey(string(ev.Kv.Key))
+					if _, ok := streamDelCache[mid]; !ok {
+						streamDelCacheLock.Lock()
+						streamDelCache[mid] = true
+						streamDelCacheLock.Unlock()
+						time.AfterFunc(1*time.Second, func() {
+							streamDelCacheLock.Lock()
+							delete(streamDelCache, mid)
+							streamDelCacheLock.Unlock()
+						})
+						onStreamRemove := util.Map("rid", rid, "method", proto.IslbOnStreamRemove, "uid", uid, "mid", mid)
+						log.Infof("amqp.BroadCast onStreamRemove=%v", onStreamRemove)
+						amqp.BroadCast(onStreamRemove)
+					}
+				}
 			}
 		}
-	}
+	}()
+}
+
+func watchStream(rid, uid, mid string, ssrcPt map[string]interface{}) {
+	key := proto.GetPubMediaPath(rid, mid, 0)
+	discovery.Watch(key, Watch, true)
 }
 
 func streamAdd(rid, uid, mid, from string, ssrcPt map[string]interface{}) {
-	key := getPubNodePath(rid, uid)
+	key := proto.GetPubNodePath(rid, uid)
 	redis.HSetTTL(key, from, "", redisKeyTTL)
-	key = getPubMediaPath(rid, mid)
+	key = proto.GetPubMediaPath(rid, mid, 0)
 	for ssrc, pt := range ssrcPt {
 		redis.HSetTTL(key, ssrc, pt, redisKeyTTL)
 	}
@@ -44,49 +62,50 @@ func streamAdd(rid, uid, mid, from string, ssrcPt map[string]interface{}) {
 			delete(streamAddCache, mid)
 			streamAddCacheLock.Unlock()
 		})
-		infoMap := redis.HGetAll(getUserInfoPath(rid, uid))
+		infoMap := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
 		for info := range infoMap {
 			onStreamAdd := util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "uid", uid, "mid", mid, "info", info)
+			log.Infof("streamAdd amqp.BroadCast %v", onStreamAdd)
 			amqp.BroadCast(onStreamAdd)
 		}
-		// keep watching mid
+
 		go watchStream(rid, uid, mid, ssrcPt)
 	}
 }
 
-func keepAlive(rid, uid, mid, from string, ssrcPt map[string]interface{}) {
-	key := getPubNodePath(rid, uid)
-	redis.HSetTTL(key, from, "", redisKeyTTL)
-	key = getPubMediaPath(rid, mid)
-	for ssrc, pt := range ssrcPt {
-		redis.HSetTTL(key, ssrc, pt, redisKeyTTL)
+func getPubs(rid, uid, from, corrID string) {
+	key := proto.GetPubMediaPathKey(rid)
+	log.Infof("getPubs rid=%s uid=%s key=%s", rid, uid, key)
+	midSsrcPt := make(map[string]map[string]string)
+	for path, pt := range discovery.GetByPrefix(key) {
+		log.Infof("key=%s path=%s pt=%s skip uid=%v", key, path, pt, uid)
+		//key=room1/media/pub/ k=room1/media/pub/5514c31f-2375-427f-9517-db46e967f842#MGEGMG/3318957691 v=96 skip uid=6d3c3e56-93bf-4210-aa96-294964743beb
+		if !strings.Contains(path, uid) {
+			strs := strings.Split(path, "/")
+			if midSsrcPt[strs[3]] == nil {
+				midSsrcPt[strs[3]] = make(map[string]string)
+			}
+			midSsrcPt[strs[3]][strs[4]] = pt
+		}
 	}
-}
-
-func getPubs(rid, uid, mid, from, corrID string) {
-	key := getPubMediaPathKey(rid)
-	for _, k := range redis.Keys(key) {
-		log.Infof("key=%s k=%s skip uid=%v", key, k, uid)
-		if !strings.Contains(k, uid) {
-			mid := strings.Split(k, "/")[3]
-			ssrcs := "{"
-			for ssrc, pt := range redis.HGetAll(getPubMediaPath(rid, mid)) {
-				ssrcs += fmt.Sprintf("%s:%s, ", ssrc, pt)
-			}
-			ssrcs += "}"
-			info := redis.HGetAll(getUserInfoPath(rid, uid))
-			for i := range info {
-				resp := util.Map("response", proto.IslbGetPubs, "rid", rid, "uid", uid, "mid", mid, "mediaInfo", ssrcs, "info", i)
-				log.Infof("amqp.RpcCall from=%s resp=%v corrID=%s", from, resp, corrID)
-				amqp.RpcCall(from, resp, corrID)
-			}
+	for mid, ssrcPt := range midSsrcPt {
+		ssrcs := "{"
+		for ssrc, pt := range ssrcPt {
+			ssrcs += fmt.Sprintf("\"%s\":%s, ", ssrc, pt)
+		}
+		ssrcs += "}"
+		info := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
+		for i := range info {
+			resp := util.Map("response", proto.IslbGetPubs, "rid", rid, "uid", uid, "mid", mid, "mediaInfo", ssrcs, "info", i)
+			log.Infof("amqp.RpcCall from=%s resp=%v corrID=%s", from, resp, corrID)
+			amqp.RpcCall(from, resp, corrID)
 		}
 	}
 }
 
 func clientJoin(rid, uid, info string) {
 	onJoin := util.Map("method", proto.IslbClientOnJoin, "rid", rid, "uid", uid, "info", info)
-	key := getUserInfoPath(rid, uid)
+	key := proto.GetUserInfoPath(rid, uid)
 	log.Infof("redis.HSetTTL %v %v", key, info)
 	redis.HSetTTL(key, info, "", redisLongKeyTTL)
 	log.Infof("amqp.BroadCast onJoin=%v", onJoin)
@@ -94,15 +113,17 @@ func clientJoin(rid, uid, info string) {
 }
 
 func clientLeave(rid, uid string) {
-	key := getPubNodePath(rid, uid)
+	key := proto.GetPubNodePath(rid, uid)
 	redis.Del(key)
 	onLeave := util.Map("rid", rid, "method", proto.IslbClientOnLeave, "uid", uid)
 	log.Infof("amqp.BroadCast onLeave=%v", onLeave)
+	//make broadcast leave msg after remove stream msg, for ion block bug
+	time.Sleep(500 * time.Millisecond)
 	amqp.BroadCast(onLeave)
 }
 
 func getMediaInfo(rid, mid, from, corrID string) {
-	key := getPubMediaPath(rid, mid)
+	key := proto.GetPubMediaPath(rid, mid, 0)
 	info := redis.HGetAll(key)
 	infoStr := util.MarshalStrMap(info)
 	resp := util.Map("response", proto.IslbGetMediaInfo, "mid", mid, "info", infoStr)
@@ -111,8 +132,8 @@ func getMediaInfo(rid, mid, from, corrID string) {
 }
 
 func relay(rid, mid, from string) {
-	uid := getUIDFromMID(mid)
-	key := getPubNodePath(rid, uid)
+	uid := proto.GetUIDFromMID(mid)
+	key := proto.GetPubNodePath(rid, uid)
 	info := redis.HGetAll(key)
 	for ip := range info {
 		method := util.Map("method", proto.IslbRelay, "uid", uid, "sid", from, "mid", mid)
@@ -122,7 +143,7 @@ func relay(rid, mid, from string) {
 }
 
 func unRelay(rid, mid, from, corrID string) {
-	key := getPubNodePath(rid, mid)
+	key := proto.GetPubNodePath(rid, mid)
 	info := redis.HGetAll(key)
 	for ip := range info {
 		method := util.Map("method", proto.IslbUnrelay, "mid", mid, "sid", from)
@@ -169,11 +190,8 @@ func handleRPCMsgs() {
 			case proto.IslbOnStreamAdd:
 				ssrcPt := util.Unmarshal(util.Val(msg, "mediaInfo"))
 				streamAdd(rid, uid, mid, from, ssrcPt)
-			case proto.IslbKeepAlive:
-				ssrcPt := util.Unmarshal(util.Val(msg, "mediaInfo"))
-				keepAlive(rid, uid, mid, from, ssrcPt)
 			case proto.IslbGetPubs:
-				getPubs(rid, uid, mid, from, corrID)
+				getPubs(rid, uid, from, corrID)
 			case proto.IslbClientOnJoin:
 				info := util.Val(msg, "info")
 				clientJoin(rid, uid, info)

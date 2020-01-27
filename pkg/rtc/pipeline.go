@@ -1,7 +1,6 @@
 package rtc
 
 import (
-	"strings"
 	"sync"
 	"time"
 
@@ -11,58 +10,48 @@ import (
 )
 
 const (
-	maxErrCnt = 100
+	maxWriteErr     = 100
+	maxPipelineSize = 1024
+	jitterBuffer    = "JB"
 )
 
-type Handler interface {
-	ID() string
-	Push(*rtp.Packet) error
-	Stop()
-}
-
+// pipeline is a rtp pipeline
+// pipline has three loops, in handler and out
+// |-----in-----|-----handler------|---------out---------|
+//                                        +--->sub
+//                                        |
+// pub--->pubCh-->middleware...-->subCh---+--->sub
+//                                        |
+//                                        +--->sub
 type pipeline struct {
-	pub                               Transport
-	sub                               map[string]Transport
-	subLock                           sync.RWMutex
-	handler                           []Handler
-	handlerLock                       sync.RWMutex
-	pubCh                             chan *rtp.Packet
-	subCh                             chan *rtp.Packet
-	stopInCh, stopHandleCh, stopOutCh chan struct{}
-	wg                                sync.WaitGroup
-}
-
-func newPipeline(id string) *pipeline {
-	p := &pipeline{
-		sub:          make(map[string]Transport),
-		pubCh:        make(chan *rtp.Packet, maxPipelineSize),
-		subCh:        make(chan *rtp.Packet, maxPipelineSize),
-		stopInCh:     make(chan struct{}),
-		stopHandleCh: make(chan struct{}),
-		stopOutCh:    make(chan struct{}),
-	}
-	p.addHandler(jitterBuffer, newBuffer(jitterBuffer, p))
-	p.start()
-	return p
+	pub            Transport
+	sub            map[string]Transport
+	subLock        sync.RWMutex
+	middlewares    []middleware
+	middlewareLock sync.RWMutex
+	pubCh          chan *rtp.Packet
+	subCh          chan *rtp.Packet
+	stop           bool
 }
 
 func (p *pipeline) in() {
 	go func() {
 		defer util.Recover("[pipeline.in]")
 		for {
-			select {
-			case <-p.stopInCh:
-				log.Debugf("pipeline.in stop ok!")
-				p.wg.Done()
+			if p.stop {
 				return
-			default:
-				if p.pub == nil {
-					time.Sleep(10 * time.Millisecond)
-					continue
-				}
-				if rtp, _ := p.pub.ReadRTP(); rtp != nil {
-					p.pubCh <- rtp
-				}
+			}
+
+			if p.pub == nil {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			rtp, err := p.pub.ReadRTP()
+			if err == nil {
+				// log.Infof("rtp.Extension=%t rtp.ExtensionProfile=%x rtp.ExtensionPayload=%x", rtp.Extension, rtp.ExtensionProfile, rtp.ExtensionPayload)
+				p.pubCh <- rtp
+			} else {
+				log.Errorf("pipeline.in err=%v", err)
 			}
 		}
 	}()
@@ -72,25 +61,23 @@ func (p *pipeline) handle() {
 	go func() {
 		defer util.Recover("[pipeline.handle]")
 		for {
-			select {
-			case <-p.stopHandleCh:
-				p.wg.Done()
+			if p.stop {
 				return
-			default:
-				pkt := <-p.pubCh
-				log.Debugf("pkt := <-p.pubCh %v", pkt)
-				p.subCh <- pkt
-				log.Debugf("p.subCh <- pkt %v", pkt)
-				if pkt == nil {
-					continue
-				}
-				//only buffer video
-				// if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 ||
-				// pkt.PayloadType == webrtc.DefaultPayloadTypeVP9 ||
-				// pkt.PayloadType == webrtc.DefaultPayloadTypeH264 {
-				// go p.getHandler(jitterBuffer).Push(pkt)
-				// }
 			}
+
+			pkt := <-p.pubCh
+			log.Debugf("pkt := <-p.pubCh %v", pkt)
+			p.subCh <- pkt
+			log.Debugf("p.subCh <- pkt %v", pkt)
+			if pkt == nil {
+				continue
+			}
+			//only buffer video
+			// if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 ||
+			// pkt.PayloadType == webrtc.DefaultPayloadTypeVP9 ||
+			// pkt.PayloadType == webrtc.DefaultPayloadTypeH264 {
+			// go p.getMiddleware(jitterBuffer).Push(pkt)
+			// }
 		}
 	}()
 }
@@ -99,64 +86,42 @@ func (p *pipeline) out() {
 	go func() {
 		defer util.Recover("[pipeline.out]")
 		for {
-			select {
-			case <-p.stopOutCh:
-				p.wg.Done()
+			if p.stop {
 				return
-			default:
-				pkt := <-p.subCh
-				log.Debugf("pkt := <-p.subCh %v", pkt)
-				if pkt == nil {
-					continue
-				}
-				go func() {
-					p.subLock.RLock()
-					if len(p.sub) == 0 {
-						p.subLock.RUnlock()
-						return
-					}
-					for _, t := range p.sub {
-						if t == nil {
-							log.Errorf("Transport is nil")
-						}
-						switch t.(type) {
-						case *WebRTCTransport:
-							wt := t.(*WebRTCTransport)
-							if err := wt.WriteRTP(pkt); err != nil {
-								log.Errorf("wt.WriteRTP err=%v", err)
-								if wt.errCnt() > maxErrCnt {
-									p.delSub(t.ID())
-								}
-								wt.addErrCnt()
-							}
-							wt.clearErrCnt()
-						case *RTPTransport:
-							rt := t.(*RTPTransport)
-							if err := rt.WriteRTP(pkt); err != nil {
-								log.Errorf("rt.WriteRTP err=%v", err)
-								rt.ResetExtSent()
-								if rt.errCnt() > maxErrCnt {
-									p.delSub(t.ID())
-								}
-								rt.addErrCnt()
-							}
-							rt.clearErrCnt()
-							// log.Debugf("send RTP: %v", pkt)
-						}
-					}
-					p.subLock.RUnlock()
-				}()
 			}
+
+			pkt := <-p.subCh
+			log.Debugf("pkt := <-p.subCh %v", pkt)
+			if pkt == nil {
+				continue
+			}
+			// nonblock sending
+			go func() {
+				p.subLock.RLock()
+				for _, t := range p.sub {
+					if t == nil {
+						log.Errorf("Transport is nil")
+						continue
+					}
+
+					if err := t.WriteRTP(pkt); err != nil {
+						log.Errorf("wt.WriteRTP err=%v", err)
+						// del sub when err is increasing
+						if t.writeErrTotal() > maxWriteErr {
+							p.delSub(t.ID())
+						}
+					}
+					t.writeErrReset()
+				}
+				p.subLock.RUnlock()
+			}()
 		}
 	}()
 }
 
 func (p *pipeline) start() {
-	p.wg.Add(1)
 	p.in()
-	p.wg.Add(1)
 	p.out()
-	p.wg.Add(1)
 	p.handle()
 }
 
@@ -238,21 +203,7 @@ func (p *pipeline) delSub(id string) {
 		p.sub[id].Close()
 	}
 	delete(p.sub, id)
-	log.Infof("pipeline.delSub id=%s", id)
-}
-
-func (p *pipeline) delSubByPrefix(id string) {
-	p.subLock.Lock()
-	defer p.subLock.Unlock()
-	for k, sub := range p.sub {
-		if strings.Contains(k, id) {
-			if sub != nil {
-				sub.Close()
-				delete(p.sub, k)
-				log.Infof("pipeline.delSubByPrefix id=%s", id)
-			}
-		}
-	}
+	log.Infof("pipeline.DelSub id=%s", id)
 }
 
 func (p *pipeline) delSubs() {
@@ -266,64 +217,62 @@ func (p *pipeline) delSubs() {
 	p.sub = make(map[string]Transport)
 }
 
-func (p *pipeline) addHandler(id string, t Handler) {
-	p.handlerLock.Lock()
-	defer p.handlerLock.Unlock()
-	p.handler = append(p.handler, t)
+func (p *pipeline) addMiddleware(id string, m middleware) {
+	p.middlewareLock.Lock()
+	defer p.middlewareLock.Unlock()
+	p.middlewares = append(p.middlewares, m)
 }
 
-func (p *pipeline) getHandler(id string) Handler {
-	p.handlerLock.RLock()
-	defer p.handlerLock.RUnlock()
-	// log.Infof("getHandler id=%s handler=%v", id, p.handler)
-	for i := 0; i < len(p.handler); i++ {
-		if p.handler[i].ID() == id {
+func (p *pipeline) getMiddleware(id string) middleware {
+	p.middlewareLock.RLock()
+	defer p.middlewareLock.RUnlock()
+	// log.Infof("getMiddleware id=%s handler=%v", id, p.middlewares)
+	for i := 0; i < len(p.middlewares); i++ {
+		if p.middlewares[i].ID() == id {
 			// log.Infof("==id return p ")
-			return p.handler[i]
+			return p.middlewares[i]
 		}
 	}
 	return nil
 }
 
-func (p *pipeline) delHandler(id string) {
-	p.handlerLock.Lock()
-	defer p.handlerLock.Unlock()
-	for i := 0; i < len(p.handler); i++ {
-		if p.handler[i].ID() == id {
-			p.handler[i].Stop()
-			p.handler = append(p.handler[:i], p.handler[i+1:]...)
+func (p *pipeline) delMiddleware(id string) {
+	p.middlewareLock.Lock()
+	defer p.middlewareLock.Unlock()
+	for i := 0; i < len(p.middlewares); i++ {
+		if p.middlewares[i].ID() == id {
+			p.middlewares[i].Stop()
+			p.middlewares = append(p.middlewares[:i], p.middlewares[i+1:]...)
 		}
 	}
 }
 
-func (p *pipeline) delHandlers() {
-	p.handlerLock.Lock()
-	defer p.handlerLock.Unlock()
-	for _, handler := range p.handler {
+func (p *pipeline) delMiddlewares() {
+	p.middlewareLock.Lock()
+	defer p.middlewareLock.Unlock()
+	for _, handler := range p.middlewares {
 		if handler != nil {
 			handler.Stop()
 		}
 	}
 }
 
+// Close release all
 func (p *pipeline) Close() {
-	// for ReadRTP not block
+	if p.stop {
+		return
+	}
 	p.delPub()
-	close(p.stopInCh)
-	close(p.stopHandleCh)
-	close(p.stopOutCh)
-	close(p.pubCh)
-	p.wg.Wait()
+	p.stop = true
 	p.delSubs()
-	p.delHandlers()
-	close(p.subCh)
+	p.delMiddlewares()
 }
 
 func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
 	if p.pub == nil {
 		return false
 	}
-	hd := p.getHandler(jitterBuffer)
+	hd := p.getMiddleware(jitterBuffer)
 	if hd != nil {
 		jb := hd.(*buffer)
 		pkt := jb.GetPacket(ssrc, sn)

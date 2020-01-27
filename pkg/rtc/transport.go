@@ -5,11 +5,16 @@ import (
 	"github.com/pion/rtp"
 )
 
+// Transport is a interface
 type Transport interface {
 	ID() string
 	ReadRTP() (*rtp.Packet, error)
 	WriteRTP(*rtp.Packet) error
+	Close()
+
 	sendNack(*rtcp.TransportLayerNack)
 	sendREMB(float64)
-	Close()
+
+	writeErrTotal() int
+	writeErrReset()
 }

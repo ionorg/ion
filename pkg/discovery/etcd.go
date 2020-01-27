@@ -65,11 +65,16 @@ func (e *Etcd) keep(key, value string) error {
 	return nil
 }
 
-func (e *Etcd) del(key string) error {
+func (e *Etcd) del(key string, prefix bool) error {
 	e.liveKeyIDLock.Lock()
 	delete(e.liveKeyID, key)
 	e.liveKeyIDLock.Unlock()
-	_, err := e.client.Delete(context.TODO(), key)
+	var err error
+	if prefix {
+		_, err = e.client.Delete(context.TODO(), key, clientv3.WithPrefix())
+	} else {
+		_, err = e.client.Delete(context.TODO(), key)
+	}
 	return err
 }
 
@@ -95,7 +100,8 @@ func (e *Etcd) close() error {
 	return e.client.Close()
 }
 
-// func (e *Etcd) Put(key, value string) error { ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)
+// func (e *Etcd) put(key, value string) error {
+// ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)
 // _, err := e.client.Put(ctx, key, value)
 // cancel()
 

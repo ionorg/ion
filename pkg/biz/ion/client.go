@@ -2,9 +2,9 @@ package biz
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc"
@@ -92,14 +92,6 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "uid", peer.ID(), "mid", mid), "")
 
 		rtc.DelPub(mid)
-		quitChMapLock.Lock()
-		for k := range quitChMap {
-			if strings.Contains(k, mid) {
-				close(quitChMap[k])
-				delete(quitChMap, k)
-			}
-		}
-		quitChMapLock.Unlock()
 
 		// del sub and get the rtp's pub which has none sub
 		noSubRtpPubMid := rtc.DelSubFromAllPub(mid)
@@ -131,6 +123,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 	if invalid(msg, "rid", reject) || invalid(msg, "jsep", reject) {
 		return
 	}
+	rid := util.Val(msg, "rid")
 
 	j := msg["jsep"].(map[string]interface{})
 	if invalid(j, "sdp", reject) {
@@ -150,24 +143,11 @@ func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.Accept
 	islbStoreSsrc := func(ssrc uint32, pt uint8) {
 		ssrcPt := fmt.Sprintf("{\"%d\":%d}", ssrc, pt)
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamAdd, "rid", room.ID(), "uid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
-		keepAlive := getKeepAliveID(mid, ssrc)
-		quitChMapLock.Lock()
-		quitChMap[keepAlive] = make(chan struct{})
-		quitChMapLock.Unlock()
-		go func() {
-			t := time.NewTicker(500 * time.Millisecond)
-			for {
-				select {
-				case <-t.C:
-					amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbKeepAlive, "rid", room.ID(), "uid", peer.ID(), "mid", mid, "mediaInfo", ssrcPt), "")
-				case <-quitChMap[keepAlive]:
-					return
-				}
-			}
-		}()
+		key := proto.GetPubMediaPath(rid, mid, ssrc)
+		discovery.Keep(key, fmt.Sprintf("%d", pt))
 	}
 
-	answer, err := rtc.AddNewWebRTCPub(mid).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
+	answer, err := rtc.NewWebRTCTransport(mid, "", true).AnswerPublish(room.ID(), jsep, options, islbStoreSsrc)
 	if err != nil {
 		log.Errorf("biz.publish answer err=%s jsep=%v", err.Error(), jsep)
 		reject(codePublishErr, codeStr(codePublishErr))
@@ -186,19 +166,12 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		return
 	}
 
+	rid := util.Val(msg, "rid")
 	mid := util.Val(msg, "mid")
 	// if this mid is a webrtc pub
-	if rtc.IsWebRtcPub(mid) {
-		// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb braodcast stream-remove
-		quitChMapLock.Lock()
-		for k := range quitChMap {
-			if strings.Contains(k, mid) {
-				close(quitChMap[k])
-				delete(quitChMap, k)
-			}
-		}
-		quitChMapLock.Unlock()
-	}
+	// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb broadcast stream-remove
+	key := proto.GetPubMediaPath(rid, mid, 0)
+	discovery.Del(key, true)
 
 	accept(emptyMap)
 }
@@ -218,15 +191,15 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	jsep := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	var answer webrtc.SessionDescription
 	var err error
-	webrtcSub := rtc.AddNewWebRTCSub(mid, peer.ID())
+	webrtcSub := rtc.NewWebRTCTransport(mid, peer.ID(), false)
 	pub := rtc.GetPub(mid)
 	switch pub.(type) {
 	case *rtc.WebRTCTransport:
 		//pub is on this ion
 		wt := pub.(*rtc.WebRTCTransport)
-		ssrcPT := wt.SsrcPT()
+		ssrcPT := wt.SSRCPT()
 		// waiting two payload type
-		for i := 0; len(ssrcPT) < 2; ssrcPT = wt.SsrcPT() {
+		for i := 0; len(ssrcPT) < 2; ssrcPT = wt.SSRCPT() {
 			if i > 20 {
 				break
 			}
@@ -243,8 +216,8 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 	case *rtc.RTPTransport:
 		// the pub is on other ion, rtp pub already exist
 		rt := pub.(*rtc.RTPTransport)
-		ssrcPT := rt.SsrcPT()
-		for i := 0; len(ssrcPT) < 2; ssrcPT = rt.SsrcPT() {
+		ssrcPT := rt.SSRCPT()
+		for i := 0; len(ssrcPT) < 2; ssrcPT = rt.SSRCPT() {
 			if i > 20 {
 				break
 			}

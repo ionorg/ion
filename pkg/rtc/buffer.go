@@ -6,11 +6,15 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/rtc/packer"
+	"github.com/pion/ion/pkg/rtc/rtpengine/packer"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v2"
+)
+
+const (
+	pktSize = 100
 )
 
 type buffer struct {
@@ -19,14 +23,14 @@ type buffer struct {
 	packers    map[uint32]*packer.Packer
 	packerLock sync.RWMutex
 	nackCh     chan *rtcp.TransportLayerNack
-	notify     chan struct{}
+	stopCh     chan struct{}
 	wg         sync.WaitGroup
 }
 
 func newBuffer(id string, p *pipeline) *buffer {
 	r := &buffer{
 		packers:  make(map[uint32]*packer.Packer),
-		notify:   make(chan struct{}),
+		stopCh:   make(chan struct{}),
 		id:       id,
 		pipeline: p,
 		nackCh:   make(chan *rtcp.TransportLayerNack, 100),
@@ -91,7 +95,7 @@ func (b *buffer) jitter() {
 					}
 				}
 
-			case <-b.notify:
+			case <-b.stopCh:
 				b.wg.Done()
 				return
 			}
@@ -110,7 +114,7 @@ func (b *buffer) GetPacket(ssrc uint32, sn uint16) *rtp.Packet {
 }
 
 func (b *buffer) Stop() {
-	close(b.notify)
+	close(b.stopCh)
 	b.wg.Wait()
 	close(b.nackCh)
 }

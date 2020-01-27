@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pion/ion/pkg/rtc/packetio"
+	"github.com/pion/ion/pkg/rtc/rtpengine/packetio"
 	"github.com/pion/rtp"
 )
 

@@ -19,6 +19,8 @@ var (
 	redis              *db.Redis
 	streamAddCache     = make(map[string]bool)
 	streamAddCacheLock sync.RWMutex
+	streamDelCache     = make(map[string]bool)
+	streamDelCacheLock sync.RWMutex
 )
 
 // Init func

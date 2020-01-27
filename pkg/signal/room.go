@@ -64,7 +64,8 @@ func GetRoomsByPeer(id string) []*Room {
 	var r []*Room
 	roomLock.RLock()
 	defer roomLock.RUnlock()
-	for _, room := range rooms {
+	for rid, room := range rooms {
+		log.Infof("signal.GetRoomsByPeer rid=%v room=%v id=%v", rid, room, id)
 		if room == nil {
 			continue
 		}

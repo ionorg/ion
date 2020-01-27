@@ -7,14 +7,20 @@ import (
 	"sync"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/rtc/muxrtp"
-	"github.com/pion/ion/pkg/rtc/muxrtp/mux"
+	"github.com/pion/ion/pkg/rtc/rtpengine/muxrtp"
+	"github.com/pion/ion/pkg/rtc/rtpengine/muxrtp/mux"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v2"
 )
 
+const (
+	extSentInit = 30
+	receiveMTU  = 8192
+)
+
+// RTPTransport ..
 type RTPTransport struct {
 	rtpSession   *muxrtp.SessionRTP
 	rtcpSession  *muxrtp.SessionRTCP
@@ -25,20 +31,21 @@ type RTPTransport struct {
 	rtpCh        chan *rtp.Packet
 	ssrcPT       map[uint32]uint8
 	ssrcPTLock   sync.RWMutex
-	notify       chan struct{}
+	stop         bool
 	extSent      int
-	id           string
-	pid          string
-	idLock       sync.RWMutex
-	addr         string
-	errCount     int
+	// id == mid if this is a pub
+	// id != mid if this is a sub
+	id          string
+	mid         string
+	idLock      sync.RWMutex
+	addr        string
+	writeErrCnt int
 }
 
 func newRTPTransport(conn net.Conn) *RTPTransport {
 	t := &RTPTransport{
 		conn:    conn,
 		rtpCh:   make(chan *rtp.Packet, 1000),
-		notify:  make(chan struct{}),
 		ssrcPT:  make(map[uint32]uint8),
 		extSent: extSentInit,
 	}
@@ -63,7 +70,7 @@ func newRTPTransport(conn net.Conn) *RTPTransport {
 	return t
 }
 
-func newPubRTPTransport(id, pid, addr string) *RTPTransport {
+func newPubRTPTransport(id, mid, addr string) *RTPTransport {
 	n := strings.Index(addr, ":")
 	if n == 0 {
 		return nil
@@ -80,19 +87,24 @@ func newPubRTPTransport(id, pid, addr string) *RTPTransport {
 	}
 	t := newRTPTransport(conn)
 	t.id = id
-	t.pid = pid
+	t.mid = mid
 	t.addr = addr
 	t.receiveRTCP()
-	log.Infof("NewSubRTPTransport %s %d", ip, port)
+	log.Infof("newSubRTPTransport %s %d", ip, port)
 	return t
 }
 
+// ID return id
 func (t *RTPTransport) ID() string {
 	return t.id
 }
 
+// Close release all
 func (t *RTPTransport) Close() {
-	close(t.notify)
+	if t.stop {
+		return
+	}
+	t.stop = true
 	t.rtpSession.Close()
 	t.rtcpSession.Close()
 	t.rtpEndpoint.Close()
@@ -109,47 +121,43 @@ func (t *RTPTransport) newEndpoint(f mux.MatchFunc) *mux.Endpoint {
 func (t *RTPTransport) receiveRTP() {
 	go func() {
 		for {
-			select {
-			case <-t.notify:
-				return
-			default:
-				readStream, ssrc, err := t.rtpSession.AcceptStream()
-				if err != nil {
-					log.Warnf("Failed to accept stream %v ", err)
-					//for non-blocking ReadRTP()
-					t.rtpCh <- nil
-					continue
-				}
-				go func() {
-					rtpBuf := make([]byte, receiveMTU)
-					for {
-						_, pkt, err := readStream.ReadRTP(rtpBuf)
-						if err != nil {
-							log.Warnf("Failed to read rtp %v %d ", err, ssrc)
-							//for non-blocking ReadRTP()
-							t.rtpCh <- nil
-							continue
-							// return
-						}
-						log.Debugf("RTPTransport.receiveRTP pkt=%v", pkt)
-						if t.getPID() == "" {
-							t.idLock.Lock()
-							t.pid = util.GetIDFromRTP(pkt)
-							t.idLock.Unlock()
-						}
-						t.rtpCh <- pkt
-						t.ssrcPTLock.Lock()
-						t.ssrcPT[pkt.Header.SSRC] = pkt.Header.PayloadType
-						t.ssrcPTLock.Unlock()
-
-						// log.Debugf("got RTP: %+v", pkt.Header)
-					}
-				}()
+			readStream, ssrc, err := t.rtpSession.AcceptStream()
+			if err != nil {
+				log.Warnf("Failed to accept stream %v ", err)
+				//for non-blocking ReadRTP()
+				t.rtpCh <- nil
+				continue
 			}
+			go func() {
+				rtpBuf := make([]byte, receiveMTU)
+				for {
+					_, pkt, err := readStream.ReadRTP(rtpBuf)
+					if err != nil {
+						log.Warnf("Failed to read rtp %v %d ", err, ssrc)
+						//for non-blocking ReadRTP()
+						t.rtpCh <- nil
+						continue
+						// return
+					}
+					log.Debugf("RTPTransport.receiveRTP pkt=%v", pkt)
+					if t.getMID() == "" {
+						t.idLock.Lock()
+						t.mid = util.GetIDFromRTP(pkt)
+						t.idLock.Unlock()
+					}
+					t.rtpCh <- pkt
+					t.ssrcPTLock.Lock()
+					t.ssrcPT[pkt.Header.SSRC] = pkt.Header.PayloadType
+					t.ssrcPTLock.Unlock()
+
+					// log.Debugf("got RTP: %+v", pkt.Header)
+				}
+			}()
 		}
 	}()
 }
 
+// ReadRTP read rtp from transport
 func (t *RTPTransport) ReadRTP() (*rtp.Packet, error) {
 	return <-t.rtpCh, nil
 }
@@ -158,70 +166,76 @@ func (t *RTPTransport) ReadRTP() (*rtp.Packet, error) {
 func (t *RTPTransport) receiveRTCP() {
 	go func() {
 		for {
-			select {
-			case <-t.notify:
+			readStream, ssrc, err := t.rtcpSession.AcceptStream()
+			if err != nil {
+				log.Warnf("Failed to accept RTCP %v ", err)
 				return
-			default:
-				readStream, ssrc, err := t.rtcpSession.AcceptStream()
-				if err != nil {
-					log.Warnf("Failed to accept RTCP %v ", err)
-					return
-				}
+			}
 
-				go func() {
-					rtcpBuf := make([]byte, receiveMTU)
-					for {
-						rtcps, err := readStream.ReadRTCP(rtcpBuf)
-						if err != nil {
-							log.Warnf("Failed to read rtcp %v %d ", err, ssrc)
-							return
-						}
-						log.Debugf("got RTCPs: %+v ", rtcps)
-						for _, pkt := range rtcps {
-							switch pkt.(type) {
-							case *rtcp.PictureLossIndication:
-								log.Infof("got pli pipeline not need send key frame!")
-							case *rtcp.TransportLayerNack:
-								log.Debugf("rtptransport got nack: %+v", pkt)
-								nack := pkt.(*rtcp.TransportLayerNack)
-								for _, nackPair := range nack.Nacks {
-									if !getPipeline(t.pid).writePacket(t.id, nack.MediaSSRC, nackPair.PacketID) {
+			go func() {
+				rtcpBuf := make([]byte, receiveMTU)
+				for {
+					rtcps, err := readStream.ReadRTCP(rtcpBuf)
+					if err != nil {
+						log.Warnf("Failed to read rtcp %v %d ", err, ssrc)
+						return
+					}
+					log.Debugf("got RTCPs: %+v ", rtcps)
+					for _, pkt := range rtcps {
+						switch pkt.(type) {
+						case *rtcp.PictureLossIndication:
+							log.Infof("got pli pipeline not need send key frame!")
+						case *rtcp.TransportLayerNack:
+							log.Debugf("rtptransport got nack: %+v", pkt)
+							nack := pkt.(*rtcp.TransportLayerNack)
+							for _, nackPair := range nack.Nacks {
+								p := getPipeline(t.mid)
+								if p != nil {
+									if !p.writePacket(t.id, nack.MediaSSRC, nackPair.PacketID) {
 										n := &rtcp.TransportLayerNack{
 											//origin ssrc
 											SenderSSRC: nack.SenderSSRC,
 											MediaSSRC:  nack.MediaSSRC,
 											Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
 										}
-										log.Debugf("getPipeline(t.pid).GetPub().sendNack(n) %v", n)
-										getPipeline(t.pid).getPub().sendNack(n)
+										log.Debugf("getPipeline(t.mid).GetPub().sendNack(n) %v", n)
+										p.getPub().sendNack(n)
 									}
 								}
 							}
 						}
 					}
-				}()
-			}
+				}
+			}()
 		}
 	}()
 }
 
+// WriteRTP send rtp packet
 func (t *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 	log.Debugf("RTPTransport.WriteRTP rtp=%v", rtp)
 	writeStream, err := t.rtpSession.OpenWriteStream()
 	if err != nil {
+		t.writeErrCnt++
 		return err
 	}
+
 	if t.extSent > 0 {
-		util.SetIDToRTP(rtp, t.pid)
+		util.SetIDToRTP(rtp, t.mid)
 	}
 
 	_, err = writeStream.WriteRTP(&rtp.Header, rtp.Payload)
 	if err == nil && t.extSent > 0 {
 		t.extSent--
 	}
+	if err != nil {
+		log.Errorf(err.Error())
+		t.writeErrCnt++
+	}
 	return err
 }
 
+// WriteRawRTCP write rtcp data
 func (t *RTPTransport) WriteRawRTCP(data []byte) (int, error) {
 	writeStream, err := t.rtcpSession.OpenWriteStream()
 	if err != nil {
@@ -230,6 +244,7 @@ func (t *RTPTransport) WriteRawRTCP(data []byte) (int, error) {
 	return writeStream.WriteRawRTCP(data)
 }
 
+// WriteRTCP send rtp header and payload
 func (t *RTPTransport) WriteRTCP(header *rtcp.Header, payload []byte) (int, error) {
 	writeStream, err := t.rtcpSession.OpenWriteStream()
 	if err != nil {
@@ -256,25 +271,21 @@ func (t *RTPTransport) sendPLI() {
 	t.ssrcPTLock.RUnlock()
 }
 
-// PeekPayloadSSRC playload type and ssrc
-func (t *RTPTransport) SsrcPT() map[uint32]uint8 {
+// SSRCPT playload type and ssrc
+func (t *RTPTransport) SSRCPT() map[uint32]uint8 {
 	t.ssrcPTLock.RLock()
 	defer t.ssrcPTLock.RUnlock()
 	return t.ssrcPT
 }
 
-func (t *RTPTransport) getPID() string {
+func (t *RTPTransport) getMID() string {
 	t.idLock.RLock()
 	defer t.idLock.RUnlock()
-	return t.pid
+	return t.mid
 }
 
 func (t *RTPTransport) getAddr() string {
 	return t.addr
-}
-
-func (t *RTPTransport) ResetExtSent() {
-	t.extSent = extSentInit
 }
 
 func (t *RTPTransport) sendNack(nack *rtcp.TransportLayerNack) {
@@ -286,14 +297,10 @@ func (t *RTPTransport) sendREMB(lostRate float64) {
 	return
 }
 
-func (t *RTPTransport) errCnt() int {
-	return t.errCount
+func (t *RTPTransport) writeErrTotal() int {
+	return t.writeErrCnt
 }
 
-func (t *RTPTransport) addErrCnt() {
-	t.errCount++
-}
-
-func (t *RTPTransport) clearErrCnt() {
-	t.errCount = 0
+func (t *RTPTransport) writeErrReset() {
+	t.writeErrCnt = 0
 }
