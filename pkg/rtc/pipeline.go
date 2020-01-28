@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtp"
@@ -13,6 +14,8 @@ const (
 	maxWriteErr     = 100
 	maxPipelineSize = 1024
 	jitterBuffer    = "JB"
+	liveCycle       = 6 * time.Second
+	checkCycle      = 3 * time.Second
 )
 
 // pipeline is a rtp pipeline
@@ -32,11 +35,34 @@ type pipeline struct {
 	pubCh          chan *rtp.Packet
 	subCh          chan *rtp.Packet
 	stop           bool
+	pubLive        gcache.Cache
+	live           bool
+}
+
+func (p *pipeline) check() {
+	go func() {
+		ticker := time.NewTicker(checkCycle)
+		defer ticker.Stop()
+		for range ticker.C {
+			if p.stop {
+				return
+			}
+			pub := p.getPub()
+			if pub != nil {
+				val, err := p.pubLive.Get(pub.ID())
+				if err != nil || val == "" {
+					log.Warnf("pub is not alive val=%v err=%v", val, err)
+					p.live = false
+				}
+			}
+		}
+	}()
 }
 
 func (p *pipeline) in() {
 	go func() {
 		defer util.Recover("[pipeline.in]")
+		count := uint64(0)
 		for {
 			if p.stop {
 				return
@@ -50,6 +76,10 @@ func (p *pipeline) in() {
 			if err == nil {
 				// log.Infof("rtp.Extension=%t rtp.ExtensionProfile=%x rtp.ExtensionPayload=%x", rtp.Extension, rtp.ExtensionProfile, rtp.ExtensionPayload)
 				p.pubCh <- rtp
+				if count%30 == 0 {
+					p.pubLive.SetWithExpire(p.getPub().ID(), "live", liveCycle)
+				}
+				count++
 			} else {
 				log.Errorf("pipeline.in err=%v", err)
 			}
@@ -123,6 +153,7 @@ func (p *pipeline) start() {
 	p.in()
 	p.out()
 	p.handle()
+	p.check()
 }
 
 func (p *pipeline) addPub(id string, t Transport) Transport {
@@ -184,7 +215,6 @@ func (p *pipeline) getSubByAddr(addr string) Transport {
 func (p *pipeline) getSubs() map[string]Transport {
 	p.subLock.RLock()
 	defer p.subLock.RUnlock()
-	log.Infof("pipeline.GetSubs p.sub=%v", p.sub)
 	return p.sub
 }
 
@@ -286,4 +316,8 @@ func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
 		return true
 	}
 	return false
+}
+
+func (p pipeline) IsLive() bool {
+	return p.live
 }
