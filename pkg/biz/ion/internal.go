@@ -111,7 +111,7 @@ func handleBroadCastMsgs() {
 			case proto.IslbOnStreamRemove:
 				mid := util.Val(msg, "mid")
 				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, msg)
-				rtc.DelPub(mid)
+				rtc.DelPipeline(mid)
 			case proto.IslbClientOnJoin:
 				signal.NotifyAllWithoutID(rid, uid, proto.ClientOnJoin, msg)
 			case proto.IslbClientOnLeave:

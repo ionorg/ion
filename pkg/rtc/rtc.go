@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtp"
+)
+
+const (
+	maxMonitorSize = 1000
 )
 
 var (
@@ -14,8 +20,8 @@ var (
 	pipeLock sync.RWMutex
 )
 
-// DelPub delete pub
-func DelPub(mid string) {
+// DelPipeline delete pub
+func DelPipeline(mid string) {
 	log.Infof("DelPub mid=%s", mid)
 	p := getPipeline(mid)
 	if p == nil {
@@ -116,7 +122,7 @@ func NewWebRTCTransport(mid, id string, isPub bool) *WebRTCTransport {
 
 // NewRTPTransportSub new a rtp transport suber
 func NewRTPTransportSub(mid, sid, addr string) {
-	log.Infof("rtc.NewRTPTransport mid=%v sid=%v addr=%v", mid, sid, addr)
+	log.Infof("rtc.NewRTPTransportSub mid=%v sid=%v addr=%v", mid, sid, addr)
 	p := getPipeline(mid)
 	if p == nil {
 		p = newPipeline(mid)
@@ -126,18 +132,27 @@ func NewRTPTransportSub(mid, sid, addr string) {
 	}
 }
 
-// Stat show all pipelines' stat
-func Stat() {
-	var info string
-	info += "\n----------------pipeline-----------------\n"
-	pipeLock.RLock()
-	for id, pipeline := range pipes {
-		info += "pub: " + id + "\n"
-		subs := pipeline.getSubs()
-		info += fmt.Sprintf("subs: %d\n\n", len(subs))
+// stat show all pipelines' stat
+func stat() {
+	t := time.NewTicker(statCycle)
+	for range t.C {
+		info := "\n----------------rtc-----------------\n"
+		pipeLock.Lock()
+
+		for id, pipeline := range pipes {
+			if !pipeline.IsLive() {
+				pipeline.Close()
+				delete(pipes, id)
+				CleanChannel <- id
+				log.Infof("Stat delete %v", id)
+			}
+			info += "pub: " + id + "\n"
+			subs := pipeline.getSubs()
+			info += fmt.Sprintf("subs: %d\n\n", len(subs))
+		}
+		pipeLock.Unlock()
+		log.Infof(info)
 	}
-	pipeLock.RUnlock()
-	log.Infof(info)
 }
 
 // DelSubFromAllPubByPrefix del sub from all pipelines by prefix
@@ -176,9 +191,11 @@ func getPipeline(mid string) *pipeline {
 
 func newPipeline(id string) *pipeline {
 	p := &pipeline{
-		sub:   make(map[string]Transport),
-		pubCh: make(chan *rtp.Packet, maxPipelineSize),
-		subCh: make(chan *rtp.Packet, maxPipelineSize),
+		sub:     make(map[string]Transport),
+		pubCh:   make(chan *rtp.Packet, maxPipelineSize),
+		subCh:   make(chan *rtp.Packet, maxPipelineSize),
+		pubLive: gcache.New(maxMonitorSize).LRU().Build(),
+		live:    true,
 	}
 	p.addMiddleware(jitterBuffer, newBuffer(jitterBuffer, p))
 	p.start()

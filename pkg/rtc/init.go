@@ -8,7 +8,13 @@ import (
 )
 
 const (
-	statDuration = 3 * time.Second
+	statCycle = 3 * time.Second
+)
+
+var (
+
+	//CleanChannel return the dead pub's mid
+	CleanChannel = make(chan string)
 )
 
 // Init init port and ice urls
@@ -18,15 +24,7 @@ func Init(port int, ices []string) {
 	initICE(ices)
 
 	// show stat about all pipelines
-	go func() {
-		t := time.NewTicker(statDuration)
-		for {
-			select {
-			case <-t.C:
-				Stat()
-			}
-		}
-	}()
+	go stat()
 
 	// accept relay conn
 	connCh := rtpengine.Serve(port)

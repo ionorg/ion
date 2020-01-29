@@ -3,6 +3,7 @@ module github.com/pion/ion
 go 1.13
 
 require (
+	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe
 	github.com/coreos/etcd v3.3.18+incompatible // indirect

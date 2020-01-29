@@ -72,7 +72,6 @@ func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFun
 		}
 	}
 	// find pubs from islb ,skip this ion
-	log.Infof("amqp.RpcCallWithResp")
 	amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbGetPubs, "rid", rid, "uid", peer.ID()), respHandler)
 	accept(emptyMap)
 }
@@ -91,7 +90,7 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 		// tell islb stream-remove
 		amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "uid", peer.ID(), "mid", mid), "")
 
-		rtc.DelPub(mid)
+		rtc.DelPipeline(mid)
 
 		// del sub and get the rtp's pub which has none sub
 		noSubRtpPubMid := rtc.DelSubFromAllPub(mid)
@@ -101,7 +100,7 @@ func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFu
 			respUnrelayHandler := func(m map[string]interface{}) {
 				log.Infof("biz.leave respUnrelayHandler m=%v", m)
 				mid := util.Val(m, "mid")
-				rtc.DelPub(mid)
+				rtc.DelPipeline(mid)
 			}
 			// tell islb stop relay
 			amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbUnrelay, "rid", rid, "mid", mid), respUnrelayHandler)
@@ -119,7 +118,7 @@ func clientClose(peer *signal.Peer, msg map[string]interface{}, accept signal.Ac
 }
 
 func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
-	log.Infof("biz.publish peer.ID()=%s msg=%v", peer.ID(), msg)
+	log.Infof("biz.publish peer.ID()=%s", peer.ID())
 	if invalid(msg, "rid", reject) || invalid(msg, "jsep", reject) {
 		return
 	}
@@ -177,7 +176,7 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 }
 
 func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
-	log.Infof("biz.subscribe peer.ID()=%s msg=%v", peer.ID(), msg)
+	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
 	if invalid(msg, "jsep", reject) || invalid(msg, "mid", reject) {
 		return
 	}
@@ -200,7 +199,8 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Acce
 		ssrcPT := wt.SSRCPT()
 		// waiting two payload type
 		for i := 0; len(ssrcPT) < 2; ssrcPT = wt.SSRCPT() {
-			if i > 20 {
+			if i > 40 {
+				log.Infof("len(ssrcPT) < 2 timeout!!")
 				break
 			}
 			time.Sleep(5 * time.Millisecond)
@@ -270,7 +270,7 @@ func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.Ac
 	rtc.DelSub(mid, peer.ID())
 	// if no sub, delete pub
 	if len(rtc.GetSubs(mid)) == 0 {
-		rtc.DelPub(mid)
+		rtc.DelPipeline(mid)
 	}
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
 	accept(emptyMap)
