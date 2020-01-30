@@ -21,7 +21,7 @@ const (
 	// for remb
 	rembDuration = 3 * time.Second
 	rembLowBW    = 30 * 1000
-	rembHighBW   = 100 * 1000
+	rembHighBW   = 300 * 1000
 )
 
 var (
@@ -45,21 +45,20 @@ func initICE(ices []string) {
 
 // WebRTCTransport ..
 type WebRTCTransport struct {
-	id           string
-	pc           *webrtc.PeerConnection
-	track        map[uint32]*webrtc.Track
-	trackLock    sync.RWMutex
-	stop         bool
-	pliCh        chan int
-	rtpCh        chan *rtp.Packet
-	ssrcPT       map[uint32]uint8
-	ssrcPTLock   sync.RWMutex
-	byteRate     uint64
-	isLostPacket bool
-	hasVideo     bool
-	hasAudio     bool
-	hasScreen    bool
-	writeErrCnt  int
+	id          string
+	pc          *webrtc.PeerConnection
+	track       map[uint32]*webrtc.Track
+	trackLock   sync.RWMutex
+	stop        bool
+	pliCh       chan int
+	rtpCh       chan *rtp.Packet
+	ssrcPT      map[uint32]uint8
+	ssrcPTLock  sync.RWMutex
+	byteRate    uint64
+	hasVideo    bool
+	hasAudio    bool
+	hasScreen   bool
+	writeErrCnt int
 }
 
 func newWebRTCTransport(id string) *WebRTCTransport {
@@ -229,7 +228,7 @@ func (t *WebRTCTransport) AnswerSubscribe(offer webrtc.SessionDescription, ssrcP
 
 	answer, err = t.pc.CreateAnswer(nil)
 	err = t.pc.SetLocalDescription(answer)
-	// t.subReadRTCP(mid)
+	t.subReadRTCP(mid)
 	return answer, err
 }
 
@@ -261,7 +260,6 @@ func (t *WebRTCTransport) receiveRTP(remoteTrack *webrtc.Track) {
 		case <-ticker.C:
 			t.byteRate = total / 3
 			total = 0
-			t.isLostPacket = false
 		default:
 			if t.stop {
 				return
@@ -419,16 +417,7 @@ func (t *WebRTCTransport) subReadRTCP(mid string) {
 									p := getPipeline(mid)
 									if p != nil {
 										if !p.writePacket(t.id, nack.MediaSSRC, sn) {
-											n := &rtcp.TransportLayerNack{
-												//origin ssrc
-												SenderSSRC: nack.SenderSSRC,
-												MediaSSRC:  nack.MediaSSRC,
-												Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: sn}},
-											}
-											log.Debugf("WebRTCTransport.subReadRTCP sendNack to pub %v", n)
-											if pub := p.getPub(); pub != nil {
-												pub.sendNack(n)
-											}
+											log.Debugf("p.writePacket failed t.id=%v sn=%v", t.id, sn)
 										}
 									}
 								}
@@ -457,13 +446,12 @@ func (t *WebRTCTransport) sendNack(nack *rtcp.TransportLayerNack) {
 	if t.pc == nil {
 		return
 	}
-	t.isLostPacket = true
 	t.pc.WriteRTCP([]rtcp.Packet{nack})
 }
 
-func (t *WebRTCTransport) sendREMB(lostRate float64) {
+func (t *WebRTCTransport) sendREMB(lostRate float64) uint64 {
 	if lostRate > 1 || lostRate < 0 {
-		return
+		return 0
 	}
 	var videoSSRC uint32
 	t.trackLock.RLock()
@@ -493,13 +481,15 @@ func (t *WebRTCTransport) sendREMB(lostRate float64) {
 		bw = rembHighBW
 	}
 
+	rembBW := bw * 8
 	log.Infof("WebRTCTransport.sendREMB lostRate=%v bw=%v", lostRate, bw*8)
 	remb := &rtcp.ReceiverEstimatedMaximumBitrate{
 		SenderSSRC: videoSSRC,
-		Bitrate:    bw * 8,
+		Bitrate:    rembBW,
 		SSRCs:      []uint32{videoSSRC},
 	}
 	t.pc.WriteRTCP([]rtcp.Packet{remb})
+	return rembBW
 }
 
 func (t *WebRTCTransport) writeErrTotal() int {

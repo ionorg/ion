@@ -13,7 +13,7 @@ type Transport interface {
 	Close()
 
 	sendNack(*rtcp.TransportLayerNack)
-	sendREMB(float64)
+	sendREMB(float64) uint64
 
 	writeErrTotal() int
 	writeErrReset()

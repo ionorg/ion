@@ -1,6 +1,7 @@
 package packer
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/pion/ion/pkg/log"
@@ -22,7 +23,7 @@ type Packer struct {
 	lastNackSeq    uint16
 
 	// Last seqnum that has been added to buffer
-	lastPush uint16
+	lastPushSN uint16
 
 	ssrc        uint32
 	payloadType uint8
@@ -55,7 +56,7 @@ func seqnumDistance(x, y uint16) uint16 {
 	return y - x
 }
 
-// Push adds a RTP Packet
+// Push adds a RTP Packet, out of order, new packet may be arrived later
 func (s *Packer) Push(p *rtp.Packet) {
 	// log.Infof("Packer.Push pt=%v sn=%v ts=%v", p.PayloadType, p.SequenceNumber, p.Timestamp)
 	s.receivedPkt++
@@ -63,7 +64,7 @@ func (s *Packer) Push(p *rtp.Packet) {
 		s.ssrc = p.SSRC
 		s.payloadType = p.PayloadType
 	}
-	s.lastPush = p.SequenceNumber
+	s.lastPushSN = p.SequenceNumber
 	// clear old packet
 	s.nackBufferLock.Lock()
 	s.nackBuffer[p.SequenceNumber] = p
@@ -76,14 +77,17 @@ func (s *Packer) Push(p *rtp.Packet) {
 	//////////////
 	nackPairs := []rtcp.NackPair{}
 	if s.lastNackSeq == 0 {
-		s.lastNackSeq = s.lastPush
+		s.lastNackSeq = s.lastPushSN
 	}
-	// log.Infof("s.lastPush=%d s.lastNackSeq=%d", s.lastPush, s.lastNackSeq)
+	if s.lastPushSN-s.lastNackSeq >= 16 {
+		s.lastNackSeq = s.lastPushSN - 16
+	}
+	// log.Infof("s.lastPushSN=%d s.lastNackSeq=%d", s.lastPushSN, s.lastNackSeq)
 	//if overflow , uint16(-1)=65535  63355/8 > 2
-	if s.lastPush-s.lastNackSeq >= 16 && (s.lastPush-s.lastNackSeq)/8 <= 2 {
+	if s.lastPushSN-s.lastNackSeq >= 16 && (s.lastPushSN-s.lastNackSeq)/8 <= 2 {
 		s.nackBufferLock.RLock()
 		// calc [lastNackSeq, lastpush-8] if has keyframe
-		nackPair, lostPkt := util.NackPair(s.nackBuffer, s.lastNackSeq, s.lastPush-8, true)
+		nackPair, lostPkt := util.NackPair(s.nackBuffer, s.lastNackSeq, s.lastPushSN-8, true)
 		s.lostPkt += lostPkt
 		s.lastNackSeq += 8
 		s.nackBufferLock.RUnlock()
@@ -127,4 +131,9 @@ func (s *Packer) Close() {
 
 func (s *Packer) GetPayloadType() uint8 {
 	return s.payloadType
+}
+
+func (s *Packer) GetStat() string {
+	out := fmt.Sprintf("buffer:[%d, %d] | lastNackSeq:%d | lostRate:%.2f |\n", s.lastPushSN-s.maxLate, s.lastPushSN, s.lastNackSeq, float64(s.lostPkt)/float64(s.receivedPkt+s.lostPkt))
+	return out
 }

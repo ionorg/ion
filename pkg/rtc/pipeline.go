@@ -8,14 +8,15 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtp"
+	"github.com/pion/webrtc/v2"
 )
 
 const (
-	maxWriteErr     = 100
-	maxPipelineSize = 1024
-	jitterBuffer    = "JB"
-	liveCycle       = 6 * time.Second
-	checkCycle      = 3 * time.Second
+	maxWriteErr            = 100
+	maxPipelineSize        = 1024
+	jitterBufferMiddleware = "JB"
+	liveCycle              = 6 * time.Second
+	checkCycle             = 3 * time.Second
 )
 
 // pipeline is a rtp pipeline
@@ -103,11 +104,11 @@ func (p *pipeline) handle() {
 				continue
 			}
 			//only buffer video
-			// if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 ||
-			// pkt.PayloadType == webrtc.DefaultPayloadTypeVP9 ||
-			// pkt.PayloadType == webrtc.DefaultPayloadTypeH264 {
-			// go p.getMiddleware(jitterBuffer).Push(pkt)
-			// }
+			if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 ||
+				pkt.PayloadType == webrtc.DefaultPayloadTypeVP9 ||
+				pkt.PayloadType == webrtc.DefaultPayloadTypeH264 {
+				go p.getMiddleware(jitterBufferMiddleware).(*jitterBuffer).Push(pkt)
+			}
 		}
 	}()
 }
@@ -193,7 +194,7 @@ func (p *pipeline) addSub(id string, t Transport) Transport {
 func (p *pipeline) getSub(id string) Transport {
 	p.subLock.Lock()
 	defer p.subLock.Unlock()
-	// log.Infof("pipeline.GetSub id=%s p.sub[id]=%p", id, p.sub[id])
+	// log.Infof("pipeline.GetSub id=%s p.sub=%v", id, p.sub)
 	return p.sub[id]
 }
 
@@ -302,22 +303,24 @@ func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
 	if p.pub == nil {
 		return false
 	}
-	hd := p.getMiddleware(jitterBuffer)
+	hd := p.getMiddleware(jitterBufferMiddleware)
 	if hd != nil {
-		jb := hd.(*buffer)
+		jb := hd.(*jitterBuffer)
 		pkt := jb.GetPacket(ssrc, sn)
 		if pkt == nil {
 			log.Debugf("pipeline.writePacket pkt not found sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
 			return false
 		}
-		p.getSub(sid).WriteRTP(pkt)
-		log.Infof("pipeline.writePacket sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
-		log.Debugf("pipeline.writePacket ok")
-		return true
+		sub := p.getSub(sid)
+		if sub != nil {
+			sub.WriteRTP(pkt)
+			log.Debugf("pipeline.writePacket sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
+			return true
+		}
 	}
 	return false
 }
 
-func (p pipeline) IsLive() bool {
+func (p *pipeline) IsLive() bool {
 	return p.live
 }

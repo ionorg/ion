@@ -293,8 +293,8 @@ func (t *RTPTransport) sendNack(nack *rtcp.TransportLayerNack) {
 	t.WriteRawRTCP(bin)
 }
 
-func (t *RTPTransport) sendREMB(lostRate float64) {
-	return
+func (t *RTPTransport) sendREMB(lostRate float64) uint64 {
+	return 0
 }
 
 func (t *RTPTransport) writeErrTotal() int {

@@ -111,12 +111,13 @@ func NewWebRTCTransport(mid, id string, isPub bool) *WebRTCTransport {
 	if p == nil {
 		p = newPipeline(mid)
 	}
-	wt := newWebRTCTransport(mid)
 	if isPub {
+		wt := newWebRTCTransport(mid)
 		p.addPub(mid, wt)
-	} else {
-		p.addSub(id, wt)
+		return wt
 	}
+	wt := newWebRTCTransport(id)
+	p.addSub(id, wt)
 	return wt
 }
 
@@ -147,8 +148,15 @@ func stat() {
 				log.Infof("Stat delete %v", id)
 			}
 			info += "pub: " + id + "\n"
+			info += pipeline.getMiddleware(jitterBufferMiddleware).(*jitterBuffer).Stat()
 			subs := pipeline.getSubs()
-			info += fmt.Sprintf("subs: %d\n\n", len(subs))
+			if len(subs) < 6 {
+				for id := range subs {
+					info += fmt.Sprintf("sub: %s\n\n", id)
+				}
+			} else {
+				info += fmt.Sprintf("subs: %d\n\n", len(subs))
+			}
 		}
 		pipeLock.Unlock()
 		log.Infof(info)
@@ -197,7 +205,7 @@ func newPipeline(id string) *pipeline {
 		pubLive: gcache.New(maxMonitorSize).LRU().Build(),
 		live:    true,
 	}
-	p.addMiddleware(jitterBuffer, newBuffer(jitterBuffer, p))
+	p.addMiddleware(jitterBufferMiddleware, newJitterBuffer(jitterBufferMiddleware, p))
 	p.start()
 	pipeLock.Lock()
 	defer pipeLock.Unlock()
