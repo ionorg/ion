@@ -2,6 +2,7 @@ import React from "react";
 import { Spin } from "antd";
 import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
 
+
 class Conference extends React.Component {
   constructor() {
     super();

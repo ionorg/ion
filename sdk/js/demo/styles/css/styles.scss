@@ -401,3 +401,35 @@ body {
   color: #dbdbdb;
 }
 
+
+
+/*------------------media-seetings--------------------*/
+.item{
+  display:flex;
+  flex-direction: row;
+  margin-bottom: 20px;
+}
+
+/*Item left*/
+.itemleft{
+  width:80px;
+  text-align: right;
+  color:rgba(0, 0, 0, 0.65);
+  line-height: 32px;
+  font-size: 14px;
+  font-weight: normal;
+}
+/*Item right*/
+.itemright{
+  flex:1;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/*Video container*/
+.videobox{
+  width:240px;
+  height:180px;
+  background-color: #000000;
+  margin-top: 20px;
+}

@@ -11,6 +11,7 @@ import TelevisionOffIcon from "mdi-react/TelevisionOffIcon";
 import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
 import DotsVerticalIcon from "mdi-react/DotsVerticalIcon";
+import MediaSettings from './settings';
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -194,6 +195,10 @@ class App extends React.Component {
           false;
   }
 
+  _onDeviceSelectedChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth) => {
+    //TODO
+  }
+
   render() {
     const {
       login,
@@ -284,7 +289,7 @@ class App extends React.Component {
             <div />
           )}
           <div className="app-header-right">
-            <Button shape="circle" icon="setting" ghost />
+            <MediaSettings onInputDeviceSelected={this._onDeviceSelectedChanged} />
           </div>
         </Header>
 
