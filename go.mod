@@ -10,7 +10,7 @@ require (
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/pion/rtcp v1.2.1
-	github.com/pion/rtp v1.3.0
+	github.com/pion/rtp v1.3.1
 	github.com/pion/stun v0.3.3
 	github.com/pion/webrtc/v2 v2.1.19-0.20200124004806-537c84107360
 	github.com/rs/zerolog v1.17.2

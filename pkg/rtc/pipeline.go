@@ -1,43 +1,65 @@
 package rtc
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/ion/pkg/util"
+	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/webrtc/v2"
 )
 
 const (
-	maxWriteErr            = 100
-	maxPipelineSize        = 1024
-	jitterBufferMiddleware = "JB"
-	liveCycle              = 6 * time.Second
-	checkCycle             = 3 * time.Second
+	maxWriteErr = 100
+	maxSize     = 1024
+	jbPlugin    = "jitterBuffer"
+	liveCycle   = 6 * time.Second
+	checkCycle  = 3 * time.Second
+)
+
+var (
+	errInvalidPlugin = errors.New("plugin is nil")
 )
 
 // pipeline is a rtp pipeline
 // pipline has three loops, in handler and out
 // |-----in-----|-----handler------|---------out---------|
-//                                        +--->sub
-//                                        |
-// pub--->pubCh-->middleware...-->subCh---+--->sub
-//                                        |
-//                                        +--->sub
+//                                    +--->sub
+//                                    |
+// pub--->pubCh-->plugin...-->subCh---+--->sub
+//                                    |
+//                                    +--->sub
 type pipeline struct {
-	pub            Transport
-	sub            map[string]Transport
-	subLock        sync.RWMutex
-	middlewares    []middleware
-	middlewareLock sync.RWMutex
-	pubCh          chan *rtp.Packet
-	subCh          chan *rtp.Packet
-	stop           bool
-	pubLive        gcache.Cache
-	live           bool
+	pub        Transport
+	subs       map[string]Transport
+	subLock    sync.RWMutex
+	plugins    []plugin
+	pluginLock sync.RWMutex
+	pubCh      chan *rtp.Packet
+	subCh      chan *rtp.Packet
+	stop       bool
+	pubLive    gcache.Cache
+	live       bool
+	rtcpCh     chan rtcp.Packet
+}
+
+func newPipeline(id string) *pipeline {
+	jb := plugins.NewJitterBuffer(jbPlugin)
+	p := &pipeline{
+		subs:    make(map[string]Transport),
+		pubCh:   make(chan *rtp.Packet, maxSize),
+		subCh:   make(chan *rtp.Packet, maxSize),
+		pubLive: gcache.New(maxSize).Simple().Build(),
+		live:    true,
+		rtcpCh:  jb.GetRTCPChan(),
+	}
+	p.addPlugin(jbPlugin, jb)
+	p.start()
+	return p
 }
 
 func (p *pipeline) check() {
@@ -68,16 +90,16 @@ func (p *pipeline) in() {
 			if p.stop {
 				return
 			}
-
-			if p.pub == nil {
+			pub := p.getPub()
+			if pub == nil {
 				time.Sleep(10 * time.Millisecond)
 				continue
 			}
-			rtp, err := p.pub.ReadRTP()
+			rtp, err := pub.ReadRTP()
 			if err == nil {
 				// log.Infof("rtp.Extension=%t rtp.ExtensionProfile=%x rtp.ExtensionPayload=%x", rtp.Extension, rtp.ExtensionProfile, rtp.ExtensionPayload)
 				p.pubCh <- rtp
-				if count%30 == 0 {
+				if count%300 == 0 {
 					p.pubLive.SetWithExpire(p.getPub().ID(), "live", liveCycle)
 				}
 				count++
@@ -91,6 +113,7 @@ func (p *pipeline) in() {
 func (p *pipeline) handle() {
 	go func() {
 		defer util.Recover("[pipeline.handle]")
+		count := uint64(0)
 		for {
 			if p.stop {
 				return
@@ -104,10 +127,13 @@ func (p *pipeline) handle() {
 				continue
 			}
 			//only buffer video
-			if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 ||
-				pkt.PayloadType == webrtc.DefaultPayloadTypeVP9 ||
-				pkt.PayloadType == webrtc.DefaultPayloadTypeH264 {
-				go p.getMiddleware(jitterBufferMiddleware).(*jitterBuffer).Push(pkt)
+			if util.IsVideo(pkt.PayloadType) {
+				if count%3000 == 0 {
+					// Init args: (ssrc uint32, pt uint8, rembCycle int, pliCycle int)
+					p.getPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 1)
+				}
+				p.getPlugin(jbPlugin).PushRTP(pkt)
+				count++
 			}
 		}
 	}()
@@ -128,13 +154,13 @@ func (p *pipeline) out() {
 			}
 			// nonblock sending
 			go func() {
-				p.subLock.RLock()
-				for _, t := range p.sub {
+				for _, t := range p.getSubs() {
 					if t == nil {
 						log.Errorf("Transport is nil")
 						continue
 					}
 
+					// log.Infof("pipeline.out WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
 					if err := t.WriteRTP(pkt); err != nil {
 						log.Errorf("wt.WriteRTP err=%v", err)
 						// del sub when err is increasing
@@ -144,8 +170,25 @@ func (p *pipeline) out() {
 					}
 					t.writeErrReset()
 				}
-				p.subLock.RUnlock()
 			}()
+		}
+	}()
+}
+
+func (p *pipeline) jitter() {
+	go func() {
+		defer util.Recover("[pipeline.out]")
+		for {
+			if p.stop {
+				return
+			}
+
+			pkt := <-p.rtcpCh
+			switch pkt.(type) {
+			case *rtcp.TransportLayerNack, *rtcp.ReceiverEstimatedMaximumBitrate, *rtcp.PictureLossIndication:
+				log.Infof("pipeline.jitter p.getPub().WriteRTCP %v", pkt)
+				p.getPub().WriteRTCP(pkt)
+			}
 		}
 	}()
 }
@@ -155,6 +198,7 @@ func (p *pipeline) start() {
 	p.out()
 	p.handle()
 	p.check()
+	p.jitter()
 }
 
 func (p *pipeline) addPub(id string, t Transport) Transport {
@@ -186,7 +230,7 @@ func (p *pipeline) getPub() Transport {
 func (p *pipeline) addSub(id string, t Transport) Transport {
 	p.subLock.Lock()
 	defer p.subLock.Unlock()
-	p.sub[id] = t
+	p.subs[id] = t
 	log.Infof("pipeline.AddSub id=%s t=%p", id, t)
 	return t
 }
@@ -194,14 +238,14 @@ func (p *pipeline) addSub(id string, t Transport) Transport {
 func (p *pipeline) getSub(id string) Transport {
 	p.subLock.Lock()
 	defer p.subLock.Unlock()
-	// log.Infof("pipeline.GetSub id=%s p.sub=%v", id, p.sub)
-	return p.sub[id]
+	// log.Infof("pipeline.GetSub id=%s p.subs=%v", id, p.subs)
+	return p.subs[id]
 }
 
 func (p *pipeline) getSubByAddr(addr string) Transport {
 	p.subLock.RLock()
 	defer p.subLock.RUnlock()
-	for _, sub := range p.sub {
+	for _, sub := range p.subs {
 		switch sub.(type) {
 		case *RTPTransport:
 			rt := sub.(*RTPTransport)
@@ -216,13 +260,13 @@ func (p *pipeline) getSubByAddr(addr string) Transport {
 func (p *pipeline) getSubs() map[string]Transport {
 	p.subLock.RLock()
 	defer p.subLock.RUnlock()
-	return p.sub
+	return p.subs
 }
 
 func (p *pipeline) noSub() bool {
 	p.subLock.RLock()
 	defer p.subLock.RUnlock()
-	isNoSub := len(p.sub) == 0
+	isNoSub := len(p.subs) == 0
 	log.Infof("pipeline.noSub %v", isNoSub)
 	return isNoSub
 }
@@ -230,61 +274,56 @@ func (p *pipeline) noSub() bool {
 func (p *pipeline) delSub(id string) {
 	p.subLock.Lock()
 	defer p.subLock.Unlock()
-	if p.sub[id] != nil {
-		p.sub[id].Close()
+	if p.subs[id] != nil {
+		p.subs[id].Close()
 	}
-	delete(p.sub, id)
+	delete(p.subs, id)
 	log.Infof("pipeline.DelSub id=%s", id)
 }
 
 func (p *pipeline) delSubs() {
 	p.subLock.Lock()
 	defer p.subLock.Unlock()
-	for _, sub := range p.sub {
+	for _, sub := range p.subs {
 		if sub != nil {
 			sub.Close()
 		}
 	}
-	p.sub = make(map[string]Transport)
 }
 
-func (p *pipeline) addMiddleware(id string, m middleware) {
-	p.middlewareLock.Lock()
-	defer p.middlewareLock.Unlock()
-	p.middlewares = append(p.middlewares, m)
+func (p *pipeline) addPlugin(id string, i plugin) {
+	p.pluginLock.Lock()
+	defer p.pluginLock.Unlock()
+	p.plugins = append(p.plugins, i)
 }
 
-func (p *pipeline) getMiddleware(id string) middleware {
-	p.middlewareLock.RLock()
-	defer p.middlewareLock.RUnlock()
-	// log.Infof("getMiddleware id=%s handler=%v", id, p.middlewares)
-	for i := 0; i < len(p.middlewares); i++ {
-		if p.middlewares[i].ID() == id {
-			// log.Infof("==id return p ")
-			return p.middlewares[i]
+func (p *pipeline) getPlugin(id string) plugin {
+	p.pluginLock.RLock()
+	defer p.pluginLock.RUnlock()
+	for i := 0; i < len(p.plugins); i++ {
+		if p.plugins[i].ID() == id {
+			return p.plugins[i]
 		}
 	}
 	return nil
 }
 
-func (p *pipeline) delMiddleware(id string) {
-	p.middlewareLock.Lock()
-	defer p.middlewareLock.Unlock()
-	for i := 0; i < len(p.middlewares); i++ {
-		if p.middlewares[i].ID() == id {
-			p.middlewares[i].Stop()
-			p.middlewares = append(p.middlewares[:i], p.middlewares[i+1:]...)
+func (p *pipeline) delPlugin(id string) {
+	p.pluginLock.Lock()
+	defer p.pluginLock.Unlock()
+	for i := 0; i < len(p.plugins); i++ {
+		if p.plugins[i].ID() == id {
+			p.plugins[i].Stop()
+			p.plugins = append(p.plugins[:i], p.plugins[i+1:]...)
 		}
 	}
 }
 
-func (p *pipeline) delMiddlewares() {
-	p.middlewareLock.Lock()
-	defer p.middlewareLock.Unlock()
-	for _, handler := range p.middlewares {
-		if handler != nil {
-			handler.Stop()
-		}
+func (p *pipeline) delPlugins() {
+	p.pluginLock.Lock()
+	defer p.pluginLock.Unlock()
+	for _, plugin := range p.plugins {
+		plugin.Stop()
 	}
 }
 
@@ -295,26 +334,26 @@ func (p *pipeline) Close() {
 	}
 	p.delPub()
 	p.stop = true
+	p.delPlugins()
 	p.delSubs()
-	p.delMiddlewares()
 }
 
-func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
+func (p *pipeline) writeRTP(sid string, ssrc uint32, sn uint16) bool {
 	if p.pub == nil {
 		return false
 	}
-	hd := p.getMiddleware(jitterBufferMiddleware)
+	hd := p.getPlugin(jbPlugin)
 	if hd != nil {
-		jb := hd.(*jitterBuffer)
+		jb := hd.(*plugins.JitterBuffer)
 		pkt := jb.GetPacket(ssrc, sn)
 		if pkt == nil {
-			log.Debugf("pipeline.writePacket pkt not found sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
+			// log.Infof("pipeline.writeRTP pkt not found sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
 			return false
 		}
 		sub := p.getSub(sid)
 		if sub != nil {
 			sub.WriteRTP(pkt)
-			log.Debugf("pipeline.writePacket sid=%s ssrc=%d sn=%d pkt=%v", sid, ssrc, sn, pkt)
+			// log.Infof("pipeline.writeRTP sid=%s ssrc=%d sn=%d", sid, ssrc, sn)
 			return true
 		}
 	}
@@ -323,4 +362,12 @@ func (p *pipeline) writePacket(sid string, ssrc uint32, sn uint16) bool {
 
 func (p *pipeline) IsLive() bool {
 	return p.live
+}
+
+func (p *pipeline) PushRTCP(pkt rtcp.Packet) error {
+	jbPlugin := p.getPlugin(jbPlugin)
+	if jbPlugin == nil {
+		return errInvalidPlugin
+	}
+	return jbPlugin.PushRTCP(pkt)
 }

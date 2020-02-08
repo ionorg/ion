@@ -13,9 +13,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
 	"github.com/pion/stun"
 	"github.com/pion/webrtc/v2"
 )
@@ -213,91 +211,6 @@ func GetLostSN(begin, bitmap uint16) []uint16 {
 		}
 	}
 	return sns
-}
-
-func IsVP8KeyFrame(pkt *rtp.Packet) bool {
-	if pkt != nil && pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
-		vp8 := &codecs.VP8Packet{}
-		vp8.Unmarshal(pkt.Payload)
-		// start of a frame, there is a payload header  when S == 1
-		if vp8.S == 1 && vp8.Payload[0]&0x01 == 0 {
-			//key frame
-			// log.Infof("vp8.Payload[0]=%b pkt=%v", vp8.Payload[0], pkt)
-			return true
-		}
-	}
-	return false
-}
-
-// keyFrame : only get nackpair from keyframe buffer
-func NackPair(buffer [65536]*rtp.Packet, begin, end uint16, keyFrame bool) (*rtcp.NackPair, int) {
-
-	var lostPkt int
-
-	//size is < 16
-	if end-begin > 16 {
-		return nil, lostPkt
-	}
-
-	//only check key frame if keyFrame=true
-	var keyBegin, keyEnd uint16
-	if keyFrame {
-		//find key frame begin pkt
-		for i := begin; i < end; i++ {
-			if IsVP8KeyFrame(buffer[i]) {
-				keyBegin = i
-				break
-			}
-		}
-
-		//find key frame end pkt
-		if keyBegin != 0 {
-			for i := keyBegin; i < end; i++ {
-				if !IsVP8KeyFrame(buffer[i]) {
-					keyEnd = i
-					break
-				}
-			}
-		}
-	}
-
-	//Bitmask of following lost packets (BLP)
-	blp := uint16(0)
-	lost := uint16(0)
-
-	if keyFrame {
-		if keyBegin != 0 {
-			begin = keyBegin
-		}
-		if keyEnd != 0 {
-			end = keyEnd
-		}
-	}
-
-	//find first lost pkt
-	for i := begin; i < end; i++ {
-		if buffer[i] == nil {
-			lost = i
-			lostPkt++
-			break
-		}
-	}
-
-	//no packet lost
-	if lost == 0 {
-		return nil, lostPkt
-	}
-
-	//calc blp
-	for i := lost; i < end; i++ {
-		//calc from next lost packet
-		if i > lost && buffer[i] == nil {
-			blp = blp | (1 << (i - lost - 1))
-			lostPkt++
-		}
-	}
-	log.Debugf("util.NackPair begin=%v end=%v buffer=%v\n", begin, end, buffer[begin:end])
-	return &rtcp.NackPair{PacketID: lost, LostPackets: rtcp.PacketBitmap(blp)}, lostPkt
 }
 
 func GetMills() int64 {

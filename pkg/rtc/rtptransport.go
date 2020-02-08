@@ -191,7 +191,7 @@ func (t *RTPTransport) receiveRTCP() {
 							for _, nackPair := range nack.Nacks {
 								p := getPipeline(t.mid)
 								if p != nil {
-									if !p.writePacket(t.id, nack.MediaSSRC, nackPair.PacketID) {
+									if !p.writeRTP(t.id, nack.MediaSSRC, nackPair.PacketID) {
 										n := &rtcp.TransportLayerNack{
 											//origin ssrc
 											SenderSSRC: nack.SenderSSRC,
@@ -199,7 +199,7 @@ func (t *RTPTransport) receiveRTCP() {
 											Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
 										}
 										log.Debugf("getPipeline(t.mid).GetPub().sendNack(n) %v", n)
-										p.getPub().sendNack(n)
+										p.getPub().WriteRTCP(n)
 									}
 								}
 							}
@@ -245,13 +245,13 @@ func (t *RTPTransport) WriteRawRTCP(data []byte) (int, error) {
 }
 
 // WriteRTCP send rtp header and payload
-func (t *RTPTransport) WriteRTCP(header *rtcp.Header, payload []byte) (int, error) {
-	writeStream, err := t.rtcpSession.OpenWriteStream()
-	if err != nil {
-		return 0, err
-	}
-	return writeStream.WriteRTCP(header, payload)
-}
+// func (t *RTPTransport) WriteRTCP(header *rtcp.Header, payload []byte) (int, error) {
+// writeStream, err := t.rtcpSession.OpenWriteStream()
+// if err != nil {
+// return 0, err
+// }
+// return writeStream.WriteRTCP(header, payload)
+// }
 
 // used by rtp pub, tell remote ion to send key frame
 func (t *RTPTransport) sendPLI() {
@@ -288,13 +288,16 @@ func (t *RTPTransport) getAddr() string {
 	return t.addr
 }
 
-func (t *RTPTransport) sendNack(nack *rtcp.TransportLayerNack) {
-	bin, _ := nack.Marshal()
-	t.WriteRawRTCP(bin)
-}
-
-func (t *RTPTransport) sendREMB(lostRate float64) uint64 {
-	return 0
+func (t *RTPTransport) WriteRTCP(pkt rtcp.Packet) error {
+	bin, err := pkt.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = t.WriteRawRTCP(bin)
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func (t *RTPTransport) writeErrTotal() int {

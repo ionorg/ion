@@ -6,13 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/rtp"
-)
-
-const (
-	maxMonitorSize = 1000
+	"github.com/pion/ion/pkg/rtc/plugins"
 )
 
 var (
@@ -109,7 +104,7 @@ func NewWebRTCTransport(mid, id string, isPub bool) *WebRTCTransport {
 	log.Infof("rtc.NewWebRTCTransport mid=%v id=%v isPub=%v", mid, id, isPub)
 	p := getPipeline(mid)
 	if p == nil {
-		p = newPipeline(mid)
+		p = addPipeline(mid)
 	}
 	if isPub {
 		wt := newWebRTCTransport(mid)
@@ -126,7 +121,7 @@ func NewRTPTransportSub(mid, sid, addr string) {
 	log.Infof("rtc.NewRTPTransportSub mid=%v sid=%v addr=%v", mid, sid, addr)
 	p := getPipeline(mid)
 	if p == nil {
-		p = newPipeline(mid)
+		p = addPipeline(mid)
 	}
 	if p.getSubByAddr(addr) == nil {
 		p.addSub(sid, newPubRTPTransport(sid, mid, addr))
@@ -148,7 +143,7 @@ func stat() {
 				log.Infof("Stat delete %v", id)
 			}
 			info += "pub: " + id + "\n"
-			info += pipeline.getMiddleware(jitterBufferMiddleware).(*jitterBuffer).Stat()
+			info += pipeline.getPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
 			subs := pipeline.getSubs()
 			if len(subs) < 6 {
 				for id := range subs {
@@ -197,18 +192,9 @@ func getPipeline(mid string) *pipeline {
 	return pipes[mid]
 }
 
-func newPipeline(id string) *pipeline {
-	p := &pipeline{
-		sub:     make(map[string]Transport),
-		pubCh:   make(chan *rtp.Packet, maxPipelineSize),
-		subCh:   make(chan *rtp.Packet, maxPipelineSize),
-		pubLive: gcache.New(maxMonitorSize).LRU().Build(),
-		live:    true,
-	}
-	p.addMiddleware(jitterBufferMiddleware, newJitterBuffer(jitterBufferMiddleware, p))
-	p.start()
+func addPipeline(id string) *pipeline {
 	pipeLock.Lock()
 	defer pipeLock.Unlock()
-	pipes[id] = p
-	return p
+	pipes[id] = newPipeline(id)
+	return pipes[id]
 }
