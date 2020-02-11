@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button, Select } from 'antd';
+import { Modal, Button, Select,Tooltip } from 'antd';
 import SoundMeter from './soundmeter';
 import PropTypes from 'prop-types';
 
@@ -232,7 +232,9 @@ export default class MediaSettings extends React.Component {
         return (
             <div>
                 {
-                    <Button shape="circle" icon="setting" ghost onClick={this.showModal}/>
+                    <Tooltip title='System setup'>
+                        <Button shape="circle" icon="setting" ghost onClick={this.showModal}/>
+                    </Tooltip>
                 }
                 <Modal
                     title='Modify device'

@@ -1,5 +1,5 @@
 import React from "react";
-import { Layout, Button, Modal, Icon, notification, Card, Spin } from "antd";
+import { Layout, Button, Modal, Icon, notification, Card, Spin,Tooltip } from "antd";
 const { confirm } = Modal;
 const { Header, Content, Footer, Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
@@ -219,6 +219,7 @@ class App extends React.Component {
           </div>
           {login ? (
             <div className="app-header-tool">
+              <Tooltip title='Mute/Cancel'>
               <Button
                 ghost
                 size="large"
@@ -235,55 +236,62 @@ class App extends React.Component {
                   style={{ display: "flex", justifyContent: "center" }}
                 />
               </Button>
-
-              <Button
-                ghost
-                size="large"
-                style={{ color: localVideoEnabled ? "" : "red" }}
-                type="link"
-                onClick={() =>
-                  this._handleVideoTrackEnabled(!localVideoEnabled)
-                }
-              >
-                <Icon
-                  component={localVideoEnabled ? VideoIcon : VideocamOffIcon}
-                  style={{ display: "flex", justifyContent: "center" }}
-                />
-              </Button>
-
-              <Button
-                shape="circle"
-                ghost
-                size="large"
-                type="danger"
-                style={{ marginLeft: 16, marginRight: 16 }}
-                onClick={this._handleLeave}
-              >
-                <Icon
-                  component={HangupIcon}
-                  style={{ display: "flex", justifyContent: "center" }}
-                />
-              </Button>
-              <Button
-                ghost
-                size="large"
-                type="link"
-                style={{ color: screenSharingEnabled ? "red" : "" }}
-                onClick={() => this._handleScreenSharing(!screenSharingEnabled)}
-              >
-                <Icon
-                  component={
-                    screenSharingEnabled ? TelevisionOffIcon : TelevisionIcon
+              </Tooltip>
+              <Tooltip title='Open/Close video'>
+                <Button
+                  ghost
+                  size="large"
+                  style={{ color: localVideoEnabled ? "" : "red" }}
+                  type="link"
+                  onClick={() =>
+                    this._handleVideoTrackEnabled(!localVideoEnabled)
                   }
-                  style={{ display: "flex", justifyContent: "center" }}
-                />
-              </Button>
-              <Button ghost size="large" type="link">
-                <Icon
-                  component={DotsVerticalIcon}
-                  style={{ display: "flex", justifyContent: "center" }}
-                />
-              </Button>
+                >
+                  <Icon
+                    component={localVideoEnabled ? VideoIcon : VideocamOffIcon}
+                    style={{ display: "flex", justifyContent: "center" }}
+                  />
+                </Button>
+              </Tooltip>
+              <Tooltip title='Hangup'>
+                <Button
+                  shape="circle"
+                  ghost
+                  size="large"
+                  type="danger"
+                  style={{ marginLeft: 16, marginRight: 16 }}
+                  onClick={this._handleLeave}
+                >
+                  <Icon
+                    component={HangupIcon}
+                    style={{ display: "flex", justifyContent: "center" }}
+                  />
+                </Button>
+              </Tooltip>
+              <Tooltip title='Share desktop'>
+                <Button
+                  ghost
+                  size="large"
+                  type="link"
+                  style={{ color: screenSharingEnabled ? "red" : "" }}
+                  onClick={() => this._handleScreenSharing(!screenSharingEnabled)}
+                >
+                  <Icon
+                    component={
+                      screenSharingEnabled ? TelevisionOffIcon : TelevisionIcon
+                    }
+                    style={{ display: "flex", justifyContent: "center" }}
+                  />
+                </Button>
+              </Tooltip>
+              <Tooltip title='Shared conference'>
+                <Button ghost size="large" type="link">
+                  <Icon
+                    component={DotsVerticalIcon}
+                    style={{ display: "flex", justifyContent: "center" }}
+                  />
+                </Button>
+              </Tooltip>
             </div>
           ) : (
             <div />
@@ -315,22 +323,26 @@ class App extends React.Component {
                   />
                 </Content>
                 <div className="app-collapsed-button">
-                  <Button
-                    icon={this.state.collapsed ? "right" : "left"}
-                    size="large"
-                    shape="circle"
-                    ghost
-                    onClick={() => this._openOrCloseLeftContainer(!collapsed)}
-                  />
+                  <Tooltip title='Open/Close chat panel'>
+                    <Button
+                      icon={this.state.collapsed ? "right" : "left"}
+                      size="large"
+                      shape="circle"
+                      ghost
+                      onClick={() => this._openOrCloseLeftContainer(!collapsed)}
+                    />
+                  </Tooltip>
                 </div>  
                 <div className="app-fullscreen-button">
-                  <Button
-                    icon={this.state.isFullScreen ? "fullscreen-exit" : "fullscreen"}
-                    size="large"
-                    shape="circle"
-                    ghost
-                    onClick={() => this._onFullScreenClickHandler()}
-                  />
+                  <Tooltip title='Fullscreen/Exit'>
+                    <Button
+                      icon={this.state.isFullScreen ? "fullscreen-exit" : "fullscreen"}
+                      size="large"
+                      shape="circle"
+                      ghost
+                      onClick={() => this._onFullScreenClickHandler()}
+                    />
+                  </Tooltip>
                 </div>
                 
               </Layout>
