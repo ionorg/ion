@@ -93,6 +93,7 @@ github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pion/datachannel v1.4.13 h1:ezTn3AtUtXvKemRRjRdUgao/T8bH4ZJwrpOqU8Iz3Ss=
 github.com/pion/datachannel v1.4.13/go.mod h1:+rBUwEDonA63KXx994DP/ofyyGVAm6AIMvOqQZxjWRU=
+github.com/pion/dtls v1.5.4 h1:q8pXFMF7T+EAVO4auQU/ds+5yh5yOK6NiTN/4NQ0dB0=
 github.com/pion/dtls/v2 v2.0.0-rc.3 h1:u9utI+EDJOjOWfrkGQsD8WNssPcTwfYIanFB6oI8K+4=
 github.com/pion/dtls/v2 v2.0.0-rc.3/go.mod h1:x0XH+cN5z+l/+/4nYL8r4sB8g6+0d1Zp2Pfkcoz8BKY=
 github.com/pion/dtls/v2 v2.0.0-rc.5 h1:O6RZZGTnHryfMezTisWMSR02XS/Gf6jWnCnYqg5VjMY=

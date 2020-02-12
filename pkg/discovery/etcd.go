@@ -53,11 +53,17 @@ func (e *Etcd) keep(key, value string) error {
 		return err
 	}
 
-	_, err = e.client.KeepAlive(context.TODO(), resp.ID)
+	ch, err := e.client.KeepAlive(context.TODO(), resp.ID)
 	if err != nil {
 		log.Errorf("Etcd.keep %s %v", key, err)
 		return err
 	}
+	go func() {
+		for {
+			//just read, fix etcd-server warning "lease keepalive response queue is full; dropping response send""
+			<-ch
+		}
+	}()
 	e.liveKeyIDLock.Lock()
 	e.liveKeyID[key] = resp.ID
 	e.liveKeyIDLock.Unlock()
