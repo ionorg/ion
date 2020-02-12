@@ -10,8 +10,8 @@ import TelevisionIcon from "mdi-react/TelevisionIcon";
 import TelevisionOffIcon from "mdi-react/TelevisionOffIcon";
 import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
-import DotsVerticalIcon from "mdi-react/DotsVerticalIcon";
 import MediaSettings from './settings';
+import ToolShare from './ToolShare';
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -284,14 +284,7 @@ class App extends React.Component {
                   />
                 </Button>
               </Tooltip>
-              <Tooltip title='Shared conference'>
-                <Button ghost size="large" type="link">
-                  <Icon
-                    component={DotsVerticalIcon}
-                    style={{ display: "flex", justifyContent: "center" }}
-                  />
-                </Button>
-              </Tooltip>
+              <ToolShare loginInfo={this.state.loginInfo}/>
             </div>
           ) : (
             <div />

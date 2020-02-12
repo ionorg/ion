@@ -221,6 +221,12 @@ body {
   color: red;
 }
 
+.app-header-tool-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .app-center-layout {
   display: flex;
   justify-content: center;
