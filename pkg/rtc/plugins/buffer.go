@@ -72,6 +72,7 @@ func NewBuffer(maxLate uint16) *Buffer {
 func (b *Buffer) GatherJitterInfoLoop() {
 	go func() {
 		t := time.NewTicker(nackTTL)
+		defer t.Stop()
 		for {
 			if b.stop {
 				return
