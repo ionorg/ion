@@ -9,7 +9,7 @@ require (
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200210011034-4b11d337106a
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
-	github.com/micro/go-micro v1.18.0
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/pion/rtcp v1.2.1
 	github.com/pion/rtp v1.3.1
 	github.com/pion/stun v0.3.3
@@ -17,7 +17,6 @@ require (
 	github.com/pion/webrtc/v2 v2.1.19-0.20200124004806-537c84107360
 	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.19.12+incompatible
-	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.6.2
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.etcd.io/etcd v3.3.18+incompatible
