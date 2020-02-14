@@ -10,6 +10,7 @@ services:
       - 8443:8443 # websocket
     depends_on:
       - rabbitmq
+      - etcd
       #- radis
 
   web:
@@ -23,6 +24,8 @@ services:
 
   etcd:
     image: bitnami/etcd:3.4.3-debian-10-r10
+    environment:
+    - "ALLOW_NONE_AUTHENTICATION=yes"
 
   redis:
     image: redis:5.0.7

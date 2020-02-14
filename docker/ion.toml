@@ -19,7 +19,7 @@ level = "info"
 
 [etcd]
 # ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2379"]
+addrs = ["etcd:2379"]
 
 [signal]
 #listen ip port
