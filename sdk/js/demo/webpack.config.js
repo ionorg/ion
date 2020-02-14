@@ -29,8 +29,10 @@ module.exports = {
     new webpack.HotModuleReplacementPlugin(),
   ],
   devServer: {
-    contentBase: './dist',
-    hot: true,
-    host: '0.0.0.0',
+      contentBase: './dist',
+      disableHostCheck: true,
+      hot: true,
+      port: 9000,
+      host: "0.0.0.0",
   }
 };

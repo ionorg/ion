@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  ion:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: "-c docker/ion.toml"
+    ports:
+      - 8443:8443 # websocket
+    depends_on:
+      - rabbitmq
+      #- radis
+
+  web:
+    build:
+      dockerfile: web.Dockerfile
+      context: .
+    depends_on:
+      - ion
+    ports:
+      - 9000:9000
+
+  etcd:
+    image: bitnami/etcd:3.4.3-debian-10-r10
+
+  redis:
+    image: redis:5.0.7
+
+  rabbitmq:
+    image: rabbitmq:3.8.2
