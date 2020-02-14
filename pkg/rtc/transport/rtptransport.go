@@ -1,4 +1,4 @@
-package rtc
+package transport
 
 import (
 	"net"
@@ -12,7 +12,6 @@ import (
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/webrtc/v2"
 )
 
 const (
@@ -40,14 +39,17 @@ type RTPTransport struct {
 	idLock      sync.RWMutex
 	addr        string
 	writeErrCnt int
+	rtcpCh      chan rtcp.Packet
 }
 
-func newRTPTransport(conn net.Conn) *RTPTransport {
+// NewRTPTransport create a RTPTransport by net.Conn
+func NewRTPTransport(conn net.Conn) *RTPTransport {
 	t := &RTPTransport{
 		conn:    conn,
 		rtpCh:   make(chan *rtp.Packet, 1000),
 		ssrcPT:  make(map[uint32]uint8),
 		extSent: extSentInit,
+		rtcpCh:  make(chan rtcp.Packet, 100),
 	}
 	config := mux.Config{
 		Conn:       conn,
@@ -67,6 +69,7 @@ func newRTPTransport(conn net.Conn) *RTPTransport {
 		log.Errorf(err.Error())
 		return nil
 	}
+	t.receiveRTP()
 	return t
 }
 
@@ -85,7 +88,7 @@ func newPubRTPTransport(id, mid, addr string) *RTPTransport {
 		log.Errorf(err.Error())
 		return nil
 	}
-	t := newRTPTransport(conn)
+	t := NewRTPTransport(conn)
 	t.id = id
 	t.mid = mid
 	t.addr = addr
@@ -97,6 +100,11 @@ func newPubRTPTransport(id, mid, addr string) *RTPTransport {
 // ID return id
 func (t *RTPTransport) ID() string {
 	return t.id
+}
+
+// Type return type of transport
+func (t *RTPTransport) Type() int {
+	return TypeRTPTransport
 }
 
 // Close release all
@@ -118,6 +126,7 @@ func (t *RTPTransport) newEndpoint(f mux.MatchFunc) *mux.Endpoint {
 	return t.mux.NewEndpoint(f)
 }
 
+// ReceiveRTP receive rtp
 func (t *RTPTransport) receiveRTP() {
 	go func() {
 		for {
@@ -140,7 +149,7 @@ func (t *RTPTransport) receiveRTP() {
 						// return
 					}
 					log.Debugf("RTPTransport.receiveRTP pkt=%v", pkt)
-					if t.getMID() == "" {
+					if t.GetMID() == "" {
 						t.idLock.Lock()
 						t.mid = util.GetIDFromRTP(pkt)
 						t.idLock.Unlock()
@@ -184,25 +193,10 @@ func (t *RTPTransport) receiveRTCP() {
 					for _, pkt := range rtcps {
 						switch pkt.(type) {
 						case *rtcp.PictureLossIndication:
-							log.Infof("got pli pipeline not need send key frame!")
+							log.Debugf("got pli, not need send key frame!")
 						case *rtcp.TransportLayerNack:
 							log.Debugf("rtptransport got nack: %+v", pkt)
-							nack := pkt.(*rtcp.TransportLayerNack)
-							for _, nackPair := range nack.Nacks {
-								p := getPipeline(t.mid)
-								if p != nil {
-									if !p.writeRTP(t.id, nack.MediaSSRC, nackPair.PacketID) {
-										n := &rtcp.TransportLayerNack{
-											//origin ssrc
-											SenderSSRC: nack.SenderSSRC,
-											MediaSSRC:  nack.MediaSSRC,
-											Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
-										}
-										log.Debugf("getPipeline(t.mid).GetPub().sendNack(n) %v", n)
-										p.getPub().WriteRTCP(n)
-									}
-								}
-							}
+							t.rtcpCh <- pkt
 						}
 					}
 				}
@@ -244,33 +238,6 @@ func (t *RTPTransport) WriteRawRTCP(data []byte) (int, error) {
 	return writeStream.WriteRawRTCP(data)
 }
 
-// WriteRTCP send rtp header and payload
-// func (t *RTPTransport) WriteRTCP(header *rtcp.Header, payload []byte) (int, error) {
-// writeStream, err := t.rtcpSession.OpenWriteStream()
-// if err != nil {
-// return 0, err
-// }
-// return writeStream.WriteRTCP(header, payload)
-// }
-
-// used by rtp pub, tell remote ion to send key frame
-func (t *RTPTransport) sendPLI() {
-	t.ssrcPTLock.RLock()
-	for ssrc, pt := range t.ssrcPT {
-		if pt == webrtc.DefaultPayloadTypeVP8 || pt == webrtc.DefaultPayloadTypeH264 || pt == webrtc.DefaultPayloadTypeVP9 {
-			pli := rtcp.PictureLossIndication{MediaSSRC: ssrc}
-			data, err := pli.Marshal()
-			if err != nil {
-				log.Warnf("pli marshal failed: %v", err)
-				return
-			}
-			t.WriteRawRTCP(data)
-			log.Infof("RTPTransport.SendPLI ssrc=%d pt=%v", ssrc, pt)
-		}
-	}
-	t.ssrcPTLock.RUnlock()
-}
-
 // SSRCPT playload type and ssrc
 func (t *RTPTransport) SSRCPT() map[uint32]uint8 {
 	t.ssrcPTLock.RLock()
@@ -278,16 +245,19 @@ func (t *RTPTransport) SSRCPT() map[uint32]uint8 {
 	return t.ssrcPT
 }
 
-func (t *RTPTransport) getMID() string {
+// GetMID ..
+func (t *RTPTransport) GetMID() string {
 	t.idLock.RLock()
 	defer t.idLock.RUnlock()
 	return t.mid
 }
 
-func (t *RTPTransport) getAddr() string {
+// GetAddr ..
+func (t *RTPTransport) GetAddr() string {
 	return t.addr
 }
 
+// WriteRTCP write rtcp
 func (t *RTPTransport) WriteRTCP(pkt rtcp.Packet) error {
 	bin, err := pkt.Marshal()
 	if err != nil {
@@ -300,10 +270,17 @@ func (t *RTPTransport) WriteRTCP(pkt rtcp.Packet) error {
 	return err
 }
 
-func (t *RTPTransport) writeErrTotal() int {
+// WriteErrTotal return write error
+func (t *RTPTransport) WriteErrTotal() int {
 	return t.writeErrCnt
 }
 
-func (t *RTPTransport) writeErrReset() {
+// WriteErrReset reset write error
+func (t *RTPTransport) WriteErrReset() {
 	t.writeErrCnt = 0
+}
+
+// GetRTCPChan return a rtcp channel
+func (t *RTPTransport) GetRTCPChan() chan rtcp.Packet {
+	return t.rtcpCh
 }

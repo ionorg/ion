@@ -5,6 +5,7 @@ import (
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/rtpengine"
+	"github.com/pion/ion/pkg/rtc/transport"
 )
 
 const (
@@ -17,14 +18,14 @@ var (
 	CleanChannel = make(chan string)
 )
 
-// Init init port and ice urls
+// Init port and ice urls
 func Init(port int, ices []string) {
 
 	//init ice
-	initICE(ices)
+	transport.InitICE(ices)
 
 	// show stat about all pipelines
-	go stat()
+	go Check()
 
 	// accept relay conn
 	connCh := rtpengine.Serve(port)
@@ -32,14 +33,11 @@ func Init(port int, ices []string) {
 		for {
 			select {
 			case conn := <-connCh:
-				t := newRTPTransport(conn)
-				if t != nil {
-					t.receiveRTP()
-				}
-				mid := t.getMID()
+				t := transport.NewRTPTransport(conn)
+				mid := t.GetMID()
 				cnt := 0
 				for mid == "" && cnt < 10 {
-					mid = t.getMID()
+					mid = t.GetMID()
 					time.Sleep(time.Millisecond)
 					cnt++
 				}
@@ -48,8 +46,8 @@ func Init(port int, ices []string) {
 					return
 				}
 				log.Infof("accept new rtp mid=%s conn=%s", mid, conn.RemoteAddr().String())
-				if p := addPipeline(mid); p != nil {
-					p.addPub(mid, t)
+				if router := AddRouter(mid); router != nil {
+					router.AddPub(mid, t)
 				}
 			}
 		}
