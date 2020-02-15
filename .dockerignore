@@ -7,3 +7,5 @@ web.Dockerfile
 docker-compose.yml
 docker
 configs
+docs
+screenshots
