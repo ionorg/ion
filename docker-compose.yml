@@ -30,6 +30,19 @@ services:
       - rabbitmq
       - etcd
 
+  islb:
+    build:
+      dockerfile: islb.Dockerfile
+      context: .
+    command: "-c /configs/islb.toml"
+    volumes:
+      - "./docker/islb.toml:/configs/islb.toml"
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - etcd
+      - redis
+
   rabbitmq:
     image: rabbitmq:3.8.2-management
     environment:
@@ -45,9 +58,5 @@ services:
     environment:
       - "ALLOW_NONE_AUTHENTICATION=yes"
 
-  #islb:
-  #  depends_on:
-  #    - redis
-
-  #redis:
-  #  image: redis:5.0.7
+  redis:
+    image: redis:5.0.7

@@ -1,0 +1,17 @@
+[global]
+# pprof = ":6060"
+
+[log]
+level = "info"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["etcd:2379"]
+
+[amqp]
+url = "amqp://guest:guest@rabbitmq:5672/"
+
+[redis]
+addrs = ["redis:6379"]
+password = ""
+db = 0
