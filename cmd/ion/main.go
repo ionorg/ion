@@ -8,10 +8,8 @@ import (
 
 	biz "github.com/pion/ion/pkg/biz/ion"
 	conf "github.com/pion/ion/pkg/conf/ion"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/rtc"
-	"github.com/pion/ion/pkg/signal"
+	"github.com/pion/ion/pkg/node"
 )
 
 var (
@@ -21,10 +19,8 @@ var (
 func init() {
 	log.Init(conf.Log.Level)
 	biz.Init(ionID, conf.Amqp.URL)
-	rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE)
-	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, biz.Entry)
-	discovery.Init(conf.Etcd.Addrs)
-	discovery.UpdateLoad(conf.Global.Addr, conf.Rtp.Port)
+	//discovery.Init(conf.Etcd.Addrs)
+	//discovery.UpdateLoad(conf.Global.Addr, conf.Rtp.Port)
 }
 
 func close() {
@@ -32,6 +28,12 @@ func close() {
 }
 
 func main() {
+	log.Infof("--- Starting Biz Node ---")
+
+	node.Init()
+	node := node.NewServiceNode(conf.Etcd.Addrs)
+	node.RegisterNode("BIZ", "node-ion", "ion-channel-id")
+
 	defer close()
 	if conf.Global.Pprof != "" {
 		go func() {

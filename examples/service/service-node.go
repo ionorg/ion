@@ -18,11 +18,10 @@ func JsonEncode(str string) map[string]interface{} {
 
 func main() {
 	node.Init()
-	node := node.NewServiceNode()
-
-	node.RegisterNode("SFU", "node-name", "nats-channel-bbbbbb-cccccc-dddddd")
-
-	node.OnRequest(func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
+	sn := node.NewServiceNode([]string{"http://127.0.0.1:2379"})
+	sn.RegisterNode("sfu", "node-name", "nats-channel-test")
+	protoo := nprotoo.NewNatsProtoo("nats://127.0.0.1:4222")
+	protoo.OnRequest(sn.GetRPCChannel(), func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
 		method := request["method"].(string)
 		data := request["data"].(map[string]interface{})
 		log.Infof("method => %s, data => %v", method, data)
@@ -30,11 +29,12 @@ func main() {
 		//accept(JsonEncode(`{"answer": "dummy-sdp2"}`))
 		reject(404, "Not found")
 	})
-	node.OnBroadcast(func(data map[string]interface{}, subj string) {
+
+	protoo.OnBroadcast(sn.GetEventChannel(), func(data map[string]interface{}, subj string) {
 		log.Infof("Got Broadcast subj => %s, data => %v", subj, data)
 	})
 
-	//broadcaster := node.NewBroadcaster("uuid-bbbbbb-cccccc-dddddd")
-	//broadcaster.Say("foo", JsonEncode(`{"hello": "world"}`))
+	broadcaster := protoo.NewBroadcaster(node.GetEventChannel(sn.NodeInfo()))
+	broadcaster.Say("foo", JsonEncode(`{"hello": "world"}`))
 	select {}
 }

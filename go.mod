@@ -10,6 +10,9 @@ require (
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/google/uuid v1.1.1 // indirect
+	github.com/json-iterator/go v1.1.9 // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/pion/rtcp v1.2.1
 	github.com/pion/rtp v1.3.1
 	github.com/pion/stun v0.3.3
@@ -20,4 +23,5 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.etcd.io/etcd v3.3.18+incompatible
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )

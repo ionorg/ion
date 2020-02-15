@@ -4,63 +4,41 @@ import (
 	"math/rand"
 	"time"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-)
-
-const (
-	DefaultEtcdURL = "http://127.0.0.1:2379"
 )
 
 // ServiceNode .
 type ServiceNode struct {
 	reg  *discovery.ServiceRegistry
-	np   *nprotoo.NatsProtoo
 	name string
 	node discovery.Node
 }
 
 // NewServiceNode .
-func NewServiceNode() *ServiceNode {
+func NewServiceNode(endpoints []string) *ServiceNode {
 	var sn ServiceNode
-	etcdURL := DefaultEtcdURL
-	sn.reg = discovery.NewServiceRegistry([]string{etcdURL}, "services:/")
-	log.Infof("New Service Node: etcd => %s", etcdURL)
+	sn.reg = discovery.NewServiceRegistry(endpoints, "services:/")
+	log.Infof("New Service Node: etcd => %v", endpoints)
 	sn.node = discovery.Node{
 		Info: make(map[string]string),
 	}
-	sn.np = nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
 	return &sn
 }
 
-// GetNatsProtoo .
-func (sn *ServiceNode) GetNatsProtoo() *nprotoo.NatsProtoo {
-	return sn.np
+// NodeInfo .
+func (sn *ServiceNode) NodeInfo() discovery.Node {
+	return sn.node
 }
 
-// NewRequestor .
-func (sn *ServiceNode) NewRequestor(channel string) *nprotoo.Requestor {
-	return sn.np.NewRequestor("rpc-" + channel)
+// GetEventChannel .
+func (sn *ServiceNode) GetEventChannel() string {
+	return "event-" + sn.node.Info["id"]
 }
 
-// OnRequest .
-func (sn *ServiceNode) OnRequest(listener nprotoo.RequestFunc) {
-	channel := "rpc-" + sn.node.Info["id"]
-	log.Infof("Listen request channel => %s", channel)
-	sn.np.OnRequest(channel, listener)
-}
-
-// NewBroadcaster .
-func (sn *ServiceNode) NewBroadcaster(channel string) *nprotoo.Broadcaster {
-	return sn.np.NewBroadcaster("event-" + channel)
-}
-
-// OnBroadcast .
-func (sn *ServiceNode) OnBroadcast(listener func(data map[string]interface{}, subj string)) {
-	channel := "event-" + sn.node.Info["id"]
-	log.Infof("Listen broadcast channel => %s", channel)
-	sn.np.OnBroadcast(channel, listener)
+// GetRPCChannel .
+func (sn *ServiceNode) GetRPCChannel() string {
+	return "rpc-" + sn.node.Info["id"]
 }
 
 // RegisterNode register a new node.
@@ -68,17 +46,30 @@ func (sn *ServiceNode) RegisterNode(serviceName string, name string, ID string) 
 	sn.node.Name = randomString(12)
 	sn.node.Info["name"] = name
 	sn.node.Info["service"] = serviceName
-	sn.node.Info["id"] = ID
+	sn.node.Info["id"] = ID + "-" + sn.node.Name
 	err := sn.reg.RegisterServiceNode(serviceName, sn.node)
 	if err != nil {
 		log.Panicf("%v", err)
 	}
 }
 
+// ServiceWatcher .
+type ServiceWatcher struct {
+	reg *discovery.ServiceRegistry
+}
+
+// NewServiceWatcher .
+func NewServiceWatcher(endpoints []string) *ServiceWatcher {
+	var sw ServiceWatcher
+	sw.reg = discovery.NewServiceRegistry(endpoints, "services:/")
+	log.Infof("New Service Watcher: etcd => %v", endpoints)
+	return &sw
+}
+
 //WatchServiceNode .
-func (sn *ServiceNode) WatchServiceNode(serviceName string, callback discovery.ServiceWatchCallback) {
+func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback discovery.ServiceWatchCallback) {
 	for {
-		nodes, err := sn.reg.GetServiceNodes(serviceName)
+		nodes, err := sw.reg.GetServiceNodes(serviceName)
 		if err != nil {
 			log.Panicf("%v", err)
 		}
@@ -97,4 +88,14 @@ func randomString(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+// GetEventChannel .
+func GetEventChannel(node discovery.Node) string {
+	return "event-" + node.Info["id"]
+}
+
+// GetRPCChannel .
+func GetRPCChannel(node discovery.Node) string {
+	return "rpc-" + node.Info["id"]
 }

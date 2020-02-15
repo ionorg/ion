@@ -16,6 +16,6 @@ example:
 	go build -o bin/service-watch $(GO_LDFLAGS) examples/watch/service-watch.go
 
 nodes:
-	go build -o bin/node-biz $(GO_LDFLAGS) cmd/biz/main.go
+	go build -o bin/node-ion $(GO_LDFLAGS) cmd/ion/main.go
 	go build -o bin/node-islb $(GO_LDFLAGS) cmd/islb/main.go
 	go build -o bin/node-sfu $(GO_LDFLAGS) cmd/sfu/main.go

@@ -48,12 +48,13 @@ func (r *ServiceRegistry) RegisterServiceNode(serviceName string, node Node) err
 
 func (r *ServiceRegistry) keepRegistered(serviceName string, node Node) {
 	for {
-		err := r.etcd.keep(r.nodePath(serviceName, node.Name), encode(node.Info))
+		nodeID := r.nodePath(serviceName, node.Name)
+		err := r.etcd.keep(nodeID, encode(node.Info))
 		if err != nil {
 			log.Warnf("Registration got errors. Restarting. err=%s", err)
 			time.Sleep(5 * time.Second)
 		} else {
-			log.Infof("Registration success!")
+			log.Infof("Node [%s] registration success!", nodeID)
 			return
 		}
 	}
