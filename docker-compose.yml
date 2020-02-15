@@ -9,7 +9,7 @@ services:
     volumes:
       - "./configs:/cert"
     ports:
-      - 9000:9000
+      - 8080:9000
     depends_on:
       - ion
 
