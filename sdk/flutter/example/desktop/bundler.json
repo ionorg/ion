@@ -1,0 +1,35 @@
+{
+  "app_name": "ION Desktop App",
+  "icon_path_darwin": "resources/icon.icns",
+  "icon_path_linux": "resources/icon.png",
+  "icon_path_windows": "resources/icon.ico",
+  "version_electron": "8.0.1",
+
+  "info_plist": {
+    "CFBundlePackageType": "APPL",
+    "CFBundleInfoDictionaryVersion": "6.0",
+    "CFBundleIconFile": "icon.icns",
+    "CFBundleDisplayName": "ION Desktop App",
+    "CFBundleExecutable": "ion_desktop",
+    "CFBundleIdentifier": "com.github.pion.ion",
+    "NSCameraUsageDescription": "ION Desktop Camera Usage!",
+    "NSMicrophoneUsageDescription": "ION Desktop Microphone Usage!",
+    "LSUIElement": "NO",
+    "LSMinimumSystemVersion": "10.11",
+    "NSHighResolutionCapable": true,
+    "NSAppTransportSecurity": {
+      "NSAllowsArbitraryLoads": true
+    }
+  },
+  "environments": [
+    {
+      "arch": "amd64",
+      "os": "darwin",
+      "env": {
+        "CGO_ENABLED": "1",
+        "CGO_CFLAGS": "-mmacosx-version-min=10.11",
+        "CGO_LDFLAGS": "-mmacosx-version-min=10.11"
+      }
+    }
+  ]
+}
