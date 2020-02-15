@@ -1,34 +1,53 @@
 version: '3.7'
 
 services:
-  ion:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    command: "-c docker/ion.toml"
-    ports:
-      - 8443:8443 # websocket
-    depends_on:
-      - rabbitmq
-      - etcd
-      #- radis
-
   web:
     build:
       dockerfile: web.Dockerfile
       context: .
-    depends_on:
-      - ion
+    command: ["--port", "9000", "--ssl", "--cert", "/cert/cert.pem", "--key", "/cert/key.pem"]
+    volumes:
+      - "./configs:/cert"
     ports:
       - 9000:9000
+    depends_on:
+      - ion
+
+  ion:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: "-c /configs/ion.toml"
+    volumes:
+      - "./docker/ion.toml:/configs/ion.toml"
+      - "./configs/cert.pem:/configs/cert.pem"
+      - "./configs/key.pem:/configs/key.pem"
+    ports:
+      - 6666:6666 # rtp
+      - 8443:8443 # websocket
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - etcd
+
+  rabbitmq:
+    image: rabbitmq:3.8.2-management
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
+      interval: 5s
+      timeout: 15s
+      retries: 3
 
   etcd:
     image: bitnami/etcd:3.4.3-debian-10-r10
     environment:
-    - "ALLOW_NONE_AUTHENTICATION=yes"
+      - "ALLOW_NONE_AUTHENTICATION=yes"
 
-  redis:
-    image: redis:5.0.7
+  #islb:
+  #  depends_on:
+  #    - redis
 
-  rabbitmq:
-    image: rabbitmq:3.8.2
+  #redis:
+  #  image: redis:5.0.7

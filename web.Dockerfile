@@ -1,16 +1,23 @@
-# FROM ubuntu:xenial-20200114 as certBuilder
-# COPY . /app
-# RUN /app/scripts/makeKey.sh
+#FROM alpine:3.9.5 as certBuilder
+#RUN apk upgrade --update-cache --available && apk add openssl
+#
+#RUN openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 \
+#-subj "/C=US/ST=No/L=No/O=Pion/CN=No" \
+#-keyout /key.pem -out /cert.pem
+
 
 FROM node:12.16
+COPY ./sdk/js /app
 
-COPY . /app
-# COPY --from=certBuilder /app/configs/key.pem /app/configs/key.pem
-# COPY --from=certBuilder /app/configs/key.pem /app/configs/cert.pem
+WORKDIR /app
+RUN npm install
 
-WORKDIR /app/sdk/js/demo
-
+WORKDIR /app/demo
 RUN npm install
 RUN npm run build
 RUN npm install -g http-server
-ENTRYPOINT ["http-server", "./dist", "--port", "9000", "--ssl", "--cert", "./../../../configs/cert.pem", "--key", "./../../../configs/key.pem"]
+
+#COPY --from=certBuilder /key.pem /cert/key.pem
+#COPY --from=certBuilder /cert.pem /cert/cert.pem
+
+ENTRYPOINT ["http-server", "./dist"]

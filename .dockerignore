@@ -1,7 +1,9 @@
-docker-compose.yml
-Dockerfile
-web.Dockerfile
-.idea
 .git
 .github
 .gitignore
+.idea
+Dockerfile
+web.Dockerfile
+docker-compose.yml
+docker
+configs
