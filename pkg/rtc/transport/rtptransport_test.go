@@ -14,7 +14,7 @@ func TestNewRTPTransport(t *testing.T) {
 	}
 
 	p := &rtp.Packet{}
-	r1 := newPubRTPTransport("1", "1", "0.0.0.0:6789")
+	r1 := NewOutRTPTransport("1", "1", "0.0.0.0:6789")
 	if err := p.Unmarshal(rawPkt); err == nil {
 		r1.WriteRTP(p)
 	} else {

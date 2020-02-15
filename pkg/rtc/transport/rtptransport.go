@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -17,6 +18,10 @@ import (
 const (
 	extSentInit = 30
 	receiveMTU  = 8192
+)
+
+var (
+	errInvalidAddr = errors.New("invalid addr")
 )
 
 // RTPTransport ..
@@ -73,9 +78,11 @@ func NewRTPTransport(conn net.Conn) *RTPTransport {
 	return t
 }
 
-func newPubRTPTransport(id, mid, addr string) *RTPTransport {
+// NewOutRTPTransport new a outgoing RTPTransport
+func NewOutRTPTransport(id, mid, addr string) *RTPTransport {
 	n := strings.Index(addr, ":")
 	if n == 0 {
+		log.Errorf("NewOutRTPTransport err=%v", errInvalidAddr)
 		return nil
 	}
 	ip := addr[:n]
