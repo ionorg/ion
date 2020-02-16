@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	maxPacketSize = 1024
+	maxChanSize = 100
 )
 
 var (
@@ -32,13 +32,14 @@ var (
 	errInvalidOptions = errors.New("invalid options")
 )
 
-// InitICE init ice urls
-func InitICE(ices []string) {
+// InitWebRTC init WebRTCTransport setting
+func InitWebRTC(ices []string, trickICE bool) {
 	cfg.ICEServers = []webrtc.ICEServer{
 		{
 			URLs: ices,
 		},
 	}
+	setting.SetTrickle(trickICE)
 }
 
 // WebRTCTransport contains pc incoming and outgoing tracks
@@ -53,9 +54,13 @@ type WebRTCTransport struct {
 	inTrackLock  sync.RWMutex
 	writeErrCnt  int
 
-	rtpCh  chan *rtp.Packet
-	rtcpCh chan rtcp.Packet
-	stop   bool
+	rtpCh             chan *rtp.Packet
+	rtcpCh            chan rtcp.Packet
+	stop              bool
+	pendingCandidates []*webrtc.ICECandidate
+	candidateLock     sync.RWMutex
+	candidateCh       chan *webrtc.ICECandidate
+	alive             bool
 }
 
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
@@ -97,7 +102,7 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		}
 	}
 
-	w.api = webrtc.NewAPI(webrtc.WithMediaEngine(w.mediaEngine))
+	w.api = webrtc.NewAPI(webrtc.WithMediaEngine(w.mediaEngine), webrtc.WithSettingEngine(setting))
 	return nil
 }
 
@@ -108,11 +113,13 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 //   "transport-cc"  = "true" or "false"[default]
 func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransport {
 	w := &WebRTCTransport{
-		id:        id,
-		outTracks: make(map[uint32]*webrtc.Track),
-		inTracks:  make(map[uint32]*webrtc.Track),
-		rtpCh:     make(chan *rtp.Packet, maxPacketSize),
-		rtcpCh:    make(chan rtcp.Packet, maxPacketSize),
+		id:          id,
+		outTracks:   make(map[uint32]*webrtc.Track),
+		inTracks:    make(map[uint32]*webrtc.Track),
+		rtpCh:       make(chan *rtp.Packet, maxChanSize),
+		rtcpCh:      make(chan rtcp.Packet, maxChanSize),
+		candidateCh: make(chan *webrtc.ICECandidate, maxChanSize),
+		alive:       true,
 	}
 	err := w.init(options)
 	if err != nil {
@@ -136,6 +143,29 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 		log.Errorf("w.pc.AddTransceiver audio %v", err)
 		return nil
 	}
+
+	w.pc.OnICECandidate(func(c *webrtc.ICECandidate) {
+		if c == nil {
+			return
+		}
+
+		remoteSDP := w.pc.RemoteDescription()
+		if remoteSDP == nil {
+			w.candidateLock.Lock()
+			defer w.candidateLock.Unlock()
+			w.pendingCandidates = append(w.pendingCandidates, c)
+		} else {
+			w.candidateCh <- c
+		}
+	})
+
+	w.pc.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
+		if connectionState == webrtc.ICEConnectionStateDisconnected {
+			log.Errorf("webrtc ice disconnected")
+			w.alive = false
+		}
+	})
+
 	return w
 }
 
@@ -181,6 +211,19 @@ func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8) error {
 	w.outTrackLock.Lock()
 	w.outTracks[ssrc] = track
 	w.outTrackLock.Unlock()
+	return nil
+}
+
+// AddCandidate add candidate to pc
+func (w *WebRTCTransport) AddCandidate(candidate string) error {
+	if w.pc == nil {
+		return errInvalidPC
+	}
+
+	err := w.pc.AddICECandidate(webrtc.ICECandidateInit{Candidate: string(candidate)})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -234,6 +277,14 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 	if err != nil {
 		log.Errorf("pc.SetLocalDescription answer=%v err=%v", answer, err)
 	}
+	go func() {
+		w.candidateLock.Lock()
+		defer w.candidateLock.Unlock()
+		for _, candidate := range w.pendingCandidates {
+			w.candidateCh <- candidate
+		}
+		w.pendingCandidates = nil
+	}()
 	return answer, err
 }
 
@@ -360,4 +411,9 @@ func (w *WebRTCTransport) WriteErrReset() {
 // GetRTCPChan return a rtcp channel
 func (w *WebRTCTransport) GetRTCPChan() chan rtcp.Packet {
 	return w.rtcpCh
+}
+
+// GetCandidateChan return a candidate channel
+func (w *WebRTCTransport) GetCandidateChan() chan *webrtc.ICECandidate {
+	return w.candidateCh
 }

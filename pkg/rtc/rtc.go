@@ -29,8 +29,8 @@ var (
 // Init port and ice urls
 func Init(port int, ices []string) {
 
-	//init ice
-	transport.InitICE(ices)
+	//init ice urls and trickle-ICE
+	transport.InitWebRTC(ices, true)
 
 	// show stat about all pipelines
 	go check()

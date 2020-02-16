@@ -10,7 +10,7 @@ import (
 	"github.com/pion/rtp"
 )
 
-func TestRTPEngine(t *testing.T) {
+func TestRTPEngineAcceptAndRead(t *testing.T) {
 	connCh := rtpengine.Serve(6789)
 	go func() {
 		for {
