@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/ion/pkg/rtc/transport"
@@ -19,7 +18,6 @@ const (
 	maxSize     = 1024
 	jbPlugin    = "jitterBuffer"
 	liveCycle   = 6 * time.Second
-	checkCycle  = 3 * time.Second
 )
 
 var (
@@ -48,8 +46,7 @@ type Router struct {
 	pubCh      chan *rtp.Packet
 	subCh      chan *rtp.Packet
 	stop       bool
-	pubLive    gcache.Cache
-	live       bool
+	liveTime   time.Time
 	jbRtcpCh   chan rtcp.Packet
 }
 
@@ -61,33 +58,12 @@ func NewRouter(id string) *Router {
 		subs:     make(map[string]transport.Transport),
 		pubCh:    make(chan *rtp.Packet, maxSize),
 		subCh:    make(chan *rtp.Packet, maxSize),
-		pubLive:  gcache.New(maxSize).Simple().Build(),
-		live:     true,
+		liveTime: time.Now().Add(liveCycle),
 		jbRtcpCh: jb.GetRTCPChan(),
 	}
 	r.AddPlugin(jbPlugin, jb)
 	r.start()
 	return r
-}
-
-func (r *Router) check() {
-	go func() {
-		ticker := time.NewTicker(checkCycle)
-		defer ticker.Stop()
-		for range ticker.C {
-			if r.stop {
-				return
-			}
-			pub := r.GetPub()
-			if pub != nil {
-				val, err := r.pubLive.Get(pub.ID())
-				if err != nil || val == "" {
-					log.Warnf("pub is not alive val=%v err=%v", val, err)
-					r.live = false
-				}
-			}
-		}
-	}()
 }
 
 func (r *Router) in() {
@@ -108,7 +84,7 @@ func (r *Router) in() {
 				// log.Infof("rtp.Extension=%t rtp.ExtensionProfile=%x rtp.ExtensionPayload=%x", rtp.Extension, rtp.ExtensionProfile, rtp.ExtensionPayload)
 				r.pubCh <- rtp
 				if count%300 == 0 {
-					r.pubLive.SetWithExpire(r.GetPub().ID(), "live", liveCycle)
+					r.liveTime = time.Now().Add(liveCycle)
 				}
 				count++
 			} else {
@@ -206,7 +182,6 @@ func (r *Router) start() {
 	r.in()
 	r.out()
 	r.handle()
-	r.check()
 	r.jitter()
 }
 
@@ -393,9 +368,12 @@ func (r *Router) writeRTP(sid string, ssrc uint32, sn uint16) bool {
 	return false
 }
 
-// IsLive return router status
-func (r *Router) IsLive() bool {
-	return r.live
+// Alive return router status
+func (r *Router) Alive() bool {
+	if r.liveTime.Before(time.Now()) {
+		return false
+	}
+	return true
 }
 
 // PushRTCP push rtcp to jitterbuffer

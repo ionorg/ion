@@ -15,14 +15,13 @@ func TestRTPEngine(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case conn := <-connCh:
-				fmt.Println("accept new conn from connCh", conn.RemoteAddr())
-				b := make([]byte, 4000)
+			case rtpTransport := <-connCh:
+				fmt.Println("accept new conn from connCh", rtpTransport.RemoteAddr().String())
 				go func() {
 					for {
 						// must read otherwise can't get new conn
-						n, err := conn.Read(b)
-						fmt.Println("read from conn ", n, err)
+						pkt, _ := rtpTransport.ReadRTP()
+						fmt.Println("read rtp", pkt)
 					}
 				}()
 			}
@@ -36,7 +35,7 @@ func TestRTPEngine(t *testing.T) {
 		}
 
 		rtp := &rtp.Packet{}
-		rtpTransport := transport.NewOutRTPTransport("1", "1", "0.0.0.0:6789")
+		rtpTransport := transport.NewOutRTPTransport("awsome", "0.0.0.0:6789")
 		if err := rtp.Unmarshal(rawPkt); err == nil {
 			rtpTransport.WriteRTP(rtp)
 		} else {

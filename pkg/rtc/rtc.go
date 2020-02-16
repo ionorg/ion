@@ -22,6 +22,8 @@ var (
 
 	//CleanChannel return the dead pub's mid
 	CleanChannel = make(chan string, maxCleanSize)
+
+	stop bool
 )
 
 // Init port and ice urls
@@ -33,27 +35,29 @@ func Init(port int, ices []string) {
 	// show stat about all pipelines
 	go check()
 
-	// accept relay conn
+	// accept relay rtptransport
 	connCh := rtpengine.Serve(port)
 	go func() {
 		for {
+			if stop {
+				return
+			}
 			select {
-			case conn := <-connCh:
-				t := transport.NewRTPTransport(conn)
-				mid := t.GetMID()
+			case rtpTransport := <-connCh:
+				id := rtpTransport.ID()
 				cnt := 0
-				for mid == "" && cnt < 10 {
-					mid = t.GetMID()
+				for id == "" && cnt < 100 {
+					id = rtpTransport.ID()
 					time.Sleep(time.Millisecond)
 					cnt++
 				}
-				if mid == "" && cnt >= 10 {
-					log.Infof("mid == \"\" && cnt >=10 return")
+				if id == "" && cnt >= 100 {
+					log.Errorf("invalid id from incoming rtp transport")
 					return
 				}
-				log.Infof("accept new rtp mid=%s conn=%s", mid, conn.RemoteAddr().String())
-				if router := AddRouter(mid); router != nil {
-					router.AddPub(mid, t)
+				log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
+				if router := AddRouter(id); router != nil {
+					router.AddPub(id, rtpTransport)
 				}
 			}
 		}
@@ -102,6 +106,10 @@ func DelRouter(id string) {
 
 // Close close all Router
 func Close() {
+	if stop {
+		return
+	}
+	stop = true
 	routerLock.Lock()
 	defer routerLock.Unlock()
 	for id, router := range routers {
@@ -115,29 +123,36 @@ func Close() {
 // check show all Routers' stat
 func check() {
 	t := time.NewTicker(statCycle)
-	for range t.C {
-		info := "\n----------------rtc-----------------\n"
-		routerLock.Lock()
+	for {
+		select {
+		case <-t.C:
+			info := "\n----------------rtc-----------------\n"
+			routerLock.Lock()
 
-		for id, Router := range routers {
-			if !Router.IsLive() {
-				Router.Close()
-				delete(routers, id)
-				CleanChannel <- id
-				log.Infof("Stat delete %v", id)
-			}
-			info += "pub: " + id + "\n"
-			info += Router.GetPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
-			subs := Router.GetSubs()
-			if len(subs) < 6 {
-				for id := range subs {
-					info += fmt.Sprintf("sub: %s\n\n", id)
+			for id, Router := range routers {
+				if !Router.Alive() {
+					Router.Close()
+					delete(routers, id)
+					CleanChannel <- id
+					log.Infof("Stat delete %v", id)
 				}
-			} else {
-				info += fmt.Sprintf("subs: %d\n\n", len(subs))
+				info += "pub: " + id + "\n"
+				info += Router.GetPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
+				subs := Router.GetSubs()
+				if len(subs) < 6 {
+					for id := range subs {
+						info += fmt.Sprintf("sub: %s\n\n", id)
+					}
+				} else {
+					info += fmt.Sprintf("subs: %d\n\n", len(subs))
+				}
+			}
+			routerLock.Unlock()
+			log.Infof(info)
+		default:
+			if stop {
+				return
 			}
 		}
-		routerLock.Unlock()
-		log.Infof(info)
 	}
 }

@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/pion/rtp"
@@ -14,10 +13,15 @@ func TestNewRTPTransport(t *testing.T) {
 	}
 
 	p := &rtp.Packet{}
-	r1 := NewOutRTPTransport("1", "1", "0.0.0.0:6789")
-	if err := p.Unmarshal(rawPkt); err == nil {
-		r1.WriteRTP(p)
-	} else {
-		fmt.Println("r1.WriteRTP ", err)
+	rtpTransport := NewOutRTPTransport("awsome", "0.0.0.0:6789")
+	err := p.Unmarshal(rawPkt)
+	if err != nil {
+		t.Fatalf("rtp Unmarshal err=%v", err)
+		return
+	}
+	err = rtpTransport.WriteRTP(p)
+	if err != nil {
+		t.Fatalf("rtpTransport.WriteRTP err=%v", err)
+		return
 	}
 }
