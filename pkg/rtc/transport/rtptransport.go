@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"crypto/sha1"
 	"errors"
 	"net"
 	"strconv"
@@ -13,6 +14,8 @@ import (
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
+	"github.com/xtaci/kcp-go"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
@@ -99,7 +102,26 @@ func NewOutRTPTransport(id, addr string) *RTPTransport {
 	}
 	r := NewRTPTransport(conn)
 	r.receiveRTCP()
-	log.Infof("NewOutRTPTransport %s %d", ip, port)
+	log.Infof("NewOutRTPTransport %s %s", id, addr)
+	r.idLock.Lock()
+	defer r.idLock.Unlock()
+	r.id = id
+	return r
+}
+
+// NewOutRTPTransportWithKCP  new a outgoing RTPTransport by kcp
+func NewOutRTPTransportWithKCP(id, addr string, kcpKey, kcpSalt string) *RTPTransport {
+	key := pbkdf2.Key([]byte(kcpKey), []byte(kcpSalt), 1024, 32, sha1.New)
+	block, _ := kcp.NewAESBlockCrypt(key)
+
+	// dial to the echo server
+	conn, err := kcp.DialWithOptions(addr, block, 10, 3)
+	if err != nil {
+		log.Errorf("NewOutRTPTransportWithKCP err=%v", err)
+	}
+	r := NewRTPTransport(conn)
+	r.receiveRTCP()
+	log.Infof("NewOutRTPTransportWithKCP %s %s", id, addr)
 	r.idLock.Lock()
 	defer r.idLock.Unlock()
 	r.id = id

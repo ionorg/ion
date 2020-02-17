@@ -27,7 +27,7 @@ var (
 )
 
 // Init port and ice urls
-func Init(port int, ices []string) {
+func Init(port int, ices []string, kcpKey, kcpSalt string) error {
 
 	//init ice urls and trickle-ICE
 	transport.InitWebRTC(ices, true)
@@ -35,8 +35,18 @@ func Init(port int, ices []string) {
 	// show stat about all pipelines
 	go check()
 
+	var connCh chan *transport.RTPTransport
+	var err error
 	// accept relay rtptransport
-	connCh := rtpengine.Serve(port)
+	if kcpKey != "" && kcpSalt != "" {
+		connCh, err = rtpengine.ServeWithKCP(port, kcpKey, kcpSalt)
+	} else {
+		connCh, err = rtpengine.Serve(port)
+	}
+	if err != nil {
+		log.Errorf("rtc.Init err=%v", err)
+		return err
+	}
 	go func() {
 		for {
 			if stop {
@@ -62,6 +72,7 @@ func Init(port int, ices []string) {
 			}
 		}
 	}()
+	return nil
 }
 
 // GetOrNewRouter get router from map
