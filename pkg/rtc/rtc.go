@@ -2,199 +2,168 @@ package rtc
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/plugins"
+	"github.com/pion/ion/pkg/rtc/rtpengine"
+	"github.com/pion/ion/pkg/rtc/transport"
+)
+
+const (
+	statCycle    = 3 * time.Second
+	maxCleanSize = 100
 )
 
 var (
-	pipes    = make(map[string]*pipeline)
-	pipeLock sync.RWMutex
+	routers    = make(map[string]*Router)
+	routerLock sync.RWMutex
+
+	//CleanChannel return the dead pub's mid
+	CleanChannel = make(chan string, maxCleanSize)
+
+	stop bool
 )
 
-// DelPipeline delete pub
-func DelPipeline(mid string) {
-	log.Infof("DelPub mid=%s", mid)
-	p := getPipeline(mid)
-	if p == nil {
-		log.Infof("DelPub p=nil")
-		return
-	}
-	p.Close()
-	pipeLock.Lock()
-	defer pipeLock.Unlock()
-	delete(pipes, mid)
-}
+// Init port and ice urls
+func Init(port int, ices []string, kcpKey, kcpSalt string) error {
 
-// Close close all pipeline
-func Close() {
-	pipeLock.Lock()
-	for mid, pipeline := range pipes {
-		if pipeline != nil {
-			pipeline.Close()
-			delete(pipes, mid)
-		}
-	}
-	pipeLock.Unlock()
-}
+	//init ice urls and trickle-ICE
+	transport.InitWebRTC(ices, true)
 
-// GetPub get pub
-func GetPub(mid string) Transport {
-	p := getPipeline(mid)
-	if p == nil {
-		return nil
-	}
-	return p.getPub()
-}
+	// show stat about all pipelines
+	go check()
 
-// GetWebRtcMIDByPID ..
-func GetWebRtcMIDByPID(id string) []string {
-	m := getPipelinesByPrefix(id)
-	var mids []string
-
-	//find webrtc pub mid
-	for mid, p := range m {
-		switch p.getPub().(type) {
-		case *WebRTCTransport:
-		default:
-			mids = append(mids, mid)
-		}
+	var connCh chan *transport.RTPTransport
+	var err error
+	// accept relay rtptransport
+	if kcpKey != "" && kcpSalt != "" {
+		connCh, err = rtpengine.ServeWithKCP(port, kcpKey, kcpSalt)
+	} else {
+		connCh, err = rtpengine.Serve(port)
 	}
-	return mids
-}
-
-// GetSubs get sub by mid
-func GetSubs(mid string) map[string]Transport {
-	p := getPipeline(mid)
-	if p == nil {
-		return nil
+	if err != nil {
+		log.Errorf("rtc.Init err=%v", err)
+		return err
 	}
-	return p.getSubs()
-}
-
-// DelSubFromAllPub del all sub by id
-func DelSubFromAllPub(id string) map[string]string {
-	log.Infof("DelSubFromAllPub id=%v", id)
-	m := make(map[string]string)
-	pipeLock.Lock()
-	defer pipeLock.Unlock()
-	for mid, p := range pipes {
-		p.delSub(id)
-		if p.noSub() && p.isRtpPub() {
-			m[mid] = mid
-		}
-	}
-	return m
-}
-
-// DelSub del sub
-func DelSub(mid, id string) {
-	p := getPipeline(mid)
-	if p == nil {
-		return
-	}
-	p.delSub(id)
-}
-
-// NewWebRTCTransport new a webrtc transport
-func NewWebRTCTransport(mid, id string, isPub bool) *WebRTCTransport {
-	log.Infof("rtc.NewWebRTCTransport mid=%v id=%v isPub=%v", mid, id, isPub)
-	p := getPipeline(mid)
-	if p == nil {
-		p = addPipeline(mid)
-	}
-	if isPub {
-		wt := newWebRTCTransport(mid)
-		p.addPub(mid, wt)
-		return wt
-	}
-	wt := newWebRTCTransport(id)
-	p.addSub(id, wt)
-	return wt
-}
-
-// NewRTPTransportSub new a rtp transport suber
-func NewRTPTransportSub(mid, sid, addr string) {
-	log.Infof("rtc.NewRTPTransportSub mid=%v sid=%v addr=%v", mid, sid, addr)
-	p := getPipeline(mid)
-	if p == nil {
-		p = addPipeline(mid)
-	}
-	if p.getSubByAddr(addr) == nil {
-		p.addSub(sid, newPubRTPTransport(sid, mid, addr))
-	}
-}
-
-// stat show all pipelines' stat
-func stat() {
-	t := time.NewTicker(statCycle)
-	for range t.C {
-		info := "\n----------------rtc-----------------\n"
-		pipeLock.Lock()
-
-		for id, pipeline := range pipes {
-			if !pipeline.IsLive() {
-				pipeline.Close()
-				delete(pipes, id)
-				CleanChannel <- id
-				log.Infof("Stat delete %v", id)
+	go func() {
+		for {
+			if stop {
+				return
 			}
-			info += "pub: " + id + "\n"
-			info += pipeline.getPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
-			subs := pipeline.getSubs()
-			if len(subs) < 6 {
-				for id := range subs {
-					info += fmt.Sprintf("sub: %s\n\n", id)
+			select {
+			case rtpTransport := <-connCh:
+				id := rtpTransport.ID()
+				cnt := 0
+				for id == "" && cnt < 100 {
+					id = rtpTransport.ID()
+					time.Sleep(time.Millisecond)
+					cnt++
 				}
-			} else {
-				info += fmt.Sprintf("subs: %d\n\n", len(subs))
+				if id == "" && cnt >= 100 {
+					log.Errorf("invalid id from incoming rtp transport")
+					return
+				}
+				log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
+				if router := AddRouter(id); router != nil {
+					router.AddPub(id, rtpTransport)
+				}
 			}
 		}
-		pipeLock.Unlock()
-		log.Infof(info)
-	}
+	}()
+	return nil
 }
 
-// DelSubFromAllPubByPrefix del sub from all pipelines by prefix
-func DelSubFromAllPubByPrefix(id string) map[string]string {
-	log.Infof("DelSubFromAllPubByPrefix id=%s", id)
-	m := make(map[string]string)
-	pipeLock.Lock()
-	defer pipeLock.Unlock()
-	for mid, p := range pipes {
-		p.delSub(id)
-		if p.noSub() && p.isRtpPub() {
-			m[mid] = mid
+// GetOrNewRouter get router from map
+func GetOrNewRouter(id string) *Router {
+	log.Infof("rtc.GetOrNewRouter id=%s", id)
+	router := GetRouter(id)
+	if router == nil {
+		return AddRouter(id)
+	}
+	return router
+}
+
+// GetRouter get router from map
+func GetRouter(id string) *Router {
+	log.Infof("rtc.GetRouter id=%s", id)
+	routerLock.RLock()
+	defer routerLock.RUnlock()
+	return routers[id]
+}
+
+// AddRouter add a new router
+func AddRouter(id string) *Router {
+	log.Infof("rtc.AddRouter id=%s", id)
+	routerLock.Lock()
+	defer routerLock.Unlock()
+	routers[id] = NewRouter(id)
+	return routers[id]
+}
+
+// DelRouter delete pub
+func DelRouter(id string) {
+	log.Infof("DelRouter id=%s", id)
+	router := GetRouter(id)
+	if router == nil {
+		return
+	}
+	router.Close()
+	routerLock.Lock()
+	defer routerLock.Unlock()
+	delete(routers, id)
+}
+
+// Close close all Router
+func Close() {
+	if stop {
+		return
+	}
+	stop = true
+	routerLock.Lock()
+	defer routerLock.Unlock()
+	for id, router := range routers {
+		if router != nil {
+			router.Close()
+			delete(routers, id)
 		}
 	}
-	return m
 }
 
-func getPipelinesByPrefix(id string) map[string]*pipeline {
-	pipeLock.RLock()
-	defer pipeLock.RUnlock()
-	m := make(map[string]*pipeline)
-	for mid := range pipes {
-		if strings.Contains(mid, id) {
-			m[mid] = pipes[mid]
+// check show all Routers' stat
+func check() {
+	t := time.NewTicker(statCycle)
+	for {
+		select {
+		case <-t.C:
+			info := "\n----------------rtc-----------------\n"
+			routerLock.Lock()
+
+			for id, Router := range routers {
+				if !Router.Alive() {
+					Router.Close()
+					delete(routers, id)
+					CleanChannel <- id
+					log.Infof("Stat delete %v", id)
+				}
+				info += "pub: " + id + "\n"
+				info += Router.GetPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
+				subs := Router.GetSubs()
+				if len(subs) < 6 {
+					for id := range subs {
+						info += fmt.Sprintf("sub: %s\n\n", id)
+					}
+				} else {
+					info += fmt.Sprintf("subs: %d\n\n", len(subs))
+				}
+			}
+			routerLock.Unlock()
+			log.Infof(info)
+		default:
+			if stop {
+				return
+			}
 		}
 	}
-	return m
-}
-
-func getPipeline(mid string) *pipeline {
-	// log.Infof("getPipeline mid=%v", mid)
-	pipeLock.RLock()
-	defer pipeLock.RUnlock()
-	return pipes[mid]
-}
-
-func addPipeline(id string) *pipeline {
-	pipeLock.Lock()
-	defer pipeLock.Unlock()
-	pipes[id] = newPipeline(id)
-	return pipes[id]
 }
