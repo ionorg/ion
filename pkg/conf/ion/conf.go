@@ -15,6 +15,7 @@ var (
 	Rtp    = &cfg.Rtp
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
+	Nats   = &cfg.Nats
 	Signal = &cfg.Signal
 	Amqp   = &cfg.Amqp
 )
@@ -38,6 +39,10 @@ type log struct {
 
 type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
+}
+
+type nats struct {
+	Addrs string `mapstructure:"addrs"`
 }
 
 type signal struct {
@@ -65,6 +70,7 @@ type config struct {
 	Rtp     rtp    `mapstructure:"rtp"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
+	Nats    nats   `mapstructure:"nats"`
 	Signal  signal `mapstructure:"signal"`
 	Amqp    amqp   `mapstructure:"amqp"`
 	CfgFile string

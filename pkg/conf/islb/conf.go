@@ -13,6 +13,7 @@ var (
 	Global = &cfg.Global
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
+	Nats   = &cfg.Nats
 	Amqp   = &cfg.Amqp
 	Redis  = &cfg.Redis
 )
@@ -38,6 +39,10 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
+type nats struct {
+	Addrs string `mapstructure:"addrs"`
+}
+
 type amqp struct {
 	Url string `mapstructure:"url"`
 }
@@ -52,6 +57,7 @@ type config struct {
 	Global  global `mapstructure:"global"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
+	Nats    nats   `mapstructure:"nats"`
 	Amqp    amqp   `mapstructure:"amqp"`
 	Redis   redis  `mapstructure:"redis"`
 	CfgFile string

@@ -146,6 +146,17 @@ func (e *Etcd) getByPrefix(key string) (map[string]string, error) {
 	return m, err
 }
 
+// GetResponseByPrefix .
+func (e *Etcd) GetResponseByPrefix(key string) (*clientv3.GetResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)
+	resp, err := e.client.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (e *Etcd) update(key, value string) error {
 	e.liveKeyIDLock.Lock()
 	id := e.liveKeyID[key]
