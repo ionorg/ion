@@ -19,7 +19,7 @@ type ServiceNode struct {
 func NewServiceNode(endpoints []string) *ServiceNode {
 	var sn ServiceNode
 	sn.reg = discovery.NewServiceRegistry(endpoints, "services:/")
-	log.Infof("New Service Node: etcd => %v", endpoints)
+	log.Infof("New Service Node Registry: etcd => %v", endpoints)
 	sn.node = discovery.Node{
 		Info: make(map[string]string),
 	}
@@ -68,6 +68,7 @@ func NewServiceWatcher(endpoints []string) *ServiceWatcher {
 
 //WatchServiceNode .
 func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback discovery.ServiceWatchCallback) {
+	log.Infof("Start service watcher => [%s].", serviceName)
 	for {
 		nodes, err := sw.reg.GetServiceNodes(serviceName)
 		if err != nil {

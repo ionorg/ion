@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	_ "net/http/pprof"
@@ -10,17 +9,12 @@ import (
 	conf "github.com/pion/ion/pkg/conf/ion"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node"
-)
-
-var (
-	ionID = fmt.Sprintf("%s:%d", conf.Global.Addr, conf.Rtp.Port)
+	"github.com/pion/ion/pkg/signal"
 )
 
 func init() {
 	log.Init(conf.Log.Level)
-	biz.Init(ionID, conf.Amqp.URL)
-	//discovery.Init(conf.Etcd.Addrs)
-	//discovery.UpdateLoad(conf.Global.Addr, conf.Rtp.Port)
+	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, biz.Entry)
 }
 
 func close() {
@@ -28,11 +22,16 @@ func close() {
 }
 
 func main() {
+	node.Init()
 	log.Infof("--- Starting Biz Node ---")
 
-	node.Init()
-	node := node.NewServiceNode(conf.Etcd.Addrs)
-	node.RegisterNode("BIZ", "node-ion", "ion-channel-id")
+	serviceNode := node.NewServiceNode(conf.Etcd.Addrs)
+	serviceNode.RegisterNode("biz", "node-biz", "biz-channel-id")
+
+	serviceWatcher := node.NewServiceWatcher(conf.Etcd.Addrs)
+	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
+
+	biz.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel())
 
 	defer close()
 	if conf.Global.Pprof != "" {

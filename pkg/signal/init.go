@@ -44,7 +44,11 @@ func stat() {
 	defer t.Stop()
 	for range t.C {
 		info := "\n----------------signal-----------------\n"
+		print := false
 		roomLock.Lock()
+		if len(rooms) > 0 {
+			print = true
+		}
 		for rid, room := range rooms {
 			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.GetPeers()))
 			if len(room.GetPeers()) == 0 {
@@ -52,6 +56,8 @@ func stat() {
 			}
 		}
 		roomLock.Unlock()
-		log.Infof(info)
+		if print {
+			log.Infof(info)
+		}
 	}
 }

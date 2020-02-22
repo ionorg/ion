@@ -24,6 +24,7 @@ const (
 	ClientOnStreamRemove = "stream-remove"
 
 	// ion to islb
+	IslbFindService  = "findService"
 	IslbGetPubs      = "getPubs"
 	IslbGetMediaInfo = "getMediaInfo"
 	IslbRelay        = "relay"

@@ -138,8 +138,11 @@ func check() {
 		select {
 		case <-t.C:
 			info := "\n----------------rtc-----------------\n"
+			print := false
 			routerLock.Lock()
-
+			if len(routers) > 0 {
+				print = true
+			}
 			for id, Router := range routers {
 				if !Router.Alive() {
 					Router.Close()
@@ -159,10 +162,8 @@ func check() {
 				}
 			}
 			routerLock.Unlock()
-			log.Infof(info)
-		default:
-			if stop {
-				return
+			if print {
+				log.Infof(info)
 			}
 		}
 	}
