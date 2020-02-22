@@ -1,0 +1,50 @@
+version: '3.7'
+
+services:
+  web:
+    build:
+      dockerfile: web.Dockerfile
+      context: .
+    command: ["--port", "9000", "--ssl", "--cert", "/cert/cert.pem", "--key", "/cert/key.pem"]
+    volumes:
+      - "./configs:/cert"
+    ports:
+      - 8080:9000
+      
+  islb:
+    build:
+      dockerfile: islb.Dockerfile
+      context: .
+    command: "-c /configs/islb.toml"
+    volumes:
+      - "./docker/islb.toml:/configs/islb.toml"
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - etcd
+      - redis
+
+  rabbitmq:
+    image: rabbitmq:3.8.2-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
+      interval: 5s
+      timeout: 15s
+      retries: 3
+
+  etcd:
+    image: bitnami/etcd:3.4.3-debian-10-r10
+    environment:
+      - "ALLOW_NONE_AUTHENTICATION=yes"
+    ports:
+      - "2379:2379"
+
+  redis:
+    image: redis:5.0.7
+    ports:
+      - "6379:6379"
