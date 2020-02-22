@@ -5,10 +5,11 @@ description: Ion SFU client SDK.
 homepage: https://github.com/pion/ion
 environment:
   sdk: '>2.2.0 <3.0.0'
+  flutter: '>=1.10.0'
 
 dependencies:
   uuid: ^2.0.1
   events2: ^0.1.3
   sdp_transform: ^0.1.0
-  flutter_webrtc: ^0.2.2
+  flutter_webrtc: ^0.2.6
   protoo_client: ^0.3.0

@@ -93,8 +93,9 @@ class Client extends EventEmitter {
 
   Future<dynamic> leave() async {
     try {
-      var data =
-          await this._protoo.send('leave', {'rid': this._rid, 'uid': this._uid});
+      var data = await this
+          ._protoo
+          .send('leave', {'rid': this._rid, 'uid': this._uid});
       logger.debug('leave success: result => ' + _encoder.convert(data));
       return data;
     } catch (error) {
@@ -103,13 +104,17 @@ class Client extends EventEmitter {
   }
 
   Future<Stream> publish(
-      [audio = true, video = true, screen = false, codec = 'vp8']) async {
+      [audio = true,
+      video = true,
+      screen = false,
+      codec = 'vp8',
+      quality = 'hd']) async {
     logger.debug('publish');
     Completer completer = new Completer<Stream>();
     RTCPeerConnection pc;
     try {
       var stream = new Stream();
-      await stream.init(true, audio, video, screen);
+      await stream.init(true, audio, video, screen, quality);
       logger.debug('create sender => $codec');
       pc = await createPeerConnection(_iceServers, _config);
       await pc.addStream(stream.stream);
@@ -312,7 +317,8 @@ class Client extends EventEmitter {
           var rid = data['rid'];
           var uid = data['uid'];
           var info = data['info'];
-          logger.debug('peer-join peer rid => $rid, uid => $uid, info => ${info.toString()}');
+          logger.debug(
+              'peer-join peer rid => $rid, uid => $uid, info => ${info.toString()}');
           this.emit('peer-join', rid, uid, info);
           break;
         }
@@ -329,8 +335,8 @@ class Client extends EventEmitter {
           var rid = data['rid'];
           var mid = data['mid'];
           var info = data['info'];
-          logger
-              .debug('stream-add peer rid => $mid, uid => $mid, info => ${info.toString()}');
+          logger.debug(
+              'stream-add peer rid => $mid, uid => $mid, info => ${info.toString()}');
           this.emit('stream-add', rid, mid, info);
           break;
         }

@@ -235,7 +235,7 @@ export default class MediaSettings extends React.Component {
                     <Button shape="circle" icon="setting" ghost onClick={this.showModal}/>
                 }
                 <Modal
-                    title='Modify device'
+                    title='Settings'
                     visible={this.state.visible}
                     onOk={this.handleOk}
                     onCancel={this.handleCancel}
@@ -280,10 +280,10 @@ export default class MediaSettings extends React.Component {
                         <span className="itemleft">Quality</span>
                         <div className="itemright">
                             <Select style={{ width: 350 }} value={this.state.resolution} onChange={this.handleResolutionChange}>
-                                <Option value="qvga">Fluency(320x180)</Option>
-                                <Option value="vga">Standardclear(640x360)</Option>
-                                <Option value="shd">Highclear(960x540)</Option>
-                                <Option value="hd">Superclear(1280x720)</Option>
+                                <Option value="qvga">QVGA(320x180)</Option>
+                                <Option value="vga">VGA(640x360)</Option>
+                                <Option value="shd">SHD(960x540)</Option>
+                                <Option value="hd">HD(1280x720)</Option>
                             </Select>
                         </div>
                     </div>
