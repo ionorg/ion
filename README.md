@@ -42,12 +42,19 @@ ION is a distributed RTC system written by pure go and flutter
 
 ## Roadmap
 
-
 [Projects](https://github.com/pion/ion/projects/1)
 Welcome contributing to ion!
 
 ## Project status
 [![Stargazers over time](https://starchart.cc/pion/ion.svg)](https://starchart.cc/pion/ion)
+
+
+# Screenshots
+## iOS/Android
+<img width="180" height="370" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/flutter/flutter-01.jpg"/> <img width="180" height="370" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/flutter/flutter-02.jpg"/> <img width="180" height="370" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/flutter/flutter-03.jpg"/> 
+## PC/HTML5
+<img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-01.jpg"/> <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-02.jpg"/>
+<img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-04.jpg"/> <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-05.jpg"/>
 
 ## How to use
 ### 1. make key
@@ -56,6 +63,9 @@ Welcome contributing to ion!
 ```
 ### 2. build
 ```
+#docker
+docker-compose build
+
 #centos
 ./scripts/centos/installDeps.sh
 
@@ -67,6 +77,9 @@ Welcome contributing to ion!
 ```
 ### 3. run
 ```
+#docker
+docker-compose up
+
 #centos
 ./scripts/centos/allRestart.sh
 

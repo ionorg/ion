@@ -6,13 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/rtp"
-)
-
-const (
-	maxMonitorSize = 1000
+	"github.com/pion/ion/pkg/rtc/plugins"
 )
 
 var (
@@ -109,14 +104,15 @@ func NewWebRTCTransport(mid, id string, isPub bool) *WebRTCTransport {
 	log.Infof("rtc.NewWebRTCTransport mid=%v id=%v isPub=%v", mid, id, isPub)
 	p := getPipeline(mid)
 	if p == nil {
-		p = newPipeline(mid)
+		p = addPipeline(mid)
 	}
-	wt := newWebRTCTransport(mid)
 	if isPub {
+		wt := newWebRTCTransport(mid)
 		p.addPub(mid, wt)
-	} else {
-		p.addSub(id, wt)
+		return wt
 	}
+	wt := newWebRTCTransport(id)
+	p.addSub(id, wt)
 	return wt
 }
 
@@ -125,7 +121,7 @@ func NewRTPTransportSub(mid, sid, addr string) {
 	log.Infof("rtc.NewRTPTransportSub mid=%v sid=%v addr=%v", mid, sid, addr)
 	p := getPipeline(mid)
 	if p == nil {
-		p = newPipeline(mid)
+		p = addPipeline(mid)
 	}
 	if p.getSubByAddr(addr) == nil {
 		p.addSub(sid, newPubRTPTransport(sid, mid, addr))
@@ -147,8 +143,15 @@ func stat() {
 				log.Infof("Stat delete %v", id)
 			}
 			info += "pub: " + id + "\n"
+			info += pipeline.getPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
 			subs := pipeline.getSubs()
-			info += fmt.Sprintf("subs: %d\n\n", len(subs))
+			if len(subs) < 6 {
+				for id := range subs {
+					info += fmt.Sprintf("sub: %s\n\n", id)
+				}
+			} else {
+				info += fmt.Sprintf("subs: %d\n\n", len(subs))
+			}
 		}
 		pipeLock.Unlock()
 		log.Infof(info)
@@ -189,18 +192,9 @@ func getPipeline(mid string) *pipeline {
 	return pipes[mid]
 }
 
-func newPipeline(id string) *pipeline {
-	p := &pipeline{
-		sub:     make(map[string]Transport),
-		pubCh:   make(chan *rtp.Packet, maxPipelineSize),
-		subCh:   make(chan *rtp.Packet, maxPipelineSize),
-		pubLive: gcache.New(maxMonitorSize).LRU().Build(),
-		live:    true,
-	}
-	p.addMiddleware(jitterBuffer, newBuffer(jitterBuffer, p))
-	p.start()
+func addPipeline(id string) *pipeline {
 	pipeLock.Lock()
 	defer pipeLock.Unlock()
-	pipes[id] = p
-	return p
+	pipes[id] = newPipeline(id)
+	return pipes[id]
 }

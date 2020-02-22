@@ -24,30 +24,9 @@ class SmallVideoView extends React.Component {
 
   render = () => {
     const { id, stream } = this.props;
-
-    let videoCount = this.props.videoCount;
-    let leftWidth = this.props.collapsed ? 0 : 320;
-
-    let clientWidth = this.state.clientWidth;
-    let videoContainerW = clientWidth - leftWidth;
-    let startX = (videoContainerW - (videoCount-1) * 220)/2;
-
-    const small = {
-      position: "absolute",
-      width: "220px",
-      height: "140px",
-      left: startX + (this.props.index - 1) * 220 + "px",
-      bottom: "30px",
-      borderWidth: "0.5px",
-      borderStyle: "solid",
-      borderColor: "#ffffff",
-      overflow: "hidden",
-      borderRadius: "2px",
-      backgroundColor: "#323232"
-    };
-
+    
     return (
-      <div onClick={this._handleClick} style={small}>
+      <div onClick={this._handleClick} className="small-video-div">
         <video
           ref={ref => {
             this.video = ref;
@@ -58,7 +37,10 @@ class SmallVideoView extends React.Component {
           muted={false}
           className="small-video-size"
         />
-        <a className="small-video-id-a">{stream.info.name}</a>
+        <div className="small-video-id-div">
+          <a className="small-video-id-a">{stream.info.name}</a>
+        </div>
+        
       </div>
     );
   };

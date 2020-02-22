@@ -20,7 +20,7 @@ func Serve(port int) chan *udp.Conn {
 	if listener != nil {
 		listener.Close()
 	}
-	ch := make(chan *udp.Conn)
+	ch := make(chan *udp.Conn, 100)
 	var err error
 	listener, err = udp.Listen("udp", &net.UDPAddr{IP: net.IPv4zero, Port: port})
 	if err != nil {
@@ -42,11 +42,12 @@ func Serve(port int) chan *udp.Conn {
 					continue
 				}
 				log.Infof("accept new rtp conn %s", conn.RemoteAddr().String())
+
 				ch <- conn
 			}
 		}
 	}()
-	return nil
+	return ch
 }
 
 // Close close listening loop

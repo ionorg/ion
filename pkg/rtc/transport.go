@@ -10,11 +10,8 @@ type Transport interface {
 	ID() string
 	ReadRTP() (*rtp.Packet, error)
 	WriteRTP(*rtp.Packet) error
+	WriteRTCP(rtcp.Packet) error
 	Close()
-
-	sendNack(*rtcp.TransportLayerNack)
-	sendREMB(float64)
-
 	writeErrTotal() int
 	writeErrReset()
 }

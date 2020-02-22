@@ -93,6 +93,7 @@ github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pion/datachannel v1.4.13 h1:ezTn3AtUtXvKemRRjRdUgao/T8bH4ZJwrpOqU8Iz3Ss=
 github.com/pion/datachannel v1.4.13/go.mod h1:+rBUwEDonA63KXx994DP/ofyyGVAm6AIMvOqQZxjWRU=
+github.com/pion/dtls v1.5.4 h1:q8pXFMF7T+EAVO4auQU/ds+5yh5yOK6NiTN/4NQ0dB0=
 github.com/pion/dtls/v2 v2.0.0-rc.3 h1:u9utI+EDJOjOWfrkGQsD8WNssPcTwfYIanFB6oI8K+4=
 github.com/pion/dtls/v2 v2.0.0-rc.3/go.mod h1:x0XH+cN5z+l/+/4nYL8r4sB8g6+0d1Zp2Pfkcoz8BKY=
 github.com/pion/dtls/v2 v2.0.0-rc.5 h1:O6RZZGTnHryfMezTisWMSR02XS/Gf6jWnCnYqg5VjMY=
@@ -113,6 +114,8 @@ github.com/pion/rtp v1.1.3/go.mod h1:/l4cvcKd0D3u9JLs2xSVI95YkfXW87a3br3nqmVtSlE
 github.com/pion/rtp v1.1.4/go.mod h1:/l4cvcKd0D3u9JLs2xSVI95YkfXW87a3br3nqmVtSlE=
 github.com/pion/rtp v1.3.0 h1:pe6KKG8KvLCq3+9GSQwrCj7aIalsJj9N4pMJ5eGj4S8=
 github.com/pion/rtp v1.3.0/go.mod h1:q9wPnA96pu2urCcW/sK/RiDn597bhGoAQQ+y2fDwHuY=
+github.com/pion/rtp v1.3.1 h1:42ffTY27LHK3Qrc8HE/nnZZLFxjRkV3pg9nTBxuydXA=
+github.com/pion/rtp v1.3.1/go.mod h1:q9wPnA96pu2urCcW/sK/RiDn597bhGoAQQ+y2fDwHuY=
 github.com/pion/sctp v1.7.3 h1:Pok18oncuAq/WjNxbyltfBSLvbv/6QSCyVJKYyDWP5M=
 github.com/pion/sctp v1.7.3/go.mod h1:c6C9jaDGX7f5xeSRVju/140XatpO9sOVe81EwpfzAc8=
 github.com/pion/sdp/v2 v2.3.1 h1:45dub4NRdwyDmQCD3GIY7DZuqC49GBUwBdjuetvdOr0=

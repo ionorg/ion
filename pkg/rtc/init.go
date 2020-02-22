@@ -48,7 +48,7 @@ func Init(port int, ices []string) {
 					return
 				}
 				log.Infof("accept new rtp mid=%s conn=%s", mid, conn.RemoteAddr().String())
-				if p := newPipeline(mid); p != nil {
+				if p := addPipeline(mid); p != nil {
 					p.addPub(mid, t)
 				}
 			}
