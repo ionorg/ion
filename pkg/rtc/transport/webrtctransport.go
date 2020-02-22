@@ -72,6 +72,7 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		},
 	}
 	tcc := KvOK(options, "transport-cc", "true")
+	dc := KvOK(options, "data-channel", "true")
 	codec := ValUpper(options, "codec")
 
 	if codec == webrtc.H264 && tcc {
@@ -86,6 +87,9 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
 	}
 
+	if !dc {
+		setting.DetachDataChannels()
+	}
 	w.api = webrtc.NewAPI(webrtc.WithMediaEngine(w.mediaEngine), webrtc.WithSettingEngine(setting))
 	return nil
 }
@@ -95,6 +99,7 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 //   "video" = webrtc.H264[default] webrtc.VP8  webrtc.VP9
 //   "audio" = webrtc.Opus[default] webrtc.PCMA webrtc.PCMU webrtc.G722
 //   "transport-cc"  = "true" or "false"[default]
+//   "data-channel"  = "true" or "false"[default]
 func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransport {
 	w := &WebRTCTransport{
 		id:          id,
@@ -180,12 +185,13 @@ func (w *WebRTCTransport) Offer() (webrtc.SessionDescription, error) {
 	return offer, nil
 }
 
-// func (w *WebRTCTransport) SetRemoteSDP(sdp webrtc.SessionDescription) error {
-// if w.pc == nil {
-// return errInvalidPC
-// }
-// return w.pc.SetRemoteDescription(sdp)
-// }
+// SetRemoteSDP after Offer()
+func (w *WebRTCTransport) SetRemoteSDP(sdp webrtc.SessionDescription) error {
+	if w.pc == nil {
+		return errInvalidPC
+	}
+	return w.pc.SetRemoteDescription(sdp)
+}
 
 // AddTrack add track to pc
 func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8) (*webrtc.Track, error) {
