@@ -96,4 +96,18 @@ Open this url with chrome
 https://yourip:8080
 ```
 
+## How to start ion development
+### 1. make keys
+> ./scripts/makeKey.sh
+
+### 2. docker build 
+> docker-compose build
+
+### 3. prepare dev env
+> docker-compose -f dev-compose.yml up
+
+### 4. and then open your ide and go to build ion main.go
+> ...
+
+The default config of ion is ./configs/ion.toml
 
