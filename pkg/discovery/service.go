@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/util"
 )
 
 // ServiceWatchCallback .
@@ -42,6 +43,7 @@ func (r *ServiceRegistry) RegisterServiceNode(serviceName string, node Node) err
 	if node.Name == "" {
 		return fmt.Errorf("Node name must be non empty")
 	}
+	node.Info["ip"] = util.GetIntefaceIP()
 	go r.keepRegistered(serviceName, node)
 	return nil
 }

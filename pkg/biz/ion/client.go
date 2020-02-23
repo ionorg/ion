@@ -1,8 +1,12 @@
 package biz
 
 import (
+	"fmt"
+
+	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/node"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
@@ -10,219 +14,236 @@ import (
 
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+	log.Infof("method => %s, data => %v", method, msg)
+	var result map[string]interface{}
+	err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+
 	switch method {
 	case proto.ClientClose:
-		clientClose(peer, msg, accept, reject)
+		result, err = clientClose(peer, msg)
 	case proto.ClientLogin:
-		login(peer, msg, accept, reject)
+		result, err = login(peer, msg)
 	case proto.ClientJoin:
-		join(peer, msg, accept, reject)
+		result, err = join(peer, msg)
 	case proto.ClientLeave:
-		leave(peer, msg, accept, reject)
+		result, err = leave(peer, msg)
 	case proto.ClientPublish:
-		publish(peer, msg, accept, reject)
+		result, err = publish(peer, msg)
 	case proto.ClientUnPublish:
-		unpublish(peer, msg, accept, reject)
+		result, err = unpublish(peer, msg)
 	case proto.ClientSubscribe:
-		subscribe(peer, msg, accept, reject)
+		result, err = subscribe(peer, msg)
 	case proto.ClientUnSubscribe:
-		unsubscribe(peer, msg, accept, reject)
+		result, err = unsubscribe(peer, msg)
 	case proto.ClientBroadcast:
-		broadcast(peer, msg, accept, reject)
+		result, err = broadcast(peer, msg)
+	}
+
+	if err != nil {
+		reject(err.Code, err.Reason)
+	} else {
+		accept(result)
 	}
 }
 
-func login(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func getRPCForIslb() (*nprotoo.Requestor, bool) {
+	for _, item := range services {
+		if item.Info["service"] == "islb" {
+			id := item.Info["id"]
+			rpc, found := rpcs[id]
+			if !found {
+				rpcID := node.GetRPCChannel(item)
+				log.Infof("Create rpc [%s] for islb", rpcID)
+				rpc = protoo.NewRequestor(rpcID)
+				rpcs[id] = rpc
+			}
+			return rpc, true
+		}
+	}
+	log.Warnf("No islb node was found.")
+	return nil, false
+}
+
+func getRPCForSFU() (*nprotoo.Requestor, *nprotoo.Error) {
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
+	}
+	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu"))
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("SFU result => %v", result)
+	rpcID := result["rpc-id"].(string)
+	sfu := protoo.NewRequestor(rpcID)
+	return sfu, nil
+}
+
+func login(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.login peer.ID()=%s msg=%v", peer.ID(), msg)
 	//TODO auth check, maybe jwt
-	accept(emptyMap)
+	return emptyMap, nil
 }
 
 // join room
-func join(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func join(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
-	if invalid(msg, "rid", reject) {
-		return
+	if ok, err := verifyData(msg, "rid"); !ok {
+		return nil, err
 	}
 	rid := util.Val(msg, "rid")
+	uid := peer.ID()
 	//already joined this room
 	if signal.HasPeer(rid, peer) {
-		accept(emptyMap)
-		return
+		return emptyMap, nil
 	}
 	info := util.Val(msg, "info")
 	signal.AddPeer(rid, peer)
-	islbRPC.Request(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", peer.ID(), "info", info),
-		func(result map[string]interface{}) { //accept
-			log.Infof("success: =>  %s", result)
-			// TODO: foreach infos => mid, info
-			info := result["info"]
-			mid := result["mid"]
-			uid := result["uid"]
-			log.Infof("biz.join respHandler mid=%v info=%v", mid, info)
-			if mid != "" {
-				peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", info))
-			}
-		},
-		func(code int, err string) { // reject
-			log.Warnf("reject: %d => %s", code, err)
-		})
-	accept(emptyMap)
+
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
+	}
+	// Send join => islb
+	islb.AsyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
+	// Send getPubs => islb
+	result, err := islb.SyncRequest(proto.IslbGetPubs, util.Map("rid", rid, "uid", uid))
+	if err == nil {
+		info := result["info"]
+		mid := result["mid"]
+		uid := result["uid"]
+		log.Infof("biz.join respHandler mid=%v info=%v", mid, info)
+		// peer <=  range pubs(mid)
+		if mid != "" {
+			peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", info))
+		}
+	}
+
+	return emptyMap, nil
 }
 
-/*
-islbRPC.Request(proto.IslbClientOnJoin, util.Map(),
-		func(result map[string]interface{}) { //accept
-			log.Infof("success: =>  %s", result)
-		},
-		func(code int, err string) { // reject
-			log.Warnf("reject: %d => %s", code, err)
-		})
-*/
-
-func leave(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func leave(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.leave peer.ID()=%s msg=%v", peer.ID(), msg)
 	defer util.Recover("biz.leave")
-	if invalid(msg, "rid", reject) {
-		return
+
+	if ok, err := verifyData(msg, "rid"); !ok {
+		return nil, err
 	}
+
 	rid := util.Val(msg, "rid")
-	/*
 
-		// if this is a webrtc pub
-		mids := rtc.GetWebRtcMIDByPID(peer.ID())
-		for _, mid := range mids {
-			// tell islb stream-remove
-			amqp.RpcCall(proto.IslbID, util.Map("method", proto.IslbOnStreamRemove, "rid", rid, "uid", peer.ID(), "mid", mid), "")
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
+	}
 
-			rtc.DelPipeline(mid)
-
-			// del sub and get the rtp's pub which has none sub
-			noSubRtpPubMid := rtc.DelSubFromAllPub(mid)
-			// del pub which has none sub when received resp
-			log.Infof("biz.leave noSubRtpPubMid=%v", noSubRtpPubMid)
-			for mid := range noSubRtpPubMid {
-				respUnrelayHandler := func(m map[string]interface{}) {
-					log.Infof("biz.leave respUnrelayHandler m=%v", m)
-					mid := util.Val(m, "mid")
-					rtc.DelPipeline(mid)
-				}
-				// tell islb stop relay
-				amqp.RpcCallWithResp(proto.IslbID, util.Map("method", proto.IslbUnrelay, "rid", rid, "mid", mid), respUnrelayHandler)
-			}
-		}
-
-		islbRPC.Request(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", peer.ID()),
-			func(result map[string]interface{}) { //accept
-				log.Infof("success: =>  %s", result)
-			},
-			func(code int, err string) { // reject
-				log.Warnf("reject: %d => %s", code, err)
-			})
-		accept(emptyMap)
-	*/
+	// TODO:
+	var mid = ""
+	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", peer.ID(), "mid", mid))
+	islb.AsyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", peer.ID()))
 	signal.DelPeer(rid, peer.ID())
+	return emptyMap, nil
 }
 
-func clientClose(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func clientClose(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
-	leave(peer, msg, accept, reject)
+	return leave(peer, msg)
 }
 
-func publish(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.publish peer.ID()=%s", peer.ID())
-	if invalid(msg, "rid", reject) || invalid(msg, "jsep", reject) {
-		return
-	}
-	rid := util.Val(msg, "rid")
 
-	sfu := lookupSFU(rid)
-	if sfu == nil {
-		reject(500, "No SFU nodes available.")
-		return
+	uid := peer.ID()
+
+	sfu, err := getRPCForSFU()
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	j := msg["jsep"].(map[string]interface{})
-	if invalid(j, "sdp", reject) {
-		return
-	}
-
+	jsep := msg["jsep"].(map[string]interface{})
+	options := msg["options"].(map[string]interface{})
 	room := signal.GetRoomByPeer(peer.ID())
 	if room == nil {
-		reject(codeRoomErr, codeStr(codeRoomErr))
-		return
+		return nil, util.NewNpError(codeRoomErr, codeStr(codeRoomErr))
 	}
-	/*
-		sdp := util.Val(j, "sdp")
-		options := msg["options"].(map[string]interface{})
-		mid := getMID(peer.ID())
 
-		accept(util.Map("jsep", answer, "mid", mid))
-	*/
+	result, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "jsep", jsep, "options", options))
+	if err != nil {
+		log.Warnf("reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	return result, nil
 }
 
 // unpublish from app
-func unpublish(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
-	//get rid from msg, because room may be already deleted from signal
-	//so we can't get rid from signal's room
-	if invalid(msg, "rid", reject) || invalid(msg, "mid", reject) {
-		return
+
+	sfu, err := getRPCForSFU()
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	rid := util.Val(msg, "rid")
 	mid := util.Val(msg, "mid")
+	rid := util.Val(msg, "rid")
+
+	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid))
+	if err != nil {
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
 	// if this mid is a webrtc pub
 	// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb broadcast stream-remove
 	key := proto.GetPubMediaPath(rid, mid, 0)
 	discovery.Del(key, true)
-
-	accept(emptyMap)
+	return emptyMap, nil
 }
 
-func subscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func subscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
-	if invalid(msg, "jsep", reject) || invalid(msg, "mid", reject) {
-		return
-	}
-	j := msg["jsep"].(map[string]interface{})
-	if invalid(j, "sdp", reject) {
-		return
+
+	if ok, err := verifyData(msg, "jsep", "mid"); !ok {
+		return nil, err
 	}
 
-	room := signal.GetRoomByPeer(peer.ID())
-	sfu := lookupSFU(room.ID())
-	if sfu == nil {
-		reject(500, "No SFU nodes available.")
-		return
+	jsep := msg["jsep"].(map[string]interface{})
+
+	if ok, err := verifyData(jsep, "sdp"); !ok {
+		return nil, err
 	}
+
+	//room := signal.GetRoomByPeer(peer.ID())
 
 	//mid, sdp := util.Val(msg, "mid"), util.Val(j, "sdp")
+	return emptyMap, nil
 }
 
-func unsubscribe(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func unsubscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	if invalid(msg, "mid", reject) {
-		return
+
+	if ok, err := verifyData(msg, "mid"); !ok {
+		return nil, err
 	}
+
 	//mid := util.Val(msg, "mid")
 
 	// if this is relay from this ion, ion auto delete the rtptransport sub when next ion deleted pub
-	accept(emptyMap)
+	return emptyMap, nil
 }
 
-func broadcast(peer *signal.Peer, msg map[string]interface{}, accept signal.AcceptFunc, reject signal.RejectFunc) {
+func broadcast(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	if invalid(msg, "rid", reject) || invalid(msg, "uid", reject) || invalid(msg, "info", reject) {
-		return
+
+	if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
+		return nil, err
+	}
+
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	rid, uid, info := util.Val(msg, "rid"), util.Val(msg, "uid"), util.Val(msg, "info")
-	islbRPC.Request(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info),
-		func(result map[string]interface{}) { //accept
-			log.Infof("success: =>  %s", result)
-		},
-		func(code int, err string) { // reject
-			log.Warnf("reject: %d => %s", code, err)
-		})
-	accept(emptyMap)
+	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info))
+	return emptyMap, nil
 }

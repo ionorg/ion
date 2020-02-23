@@ -1,7 +1,6 @@
 package biz
 
 import (
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
@@ -17,15 +16,13 @@ func strToMap(msg map[string]interface{}, key string) {
 	}
 }
 
-func lookupSFU(rid string) *discovery.Node {
-	return &nodes[0]
-}
-
 // broadcast msg from islb
-func handleBroadCastFromIslb(eventID string) {
+func handleIslbBroadCast(eventID string) {
+	log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
+
 	protoo.OnBroadcast(eventID, func(msg map[string]interface{}, subj string) {
 		method := util.Val(msg, "method")
-		log.Infof("handleBroadCastFromIslb: msg=%v", msg)
+		log.Infof("OnIslbBroadcast: msg=%v", msg)
 		rid := util.Val(msg, "rid")
 		uid := util.Val(msg, "uid")
 		//make signal.Notify send "info" as a json object, otherwise is a string (:

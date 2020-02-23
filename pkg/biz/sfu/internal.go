@@ -5,6 +5,7 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc"
 	transport "github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/ion/pkg/util"
@@ -14,79 +15,90 @@ import (
 var emptyMap = map[string]interface{}{}
 
 func handleRequest(rpcID string) {
+	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
 		method := request["method"].(string)
 		data := request["data"].(map[string]interface{})
-		log.Infof("handleRequest: method => %s, data => %v", method, data)
+		log.Debugf("handleRequest: method => %s, data => %v", method, data)
+
+		var result map[string]interface{}
+		err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+
 		switch method {
-		case "publish":
-			AddPublisher(data, accept, reject)
-		case "unpublish":
-			RemovePublisher(data, accept, reject)
-		case "subscribe":
-			AddSubscriber(data, accept, reject)
-		case "unsubscribe":
-			RemoveSubscriber(data, accept, reject)
+		case proto.ClientPublish:
+			result, err = AddPublisher(data)
+		case proto.ClientUnPublish:
+			result, err = RemovePublisher(data)
+		case proto.ClientSubscribe:
+			result, err = AddSubscriber(data)
+		case proto.ClientUnSubscribe:
+			result, err = RemoveSubscriber(data)
+		}
+
+		if err != nil {
+			reject(err.Code, err.Reason)
+		} else {
+			accept(result)
 		}
 	})
 }
 
 // AddPublisher .
-func AddPublisher(msg map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
+func AddPublisher(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("AddPublisher msg=%v", msg)
 	jsep := msg["jsep"].(map[string]interface{})
 	if jsep == nil {
-		reject(415, "Unsupported Media Type")
-		return
+		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 	sdp := util.Val(jsep, "sdp")
-	options := msg["options"].(map[string]interface{})
+	//options := msg["options"].(map[string]interface{})
 	uid := util.Val(msg, "uid")
 	mid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
+	options := make(map[string]interface{})
+	options["codec"] = "h264"
+	options["transport-cc"] = ""
+	options["publish"] = ""
 	pub := transport.NewWebRTCTransport(mid, options)
 	answer, err := pub.Answer(offer, options)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
-		reject(415, "Unsupported Media Type")
-		return
+		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 	router := rtc.GetOrNewRouter(mid)
 	router.AddPub(uid, pub)
-	accept(util.Map("jsep", answer, "mid", mid))
+	return util.Map("jsep", answer, "mid", mid), nil
 }
 
 // RemovePublisher .
-func RemovePublisher(msg map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
+func RemovePublisher(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("RemovePublisher msg=%v", msg)
 
 	mid := util.Val(msg, "mid")
 	router := rtc.GetOrNewRouter(mid)
 	if router != nil {
 		router.DelPub()
+		router.Close()
 		rtc.DelRouter(mid)
-		accept(emptyMap)
-		return
+		return emptyMap, nil
 	}
-	reject(404, "Router not found!")
+	return nil, util.NewNpError(404, "Router not found!")
 }
 
 // AddSubscriber .
-func AddSubscriber(msg map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
+func AddSubscriber(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("AddSubscriber msg=%v", msg)
 
 	pmid := util.Val(msg, "mid")
 	router := rtc.GetOrNewRouter(pmid)
 	if router == nil {
-		reject(404, "Router not found!")
-		return
+		return nil, util.NewNpError(404, "Router not found!")
 	}
 
 	jsep := msg["jsep"].(map[string]interface{})
 	if jsep == nil {
-		reject(415, "Unsupported Media Type")
-		return
+		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 
 	sdp := util.Val(jsep, "sdp")
@@ -104,23 +116,21 @@ func AddSubscriber(msg map[string]interface{}, accept nprotoo.AcceptFunc, reject
 	answer, err := sub.Answer(offer, options)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
-		reject(415, "Unsupported Media Type")
-		return
+		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 	router.AddSub(smid, sub)
-	accept(util.Map("jsep", answer, "mid", smid))
+	return util.Map("jsep", answer, "mid", smid), nil
 }
 
 // RemoveSubscriber .
-func RemoveSubscriber(msg map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
+func RemoveSubscriber(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("RemoveSubscriber msg=%v", msg)
 	pmid := util.Val(msg, "pmid")
 	smid := util.Val(msg, "smid")
 	router := rtc.GetOrNewRouter(pmid)
 	if router != nil {
 		router.DelSub(smid)
-		accept(emptyMap)
-		return
+		return emptyMap, nil
 	}
-	reject(404, "Router not found!")
+	return nil, util.NewNpError(404, "Router not found!")
 }

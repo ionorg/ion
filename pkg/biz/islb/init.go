@@ -18,8 +18,8 @@ const (
 var (
 	protoo             *nprotoo.NatsProtoo
 	redis              *db.Redis
+	services           []discovery.Node
 	broadcaster        *nprotoo.Broadcaster
-	requestor          *nprotoo.Requestor
 	streamAddCache     = make(map[string]bool)
 	streamAddCacheLock sync.RWMutex
 	streamDelCache     = make(map[string]bool)
@@ -31,7 +31,6 @@ func Init(rpcID string, eventID string, redisCfg db.Config, etcd []string) {
 	redis = db.NewRedis(redisCfg)
 	protoo = nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)
-	requestor = protoo.NewRequestor(rpcID)
 	handleRequest(rpcID)
 	// handleBroadCastMsgs()
 }
@@ -42,6 +41,7 @@ func WatchServiceNodes(service string, nodes []discovery.Node) {
 		service := node.Info["service"]
 		id := node.Info["id"]
 		name := node.Info["name"]
-		log.Infof("Service [%s] %s => %s", service, name, id)
+		log.Debugf("Service [%s] %s => %s", service, name, id)
 	}
+	services = nodes
 }

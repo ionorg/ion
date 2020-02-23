@@ -3,7 +3,7 @@ package biz
 import (
 	"fmt"
 
-	"github.com/pion/ion/pkg/signal"
+	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/util"
 )
 
@@ -15,23 +15,29 @@ func getKeepAliveID(mid string, ssrc uint32) string {
 	return fmt.Sprintf("%s#%d", mid, ssrc)
 }
 
-func invalid(msg map[string]interface{}, key string, reject signal.RejectFunc) bool {
+func verifyData(msg map[string]interface{}, args ...interface{}) (bool, *nprotoo.Error) {
+	for i := 0; i < len(args); i++ {
+		failed, err := invalid(msg, args[i].(string))
+		if failed {
+			return !failed, err
+		}
+	}
+	return true, nil
+}
+
+func invalid(msg map[string]interface{}, key string) (bool, *nprotoo.Error) {
 	val := util.Val(msg, key)
 	if val == "" {
 		switch key {
 		case "rid":
-			reject(codeRoomErr, codeStr(codeRoomErr))
-			return true
+			return true, util.NewNpError(codeRoomErr, codeStr(codeRoomErr))
 		case "jsep":
-			reject(codeJsepErr, codeStr(codeJsepErr))
-			return true
+			return true, util.NewNpError(codeJsepErr, codeStr(codeJsepErr))
 		case "sdp":
-			reject(codeSDPErr, codeStr(codeSDPErr))
-			return true
+			return true, util.NewNpError(codeSDPErr, codeStr(codeSDPErr))
 		case "mid":
-			reject(codeMIDErr, codeStr(codeMIDErr))
-			return true
+			return true, util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
 		}
 	}
-	return false
+	return false, nil
 }

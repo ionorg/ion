@@ -16,8 +16,7 @@ type RejectFunc peer.RejectFunc
 const (
 	errInvalidMethod = "method not found"
 	errInvalidData   = "data not found"
-
-	statCycle = time.Second * 3
+	statCycle        = time.Second * 3
 )
 
 var (
@@ -34,6 +33,7 @@ func Init(host string, port int, cert, key string, bizEntry interface{}) {
 	config.Port = port
 	config.CertFile = cert
 	config.KeyFile = key
+	config.HTMLRoot = "web"
 	bizCall = bizEntry.(func(method string, peer *Peer, msg map[string]interface{}, accept AcceptFunc, reject RejectFunc))
 	go wsServer.Bind(config)
 	go stat()

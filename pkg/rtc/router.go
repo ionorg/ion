@@ -204,7 +204,7 @@ func (r *Router) DelPub() {
 
 // GetPub get pub
 func (r *Router) GetPub() transport.Transport {
-	log.Infof("Router.GetPub %v", r.pub)
+	log.Debugf("Router.GetPub %v", r.pub)
 	return r.pub
 }
 
@@ -250,7 +250,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 func (r *Router) GetSub(id string) transport.Transport {
 	r.subLock.Lock()
 	defer r.subLock.Unlock()
-	log.Infof("Router.GetSub id=%s sub=%v", id, r.subs[id])
+	log.Debugf("Router.GetSub id=%s sub=%v", id, r.subs[id])
 	return r.subs[id]
 }
 
@@ -258,7 +258,7 @@ func (r *Router) GetSub(id string) transport.Transport {
 func (r *Router) GetSubs() map[string]transport.Transport {
 	r.subLock.RLock()
 	defer r.subLock.RUnlock()
-	log.Infof("Router.GetSubs len=%v", len(r.subs))
+	log.Debugf("Router.GetSubs len=%v", len(r.subs))
 	return r.subs
 }
 

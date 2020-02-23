@@ -6,5 +6,5 @@ import (
 
 // Init init loggers.
 func Init() {
-	logger.Init("debug")
+	logger.Init("info")
 }
