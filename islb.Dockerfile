@@ -2,8 +2,12 @@ FROM golang:1.13.7-stretch
 
 ENV GO111MODULE=on
 
-COPY . $GOPATH/src/github.com/pion/ion
+WORKDIR $GOPATH/src/github.com/pion/ion
+
+COPY go.mod go.sum ./
 RUN cd $GOPATH/src/github.com/pion/ion && go mod download
+
+COPY . $GOPATH/src/github.com/pion/ion
 
 WORKDIR $GOPATH/src/github.com/pion/ion/cmd/islb
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /islb .

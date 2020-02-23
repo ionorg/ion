@@ -1,30 +1,19 @@
-#FROM alpine:3.9.5 as certBuilder
-#RUN apk upgrade --update-cache --available && apk add openssl
-#
-#RUN openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 \
-#-subj "/C=US/ST=No/L=No/O=Pion/CN=No" \
-#-keyout /key.pem -out /cert.pem
-
-
 FROM node:12.16.0-buster-slim as builder
-COPY ./sdk/js /app
 
 WORKDIR /app
+COPY ./sdk/js/package.json ./sdk/js/package-lock.json ./
 RUN npm install
 
+COPY ./sdk/js/demo/package.json ./demo/
 WORKDIR /app/demo
 RUN npm install
+
+WORKDIR /app
+COPY ./sdk/js ./
+
+WORKDIR /app/demo
 RUN npm run build
 
-
-FROM node:12.16.0-buster-slim
-RUN npm install -g http-server
-
+FROM nginx:1.17
 WORKDIR /dist
 COPY --from=builder /app/demo/dist .
-RUN npm install -g http-server
-
-#COPY --from=certBuilder /key.pem /cert/key.pem
-#COPY --from=certBuilder /cert.pem /cert/cert.pem
-
-ENTRYPOINT ["http-server", "."]

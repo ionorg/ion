@@ -10,3 +10,5 @@ docker
 configs
 docs
 screenshots
+*/*/node_modules
+sdk/*/*/dist/*.js

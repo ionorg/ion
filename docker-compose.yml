@@ -5,11 +5,11 @@ services:
     build:
       dockerfile: web.Dockerfile
       context: .
-    command: ["--port", "9000", "--ssl", "--cert", "/cert/cert.pem", "--key", "/cert/key.pem"]
     volumes:
       - "./configs:/cert"
+      - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
     ports:
-      - 8080:9000
+      - 8080:443
     depends_on:
       - ion
 
@@ -45,18 +45,17 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.8.2-management
+    expose:
+      - 5672
     environment:
       RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
     healthcheck:
       test: [ "CMD", "nc", "-z", "localhost", "5672" ]
-      interval: 5s
-      timeout: 15s
-      retries: 3
+      timeout: 5s
+      retries: 1
 
   etcd:
-    image: bitnami/etcd:3.4.3-debian-10-r10
-    environment:
-      - "ALLOW_NONE_AUTHENTICATION=yes"
+    image: gcr.io/etcd-development/etcd:v3.3.18
 
   redis:
     image: redis:5.0.7
