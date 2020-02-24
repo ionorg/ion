@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
 EXE=islb
@@ -49,8 +49,8 @@ go build -o $COMMAND
 cd $APP_DIR
 
 ## run command
-echo "nohup $COMMAND -c $CONFIG >> $LOG_FILE 2>&1 &"
-nohup $COMMAND -c $CONFIG >> $LOG_FILE 2>&1 &
+echo "nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &"
+nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &
 pid=$!
 echo "$pid" > $PID_FILE
 rpid=`ps aux | grep $pid |grep -v "grep" | awk '{print $2}'`

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 
 PID=`cat $APP_DIR/configs/node.pid`
 if [ ! -n "$PID" ]; then

@@ -140,6 +140,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	options := make(map[string]interface{})
 	options["transport-cc"] = "false"
 	options["subscribe"] = "true"
+	options["codec"] = "vp8"
 
 	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 	if info != "" {
@@ -153,7 +154,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	for ssrc, pt := range ssrcPT {
 		log.Infof("AddTrack ssrc:%d,pt:%d", ssrc, pt)
-		err := sub.AddTrack(ssrc, pt)
+		_, err := sub.AddTrack(ssrc, pt)
 		if err != nil {
 			log.Errorf("err=%v", err)
 		}

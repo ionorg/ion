@@ -1,11 +1,17 @@
 #!/bin/bash
 
 export ROOT_DIR=$(cd `dirname $0`/../; pwd)
+export SRV_DIR=${ROOT_DIR}/deps
 
 export ETCD_VER=v3.3.18
 export NATS_VER=v2.1.4
 export REDIS_VER=5.0.7
 export TIDB_VER=3.0.9
+
+export ETCD_DIR=${SRV_DIR}/etcd-server
+export NATS_DIR=${SRV_DIR}/nats-server
+export REDIS_DIR=${SRV_DIR}/redis-server
+export TIDB_DIR=${SRV_DIR}/tidb-server
 
 case $(uname | tr '[:upper:]' '[:lower:]') in
   linux*)
@@ -22,31 +28,22 @@ case $(uname | tr '[:upper:]' '[:lower:]') in
     ;;
 esac
 
-export SRV_DIR=${ROOT_DIR}/deps/${OS}
-export ETCD_DIR=${SRV_DIR}/etcd-server
-export NATS_DIR=${SRV_DIR}/nats-server
-export REDIS_DIR=${SRV_DIR}/redis-server
-export TIDB_DIR=${SRV_DIR}/tidb-server
-
 function install_etcd_server() {
     GITHUB_URL=https://github.com/etcd-io/etcd/releases/download
     DOWNLOAD_URL=${GITHUB_URL}
-    SUFFIX=.zip
-    if [ ${OS} == "linux" ]; then
-        SUFFIX=.tar.gz
+
+    if [ "$OS" == "linux" ]; then
+        rm -f /tmp/etcd-${ETCD_VER}-${OS}-amd64.tar.gz
+        curl -L ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-${OS}-amd64.tar.gz -o /tmp/etcd-${ETCD_VER}-${OS}-amd64.tar.gz
+        tar xf /tmp/etcd-${ETCD_VER}-${OS}-amd64.tar.gz -C /tmp && rm -f /tmp/etcd-${ETCD_VER}-${OS}-amd64.tar.gz
+    else 
+        rm -f /tmp/etcd-${ETCD_VER}-${OS}-amd64.zip
+        curl -L ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-${OS}-amd64.zip -o /tmp/etcd-${ETCD_VER}-${OS}-amd64.zip
+        unzip /tmp/etcd-${ETCD_VER}-${OS}-amd64.zip -d /tmp && rm -f /tmp/etcd-${ETCD_VER}-${OS}-amd64.zip
     fi
-    FILE=etcd-${ETCD_VER}-${OS}-amd64${SUFFIX}
-
-    rm -f /tmp/${FILE}
-    curl -L ${DOWNLOAD_URL}/${ETCD_VER}/${FILE} -o /tmp/${FILE}
-
-    if [ ${OS} == "linux" ]; then
-        tar zxvf /tmp/${FILE} -C /tmp && rm -f /tmp/${FILE}
-    else
-        unzip /tmp/${FILE} -d /tmp && rm -f /tmp/${FILE}
-    fi
-
+    
     mv /tmp/etcd-${ETCD_VER}-${OS}-amd64/* ${ETCD_DIR} && rm -rf /tmp/etcd-${ETCD_VER}-${OS}-amd64
+
     ${ETCD_DIR}/etcd --version
     ${ETCD_DIR}/etcdctl --version
 }
@@ -87,9 +84,12 @@ function install_tidb_server() {
 
 echo "Install run dependencies."
 
+if [ ! -d $ROOT_DIR/deps ]; then
+    mkdir -p $ROOT_DIR/deps/{nats-server,redis-server,etcd-server,tidb-server}
+fi
+
 if [ ! -f ${ETCD_DIR}/etcd ]; then
     echo "Install ETCD for ${OS}."
-    mkdir -p $SRV_DIR/etcd-server
     install_etcd_server
 else
     echo "ECTD for ${OS} installed."
@@ -97,7 +97,6 @@ fi
 
 if [ ! -f ${NATS_DIR}/nats-server ]; then
     echo "Install NATS-Server for ${OS}."
-    mkdir -p $SRV_DIR/nats-server
     install_nats_server
 else
     echo "NATS-Server for ${OS} installed."
@@ -105,7 +104,6 @@ fi
 
 if [ ! -f ${REDIS_DIR}/redis-server ]; then
     echo "Install Redis-Server for ${OS}."
-    mkdir -p $SRV_DIR/redis-server
     install_redis_server
 else
     echo "Redis-Server for ${OS} installed."
@@ -113,7 +111,6 @@ fi
 
 if [ ! -f ${TIDB_DIR}/tidb-server ]; then
     echo "Install TiDB-Server for ${OS}."
-    mkdir -p $SRV_DIR/tidb-server
     install_tidb_server
 else
     echo "TiDB-Server for ${OS} installed."

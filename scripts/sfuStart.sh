@@ -1,19 +1,19 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
-EXE=ion
+EXE=sfu
 COMMAND=$APP_DIR/bin/$EXE
-CONFIG=$APP_DIR/configs/ion.toml
-PID_FILE=$APP_DIR/configs/ion.pid
-LOG_FILE=$APP_DIR/logs/ion.log
+CONFIG=$APP_DIR/configs/$EXE.toml
+PID_FILE=$APP_DIR/configs/$EXE.pid
+LOG_FILE=$APP_DIR/logs/$EXE.log
 
 help()
 {
     echo ""
     echo "start script"
-    echo "Usage: ./ionStart.sh [-h]"
+    echo "Usage: ./${EXE}Start.sh [-h]"
     echo ""
 }
 
@@ -44,7 +44,8 @@ if [ ! -r $CONFIG ]; then
 fi
 
 ## build first
-cd $APP_DIR/cmd/ion
+cd $APP_DIR/cmd/$EXE
+echo "go build -o $COMMAND"
 go build -o $COMMAND
 cd $APP_DIR
 

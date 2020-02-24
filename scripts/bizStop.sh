@@ -1,15 +1,16 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
+EXE=biz
 
-PID_FILE=$APP_DIR/configs/islb.pid  #pid file, default: worker.pid
+PID_FILE=$APP_DIR/configs/$EXE.pid  #pid file, default: worker.pid
 
 help()
 {
     echo ""
     echo "stop script"
-    echo "Usage:./islbStop.sh [-h]"
+    echo "Usage:./bizStop.sh [-h]"
     echo ""
 }
 

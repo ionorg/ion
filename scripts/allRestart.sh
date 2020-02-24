@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
 mkdir -p $APP_DIR/logs
 
@@ -26,8 +26,8 @@ do
 done
 
 # run command
-$APP_DIR/scripts/mac/allStop.sh
-$APP_DIR/scripts/mac/allStart.sh
+$APP_DIR/scripts/allStop.sh
+$APP_DIR/scripts/allStart.sh
 
 
 

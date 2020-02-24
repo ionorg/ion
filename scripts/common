@@ -1,0 +1,172 @@
+#!/bin/bash
+#adwpc
+
+CPU=''
+MEM=''
+OS_TYPE=''
+OS_VER=''
+CUR_DIR=$(cd `dirname $0`; pwd)
+FNAME=`basename $0`
+LOG="$CUR_DIR/$FNAME.log"
+ERR="$CUR_DIR/$FNAME.err"
+
+#check os
+if [ -f /etc/os-release ]; then
+    # freedesktop.org and systemd
+    . /etc/os-release
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    OS_TYPE=$NAME
+    unset NAME
+    OS_VER=$VERSION_ID
+elif type lsb_release >/dev/null 2>&1; then
+    # linuxbase.org
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    OS_TYPE=$(lsb_release -si)
+    OS_VER=$(lsb_release -sr)
+elif [ -f /etc/lsb-release ]; then
+    # For some versions of Debian/Ubuntu without lsb_release command
+    . /etc/lsb-release
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    OS_TYPE=$DISTRIB_ID
+    OS_VER=$DISTRIB_RELEASE
+elif [ -f /etc/debian_version ]; then
+    # Older Debian/Ubuntu/etc.
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    OS_TYPE=Debian
+    OS_VER=$(cat /etc/debian_version)
+elif [ -f /etc/SuSe-release ]; then
+    # Older SuSE/etc.
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    ...
+elif [ -f /etc/redhat-release ]; then
+    # Older Red Hat, CentOS, etc.
+    CPU=`cat /proc/cpuinfo | grep "processor" | wc -l`
+    MEM=`free -b|grep "Mem"|awk -F' ' '{print $2}'`
+    ...
+else
+    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
+    OS_TYPE=$(uname -s)
+    OS_VER=$(uname -r)
+    CPU=`sysctl -n machdep.cpu.thread_count`
+    MEM=`sysctl -n hw.memsize`
+fi
+
+
+#check if cmd exist
+function exist() {
+    # $1 --help > /dev/null
+    type "$1" > /dev/null 2>&1
+    if [ "$?" -eq 0 ] ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+#echol LOGLEVEL ...
+function echol()
+{
+    local mode="\033[0m"
+    case "$1" in
+        INFO)   mode="\033[34;1m";;#bule
+        USER)   mode="\033[32;1m";;#green
+        WARN)   mode="\033[33;1m";;#yellow
+        ERROR)  mode="\033[31;1m";;#red
+        *)      mode="\033[35;1m";;#pink
+    esac
+    echo -e "$mode$@\033[0m"
+    echo -e "$@" >> "$LOG"
+}
+
+
+#run cmd {params...}
+function run()
+{
+    echol "$@"
+    eval $@ 1>>"$LOG" 2>>"$ERR"
+    local ret=$?
+    if [[ $ret -ne 0 ]];then
+        eval $@ 1>>"$LOG" 2>>"$ERR"
+        if [[ $ret -eq 2 ]];then
+            #e.g. make distclean fail return 2
+            echol WARN "warning:$@, ret=$ret"
+        else
+            echol ERROR "failed:$@, ret=$ret"
+        fi
+        # exit -3
+    fi
+}
+
+#mv to tmp
+function saferm()
+{
+    # local name=`echo "$1" | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}'`
+    local name="${1%/}"
+    name="${name##*/}"
+    mv $1 "/tmp/$name`date +%Y%m%d%H%M%S`" > /dev/null 2>&1
+}
+
+
+#download url
+#dl url {rename}
+function wgetdl()
+{
+    local file="${1##*/}"
+    local rename="$2"
+    echol "$FUNCNAME:$@"
+    if [ ! -f "$file" ];then
+        rm -fr "$file"
+        if [ "$rename" = "" ];then
+            run wget --no-verbose -c "$1" > /dev/null
+        else
+            run wget --no-verbose -c -O "$2" "$1" > /dev/null
+        fi
+    fi
+    echol "success:$@"
+}
+
+
+#download repo to yum.repos.d
+function dlrepo()
+{
+    cd /etc/yum.repos.d
+    run sudo wget --no-verbose -c "$1"
+    cd -
+}
+
+function rmrepo() {
+    cd /etc/yum.repos.d
+    run sudo rm "$1"
+    cd -
+}
+
+#unzip file
+#uz file
+function uz()
+{
+    echol "$@"
+    local ftype=`file "$1"`   # Note ' and ` is different
+    case "$ftype" in
+        "$1: Zip archive"*)
+            run unzip "$1" > /dev/null;;
+        "$1: gzip compressed"*)
+            run tar zxvf "$1" > /dev/null;;
+        "$1: bzip2 compressed"*)
+            run tar jxvf "$1" > /dev/null;;
+        "$1: xz compressed data"*)
+            run tar xf "$1" > /dev/null;;
+        "$1: 7-zip archive data"*)
+            run 7za x "$1" > /dev/null;;
+        *)
+            echol ERROR "failed:File $1 can not be unzip"
+            return;;
+    esac
+    echol "success:$@"
+}
+
+

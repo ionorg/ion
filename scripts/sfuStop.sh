@@ -1,15 +1,16 @@
 #!/bin/bash
 
-APP_DIR=$(cd `dirname $0`/../../; pwd)
+APP_DIR=$(cd `dirname $0`/../; pwd)
 cd $APP_DIR
+EXE=sfu
 
-PID_FILE=$APP_DIR/configs/ion.pid  #pid file, default: worker.pid
+PID_FILE=$APP_DIR/configs/$EXE.pid  #pid file, default: worker.pid
 
 help()
 {
     echo ""
     echo "stop script"
-    echo "Usage:./ionStop.sh [-h]"
+    echo "Usage:./${EXE}Stop.sh [-h]"
     echo ""
 }
 

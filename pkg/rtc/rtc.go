@@ -30,7 +30,7 @@ var (
 func Init(port int, ices []string, kcpKey, kcpSalt string) error {
 
 	//init ice urls and trickle-ICE
-	transport.InitWebRTC(ices, false, true)
+	transport.InitWebRTC(ices, false, false)
 
 	// show stat about all pipelines
 	go check()
@@ -143,6 +143,7 @@ func check() {
 			if len(routers) > 0 {
 				print = true
 			}
+
 			for id, Router := range routers {
 				if !Router.Alive() {
 					Router.Close()
