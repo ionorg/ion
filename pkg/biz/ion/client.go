@@ -212,7 +212,7 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 	sfu, err := getRPCForSFU()
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+		return nil, err
 	}
 
 	mid := util.Val(msg, "mid")
@@ -221,7 +221,7 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 
 	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid))
 	if err != nil {
-		return nil, util.NewNpError(err.Code, err.Reason)
+		return nil, err
 	}
 
 	islb, found := getRPCForIslb()

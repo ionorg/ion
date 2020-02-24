@@ -12,13 +12,13 @@ import (
 )
 
 func init() {
+	node.Init()
 	log.Init(conf.Log.Level)
 	rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE, "", "")
 }
 
 func main() {
 	log.Infof("--- Starting SFU Node ---")
-	node.Init()
 	serviceNode := node.NewServiceNode(conf.Etcd.Addrs)
 	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
 	sfu.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel(), conf.Nats.URL)

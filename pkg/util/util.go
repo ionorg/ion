@@ -260,6 +260,9 @@ func RandStr(l int) string {
 }
 
 func NewNpError(code int, reason string) *nprotoo.Error {
-	err := nprotoo.Error{}
+	err := nprotoo.Error{
+		Code:   code,
+		Reason: reason,
+	}
 	return &err
 }
