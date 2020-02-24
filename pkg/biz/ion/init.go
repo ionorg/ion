@@ -14,10 +14,10 @@ var (
 )
 
 // Init func
-func Init(rpcID, eventID string) {
+func Init(rpcID, eventID string, natsURL string) {
 	services = []discovery.Node{}
 	rpcs = make(map[string]*nprotoo.Requestor)
-	protoo = nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
+	protoo = nprotoo.NewNatsProtoo(natsURL)
 }
 
 // WatchServiceNodes .

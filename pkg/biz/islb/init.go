@@ -27,9 +27,9 @@ var (
 )
 
 // Init func
-func Init(rpcID string, eventID string, redisCfg db.Config, etcd []string) {
+func Init(rpcID string, eventID string, redisCfg db.Config, etcd []string, natsURL string) {
 	redis = db.NewRedis(redisCfg)
-	protoo = nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
+	protoo = nprotoo.NewNatsProtoo(natsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)
 	handleRequest(rpcID)
 	// handleBroadCastMsgs()

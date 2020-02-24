@@ -62,6 +62,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	options := make(map[string]interface{})
 	options["transport-cc"] = "false"
 	options["publish"] = "true"
+	options["codec"] = "vp8"
 	pub := transport.NewWebRTCTransport(mid, options)
 	answer, err := pub.Answer(offer, options)
 	if err != nil {
@@ -79,18 +80,22 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	ssrcpts := []map[string]string{}
 	for _, media := range sdpObj.Media {
 		ssrcMap := make(map[string]string)
-		ssrc := media.Ssrcs[0]
-		ssrcMap["ssrc"] = strconv.FormatUint(uint64(ssrc.Id), 10)
-		ssrcMap["type"] = media.Type
-		if media.Type == "audio" {
-			ssrcMap["pt"] = "111"
-		} else if media.Type == "video" {
-			ssrcMap["pt"] = "96"
+		for _, ssrc := range media.Ssrcs {
+			if _, found := ssrcMap["ssrc"]; !found {
+				ssrcMap["ssrc"] = strconv.FormatUint(uint64(ssrc.Id), 10)
+			}
+			ssrcMap["type"] = media.Type
+			if media.Type == "audio" {
+				ssrcMap["pt"] = "111"
+			} else if media.Type == "video" {
+				ssrcMap["pt"] = "96"
+			}
 		}
+
 		ssrcpts = append(ssrcpts, ssrcMap)
 	}
 
-	log.Infof("ssrcpts %v", ssrcpts)
+	log.Infof("publish ssrcpts %v, answer = %v", ssrcpts, answer)
 
 	return util.Map("jsep", answer, "mid", mid, "ssrcpts", ssrcpts), nil
 }
@@ -132,18 +137,18 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	info := util.Val(msg, "info")
 	log.Infof("subscribe info=%v", info)
 
+	options := make(map[string]interface{})
+	options["transport-cc"] = "false"
+	options["subscribe"] = "true"
+
+	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 	if info != "" {
 		for ssrc, pt := range util.Unmarshal(info) {
 			ssrcPT[util.StrToUint32(ssrc)] = util.StrToUint8(pt.(string))
 		}
 	}
 
-	options := make(map[string]interface{})
 	options["ssrcpt"] = ssrcPT
-	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
-
-	options["transport-cc"] = "false"
-	options["subscribe"] = "true"
 	sub := transport.NewWebRTCTransport(smid, options)
 
 	for ssrc, pt := range ssrcPT {
@@ -161,6 +166,8 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 	router.AddSub(smid, sub)
+
+	log.Infof("subscribe mid %s, answer = %v", smid, answer)
 	return util.Map("jsep", answer, "mid", smid), nil
 }
 

@@ -8,8 +8,8 @@ level = "info"
 # ["ip:port", "ip:port"]
 addrs = ["127.0.0.1:2379"]
 
-[amqp]
-url = "amqp://guest:guest@localhost:5672/"
+[nats]
+url = "nats://127.0.0.1:4222"
 
 [redis]
 addrs = [":6379"]

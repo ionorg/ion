@@ -14,8 +14,8 @@ var (
 )
 
 // Init func
-func Init(rpcID string, eventID string) {
-	protoo = nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
+func Init(rpcID string, eventID string, natsURL string) {
+	protoo = nprotoo.NewNatsProtoo(natsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)
 	handleRequest(rpcID)
 	checkRTC()

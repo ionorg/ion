@@ -28,7 +28,6 @@ port = "8443"
 cert= "configs/cert.pem"
 key= "configs/key.pem"
 
-
-[amqp]
-url = "amqp://guest:guest@localhost:5672/"
+[nats]
+url = "nats://127.0.0.1:4222"
 

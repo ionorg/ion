@@ -17,7 +17,6 @@ var (
 	Etcd   = &cfg.Etcd
 	Nats   = &cfg.Nats
 	Signal = &cfg.Signal
-	Amqp   = &cfg.Amqp
 )
 
 func init() {
@@ -41,10 +40,6 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
-type nats struct {
-	Addrs string `mapstructure:"addrs"`
-}
-
 type signal struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
@@ -52,7 +47,7 @@ type signal struct {
 	Key  string `mapstructure:"key"`
 }
 
-type amqp struct {
+type nats struct {
 	URL string `mapstructure:"url"`
 }
 
@@ -72,7 +67,6 @@ type config struct {
 	Etcd    etcd   `mapstructure:"etcd"`
 	Nats    nats   `mapstructure:"nats"`
 	Signal  signal `mapstructure:"signal"`
-	Amqp    amqp   `mapstructure:"amqp"`
 	CfgFile string
 }
 

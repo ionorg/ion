@@ -14,7 +14,6 @@ var (
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
 	Nats   = &cfg.Nats
-	Amqp   = &cfg.Amqp
 	Redis  = &cfg.Redis
 )
 
@@ -40,11 +39,7 @@ type etcd struct {
 }
 
 type nats struct {
-	Addrs string `mapstructure:"addrs"`
-}
-
-type amqp struct {
-	Url string `mapstructure:"url"`
+	URL string `mapstructure:"url"`
 }
 
 type redis struct {
@@ -58,7 +53,6 @@ type config struct {
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
 	Nats    nats   `mapstructure:"nats"`
-	Amqp    amqp   `mapstructure:"amqp"`
 	Redis   redis  `mapstructure:"redis"`
 	CfgFile string
 }
