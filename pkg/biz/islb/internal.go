@@ -14,7 +14,7 @@ import (
 )
 
 func watchStream(key string) {
-	log.Infof("watchStream: key = %s", key)
+	log.Infof("Start watch stream: key = %s", key)
 	go func() {
 		for cmd := range redis.Watch(context.TODO(), key) {
 			log.Infof("watchStream: key %s cmd %s modified", key, cmd)
@@ -34,8 +34,11 @@ func watchStream(key string) {
 					log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
 					broadcaster.Say(proto.IslbOnStreamRemove, msg)
 				}
+				//Stop watch loop after key removed.
+				break
 			}
 		}
+		log.Infof("Stop watch stream: key = %s", key)
 	}()
 }
 
