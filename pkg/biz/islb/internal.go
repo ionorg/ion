@@ -185,9 +185,24 @@ func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
 	key := proto.GetPubMediaPath(rid, mid, 0)
-	info := redis.HGetAll(key)
-	infoStr := util.MarshalStrMap(info)
-	resp := util.Map("mid", mid, "info", infoStr)
+	log.Infof("getMediaInfo key=%s", key)
+
+	ssrcPts := "{"
+	var arr []string
+	for _, path := range redis.Keys(key + "*/*") {
+		log.Infof("Streams path=%s", path)
+		ssrc := ""
+		if strings.Contains(path, mid) {
+			strs := strings.Split(path, "/")
+			ssrc = strs[4]
+		}
+		pts := redis.HGetAll(path)
+		pt := pts["pt"]
+		arr = append(arr, fmt.Sprintf("\"%s\":\"%s\"", ssrc, pt))
+	}
+	ssrcPts += strings.Join(arr, ",")
+	ssrcPts += "}"
+	resp := util.Map("mid", mid, "info", ssrcPts)
 	log.Infof("getMediaInfo: resp=%v", resp)
 	return resp, nil
 }

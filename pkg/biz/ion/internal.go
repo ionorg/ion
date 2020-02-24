@@ -24,7 +24,6 @@ func handleIslbBroadCast(eventID string) {
 		method := util.Val(msg, "method")
 		data := msg["data"].(map[string]interface{})
 		log.Infof("OnIslbBroadcast: method=%s, data=%v", method, data)
-
 		rid := util.Val(data, "rid")
 		uid := util.Val(data, "uid")
 		//make signal.Notify send "info" as a json object, otherwise is a string (:

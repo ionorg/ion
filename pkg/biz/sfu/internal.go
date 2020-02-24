@@ -60,8 +60,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
 	options := make(map[string]interface{})
-	options["codec"] = "h264"
-	options["transport-cc"] = ""
+	options["transport-cc"] = "false"
 	options["publish"] = "true"
 	pub := transport.NewWebRTCTransport(mid, options)
 	answer, err := pub.Answer(offer, options)
@@ -143,13 +142,12 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	options["ssrcpt"] = ssrcPT
 	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 
-	options["codec"] = "h264"
-	options["transport-cc"] = ""
+	options["transport-cc"] = "false"
 	options["subscribe"] = "true"
-
 	sub := transport.NewWebRTCTransport(smid, options)
 
 	for ssrc, pt := range ssrcPT {
+		log.Infof("AddTrack ssrc:%d,pt:%d", ssrc, pt)
 		err := sub.AddTrack(ssrc, pt)
 		if err != nil {
 			log.Errorf("err=%v", err)
