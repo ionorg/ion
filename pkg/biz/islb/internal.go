@@ -21,19 +21,9 @@ func watchStream(key string) {
 			if cmd == "del" || cmd == "expired" {
 				//room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ
 				rid, mid, uid := proto.GetRIDMIDUIDFromMediaKey(key)
-				if _, ok := streamDelCache[mid]; !ok {
-					streamDelCacheLock.Lock()
-					streamDelCache[mid] = true
-					streamDelCacheLock.Unlock()
-					time.AfterFunc(1*time.Second, func() {
-						streamDelCacheLock.Lock()
-						delete(streamDelCache, mid)
-						streamDelCacheLock.Unlock()
-					})
-					msg := util.Map("rid", rid, "uid", uid, "mid", mid)
-					log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
-					broadcaster.Say(proto.IslbOnStreamRemove, msg)
-				}
+				msg := util.Map("rid", rid, "uid", uid, "mid", mid)
+				log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
+				broadcaster.Say(proto.IslbOnStreamRemove, msg)
 				//Stop watch loop after key removed.
 				break
 			}
@@ -80,22 +70,11 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 		redis.HSetTTL(key, "pt", pt.(string), redisLongKeyTTL)
 	}
 
-	//receive more than one streamAdd in 1s, only send once
-	if _, ok := streamAddCache[mid]; !ok {
-		streamAddCacheLock.Lock()
-		streamAddCache[mid] = true
-		streamAddCacheLock.Unlock()
-		time.AfterFunc(1*time.Second, func() {
-			streamAddCacheLock.Lock()
-			delete(streamAddCache, mid)
-			streamAddCacheLock.Unlock()
-		})
-		// room1/user/info/${uid}
-		infoMap := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
-		msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoMap["info"])
-		log.Infof("Broadcast: [stream-add] => %v", msg)
-		broadcaster.Say(proto.IslbOnStreamAdd, msg)
-	}
+	// room1/user/info/${uid}
+	infoMap := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
+	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoMap["info"])
+	log.Infof("Broadcast: [stream-add] => %v", msg)
+	broadcaster.Say(proto.IslbOnStreamAdd, msg)
 
 	watchStream(streamID)
 	return util.Map(), nil

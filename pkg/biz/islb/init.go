@@ -1,7 +1,6 @@
 package biz
 
 import (
-	"sync"
 	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
@@ -16,14 +15,10 @@ const (
 )
 
 var (
-	protoo             *nprotoo.NatsProtoo
-	redis              *db.Redis
-	services           []discovery.Node
-	broadcaster        *nprotoo.Broadcaster
-	streamAddCache     = make(map[string]bool)
-	streamAddCacheLock sync.RWMutex
-	streamDelCache     = make(map[string]bool)
-	streamDelCacheLock sync.RWMutex
+	protoo      *nprotoo.NatsProtoo
+	redis       *db.Redis
+	services    []discovery.Node
+	broadcaster *nprotoo.Broadcaster
 )
 
 // Init func
