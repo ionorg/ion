@@ -92,11 +92,9 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 		})
 		// room1/user/info/${uid}
 		infoMap := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
-		for info := range infoMap {
-			msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", info)
-			log.Infof("Broadcast: [stream-add] => %v", msg)
-			broadcaster.Say(proto.IslbOnStreamAdd, msg)
-		}
+		msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoMap["info"])
+		log.Infof("Broadcast: [stream-add] => %v", msg)
+		broadcaster.Say(proto.IslbOnStreamAdd, msg)
 	}
 
 	watchStream(streamID)
@@ -162,7 +160,7 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 
 	key := proto.GetUserInfoPath(rid, uid)
 	log.Infof("clientJoin: set %s => %v", key, info)
-	redis.HSetTTL(key, info, "", redisLongKeyTTL)
+	redis.HSetTTL(key, "info", info, redisLongKeyTTL)
 
 	msg := util.Map("rid", rid, "uid", uid, "info", info)
 	log.Infof("Broadcast: peer-join = %v", msg)
