@@ -28,7 +28,7 @@ func main() {
 
 	eventID := serviceNode.GetEventChannel()
 	rpcID := serviceNode.GetRPCChannel()
-	islb.Init(rpcID, eventID, redisCfg, conf.Etcd.Addrs)
+	islb.Init(rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
 
 	serviceWatcher := node.NewServiceWatcher(conf.Etcd.Addrs)
 	go serviceWatcher.WatchServiceNode("", islb.WatchServiceNodes)

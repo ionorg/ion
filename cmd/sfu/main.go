@@ -5,7 +5,7 @@ import (
 	_ "net/http/pprof"
 
 	sfu "github.com/pion/ion/pkg/biz/sfu"
-	conf "github.com/pion/ion/pkg/conf/ion"
+	conf "github.com/pion/ion/pkg/conf/sfu"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node"
 	"github.com/pion/ion/pkg/rtc"
@@ -21,7 +21,7 @@ func main() {
 	node.Init()
 	serviceNode := node.NewServiceNode(conf.Etcd.Addrs)
 	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
-	sfu.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel())
+	sfu.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel(), conf.Nats.URL)
 
 	if conf.Global.Pprof != "" {
 		go func() {

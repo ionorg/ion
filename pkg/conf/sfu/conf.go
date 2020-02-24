@@ -11,10 +11,11 @@ import (
 var (
 	cfg    = config{}
 	Global = &cfg.Global
+	WebRTC = &cfg.WebRTC
+	Rtp    = &cfg.Rtp
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
 	Nats   = &cfg.Nats
-	Signal = &cfg.Signal
 )
 
 func init() {
@@ -38,23 +39,25 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
-type signal struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Cert string `mapstructure:"cert"`
-	Key  string `mapstructure:"key"`
-}
-
 type nats struct {
 	URL string `mapstructure:"url"`
 }
 
+type webrtc struct {
+	ICE []string `mapstructure:"ice"`
+}
+
+type rtp struct {
+	Port int `mapstructure:"port"`
+}
+
 type config struct {
 	Global  global `mapstructure:"global"`
+	WebRTC  webrtc `mapstructure:"webrtc"`
+	Rtp     rtp    `mapstructure:"rtp"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
 	Nats    nats   `mapstructure:"nats"`
-	Signal  signal `mapstructure:"signal"`
 	CfgFile string
 }
 

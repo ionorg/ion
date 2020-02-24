@@ -27,7 +27,7 @@ func main() {
 
 	serviceNode := node.NewServiceNode(conf.Etcd.Addrs)
 	serviceNode.RegisterNode("biz", "node-biz", "biz-channel-id")
-	biz.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel())
+	biz.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel(), conf.Nats.URL)
 
 	serviceWatcher := node.NewServiceWatcher(conf.Etcd.Addrs)
 	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
