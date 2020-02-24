@@ -33,13 +33,14 @@ var (
 )
 
 // InitWebRTC init WebRTCTransport setting
-func InitWebRTC(ices []string, trickICE bool) {
+func InitWebRTC(ices []string, trickICE bool, liteICE bool) {
 	cfg.ICEServers = []webrtc.ICEServer{
 		{
 			URLs: ices,
 		},
 	}
 	setting.SetTrickle(trickICE)
+	setting.SetLite(liteICE)
 }
 
 // WebRTCTransport contains pc incoming and outgoing tracks
@@ -66,6 +67,8 @@ type WebRTCTransport struct {
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
 	w.mediaEngine = webrtc.MediaEngine{}
 	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+	w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+	w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
 
 	rtcpfb := []webrtc.RTCPFeedback{
 		webrtc.RTCPFeedback{
@@ -235,6 +238,7 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 			w.inTrackLock.Lock()
 			w.inTracks[remoteTrack.SSRC()] = remoteTrack
 			w.inTrackLock.Unlock()
+			log.Infof("OnTrack: %d => %d", remoteTrack.SSRC(), remoteTrack.PayloadType())
 			// TODO replace with broadcast when receiving rtp failed
 			// etcdKeepFunc(remoteTrack.SSRC(), remoteTrack.PayloadType())
 			w.receiveInTrackRTP(remoteTrack)

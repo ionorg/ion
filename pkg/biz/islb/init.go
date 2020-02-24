@@ -42,6 +42,7 @@ func WatchServiceNodes(service string, nodes []discovery.Node) {
 		id := node.Info["id"]
 		name := node.Info["name"]
 		log.Debugf("Service [%s] %s => %s", service, name, id)
+		//TODO: Watch `proto.IslbOnStreamRemove` from sfu nodes.
 	}
 	services = nodes
 }

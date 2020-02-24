@@ -1,6 +1,8 @@
 package db
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -40,6 +42,7 @@ func NewRedis(c Config) *Redis {
 			log.Errorf(err.Error())
 			return nil
 		}
+		r.single.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 		r.clusterMode = false
 		return r
 	}
@@ -55,7 +58,7 @@ func NewRedis(c Config) *Redis {
 	if err := r.cluster.Ping().Err(); err != nil {
 		log.Errorf(err.Error())
 	}
-
+	r.cluster.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 	r.clusterMode = true
 	return r
 }
@@ -65,6 +68,13 @@ func (r *Redis) Set(k, v string, t time.Duration) error {
 		return r.cluster.Set(k, v, t).Err()
 	}
 	return r.single.Set(k, v, t).Err()
+}
+
+func (r *Redis) Get(k string) interface{} {
+	if r.clusterMode {
+		return r.cluster.Get(k).Val()
+	}
+	return r.single.Get(k).Val()
 }
 
 func (r *Redis) HSet(k, field string, value interface{}) error {
@@ -128,4 +138,32 @@ func (r *Redis) Del(k string) error {
 		return r.cluster.Del(k).Err()
 	}
 	return r.single.Del(k).Err()
+}
+
+// Watch http://redisdoc.com/topic/notification.html
+func (r *Redis) Watch(ctx context.Context, key string) <-chan interface{} {
+	var pubsub *redis.PubSub
+	if r.clusterMode {
+		pubsub = r.cluster.PSubscribe(fmt.Sprintf("__key*__:%s", key))
+	} else {
+		pubsub = r.single.PSubscribe(fmt.Sprintf("__key*__:%s", key))
+	}
+
+	res := make(chan interface{})
+	go func() {
+		for {
+			select {
+			case msg := <-pubsub.Channel():
+				op := msg.Payload
+				log.Infof("key => %s, op => %s", key, op)
+				res <- op
+			case <-ctx.Done():
+				pubsub.Close()
+				close(res)
+				return
+			}
+		}
+	}()
+
+	return res
 }

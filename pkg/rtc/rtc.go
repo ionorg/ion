@@ -30,7 +30,7 @@ var (
 func Init(port int, ices []string, kcpKey, kcpSalt string) error {
 
 	//init ice urls and trickle-ICE
-	transport.InitWebRTC(ices, true)
+	transport.InitWebRTC(ices, false, true)
 
 	// show stat about all pipelines
 	go check()

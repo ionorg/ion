@@ -77,7 +77,7 @@ func GetRoomsByPeer(id string) []*Room {
 }
 
 func DelPeer(rid, id string) {
-	log.Debugf("DelPeer rid=%s id=%s", rid, id)
+	log.Infof("DelPeer rid=%s id=%s", rid, id)
 	room := getRoom(rid)
 	if room != nil {
 		room.RemovePeer(id)
@@ -85,7 +85,7 @@ func DelPeer(rid, id string) {
 }
 
 func AddPeer(rid string, peer *Peer) {
-	log.Debugf("AddPeer rid=%s peer.ID=%s", rid, peer.ID())
+	log.Infof("AddPeer rid=%s peer.ID=%s", rid, peer.ID())
 	room := getRoom(rid)
 	if room == nil {
 		room = newRoom(rid)
@@ -124,6 +124,7 @@ func NotifyAll(rid string, method string, msg map[string]interface{}) {
 
 func NotifyAllWithoutID(rid string, skipID string, method string, msg map[string]interface{}) {
 	room := getRoom(rid)
+	log.Infof("room => %v", room)
 	if room != nil {
 		for _, peer := range room.GetPeers() {
 			if peer != nil && peer.ID() != skipID {

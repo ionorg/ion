@@ -3,11 +3,12 @@ module github.com/pion/ion
 go 1.13
 
 require (
+	github.com/Jeffail/gabs v1.4.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe
-	github.com/cloudwebrtc/nats-protoo v0.0.0-20200223071229-92083789ffdd
+	github.com/cloudwebrtc/nats-protoo v0.0.0-20200223163119-b333bdf1bf0a
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -20,12 +21,14 @@ require (
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
+	github.com/notedit/go-sdp-transform v0.0.0-20181119121630-e59ee064108d
 	github.com/pion/rtcp v1.2.1
 	github.com/pion/rtp v1.3.1
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.8.10
 	github.com/pion/webrtc/v2 v2.1.19-0.20200124004806-537c84107360
 	github.com/rs/zerolog v1.17.2
+	github.com/sanity-io/litter v1.2.0
 	github.com/shirou/gopsutil v2.19.12+incompatible
 	github.com/spf13/viper v1.6.2
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
