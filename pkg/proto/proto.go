@@ -91,9 +91,9 @@ func BuildUserInfoKey(dc string, rid string, uid string) string {
 }
 
 type UserInfo struct {
-	dc  string
-	rid string
-	uid string
+	DC  string
+	RID string
+	UID string
 }
 
 func ParseUserInfo(key string) (*UserInfo, error) {
@@ -102,9 +102,9 @@ func ParseUserInfo(key string) (*UserInfo, error) {
 	if len(arr) != 5 {
 		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
 	}
-	info.dc = arr[0]
-	info.rid = arr[1]
-	info.uid = arr[4]
+	info.DC = arr[0]
+	info.RID = arr[1]
+	info.UID = arr[4]
 	return &info, nil
 }
 
