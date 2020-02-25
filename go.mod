@@ -17,7 +17,7 @@ require (
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.8.10
 	github.com/pion/webrtc/v2 v2.2.0
-	github.com/rs/zerolog v1.18.0
+	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/spf13/viper v1.6.2
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect

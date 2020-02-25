@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -39,6 +40,116 @@ const (
 
 	IslbID = "islb"
 )
+
+/*
+media
+dc/room1/media/pub/${mid}
+
+node1 origin
+node2 shadow
+msid  [{ssrc: 1234, pt: 111, type:audio}]
+msid  [{ssrc: 5678, pt: 96, type:video}]
+*/
+
+func BuildMediaInfoKey(dc string, rid string, mid string) string {
+	strs := []string{dc, rid, "media", "pub", mid}
+	return strings.Join(strs, "/")
+}
+
+type MediaInfo struct {
+	dc  string
+	rid string
+	mid string
+}
+
+func ParseMediaInfo(key string) (*MediaInfo, error) {
+	var info MediaInfo
+	arr := strings.Split(key, "/")
+	if len(arr) != 5 {
+		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
+	}
+	info.dc = arr[0]
+	info.rid = arr[1]
+	info.mid = arr[4]
+	return &info, nil
+}
+
+/*
+user
+/dc/room1/user/info/${uid}
+info {name: "Guest"}
+*/
+
+func BuildUserInfoKey(dc string, rid string, uid string) string {
+	strs := []string{dc, rid, "user", "info", uid}
+	return strings.Join(strs, "/")
+}
+
+type UserInfo struct {
+	dc  string
+	rid string
+	uid string
+}
+
+func ParseUserInfo(key string) (*UserInfo, error) {
+	var info UserInfo
+	arr := strings.Split(key, "/")
+	if len(arr) != 5 {
+		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
+	}
+	info.dc = arr[0]
+	info.rid = arr[1]
+	info.uid = arr[4]
+	return &info, nil
+}
+
+type NodeInfo struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+	Type string `json:"type"` // origin | shadow
+}
+
+func MarshalNodeField(node NodeInfo) (string, string, error) {
+	value, err := json.Marshal(node)
+	if err != nil {
+		return "node/" + node.ID, "", fmt.Errorf("Marshal: %v", err)
+	}
+	return "node/" + node.ID, string(value), nil
+}
+
+func UnmarshalNodeField(key string, value string) (*NodeInfo, error) {
+	var node NodeInfo
+	if err := json.Unmarshal([]byte(value), &node); err != nil {
+		return nil, fmt.Errorf("Unmarshal: %v", err)
+	}
+	return &node, nil
+}
+
+type TrackInfo struct {
+	Ssrc    int    `json:"ssrc"`
+	Payload int    `json:"pt"`
+	Type    string `json:"type"`
+}
+
+func MarshalTrackField(id string, infos []TrackInfo) (string, string, error) {
+	str, err := json.Marshal(infos)
+	if err != nil {
+		return "track/" + id, "", fmt.Errorf("Marshal: %v", err)
+	}
+	return "track/" + id, string(str), nil
+}
+
+func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error) {
+	var tracks []TrackInfo
+	if err := json.Unmarshal([]byte(value), &tracks); err != nil {
+		return "", nil, fmt.Errorf("Unmarshal: %v", err)
+	}
+	if !strings.Contains(key, "track/") {
+		return "", nil, fmt.Errorf("Invalid track failed => %s", key)
+	}
+	msid := strings.Split(key, "/")[1]
+	return msid, &tracks, nil
+}
 
 func GetUIDFromMID(mid string) string {
 	return strings.Split(mid, "#")[0]

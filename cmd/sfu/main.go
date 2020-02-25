@@ -18,9 +18,13 @@ func init() {
 
 func main() {
 	log.Infof("--- Starting SFU Node ---")
+
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
 	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
-	sfu.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel(), conf.Nats.URL)
+
+	rpcID := serviceNode.GetRPCChannel()
+	eventID := serviceNode.GetEventChannel()
+	sfu.Init(conf.Global.Dc, rpcID, eventID, conf.Nats.URL)
 
 	if conf.Global.Pprof != "" {
 		go func() {

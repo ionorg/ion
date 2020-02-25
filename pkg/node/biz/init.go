@@ -7,13 +7,15 @@ import (
 )
 
 var (
+	dc       = "default"
 	protoo   *nprotoo.NatsProtoo
 	rpcs     map[string]*nprotoo.Requestor
 	services []discovery.Node
 )
 
 // Init func
-func Init(rpcID, eventID string, natsURL string) {
+func Init(dcID, rpcID, eventID string, natsURL string) {
+	dc = dcID
 	services = []discovery.Node{}
 	rpcs = make(map[string]*nprotoo.Requestor)
 	protoo = nprotoo.NewNatsProtoo(natsURL)

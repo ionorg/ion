@@ -9,12 +9,14 @@ import (
 )
 
 var (
+	dc          = "default"
 	protoo      *nprotoo.NatsProtoo
 	broadcaster *nprotoo.Broadcaster
 )
 
 // Init func
-func Init(rpcID string, eventID string, natsURL string) {
+func Init(dcID, rpcID, eventID, natsURL string) {
+	dc = dcID
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)
 	handleRequest(rpcID)

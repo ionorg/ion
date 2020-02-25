@@ -11,22 +11,24 @@ import (
 	"github.com/pion/ion/pkg/node/islb"
 )
 
-func main() {
+func init() {
 	log.Init(conf.Log.Level)
+}
+
+func main() {
 	log.Infof("--- Starting ISLB Node ---")
-	discovery.Init(conf.Etcd.Addrs)
+
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
+	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
+
 	redisCfg := db.Config{
 		Addrs: conf.Redis.Addrs,
 		Pwd:   conf.Redis.Pwd,
 		DB:    conf.Redis.DB,
 	}
-
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
-	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
-
-	eventID := serviceNode.GetEventChannel()
 	rpcID := serviceNode.GetRPCChannel()
-	islb.Init(rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
+	eventID := serviceNode.GetEventChannel()
+	islb.Init(conf.Global.Dc, rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
 
 	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs)
 	go serviceWatcher.WatchServiceNode("", islb.WatchServiceNodes)

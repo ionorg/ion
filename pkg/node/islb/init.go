@@ -15,6 +15,7 @@ const (
 )
 
 var (
+	dc          = "default"
 	protoo      *nprotoo.NatsProtoo
 	redis       *db.Redis
 	services    []discovery.Node
@@ -22,7 +23,8 @@ var (
 )
 
 // Init func
-func Init(rpcID string, eventID string, redisCfg db.Config, etcd []string, natsURL string) {
+func Init(dcID, rpcID, eventID string, redisCfg db.Config, etcd []string, natsURL string) {
+	dc = dcID
 	redis = db.NewRedis(redisCfg)
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)

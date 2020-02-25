@@ -67,6 +67,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
+
 	router := rtc.GetOrNewRouter(mid)
 	router.AddPub(uid, pub)
 
@@ -77,7 +78,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	ssrcpts := []map[string]string{}
-
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			ssrcMap := make(map[string]string)
@@ -94,7 +94,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	log.Infof("publish ssrcpts %v, answer = %v", ssrcpts, answer)
-
 	return util.Map("jsep", answer, "mid", mid, "ssrcpts", ssrcpts), nil
 }
 
