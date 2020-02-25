@@ -33,9 +33,14 @@ class _LoginPageState extends State<LoginPage> {
 
   handleJoin() async {
     ClientProvider client = Provider.of<ClientProvider>(context);
+
+    prefs.setString('server', _server);
+    prefs.setString('room', _roomID);
+    prefs.commit();
+
     await client.connect(_server);
-    await client.join(_roomID);
     Application.router.navigateTo(context, "/meeting");
+    await client.join(_roomID);
   }
 
   Widget buildJoinView(context) {

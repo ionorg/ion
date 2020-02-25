@@ -3,6 +3,7 @@ module github.com/pion/ion
 go 1.13
 
 require (
+	github.com/at-wat/ebml-go v0.9.2
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200223163119-b333bdf1bf0a

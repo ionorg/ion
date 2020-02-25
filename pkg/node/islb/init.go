@@ -7,6 +7,7 @@ import (
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 )
 
 const (
@@ -29,7 +30,7 @@ func Init(dcID, rpcID, eventID string, redisCfg db.Config, etcd []string, natsUR
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 	broadcaster = protoo.NewBroadcaster(eventID)
 	handleRequest(rpcID)
-	// handleBroadCastMsgs()
+	WatchAllStreams()
 }
 
 // WatchServiceNodes .
@@ -42,4 +43,14 @@ func WatchServiceNodes(service string, nodes []discovery.Node) {
 		//TODO: Watch `proto.IslbOnStreamRemove` from sfu nodes.
 	}
 	services = nodes
+}
+
+// WatchAllStreams .
+func WatchAllStreams() {
+	mkey := proto.BuildMediaInfoKey(dc, "*", "*")
+	log.Infof("Watch all streams, mkey = %s", mkey)
+	for _, key := range redis.Keys(mkey) {
+		log.Infof("Watch stream, key = %s", key)
+		watchStream(key)
+	}
 }

@@ -197,7 +197,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "uid", uid, "mid", mid, "tracks", tracks))
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "tracks", tracks))
 	return result, nil
 }
 

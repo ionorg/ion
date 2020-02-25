@@ -180,6 +180,16 @@ class _MeetingPageState extends State<MeetingPage> {
     } else {}
   }
 
+  _clanUp(){
+    Navigator.of(context).pop();
+    this.setState(() {
+      _inCalling = false;
+      _localVideoAdapter = null;
+      _videoRendererAdapters.clear();
+      });
+    Provider.of<ClientProvider>(context).cleanUp();
+  }
+
   //Leave current video room
   _hangUp() {
     if (Provider.of<ClientProvider>(context).client != null) {
@@ -201,13 +211,8 @@ class _MeetingPageState extends State<MeetingPage> {
                         style: TextStyle(color: Colors.red),
                       ),
                       onPressed: () {
-                        Provider.of<ClientProvider>(context).cleanUp();
-                        this.setState(() {
-                          _inCalling = false;
-                          _localVideoAdapter = null;
-                          _videoRendererAdapters.clear();
-                        });
-                        Application.router.navigateTo(context, "/login");
+                        Navigator.of(context).pop();
+                        _clanUp();
                       },
                     )
                   ]));

@@ -252,12 +252,14 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 		}
 
 		for ssrc, pt := range ssrcPTMap {
-			track, _ := w.pc.NewTrack(pt, ssrc, "pion", "pion")
-			if track != nil {
-				w.pc.AddTrack(track)
-				w.outTrackLock.Lock()
-				w.outTracks[ssrc] = track
-				w.outTrackLock.Unlock()
+			if _, found := w.outTracks[ssrc]; !found {
+				track, _ := w.pc.NewTrack(pt, ssrc, "pion", "pion")
+				if track != nil {
+					w.pc.AddTrack(track)
+					w.outTrackLock.Lock()
+					w.outTracks[ssrc] = track
+					w.outTrackLock.Unlock()
+				}
 			}
 		}
 		w.receiveOutTrackRTCP()
