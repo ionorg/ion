@@ -2,17 +2,15 @@ package sfu
 
 import (
 	"fmt"
-	"strconv"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	sdptransform "github.com/notedit/go-sdp-transform"
+	sdptransform "github.com/notedit/sdp"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc"
 	transport "github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v2"
-	"github.com/sanity-io/litter"
 )
 
 var emptyMap = map[string]interface{}{}
@@ -73,26 +71,26 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	router.AddPub(uid, pub)
 
 	sdpObj, err := sdptransform.Parse(offer.SDP)
-	if err == nil {
-		litter.Dump(sdpObj)
+	if err != nil {
+		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
+		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 
 	ssrcpts := []map[string]string{}
-	for _, media := range sdpObj.Media {
-		ssrcMap := make(map[string]string)
-		for _, ssrc := range media.Ssrcs {
-			if _, found := ssrcMap["ssrc"]; !found {
-				ssrcMap["ssrc"] = strconv.FormatUint(uint64(ssrc.Id), 10)
-			}
-			ssrcMap["type"] = media.Type
-			if media.Type == "audio" {
+
+	for _, stream := range sdpObj.GetStreams() {
+		for id, track := range stream.GetTracks() {
+			ssrcMap := make(map[string]string)
+			ssrcMap["type"] = track.GetMedia()
+			ssrcMap["id"] = id
+			if track.GetMedia() == "audio" {
 				ssrcMap["pt"] = "111"
-			} else if media.Type == "video" {
+			} else if track.GetMedia() == "video" {
 				ssrcMap["pt"] = "96"
 			}
+			ssrcMap["ssrc"] = fmt.Sprintf("%d", track.GetSSRCS()[0])
+			ssrcpts = append(ssrcpts, ssrcMap)
 		}
-
-		ssrcpts = append(ssrcpts, ssrcMap)
 	}
 
 	log.Infof("publish ssrcpts %v, answer = %v", ssrcpts, answer)
