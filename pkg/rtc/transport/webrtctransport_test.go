@@ -27,7 +27,7 @@ func TestWebRTCTransportAnswer(t *testing.T) {
 		t.Fatalf("err=%v", err)
 	}
 
-	_, err = pub.AddTrack(12345, webrtc.DefaultPayloadTypeH264)
+	_, err = pub.AddTrack(12345, webrtc.DefaultPayloadTypeH264, "video", "pion")
 	if err != nil {
 		t.Fatalf("err=%v", err)
 	}

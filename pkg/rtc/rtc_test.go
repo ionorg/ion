@@ -99,7 +99,7 @@ func TestWebRTCTransportP2P(t *testing.T) {
 	}
 
 	// pub add track
-	_, err := pub.AddTrack(476325762, webrtc.DefaultPayloadTypeVP8)
+	_, err := pub.AddTrack(476325762, webrtc.DefaultPayloadTypeVP8, "video", "pion")
 	if err != nil {
 		t.Fatalf("pub.AddTrack err=%v", err)
 	}
