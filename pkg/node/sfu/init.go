@@ -1,4 +1,4 @@
-package biz
+package sfu
 
 import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"

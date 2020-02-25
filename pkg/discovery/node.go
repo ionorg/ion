@@ -1,33 +1,32 @@
-package node
+package discovery
 
 import (
 	"math/rand"
 	"time"
 
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 )
 
 // ServiceNode .
 type ServiceNode struct {
-	reg  *discovery.ServiceRegistry
+	reg  *ServiceRegistry
 	name string
-	node discovery.Node
+	node Node
 }
 
 // NewServiceNode .
 func NewServiceNode(endpoints []string) *ServiceNode {
 	var sn ServiceNode
-	sn.reg = discovery.NewServiceRegistry(endpoints, "services:/")
+	sn.reg = NewServiceRegistry(endpoints, "services:/")
 	log.Infof("New Service Node Registry: etcd => %v", endpoints)
-	sn.node = discovery.Node{
+	sn.node = Node{
 		Info: make(map[string]string),
 	}
 	return &sn
 }
 
 // NodeInfo .
-func (sn *ServiceNode) NodeInfo() discovery.Node {
+func (sn *ServiceNode) NodeInfo() Node {
 	return sn.node
 }
 
@@ -55,19 +54,19 @@ func (sn *ServiceNode) RegisterNode(serviceName string, name string, ID string) 
 
 // ServiceWatcher .
 type ServiceWatcher struct {
-	reg *discovery.ServiceRegistry
+	reg *ServiceRegistry
 }
 
 // NewServiceWatcher .
 func NewServiceWatcher(endpoints []string) *ServiceWatcher {
 	var sw ServiceWatcher
-	sw.reg = discovery.NewServiceRegistry(endpoints, "services:/")
+	sw.reg = NewServiceRegistry(endpoints, "services:/")
 	log.Infof("New Service Watcher: etcd => %v", endpoints)
 	return &sw
 }
 
 //WatchServiceNode .
-func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback discovery.ServiceWatchCallback) {
+func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback ServiceWatchCallback) {
 	log.Infof("Start service watcher => [%s].", serviceName)
 	for {
 		nodes, err := sw.reg.GetServiceNodes(serviceName)
@@ -92,11 +91,11 @@ func randomString(n int) string {
 }
 
 // GetEventChannel .
-func GetEventChannel(node discovery.Node) string {
+func GetEventChannel(node Node) string {
 	return "event-" + node.Info["id"]
 }
 
 // GetRPCChannel .
-func GetRPCChannel(node discovery.Node) string {
+func GetRPCChannel(node Node) string {
 	return "rpc-" + node.Info["id"]
 }

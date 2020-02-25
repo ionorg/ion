@@ -5,10 +5,10 @@ import (
 
 	_ "net/http/pprof"
 
-	biz "github.com/pion/ion/pkg/biz/ion"
 	conf "github.com/pion/ion/pkg/conf/ion"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node"
+	"github.com/pion/ion/pkg/node/biz"
 	"github.com/pion/ion/pkg/signal"
 )
 
@@ -22,14 +22,13 @@ func close() {
 }
 
 func main() {
-	node.Init()
 	log.Infof("--- Starting Biz Node ---")
 
-	serviceNode := node.NewServiceNode(conf.Etcd.Addrs)
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
 	serviceNode.RegisterNode("biz", "node-biz", "biz-channel-id")
 	biz.Init(serviceNode.GetRPCChannel(), serviceNode.GetEventChannel(), conf.Nats.URL)
 
-	serviceWatcher := node.NewServiceWatcher(conf.Etcd.Addrs)
+	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs)
 	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
 
 	defer close()

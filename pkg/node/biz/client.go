@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
@@ -52,7 +52,7 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 			id := item.Info["id"]
 			rpc, found := rpcs[id]
 			if !found {
-				rpcID := node.GetRPCChannel(item)
+				rpcID := discovery.GetRPCChannel(item)
 				log.Infof("Create rpc [%s] for islb", rpcID)
 				rpc = protoo.NewRequestor(rpcID)
 				rpcs[id] = rpc

@@ -4,6 +4,9 @@ pprof = ":6060"
 # internet ip
 addr = "127.0.0.1"
 
+# data center id
+dc = "dc1"
+
 [log]
 level = "info"
 # level = "debug"

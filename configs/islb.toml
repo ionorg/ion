@@ -1,6 +1,9 @@
 [global]
 # pprof = ":6060"
 
+# data center id
+dc = "dc1"
+
 [log]
 level = "info"
 

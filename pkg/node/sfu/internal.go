@@ -1,4 +1,4 @@
-package biz
+package sfu
 
 import (
 	"fmt"

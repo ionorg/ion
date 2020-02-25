@@ -1,4 +1,4 @@
-package biz
+package islb
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )
@@ -37,7 +37,7 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 	service := util.Val(data, "service")
 	for _, item := range services {
 		if service == item.Info["service"] {
-			rpcID := node.GetRPCChannel(item)
+			rpcID := discovery.GetRPCChannel(item)
 			name := item.Info["name"]
 			resp := util.Map("name", name, "rpc-id", rpcID, "service", service)
 			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
@@ -60,7 +60,7 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 
 	// room1/media/pub/${mid}
 	streamID := proto.GetPubMediaPath(rid, mid, 0)
-	redis.HSetTTL(streamID, fmt.Sprintf("%d", len(ssrcPt)), "", redisLongKeyTTL)
+	redis.HSetTTL(streamID, "tracks", fmt.Sprintf("%d", len(ssrcPt)), redisLongKeyTTL)
 
 	for ssrc, pt := range ssrcPt {
 		// room1/media/pub/${mid}/${ssrc}

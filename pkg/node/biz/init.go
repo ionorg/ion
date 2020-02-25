@@ -4,7 +4,6 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node"
 )
 
 var (
@@ -29,8 +28,8 @@ func WatchServiceNodes(service string, nodes []discovery.Node) {
 		log.Debugf("Service [%s] %s => %s", service, name, id)
 		_, found := rpcs[id]
 		if !found {
-			rpcID := node.GetRPCChannel(item)
-			eventID := node.GetEventChannel(item)
+			rpcID := discovery.GetRPCChannel(item)
+			eventID := discovery.GetEventChannel(item)
 			log.Infof("Create islb requestor: rpcID => [%s]", rpcID)
 			rpcs[id] = protoo.NewRequestor(rpcID)
 			handleIslbBroadCast(eventID)
