@@ -16,9 +16,9 @@ var (
 	mid    = uid + "#" + "ABCDEF"
 	msid0  = "pion audio"
 	msid1  = "pion video"
-	track0 = proto.TrackInfo{Ssrc: 3694449886, Payload: 111, Type: "audio"}
-	track1 = proto.TrackInfo{Ssrc: 8888888888, Payload: 96, Type: "video"}
-	track2 = proto.TrackInfo{Ssrc: 6666666666, Payload: 117, Type: "video"}
+	track0 = proto.TrackInfo{Ssrc: 3694449886, Payload: 111, Type: "audio", ID: "aid0"}
+	track1 = proto.TrackInfo{Ssrc: 8888888888, Payload: 96, Type: "video", ID: "vid1"}
+	track2 = proto.TrackInfo{Ssrc: 6666666666, Payload: 117, Type: "video", ID: "vid2"}
 	node0  = proto.NodeInfo{Name: "node-name-01", ID: "node-id-01", Type: "origin"}
 	node1  = proto.NodeInfo{Name: "node-name-02", ID: "node-id-02", Type: "shadow"}
 

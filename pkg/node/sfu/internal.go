@@ -2,6 +2,7 @@ package sfu
 
 import (
 	"fmt"
+	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	sdptransform "github.com/notedit/sdp"
@@ -77,24 +78,23 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 
-	ssrcpts := []map[string]string{}
+	tracks := make(map[string][]proto.TrackInfo)
 	for _, stream := range sdpObj.GetStreams() {
+
 		for id, track := range stream.GetTracks() {
-			ssrcMap := make(map[string]string)
-			ssrcMap["type"] = track.GetMedia()
-			ssrcMap["id"] = id
+			pt := int(0)
 			if track.GetMedia() == "audio" {
-				ssrcMap["pt"] = "111"
+				pt = 111
 			} else if track.GetMedia() == "video" {
-				ssrcMap["pt"] = "96"
+				pt = 96
 			}
-			ssrcMap["ssrc"] = fmt.Sprintf("%d", track.GetSSRCS()[0])
-			ssrcpts = append(ssrcpts, ssrcMap)
+			var infos []proto.TrackInfo
+			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id})
+			tracks[stream.GetID()+" "+id] = infos
 		}
 	}
-
-	log.Infof("publish ssrcpts %v, answer = %v", ssrcpts, answer)
-	return util.Map("jsep", answer, "mid", mid, "ssrcpts", ssrcpts), nil
+	log.Infof("publish tracks %v, answer = %v", tracks, answer)
+	return util.Map("jsep", answer, "mid", mid, "tracks", tracks), nil
 }
 
 // unpublish .
@@ -130,28 +130,43 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	sdp := util.Val(jsep, "sdp")
 	uid := util.Val(msg, "uid")
 
-	ssrcPT := make(map[uint32]uint8)
-	info := util.Val(msg, "info")
-	log.Infof("subscribe info=%v", info)
-
 	options := make(map[string]interface{})
 	options["transport-cc"] = "false"
 	options["subscribe"] = "true"
 	options["codec"] = "vp8"
 
 	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
-	if info != "" {
-		for ssrc, pt := range util.Unmarshal(info) {
-			ssrcPT[util.StrToUint32(ssrc)] = util.StrToUint8(pt.(string))
-		}
-	}
 
+	tracksMap := msg["tracks"].(map[string]interface{})
+	log.Infof("subscribe tracks=%v", tracksMap)
+	ssrcPT := make(map[uint32]uint8)
 	options["ssrcpt"] = ssrcPT
 	sub := transport.NewWebRTCTransport(smid, options)
 
-	for ssrc, pt := range ssrcPT {
-		log.Infof("AddTrack ssrc:%d,pt:%d", ssrc, pt)
-		_, err := sub.AddTrack(ssrc, pt)
+	tracks := make(map[string]proto.TrackInfo)
+	for msid, track := range tracksMap {
+		for _, item := range track.([]interface{}) {
+			info := item.(map[string]interface{})
+			trackInfo := proto.TrackInfo{
+				ID:      info["id"].(string),
+				Type:    info["type"].(string),
+				Ssrc:    int(info["ssrc"].(float64)),
+				Payload: int(info["pt"].(float64)),
+			}
+			ssrcPT[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
+			tracks[msid] = trackInfo
+		}
+	}
+
+	for msid, track := range tracks {
+		ssrc := uint32(track.Ssrc)
+		pt := uint8(track.Payload)
+		// I2AacsRLsZZriGapnvPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435
+		//                streamID                        trackID
+		streamID := strings.Split(msid, " ")[0]
+		trackID := track.ID
+		log.Infof("AddTrack: ssrc:%d, pt:%d, streamID %s, trackID %s", ssrc, pt, streamID, trackID)
+		_, err := sub.AddTrack(ssrc, pt, streamID, track.ID)
 		if err != nil {
 			log.Errorf("err=%v", err)
 		}

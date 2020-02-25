@@ -19,11 +19,13 @@ func watchStream(key string) {
 		for cmd := range redis.Watch(context.TODO(), key) {
 			log.Infof("watchStream: key %s cmd %s modified", key, cmd)
 			if cmd == "del" || cmd == "expired" {
-				//room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ
-				rid, mid, uid := proto.GetRIDMIDUIDFromMediaKey(key)
-				msg := util.Map("rid", rid, "uid", uid, "mid", mid)
-				log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
-				broadcaster.Say(proto.IslbOnStreamRemove, msg)
+				// dc1/room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ
+				info, err := proto.ParseMediaInfo(key)
+				if err == nil {
+					msg := util.Map("dc", info.DC, "rid", info.RID, "uid", info.UID, "mid", info.MID)
+					log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
+					broadcaster.Say(proto.IslbOnStreamRemove, msg)
+				}
 				//Stop watch loop after key removed.
 				break
 			}
@@ -51,32 +53,50 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	mid := util.Val(data, "mid")
-	from := util.Val(data, "from")
-	ssrcPt := util.Unmarshal(util.Val(data, "mediaInfo"))
 
-	//room1/media/pub/
-	key := proto.GetPubNodePath(rid, uid)
-	redis.HSetTTL(key, from, "", redisKeyTTL)
-
-	// room1/media/pub/${mid}
-	streamID := proto.GetPubMediaPath(rid, mid, 0)
-	redis.HSetTTL(streamID, "tracks", fmt.Sprintf("%d", len(ssrcPt)), redisLongKeyTTL)
-
-	for ssrc, pt := range ssrcPt {
-		// room1/media/pub/${mid}/${ssrc}
-		key := proto.GetPubMediaPath(rid, mid, util.StrToUint32(ssrc))
-		log.Infof("Set MediaInfo %s => %s", key, pt)
-		// room1/media/pub/${mid}/${ssrc} ${pt}
-		redis.HSetTTL(key, "pt", pt.(string), redisLongKeyTTL)
+	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	//TODO: Add identity fo sfu
+	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
+		Name: "sfu-node-name1",
+		ID:   "sfu-node-id",
+		Type: "origin",
+	})
+	if err != nil {
+		log.Errorf("Set: %v ", err)
+	}
+	err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+	if err != nil {
+		log.Errorf("Set: %v ", err)
 	}
 
-	// room1/user/info/${uid}
-	infoMap := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
-	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoMap["info"])
+	tracks := data["tracks"].(map[string]interface{})
+	for msid, track := range tracks {
+		var infos []proto.TrackInfo
+		for _, tinfo := range track.([]interface{}) {
+			tmp := tinfo.(map[string]interface{})
+			infos = append(infos, proto.TrackInfo{
+				ID:      tmp["id"].(string),
+				Type:    tmp["type"].(string),
+				Ssrc:    int(tmp["ssrc"].(float64)),
+				Payload: int(tmp["pt"].(float64)),
+			})
+		}
+		field, value, err := proto.MarshalTrackField(msid, infos)
+		if err != nil {
+			log.Errorf("MarshalTrackField: %v ", err)
+			continue
+		}
+		log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
+		redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+	}
+
+	// dc1/room1/user/info/${uid} info {"name": "Guest"}
+	fields := redis.HGetAll(proto.BuildUserInfoKey(dc, rid, uid))
+	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", fields["info"])
 	log.Infof("Broadcast: [stream-add] => %v", msg)
 	broadcaster.Say(proto.IslbOnStreamAdd, msg)
 
-	watchStream(streamID)
+	watchStream(mkey)
 	return util.Map(), nil
 }
 
@@ -86,12 +106,8 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	if mid == "" {
 		mid = util.Val(data, "uid")
 	}
-	key := proto.GetPubMediaPath(rid, mid, 0)
-	//log.Infof("streamRemove key=%s", key)
-	for _, path := range redis.Keys(key + "*") {
-		log.Infof("streamRemove path=%s", path)
-		redis.Del(path)
-	}
+	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	redis.Del(mkey)
 	return util.Map(), nil
 }
 
@@ -99,34 +115,22 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 
-	key := proto.GetPubMediaPathKey(rid)
-	log.Infof("getPubs rid=%s uid=%s key=%s", rid, uid, key)
-	midSsrcPt := make(map[string]map[string]string)
-	for _, path := range redis.Keys(key + "*/*") {
-		pts := redis.HGetAll(path)
-		log.Infof("key=%s path=%s pt=%s skip uid=%v", key, path, pts["pt"], uid)
-		//key=room1/media/pub/ k=room1/media/pub/5514c31f-2375-427f-9517-db46e967f842#MGEGMG/3318957691 v=96 skip uid=6d3c3e56-93bf-4210-aa96-294964743beb
-		if !strings.Contains(path, uid) {
-			strs := strings.Split(path, "/")
-			if midSsrcPt[strs[3]] == nil {
-				midSsrcPt[strs[3]] = make(map[string]string)
-			}
-			midSsrcPt[strs[3]][strs[4]] = pts["pt"]
-		}
-	}
+	key := proto.BuildMediaInfoKey(dc, rid, "")
+	log.Infof("getPubs: root key=%s", key)
+
 	var pubs []map[string]interface{}
-	resp := util.Map("rid", rid, "uid", uid)
-	for mid, ssrcPt := range midSsrcPt {
-		ssrcs := "{"
-		for ssrc, pt := range ssrcPt {
-			ssrcs += fmt.Sprintf("\"%s\":\"%s\",", ssrc, pt)
+	for _, path := range redis.Keys(key + "*") {
+		log.Infof("getPubs media info path = %s", path)
+		info, err := proto.ParseMediaInfo(path)
+		if err != nil {
+			log.Errorf("%v", err)
 		}
-		ssrcs += "}"
-		info := redis.HGetAll(proto.GetUserInfoPath(rid, uid))
-		for i := range info {
-			pubs = append(pubs, util.Map("mid", mid, "mediaInfo", ssrcs, "info", i))
-		}
+		fields := redis.HGetAll(proto.BuildUserInfoKey(info.DC, info.RID, info.UID))
+		pub := util.Map("rid", rid, "uid", uid, "mid", info.MID, "info", fields["info"])
+		pubs = append(pubs, pub)
 	}
+
+	resp := util.Map("rid", rid, "uid", uid)
 	resp["pubs"] = pubs
 	log.Infof("getPubs: resp=%v", resp)
 	return resp, nil
@@ -137,9 +141,9 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	uid := util.Val(data, "uid")
 	info := util.Val(data, "info")
 
-	key := proto.GetUserInfoPath(rid, uid)
-	log.Infof("clientJoin: set %s => %v", key, info)
-	redis.HSetTTL(key, "info", info, redisLongKeyTTL)
+	ukey := proto.BuildUserInfoKey(dc, rid, uid)
+	log.Infof("clientJoin: set %s => %v", ukey, info)
+	redis.HSetTTL(ukey, "info", info, redisLongKeyTTL)
 
 	msg := util.Map("rid", rid, "uid", uid, "info", info)
 	log.Infof("Broadcast: peer-join = %v", msg)
@@ -150,9 +154,9 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
-	key := proto.GetUserInfoPath(rid, uid)
-	log.Infof("clientLeave: remove key => %s", key)
-	redis.Del(key)
+	ukey := proto.BuildUserInfoKey(dc, rid, uid)
+	log.Infof("clientLeave: remove key => %s", ukey)
+	redis.Del(ukey)
 	msg := util.Map("rid", rid, "uid", uid)
 	log.Infof("Broadcast peer-leave = %v", msg)
 	//make broadcast leave msg after remove stream msg, for ion block bug
@@ -164,25 +168,23 @@ func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.
 func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
-	key := proto.GetPubMediaPath(rid, mid, 0)
-	log.Infof("getMediaInfo key=%s", key)
+	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	log.Infof("getMediaInfo key=%s", mkey)
+	fields := redis.HGetAll(mkey)
 
-	ssrcPts := "{"
-	var arr []string
-	for _, path := range redis.Keys(key + "*/*") {
-		log.Infof("Streams path=%s", path)
-		ssrc := ""
-		if strings.Contains(path, mid) {
-			strs := strings.Split(path, "/")
-			ssrc = strs[4]
+	tracks := make(map[string][]proto.TrackInfo)
+	for key, value := range fields {
+		if strings.HasPrefix(key, "track/") {
+			msid, infos, err := proto.UnmarshalTrackField(key, value)
+			if err != nil {
+				log.Errorf("%v", err)
+			}
+			log.Debugf("msid => %s, tracks => %v\n", msid, infos)
+			tracks[msid] = *infos
 		}
-		pts := redis.HGetAll(path)
-		pt := pts["pt"]
-		arr = append(arr, fmt.Sprintf("\"%s\":\"%s\"", ssrc, pt))
 	}
-	ssrcPts += strings.Join(arr, ",")
-	ssrcPts += "}"
-	resp := util.Map("mid", mid, "info", ssrcPts)
+
+	resp := util.Map("mid", mid, "tracks", tracks)
 	log.Infof("getMediaInfo: resp=%v", resp)
 	return resp, nil
 }

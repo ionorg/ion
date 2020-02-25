@@ -115,7 +115,7 @@ export default class Client extends EventEmitter {
     }
 
     async subscribe(rid, mid) {
-        console.log('subscribe rid => %s, mid => %a', rid, mid);
+        console.log('subscribe rid => %s, mid => %s', rid, mid);
         var promise = new Promise(async (resolve, reject) => {
             try {
                 let pc = await this._createReceiver(mid);

@@ -198,11 +198,11 @@ func (w *WebRTCTransport) SetRemoteSDP(sdp webrtc.SessionDescription) error {
 }
 
 // AddTrack add track to pc
-func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8) (*webrtc.Track, error) {
+func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8, streamID string, trackID string) (*webrtc.Track, error) {
 	if w.pc == nil {
 		return nil, errInvalidPC
 	}
-	track, err := w.pc.NewTrack(pt, ssrc, "pion", "pion")
+	track, err := w.pc.NewTrack(pt, ssrc, trackID, streamID)
 	if err != nil {
 		return nil, err
 	}

@@ -31,7 +31,7 @@ func TestKeyBuildAndParse(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	var tracks []TrackInfo
-	tracks = append(tracks, TrackInfo{Ssrc: 3694449886, Payload: 96, Type: "audio"})
+	tracks = append(tracks, TrackInfo{Ssrc: 3694449886, Payload: 96, Type: "audio", ID: "aid"})
 	key, value, err := MarshalTrackField("msidxxxxxx", tracks)
 	if err != nil {
 		t.Error(err)
@@ -46,11 +46,11 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestUnMarshal(t *testing.T) {
-	node, err := UnmarshalNodeField("node/uuid-xxxxx-xxxx", `{"name":"sfu001","id":"uuid-xxxxx-xxxx","type":"origin"}`)
+	node, err := UnmarshalNodeField("node/uuid-xxxxx-xxxx", `{"name": "sfu001", "id": "uuid-xxxxx-xxxx", "type": "origin"}`)
 	if err == nil {
 		fmt.Printf("node => %v\n", node)
 	}
-	msid, tracks, err := UnmarshalTrackField("track/pion audio", `[{"ssrc": 3694449886, "pt": 111, "type":"audio"}]`)
+	msid, tracks, err := UnmarshalTrackField("track/pion audio", `[{"ssrc": 3694449886, "pt": 111, "type": "audio", "id": "aid"}]`)
 	if err != nil {
 		t.Errorf("err => %v", err)
 	}

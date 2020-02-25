@@ -1,8 +1,8 @@
 package biz
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
@@ -113,16 +113,22 @@ func join(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}
 			if result["pubs"] == nil {
 				return
 			}
-			uid := result["uid"].(string)
-			rid := result["rid"].(string)
 			pubs := result["pubs"].([]interface{})
 			for _, pub := range pubs {
-				info := pub.(map[string]interface{})["info"].(interface{})
+				info := pub.(map[string]interface{})["info"].(string)
 				mid := pub.(map[string]interface{})["mid"].(string)
-				log.Infof("IslbGetPubs: mid=%v info=%v", mid, info)
+				uid := pub.(map[string]interface{})["uid"].(string)
+				rid := result["rid"].(string)
+
+				var infoObj map[string]interface{}
+				err := json.Unmarshal([]byte(info), &infoObj)
+				if err != nil {
+					log.Errorf("json.Unmarshal: err=%v", err)
+				}
+				log.Infof("IslbGetPubs: mid=%v info=%v", mid, infoObj)
 				// peer <=  range pubs(mid)
 				if mid != "" {
-					peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", info))
+					peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoObj))
 				}
 			}
 		},
@@ -184,24 +190,14 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 	}
 
 	log.Infof("publish: result => %v", result)
-
 	mid := util.Val(result, "mid")
 	rid := room.ID()
-	ssrcpts := result["ssrcpts"].([]interface{})
+	tracks := result["tracks"]
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	ssrcPts := "{"
-	var arr []string
-	for _, item := range ssrcpts {
-		ssrc := item.(map[string]interface{})["ssrc"].(string)
-		pt := item.(map[string]interface{})["pt"].(string)
-		arr = append(arr, fmt.Sprintf("\"%s\":\"%s\"", ssrc, pt))
-	}
-	ssrcPts += strings.Join(arr, ",")
-	ssrcPts += "}"
-	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "uid", uid, "mid", mid, "mediaInfo", ssrcPts))
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("method", proto.IslbOnStreamAdd, "rid", rid, "uid", uid, "mid", mid, "tracks", tracks))
 	return result, nil
 }
 
@@ -263,8 +259,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	info := result["info"].(string)
-	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "mid", mid, "info", info, "jsep", jsep))
+	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "mid", mid, "tracks", result["tracks"], "jsep", jsep))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

@@ -57,9 +57,10 @@ func BuildMediaInfoKey(dc string, rid string, mid string) string {
 }
 
 type MediaInfo struct {
-	dc  string
-	rid string
-	mid string
+	DC  string
+	RID string
+	MID string
+	UID string
 }
 
 func ParseMediaInfo(key string) (*MediaInfo, error) {
@@ -68,9 +69,13 @@ func ParseMediaInfo(key string) (*MediaInfo, error) {
 	if len(arr) != 5 {
 		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
 	}
-	info.dc = arr[0]
-	info.rid = arr[1]
-	info.mid = arr[4]
+	info.DC = arr[0]
+	info.RID = arr[1]
+	info.MID = arr[4]
+	arr = strings.Split(info.MID, "#")
+	if len(arr) == 2 {
+		info.UID = arr[0]
+	}
 	return &info, nil
 }
 
@@ -126,6 +131,7 @@ func UnmarshalNodeField(key string, value string) (*NodeInfo, error) {
 }
 
 type TrackInfo struct {
+	ID      string `json:"id"`
 	Ssrc    int    `json:"ssrc"`
 	Payload int    `json:"pt"`
 	Type    string `json:"type"`
@@ -153,10 +159,6 @@ func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error)
 
 func GetUIDFromMID(mid string) string {
 	return strings.Split(mid, "#")[0]
-}
-
-func GetUserInfoPath(rid, uid string) string {
-	return rid + "/user/info/" + uid
 }
 
 func GetPubNodePath(rid, uid string) string {
