@@ -87,7 +87,10 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 			continue
 		}
 		log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
-		redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+		err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+		if err != nil {
+			log.Errorf("redis.HSetTTL err = %v", err)
+		}
 	}
 
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
@@ -105,18 +108,24 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	mid := util.Val(data, "mid")
 
 	if mid == "" {
-		mid = util.Val(data, "uid") + "#*"
-		mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+		uid := util.Val(data, "uid")
+		mkey := proto.BuildMediaInfoKey(dc, rid, uid)
 		for _, key := range redis.Keys(mkey + "*") {
 			log.Infof("streamRemove: key => %s", key)
-			redis.Del(mkey)
+			err := redis.Del(mkey)
+			if err != nil {
+				log.Errorf("redis.Del err = %v", err)
+			}
 		}
 		return util.Map(), nil
 	}
 
 	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
 	log.Infof("streamRemove: key => %s", mkey)
-	redis.Del(mkey)
+	err := redis.Del(mkey)
+	if err != nil {
+		log.Errorf("redis.Del err = %v", err)
+	}
 	return util.Map(), nil
 }
 
@@ -152,8 +161,10 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 
 	ukey := proto.BuildUserInfoKey(dc, rid, uid)
 	log.Infof("clientJoin: set %s => %v", ukey, info)
-	redis.HSetTTL(ukey, "info", info, redisLongKeyTTL)
-
+	err := redis.HSetTTL(ukey, "info", info, redisLongKeyTTL)
+	if err != nil {
+		log.Errorf("redis.HSetTTL err = %v", err)
+	}
 	msg := util.Map("rid", rid, "uid", uid, "info", info)
 	log.Infof("Broadcast: peer-join = %v", msg)
 	broadcaster.Say(proto.IslbClientOnJoin, msg)
@@ -165,7 +176,10 @@ func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.
 	uid := util.Val(data, "uid")
 	ukey := proto.BuildUserInfoKey(dc, rid, uid)
 	log.Infof("clientLeave: remove key => %s", ukey)
-	redis.Del(ukey)
+	err := redis.Del(ukey)
+	if err != nil {
+		log.Errorf("redis.Del err = %v", err)
+	}
 	msg := util.Map("rid", rid, "uid", uid)
 	log.Infof("Broadcast peer-leave = %v", msg)
 	//make broadcast leave msg after remove stream msg, for ion block bug
@@ -237,7 +251,7 @@ func broadcast(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	info := util.Val(data, "info")
-	msg := util.Map("method", proto.IslbOnBroadcast, "rid", rid, "uid", uid, "info", info)
+	msg := util.Map("rid", rid, "uid", uid, "info", info)
 	log.Infof("broadcaster.Say msg=%v", msg)
 	broadcaster.Say(proto.IslbOnBroadcast, msg)
 	return util.Map(), nil
@@ -247,9 +261,7 @@ func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 
 	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-
 		go func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-
 			method := request["method"].(string)
 			data := request["data"].(map[string]interface{})
 			log.Infof("method => %s, data => %v", method, data)

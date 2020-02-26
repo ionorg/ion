@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -20,6 +21,7 @@ type Redis struct {
 	cluster     *redis.ClusterClient
 	single      *redis.Client
 	clusterMode bool
+	mutex       *sync.Mutex
 }
 
 func NewRedis(c Config) *Redis {
@@ -44,6 +46,7 @@ func NewRedis(c Config) *Redis {
 		}
 		r.single.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 		r.clusterMode = false
+		r.mutex = new(sync.Mutex)
 		return r
 	}
 
@@ -64,6 +67,8 @@ func NewRedis(c Config) *Redis {
 }
 
 func (r *Redis) Set(k, v string, t time.Duration) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.Set(k, v, t).Err()
 	}
@@ -71,6 +76,8 @@ func (r *Redis) Set(k, v string, t time.Duration) error {
 }
 
 func (r *Redis) Get(k string) interface{} {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.Get(k).Val()
 	}
@@ -78,6 +85,8 @@ func (r *Redis) Get(k string) interface{} {
 }
 
 func (r *Redis) HSet(k, field string, value interface{}) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.HSet(k, field, value).Err()
 	}
@@ -85,6 +94,8 @@ func (r *Redis) HSet(k, field string, value interface{}) error {
 }
 
 func (r *Redis) HGet(k, field string) string {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.HGet(k, field).Val()
 	}
@@ -92,6 +103,8 @@ func (r *Redis) HGet(k, field string) string {
 }
 
 func (r *Redis) HGetAll(k string) map[string]string {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.HGetAll(k).Val()
 	}
@@ -99,6 +112,8 @@ func (r *Redis) HGetAll(k string) map[string]string {
 }
 
 func (r *Redis) HDel(k, field string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.HDel(k, field).Err()
 	}
@@ -106,6 +121,8 @@ func (r *Redis) HDel(k, field string) error {
 }
 
 func (r *Redis) Expire(k string, t time.Duration) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.Expire(k, t).Err()
 	}
@@ -114,6 +131,8 @@ func (r *Redis) Expire(k string, t time.Duration) error {
 }
 
 func (r *Redis) HSetTTL(k, field string, value interface{}, t time.Duration) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		if err := r.cluster.HSet(k, field, value).Err(); err != nil {
 			return err
@@ -127,6 +146,8 @@ func (r *Redis) HSetTTL(k, field string, value interface{}, t time.Duration) err
 }
 
 func (r *Redis) Keys(k string) []string {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.Keys(k).Val()
 	}
@@ -134,6 +155,8 @@ func (r *Redis) Keys(k string) []string {
 }
 
 func (r *Redis) Del(k string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.clusterMode {
 		return r.cluster.Del(k).Err()
 	}

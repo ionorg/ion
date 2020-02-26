@@ -17,10 +17,10 @@ github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wX
 github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9 h1:xz6Nv3zcwO2Lila35hcb0QloCQsc38Al13RNEzWRpX4=
 github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9/go.mod h1:2wSM9zJkl1UQEFZgSd68NfCgRz1VL1jzy/RjCg+ULrs=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
-github.com/cloudwebrtc/go-protoo v0.0.0-20200226100834-f6c176ecb3b8 h1:AxlNs9q/dYupdqws+jZtJJ7gy+DVEZS5rzeHciN1tn0=
-github.com/cloudwebrtc/go-protoo v0.0.0-20200226100834-f6c176ecb3b8/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
-github.com/cloudwebrtc/nats-protoo v0.0.0-20200226115431-5bba810f4e8a h1:fOlH7L9DjSBaucekmiGLgshOc4yT88pJErfG9nIfcZ4=
-github.com/cloudwebrtc/nats-protoo v0.0.0-20200226115431-5bba810f4e8a/go.mod h1:GChOgYiUBBZTCzjSPbPCDIQCAtScaaJmvb41Vw83TLQ=
+github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9 h1:PCw+25vDoh6KnxyZcO7V+rDGr+PvMiPieldeELaGFhg=
+github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
+github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55 h1:HckVH3N4Cz/rY4x1Whmk67KbTglt1zPbIVyv5hs+s+g=
+github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55/go.mod h1:GChOgYiUBBZTCzjSPbPCDIQCAtScaaJmvb41Vw83TLQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.18+incompatible h1:Zz1aXgDrFFi1nadh58tA9ktt06cmPTwNNP3dXwIq1lE=

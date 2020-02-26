@@ -5,8 +5,8 @@ go 1.13
 require (
 	github.com/at-wat/ebml-go v0.9.2
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
-	github.com/cloudwebrtc/go-protoo v0.0.0-20200226100834-f6c176ecb3b8
-	github.com/cloudwebrtc/nats-protoo v0.0.0-20200226115431-5bba810f4e8a
+	github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9
+	github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/google/uuid v1.1.1 // indirect
