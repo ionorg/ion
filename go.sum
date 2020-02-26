@@ -21,6 +21,8 @@ github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe h1:sHG0TdiIu
 github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200223163119-b333bdf1bf0a h1:gOghsNYKtxBCJAJOxE6neFek9WkIlfiy46Ed4+zMSsM=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200223163119-b333bdf1bf0a/go.mod h1:GChOgYiUBBZTCzjSPbPCDIQCAtScaaJmvb41Vw83TLQ=
+github.com/cloudwebrtc/nats-protoo v0.0.0-20200226030023-80426cc8ba2e h1:07avlCV3iRve3QqOdLTtLgBftvrFbGMETA4O88xqc2Y=
+github.com/cloudwebrtc/nats-protoo v0.0.0-20200226030023-80426cc8ba2e/go.mod h1:GChOgYiUBBZTCzjSPbPCDIQCAtScaaJmvb41Vw83TLQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible h1:jFneRYjIvLMLhDLCzuTuU4rSJUjRplcJQ7pD7MnhC04=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
