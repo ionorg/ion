@@ -41,7 +41,7 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 		if service == item.Info["service"] {
 			rpcID := discovery.GetRPCChannel(item)
 			name := item.Info["name"]
-			resp := util.Map("name", name, "rpc-id", rpcID, "service", service)
+			resp := util.Map("name", name, "rpc-id", rpcID, "service", service, "id", item.Name)
 			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
 			return resp, nil
 		}
@@ -103,10 +103,19 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
+
 	if mid == "" {
-		mid = util.Val(data, "uid")
+		mid = util.Val(data, "uid") + "#*"
+		mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+		for _, key := range redis.Keys(mkey + "*") {
+			log.Infof("streamRemove: key => %s", key)
+			redis.Del(mkey)
+		}
+		return util.Map(), nil
 	}
+
 	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	log.Infof("streamRemove: key => %s", mkey)
 	redis.Del(mkey)
 	return util.Map(), nil
 }

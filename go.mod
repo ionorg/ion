@@ -6,7 +6,7 @@ require (
 	github.com/at-wat/ebml-go v0.9.2
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/cloudwebrtc/go-protoo v0.0.0-20191112163113-c93df3964cbe
-	github.com/cloudwebrtc/nats-protoo v0.0.0-20200226030023-80426cc8ba2e
+	github.com/cloudwebrtc/nats-protoo v0.0.0-20200226063801-ac6278437348
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/google/uuid v1.1.1 // indirect

@@ -34,7 +34,8 @@ func WatchServiceNodes(service string, nodes []discovery.Node) {
 			eventID := discovery.GetEventChannel(item)
 			log.Infof("Create islb requestor: rpcID => [%s]", rpcID)
 			rpcs[id] = protoo.NewRequestor(rpcID)
-			handleIslbBroadCast(eventID)
+			log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
+			protoo.OnBroadcast(eventID, handleIslbBroadCast)
 		}
 	}
 	services = nodes
