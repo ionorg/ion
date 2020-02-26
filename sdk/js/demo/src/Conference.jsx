@@ -200,21 +200,26 @@ class Conference extends React.Component {
             </div>
           </div>
         )}
-        {streams.map((item, index) => {
-          return index > 0 ? (
-            <SmallVideoView
-              key={item.mid}
-              id={item.mid}
-              stream={item.stream}
-              videoCount={streams.length}
-              collapsed={this.props.collapsed}
-              index={index}
-              onClick={this._onChangeVideoPosition}
-            />
-          ) : (
-            <div />
-          );
-        })}
+        <div className="small-video-list-div">
+          <div className="small-video-list">
+          {streams.map((item, index) => {
+            return index > 0 ? (
+              <SmallVideoView
+                key={item.mid}
+                id={item.mid}
+                stream={item.stream}
+                videoCount={streams.length}
+                collapsed={this.props.collapsed}
+                index={index}
+                onClick={this._onChangeVideoPosition}
+              />
+            ) : (
+              <div />
+            );
+          })}
+        </div>
+        </div>
+        
       </div>
     );
   };

@@ -1,0 +1,33 @@
+[global]
+pprof = ":6060"
+
+# internet ip
+addr = "127.0.0.1"
+
+[webrtc]
+# if ion behind nat, uncomment one
+# ice = ["stun:stun.l.google.com:19302"]
+# ice = ["stun:stun.stunprotocol.org:3478"]
+
+[rtp]
+# listen port
+port = 6666
+
+[log]
+level = "info"
+# level = "debug"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["etcd:2379"]
+
+[signal]
+#listen ip port
+host = "0.0.0.0"
+port = "8443"
+cert= "/configs/cert.pem"
+key= "/configs/key.pem"
+
+
+[amqp]
+url = "amqp://guest:guest@rabbitmq:5672/"
