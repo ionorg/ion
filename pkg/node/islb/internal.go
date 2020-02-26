@@ -247,40 +247,44 @@ func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 
 	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-		method := request["method"].(string)
-		data := request["data"].(map[string]interface{})
-		log.Infof("method => %s, data => %v", method, data)
 
-		var result map[string]interface{}
-		err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+		go func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
 
-		switch method {
-		case proto.IslbFindService:
-			result, err = findServiceNode(data)
-		case proto.IslbOnStreamAdd:
-			result, err = streamAdd(data)
-		case proto.IslbOnStreamRemove:
-			result, err = streamRemove(data)
-		case proto.IslbGetPubs:
-			result, err = getPubs(data)
-		case proto.IslbClientOnJoin:
-			result, err = clientJoin(data)
-		case proto.IslbClientOnLeave:
-			result, err = clientLeave(data)
-		case proto.IslbGetMediaInfo:
-			result, err = getMediaInfo(data)
-		case proto.IslbRelay:
-			result, err = relay(data)
-		case proto.IslbUnrelay:
-			result, err = unRelay(data)
-		case proto.IslbOnBroadcast:
-			result, err = broadcast(data)
-		}
+			method := request["method"].(string)
+			data := request["data"].(map[string]interface{})
+			log.Infof("method => %s, data => %v", method, data)
 
-		if err != nil {
-			reject(err.Code, err.Reason)
-		} else {
-			accept(result)
-		}
+			var result map[string]interface{}
+			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+
+			switch method {
+			case proto.IslbFindService:
+				result, err = findServiceNode(data)
+			case proto.IslbOnStreamAdd:
+				result, err = streamAdd(data)
+			case proto.IslbOnStreamRemove:
+				result, err = streamRemove(data)
+			case proto.IslbGetPubs:
+				result, err = getPubs(data)
+			case proto.IslbClientOnJoin:
+				result, err = clientJoin(data)
+			case proto.IslbClientOnLeave:
+				result, err = clientLeave(data)
+			case proto.IslbGetMediaInfo:
+				result, err = getMediaInfo(data)
+			case proto.IslbRelay:
+				result, err = relay(data)
+			case proto.IslbUnrelay:
+				result, err = unRelay(data)
+			case proto.IslbOnBroadcast:
+				result, err = broadcast(data)
+			}
+
+			if err != nil {
+				reject(err.Code, err.Reason)
+			} else {
+				accept(result)
+			}
+		}(request, accept, reject)
 	})
 }

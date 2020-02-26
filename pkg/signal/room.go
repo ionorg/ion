@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/room"
 	"github.com/pion/ion/pkg/log"
 )
@@ -65,7 +66,7 @@ func GetRoomsByPeer(id string) []*Room {
 	roomLock.RLock()
 	defer roomLock.RUnlock()
 	for rid, room := range rooms {
-		log.Infof("signal.GetRoomsByPeer rid=%v room=%v id=%v", rid, room, id)
+		log.Infof("signal.GetRoomsByPeer rid=%v id=%v", rid, id)
 		if room == nil {
 			continue
 		}
@@ -114,22 +115,22 @@ func NotifyAllWithoutPeer(rid string, peer *Peer, method string, msg map[string]
 func NotifyAll(rid string, method string, msg map[string]interface{}) {
 	room := getRoom(rid)
 	if room != nil {
-		for _, peer := range room.GetPeers() {
+		room.Map(func(id string, peer *peer.Peer) {
 			if peer != nil {
 				peer.Notify(method, msg)
 			}
-		}
+		})
 	}
 }
 
 func NotifyAllWithoutID(rid string, skipID string, method string, msg map[string]interface{}) {
 	room := getRoom(rid)
-	log.Infof("room => %v", room)
+	log.Infof("room => %v", rid)
 	if room != nil {
-		for _, peer := range room.GetPeers() {
+		room.Map(func(id string, peer *peer.Peer) {
 			if peer != nil && peer.ID() != skipID {
 				peer.Notify(method, msg)
 			}
-		}
+		})
 	}
 }

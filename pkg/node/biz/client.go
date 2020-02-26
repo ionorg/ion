@@ -155,9 +155,10 @@ func leave(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 
+	signal.DelPeer(rid, peer.ID())
 	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", ""))
 	islb.AsyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", uid))
-	signal.DelPeer(rid, peer.ID())
+
 	return emptyMap, nil
 }
 

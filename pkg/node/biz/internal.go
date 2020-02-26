@@ -18,23 +18,25 @@ func strToMap(msg map[string]interface{}, key string) {
 
 // broadcast msg from islb
 func handleIslbBroadCast(msg map[string]interface{}, subj string) {
-	method := util.Val(msg, "method")
-	data := msg["data"].(map[string]interface{})
-	log.Infof("OnIslbBroadcast: method=%s, data=%v", method, data)
-	rid := util.Val(data, "rid")
-	uid := util.Val(data, "uid")
-	//make signal.Notify send "info" as a json object, otherwise is a string (:
-	strToMap(data, "info")
-	switch method {
-	case proto.IslbOnStreamAdd:
-		signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
-	case proto.IslbOnStreamRemove:
-		signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
-	case proto.IslbClientOnJoin:
-		signal.NotifyAllWithoutID(rid, uid, proto.ClientOnJoin, data)
-	case proto.IslbClientOnLeave:
-		signal.NotifyAllWithoutID(rid, uid, proto.ClientOnLeave, data)
-	case proto.IslbOnBroadcast:
-		signal.NotifyAllWithoutID(rid, uid, proto.ClientBroadcast, data)
-	}
+	go func(msg map[string]interface{}){
+		method := util.Val(msg, "method")
+		data := msg["data"].(map[string]interface{})
+		log.Infof("OnIslbBroadcast: method=%s, data=%v", method, data)
+		rid := util.Val(data, "rid")
+		uid := util.Val(data, "uid")
+		//make signal.Notify send "info" as a json object, otherwise is a string (:
+		strToMap(data, "info")
+		switch method {
+		case proto.IslbOnStreamAdd:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
+		case proto.IslbOnStreamRemove:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
+		case proto.IslbClientOnJoin:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnJoin, data)
+		case proto.IslbClientOnLeave:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnLeave, data)
+		case proto.IslbOnBroadcast:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientBroadcast, data)
+		}
+	}(msg)
 }
