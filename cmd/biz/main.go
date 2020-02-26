@@ -5,7 +5,7 @@ import (
 
 	_ "net/http/pprof"
 
-	conf "github.com/pion/ion/pkg/conf/ion"
+	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/biz"
