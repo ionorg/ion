@@ -1,6 +1,7 @@
 version: '3.7'
 
 services:
+  # web conference demo
   web:
     build:
       dockerfile: web.Dockerfile
@@ -17,7 +18,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
-    command: "-c /configs/ion.toml"
+    entrypoint: "sh"
+    command: "-c '/wait-for rabbitmq:5672 -t 10 -- ion -c /configs/ion.toml'"
     volumes:
       - "./docker/ion.toml:/configs/ion.toml"
       - "./configs/cert.pem:/configs/cert.pem"
@@ -25,7 +27,6 @@ services:
     ports:
       - 6666:6666 # rtp
       - 8443:8443 # websocket
-    restart: on-failure
     depends_on:
       - rabbitmq
       - etcd
@@ -34,10 +35,10 @@ services:
     build:
       dockerfile: islb.Dockerfile
       context: .
-    command: "-c /configs/islb.toml"
+    entrypoint: "sh"
+    command: "-c '/wait-for rabbitmq:5672 -t 10 -- islb -c /configs/islb.toml'"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
-    restart: on-failure
     depends_on:
       - rabbitmq
       - etcd
@@ -45,14 +46,14 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.8.2-management
-    expose:
-      - 5672
     environment:
       RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
     healthcheck:
+      start_period: 5s
       test: [ "CMD", "nc", "-z", "localhost", "5672" ]
-      timeout: 5s
-      retries: 1
+      timeout: 3s
+      interval: 3s
+      retries: 3
 
   etcd:
     image: gcr.io/etcd-development/etcd:v3.3.18

@@ -14,6 +14,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /islb .
 
 FROM alpine:3.9.5
 RUN apk --no-cache add ca-certificates
-COPY --from=0 /islb /islb
+COPY --from=0 /islb /usr/local/bin/islb
+
+ADD https://raw.githubusercontent.com/Eficode/wait-for/master/wait-for /wait-for
+RUN chmod +x /wait-for
 
 ENTRYPOINT ["/islb"]
