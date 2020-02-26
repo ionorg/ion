@@ -112,7 +112,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 		mkey := proto.BuildMediaInfoKey(dc, rid, uid)
 		for _, key := range redis.Keys(mkey + "*") {
 			log.Infof("streamRemove: key => %s", key)
-			err := redis.Del(mkey)
+			err := redis.Del(key)
 			if err != nil {
 				log.Errorf("redis.Del err = %v", err)
 			}
