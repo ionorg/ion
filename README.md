@@ -55,6 +55,7 @@ Welcome contributing to ion!
 ## PC/HTML5
 <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-01.jpg"/> <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-02.jpg"/>
 <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-04.jpg"/> <img width="360" height="265" src="https://raw.githubusercontent.com/pion/ion/master/screenshots/web/ion-05.jpg"/>
+
 ## How to use
 ### 1. make key
 ```
@@ -62,6 +63,9 @@ Welcome contributing to ion!
 ```
 ### 2. build
 ```
+#docker
+docker-compose build
+
 #centos
 ./scripts/centos/installDeps.sh
 
@@ -73,6 +77,9 @@ Welcome contributing to ion!
 ```
 ### 3. run
 ```
+#docker
+docker-compose up
+
 #centos
 ./scripts/centos/allRestart.sh
 

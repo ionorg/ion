@@ -2,20 +2,42 @@ import 'package:events2/events2.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 import 'logger.dart' show Logger;
 
+final Map<String, dynamic> resolutions = {
+  'qvga': {'width': '320', 'height': '180'},
+  'vga': {'width': '640', 'height': '360'},
+  'shd': {'width': '960', 'height': '540'},
+  'hd': {'width': '1280', 'height': '720'},
+  'fullhd': {'width': '1920', 'height': '1080'}
+};
+
 class Stream extends EventEmitter {
   var logger = new Logger("Ion::Stream");
   String _mid;
   MediaStream _stream;
   Stream([this._mid, this._stream]);
 
-  init([sender = false, audio = true, video = true, screen = false]) async {
+  init(
+      [sender = false,
+      audio = true,
+      video = true,
+      screen = false,
+      quality = 'hd']) async {
     if (sender) {
       if (screen) {
         this._stream = await navigator
             .getDisplayMedia(_buildMediaConstraints(false, true));
       } else {
-        this._stream =
-            await navigator.getUserMedia(_buildMediaConstraints(audio, video));
+        Map<String, dynamic>  videoConstrains = {
+          'mandatory': {
+            'minWidth': resolutions[quality]['width'],
+            'minHeight': resolutions[quality]['height'],
+            'minFrameRate': '30',
+          },
+          'facingMode': 'user',
+          'optional': [],
+        };
+        this._stream = await navigator
+            .getUserMedia(_buildMediaConstraints(audio, videoConstrains));
       }
     }
   }
@@ -29,19 +51,6 @@ class Stream extends EventEmitter {
   MediaStream get stream => _stream;
 
   _buildMediaConstraints(audio, video) {
-    return {
-      "audio": audio,
-      "video": video
-          ? {
-              "mandatory": {
-                "minWidth": '640',
-                "minHeight": '480',
-                "minFrameRate": '30',
-              },
-              "facingMode": "user",
-              "optional": [],
-            }
-          : false
-    };
+    return {"audio": audio, "video": video ?? false};
   }
 }

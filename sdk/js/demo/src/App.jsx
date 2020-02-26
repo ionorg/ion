@@ -23,10 +23,6 @@ class App extends React.Component {
     this.state = {
       login: false,
       loading: false,
-      loginInfo: reactLocalStorage.getObject("loginInfo", {
-        roomId: "room1",
-        displayName: "Guest"
-      }),
       localAudioEnabled: true,
       localVideoEnabled: true,
       screenSharingEnabled: false,
@@ -203,7 +199,6 @@ class App extends React.Component {
     const {
       login,
       loading,
-      loginInfo,
       localAudioEnabled,
       localVideoEnabled,
       screenSharingEnabled,
@@ -344,7 +339,7 @@ class App extends React.Component {
             <Spin size="large" tip="Connecting..." />
           ) : (
             <Card title="Join to Ion" className="app-login-card">
-              <LoginForm loginInfo={loginInfo} handleLogin={this._handleJoin} />
+              <LoginForm handleLogin={this._handleJoin} />
             </Card>
           )}
         </Content>
