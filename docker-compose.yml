@@ -57,6 +57,8 @@ services:
 
   etcd:
     image: gcr.io/etcd-development/etcd:v3.3.18
+    entrypoint: "/usr/local/bin/etcd"
+    command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
 
   redis:
     image: redis:5.0.7
