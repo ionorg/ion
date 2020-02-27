@@ -19,4 +19,4 @@ COPY --from=0 /islb /usr/local/bin/islb
 ADD https://raw.githubusercontent.com/Eficode/wait-for/master/wait-for /wait-for
 RUN chmod +x /wait-for
 
-ENTRYPOINT ["/islb"]
+ENTRYPOINT ["/usr/local/bin/islb"]
