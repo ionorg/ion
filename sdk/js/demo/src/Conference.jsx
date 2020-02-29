@@ -30,7 +30,9 @@ class Conference extends React.Component {
   _publish = async (type,codec) => {
     const { client, settings } = this.props;
     let stream = await client.publish({
-      codec: settings.codec,//"vp8",
+      codec: settings.codec,
+      resolution: settings.resolution,
+      bandwidth: settings.bandwidth,
       audio: true,
       video: type === "video",
       screen: type === "screen"
