@@ -42,10 +42,10 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 	if state == discovery.UP {
 		if _, found := services[id]; !found {
 			services[id] = node
+			service := node.Info["service"]
+			name := node.Info["name"]
+			log.Debugf("Service [%s] UP %s => %s", service, name, id)
 		}
-		service := node.Info["service"]
-		name := node.Info["name"]
-		log.Debugf("Service [%s] UP %s => %s", service, name, id)
 	} else if state == discovery.DOWN {
 		if _, found := services[id]; found {
 

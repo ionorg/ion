@@ -67,6 +67,7 @@ func (sn *ServiceNode) RegisterNode(serviceName string, name string, ID string) 
 type ServiceWatcher struct {
 	reg      *ServiceRegistry
 	nodesMap map[string]map[string]Node
+	callback ServiceWatchCallback
 }
 
 // NewServiceWatcher .
@@ -74,6 +75,7 @@ func NewServiceWatcher(endpoints []string, dc string) *ServiceWatcher {
 	sw := &ServiceWatcher{
 		nodesMap: make(map[string]map[string]Node),
 		reg:      NewServiceRegistry(endpoints, "/"+dc+"/node/"),
+		callback: nil,
 	}
 	log.Infof("New Service Watcher: etcd => %v", endpoints)
 	return sw
@@ -84,23 +86,56 @@ func (sw *ServiceWatcher) GetNodes(service string) (map[string]Node, bool) {
 	return nodes, found
 }
 
-func (sw *ServiceWatcher) GetNodesByID(service string, ID string) (*Node, bool) {
-	nodes, found := sw.nodesMap[service]
-	if found {
+func (sw *ServiceWatcher) GetNodesByID(ID string) (*Node, bool) {
+	for _, nodes := range sw.nodesMap {
 		for id, node := range nodes {
 			if id == ID {
 				return &node, true
 			}
-			return nil, false
 		}
 	}
 	return nil, false
 }
 
+func (sw *ServiceWatcher) DeleteNodesByID(ID string) bool {
+	for service, nodes := range sw.nodesMap {
+		for id, _ := range nodes {
+			if id == ID {
+				delete(sw.nodesMap[service], id)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (sw *ServiceWatcher) WatchNode(ch clientv3.WatchChan) {
+	go func() {
+		for {
+			msg := <-ch
+			for _, ev := range msg.Events {
+				log.Infof("%s %q:%q", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				if ev.Type == clientv3.EventTypeDelete {
+					nodeID := string(ev.Kv.Key)
+					log.Infof("Node [%s] Down", nodeID)
+					n, found := sw.GetNodesByID(nodeID)
+					if found {
+						service := n.Info["service"]
+						if sw.callback != nil {
+							sw.callback(service, DOWN, *n)
+						}
+						sw.DeleteNodesByID(nodeID)
+					}
+				}
+			}
+		}
+	}()
+}
+
 //WatchServiceNode .
 func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback ServiceWatchCallback) {
 	log.Infof("Start service watcher => [%s].", serviceName)
-
+	sw.callback = callback
 	for {
 		nodes, err := sw.reg.GetServiceNodes(serviceName)
 		if err != nil {
@@ -111,28 +146,17 @@ func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback ServiceW
 		for _, node := range nodes {
 			id := node.ID
 			service := node.Info["service"]
-			if _, found := sw.GetNodesByID(service, node.ID); !found {
+
+			if _, found := sw.nodesMap[service]; !found {
+				sw.nodesMap[service] = make(map[string]Node)
+			}
+
+			if _, found := sw.GetNodesByID(node.ID); !found {
 				log.Infof("New %s node UP => [%s].", service, node.ID)
 				callback(service, UP, node)
-				Watch(node.ID, func(ch clientv3.WatchChan) {
-					log.Infof("Watch %s node => [%s].", service, node.ID)
-					go func() {
-						for {
-							msg := <-ch
-							for _, ev := range msg.Events {
-								log.Infof("%s %q:%q", ev.Type, ev.Kv.Key, ev.Kv.Value)
-								if ev.Type == clientv3.EventTypeDelete {
-									log.Infof("Node %s Down => [%s].", service, node.ID)
-									delete(sw.nodesMap[service], id)
-									callback(service, DOWN, node)
-								}
-							}
-						}
-					}()
-				}, true)
-				if _, found := sw.nodesMap[service]; !found {
-					sw.nodesMap[service] = make(map[string]Node)
-				}
+
+				log.Infof("Start watch for [%s] node => [%s].", service, node.ID)
+				Watch(node.ID, sw.WatchNode, true)
 				sw.nodesMap[service][id] = node
 			}
 		}
