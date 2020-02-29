@@ -3,6 +3,7 @@ package plugins
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -17,18 +18,21 @@ const (
 	rembHighBW = 500 * 1000
 )
 
+// JitterBuffer core buffer module
 type JitterBuffer struct {
-	id       string
-	buffers  map[uint32]*Buffer
-	rtcpCh   chan rtcp.Packet
-	stop     bool
-	byteRate uint64
-	lostRate float64
+	id         string
+	buffers    map[uint32]*Buffer
+	bufferLock sync.RWMutex
+	rtcpCh     chan rtcp.Packet
+	stop       bool
+	byteRate   uint64
+	lostRate   float64
 
 	rembCycle int
 	pliCycle  int
 }
 
+// NewJitterBuffer return new JitterBuffer
 func NewJitterBuffer(id string) *JitterBuffer {
 	j := &JitterBuffer{
 		buffers: make(map[uint32]*Buffer),
@@ -63,26 +67,37 @@ func (j *JitterBuffer) Init(args ...interface{}) {
 	log.Infof("JitterBuffer.Init pli=%d remb=%d", j.pliCycle, j.rembCycle)
 }
 
+// ID return id
 func (j *JitterBuffer) ID() string {
 	return j.id
 }
 
+// GetRTCPChan get response rtcp channel
 func (j *JitterBuffer) GetRTCPChan() chan rtcp.Packet {
 	return j.rtcpCh
 }
 
+// AddBuffer add a buffer by ssrc
 func (j *JitterBuffer) AddBuffer(ssrc uint32) *Buffer {
 	p := NewBuffer(bufferSize)
+	j.bufferLock.Lock()
+	defer j.bufferLock.Unlock()
 	j.buffers[ssrc] = p
 	j.nackLoop(p)
 	return p
 }
 
+// GetBuffer get a buffer by ssrc
 func (j *JitterBuffer) GetBuffer(ssrc uint32) *Buffer {
+	j.bufferLock.RLock()
+	defer j.bufferLock.RUnlock()
 	return j.buffers[ssrc]
 }
 
+// GetBuffers get all buffers
 func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
+	j.bufferLock.RLock()
+	defer j.bufferLock.RUnlock()
 	return j.buffers
 }
 
@@ -132,7 +147,7 @@ func (j *JitterBuffer) rembLoop() {
 
 			time.Sleep(time.Duration(j.rembCycle) * time.Second)
 			for _, buffer := range j.GetBuffers() {
-				j.lostRate, j.byteRate = buffer.CalcLostRateByteRate(1)
+				j.lostRate, j.byteRate = buffer.CalcLostRateByteRate(uint64(j.rembCycle))
 				var bw uint64
 				if j.lostRate == 0 && j.byteRate == 0 {
 					bw = rembHighBW
@@ -183,6 +198,7 @@ func (j *JitterBuffer) pliLoop() {
 	}()
 }
 
+// GetPacket get packet from buffer
 func (j *JitterBuffer) GetPacket(ssrc uint32, sn uint16) *rtp.Packet {
 	buffer := j.buffers[ssrc]
 	if buffer == nil {
@@ -191,6 +207,7 @@ func (j *JitterBuffer) GetPacket(ssrc uint32, sn uint16) *rtp.Packet {
 	return buffer.GetPacket(sn)
 }
 
+// Stop stop all buffer
 func (j *JitterBuffer) Stop() {
 	if j.stop {
 		return
@@ -201,6 +218,7 @@ func (j *JitterBuffer) Stop() {
 	}
 }
 
+// Stat get stat from buffers
 func (j *JitterBuffer) Stat() string {
 	out := ""
 	for ssrc, buffer := range j.buffers {
