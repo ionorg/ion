@@ -136,10 +136,10 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	mid := util.Val(data, "mid")
 
 	mkey := proto.BuildMediaInfoKey(dc, rid, nid, mid)
-	//TODO: Add identity fo sfu
+
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
-		Name: "sfu-node-name1",
-		ID:   "sfu-node-id",
+		Name: nid,
+		ID:   nid,
 		Type: "origin",
 	})
 	if err != nil {
@@ -188,24 +188,21 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
 
+	mkey := ""
 	if mid == "" {
 		uid := util.Val(data, "uid")
-		mkey := proto.BuildMediaInfoKey(dc, rid, "*", uid)
-		for _, key := range redis.Keys(mkey + "*") {
-			log.Infof("streamRemove: key => %s", key)
-			err := redis.Del(key)
-			if err != nil {
-				log.Errorf("redis.Del err = %v", err)
-			}
-		}
-		return util.Map(), nil
+		mkey = proto.BuildMediaInfoKey(dc, rid, "*", uid)
+	} else {
+		mkey = proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	}
 
-	mkey := proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	log.Infof("streamRemove: key => %s", mkey)
-	err := redis.Del(mkey)
-	if err != nil {
-		log.Errorf("redis.Del err = %v", err)
+	for _, key := range redis.Keys(mkey + "*") {
+		log.Infof("streamRemove: key => %s", key)
+		err := redis.Del(key)
+		if err != nil {
+			log.Errorf("redis.Del err = %v", err)
+		}
 	}
 	return util.Map(), nil
 }
