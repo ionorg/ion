@@ -197,8 +197,8 @@ export default class MediaSettings extends React.Component {
         }
         this.stopPreview();
 
-        if(this.props.onDeviceSelectedChanged !== undefined) {
-            this.props.onDeviceSelectedChanged(
+        if(this.props.onMediaSettingsChanged !== undefined) {
+            this.props.onMediaSettingsChanged(
                 this.state.selectedAudioDevice,
                 this.state.selectedVideoDevice,
                 this.state.resolution,
@@ -326,5 +326,5 @@ export default class MediaSettings extends React.Component {
 
 
 MediaSettings.propTypes = {
-    onInputDeviceSelected: PropTypes.func
+    onMediaSettingsChanged: PropTypes.func
 }

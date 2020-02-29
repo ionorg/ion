@@ -1,6 +1,14 @@
 import { EventEmitter } from 'events';
 import VideoElement from './VideoElement';
 
+const VideoResolutions =
+{
+	qvga   : { width: { ideal: 320  }, height: { ideal: 180  }},
+	vga    : { width: { ideal: 640  }, height: { ideal: 360  }},
+	shd    : { width: { ideal: 960  }, height: { ideal: 540  }},
+	hd     : { width: { ideal: 1280 }, height: { ideal: 720  }}
+};
+
 export default class Stream extends EventEmitter {
 
     constructor(mid = null, stream = null) {
@@ -10,12 +18,18 @@ export default class Stream extends EventEmitter {
         this._videoElement = new VideoElement();
     }
 
-    async init(sender = false, options = { audio: true, video: true, screen: false }) {
+    async init(sender = false, options = { audio: true, video: true, screen: false, resolution: 'hd'}) {
         if (sender) {
             if (options.screen) {
                 this._stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             } else {
-                this._stream = await navigator.mediaDevices.getUserMedia({ audio: options.audio, video: options.video });
+                this._stream = await navigator.mediaDevices.getUserMedia(
+                    {
+                        audio: options.audio,
+                        video: options.video === true ?
+                               VideoResolutions[options.resolution] : false
+                    }
+                );
             }
         }
     }

@@ -28,9 +28,9 @@ class Conference extends React.Component {
   };
 
   _publish = async (type,codec) => {
-    const { client } = this.props;
+    const { client, settings } = this.props;
     let stream = await client.publish({
-      codec: codec,//"vp8",
+      codec: settings.codec,//"vp8",
       audio: true,
       video: type === "video",
       screen: type === "screen"
@@ -43,6 +43,14 @@ class Conference extends React.Component {
     if (localStream) this._unpublish(localStream);
     if (localScreen) this._unpublish(localScreen);
     this.setState({ localStream: null, localScreen: null });
+  };
+
+  _notification = (message, description) => {
+    notification.info({
+      message: message,
+      description: description,
+      placement: 'bottomRight',
+    });
   };
 
   _unpublish = async stream => {
@@ -69,15 +77,20 @@ class Conference extends React.Component {
 
   handleLocalStream = async enabled => {
     let { localStream } = this.state;
-    if (enabled) {
-      localStream = await this._publish("video");
-    } else {
-      if (localStream) {
-        this._unpublish(localStream);
-        localStream = null;
+    try {
+      if (enabled) {
+        localStream = await this._publish("video");
+      } else {
+        if (localStream) {
+          this._unpublish(localStream);
+          localStream = null;
+        }
       }
+      this.setState({ localStream });
+    } catch(e){
+      console.log("handleLocalStream error => " + e);
+      _notification("publish/unpublish failed!", e)
     }
-    this.setState({ localStream });
   };
 
   handleScreenSharing = async enabled => {

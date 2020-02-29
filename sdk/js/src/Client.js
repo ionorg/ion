@@ -72,12 +72,12 @@ export default class Client extends EventEmitter {
         }
     }
 
-    async publish(options = { audio: true, video: true, screen: false, codec: 'vp8' }) {
+    async publish(options = { audio: true, video: true, screen: false, codec: 'h264', resolution: 'hd', bandwidth: 1024 }) {
         console.log('publish options => %o', options);
         var promise = new Promise(async (resolve, reject) => {
             try {
                 let stream = new Stream();
-                await stream.init(true, { audio: options.audio, video: options.video, screen: options.screen });
+                await stream.init(true, { audio: options.audio, video: options.video, screen: options.screen, resolution: options.resolution });
                 let pc = await this._createSender(stream.stream, options.codec);
 
                 pc.onicecandidate = async (e) => {
