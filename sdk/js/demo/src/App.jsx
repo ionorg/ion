@@ -30,6 +30,14 @@ class App extends React.Component {
       isFullScreen:false
     };
 
+    this._settings = {
+      selectedAudioDevice: "",
+      selectedVideoDevice: "",
+      resolution: "hd",
+      bandwidth: 1024,
+      codec: "h264"
+    }
+
     let client = new Client();
 
     window.onunload = async () => {
@@ -191,8 +199,8 @@ class App extends React.Component {
           false;
   }
 
-  _onDeviceSelectedChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth) => {
-    //TODO
+  _onMediaSettingsChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth,codec) => {
+    this._settings = {selectedAudioDevice,selectedVideoDevice,resolution,bandwidth,codec}
   }
 
   render() {
@@ -285,7 +293,7 @@ class App extends React.Component {
             <div />
           )}
           <div className="app-header-right">
-            <MediaSettings onInputDeviceSelected={this._onDeviceSelectedChanged} />
+            <MediaSettings onMediaSettingsChanged={this._onMediaSettingsChanged} />
           </div>
         </Header>
 
@@ -305,6 +313,7 @@ class App extends React.Component {
                   <Conference
                     collapsed={this.state.collapsed}
                     client={this.client}
+                    settings={this._settings}
                     ref={ref => {
                       this.conference = ref;
                     }}

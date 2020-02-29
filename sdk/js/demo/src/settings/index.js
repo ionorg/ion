@@ -54,6 +54,7 @@ export default class MediaSettings extends React.Component {
             selectedAudioDevice: "",
             selectedVideoDevice: "",
             audioLevel: 0,
+            codec: 'h264',
         }
 
         try {
@@ -98,6 +99,7 @@ export default class MediaSettings extends React.Component {
                     selectedVideoDevice: info.videoDevice,
                     bandwidth: info.bandwidth,
                     resolution: info.resolution,
+                    codec: info.codec,
                 });
             }
         }
@@ -189,17 +191,19 @@ export default class MediaSettings extends React.Component {
                 videoDevice: this.state.selectedVideoDevice,
                 resolution: this.state.resolution,
                 bandwidth: this.state.bandwidth,
+                codec: this.state.codec,
             };
             localStorage["deviceInfo"] = JSON.stringify(deviceInfo);
         }
         this.stopPreview();
 
-        if(this.props.onDeviceSelectedChanged !== undefined) {
-            this.props.onDeviceSelectedChanged(
+        if(this.props.onMediaSettingsChanged !== undefined) {
+            this.props.onMediaSettingsChanged(
                 this.state.selectedAudioDevice,
                 this.state.selectedVideoDevice,
                 this.state.resolution,
-                this.state.bandwidth);
+                this.state.bandwidth,
+                this.state.codec);
         }
     }
 
@@ -222,6 +226,10 @@ export default class MediaSettings extends React.Component {
 
     handleResolutionChange = (e) => {
         this.setState({ resolution: e });
+    }
+
+    handleVideoCodeChange = (e) => {
+        this.setState({ codec: e });
     }
 
     handleBandWidthChange = (e) => {
@@ -290,6 +298,16 @@ export default class MediaSettings extends React.Component {
                         </div>
                     </div>
                     <div className="item">
+                        <span className="itemleft">VideoCode</span>
+                        <div className="itemright">
+                            <Select style={{ width: 350 }} value={this.state.codec} onChange={this.handleVideoCodeChange}>
+                                <Option value="h264">H264</Option>
+                                <Option value="vp8">VP8</Option>
+                                <Option value="vp9">VP9</Option>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="item">
                         <span className="itemleft">Bandwidth</span>
                         <div className="itemright">
                             <Select style={{ width: 350 }} value={this.state.bandwidth} onChange={this.handleBandWidthChange}>
@@ -308,5 +326,5 @@ export default class MediaSettings extends React.Component {
 
 
 MediaSettings.propTypes = {
-    onInputDeviceSelected: PropTypes.func
+    onMediaSettingsChanged: PropTypes.func
 }
