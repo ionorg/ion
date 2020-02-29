@@ -431,7 +431,7 @@ class _MeetingPageState extends State<MeetingPage> {
                                 height: 48,
                                 margin: EdgeInsets.all(0.0),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: _buildTools(),
                                 ),
@@ -535,7 +535,7 @@ class _MeetingPageState extends State<MeetingPage> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.max,
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceEvenly,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: _buildTools(),
                                 ),

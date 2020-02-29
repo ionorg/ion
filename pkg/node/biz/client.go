@@ -76,8 +76,8 @@ func handleSFUBroadCast(msg map[string]interface{}, subj string) {
 		switch method {
 		case proto.SFUTrickleICE:
 			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
-		case proto.IslbOnStreamRemove:
-			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
+			//case proto.IslbOnStreamRemove:
+			//	signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
 		}
 	}(msg)
 }
