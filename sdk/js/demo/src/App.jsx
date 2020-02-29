@@ -191,8 +191,8 @@ class App extends React.Component {
           false;
   }
 
-  _onDeviceSelectedChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth) => {
-    //TODO
+  _onDeviceSelectedChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth,codec) => {
+    //TODO DeviceSelectedChanged
   }
 
   render() {

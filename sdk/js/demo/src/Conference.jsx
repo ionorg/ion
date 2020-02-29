@@ -27,10 +27,10 @@ class Conference extends React.Component {
     client.off("stream-remove", this._handleAddStream);
   };
 
-  _publish = async type => {
+  _publish = async (type,codec) => {
     const { client } = this.props;
     let stream = await client.publish({
-      codec: "vp8",
+      codec: codec,//"vp8",
       audio: true,
       video: type === "video",
       screen: type === "screen"
