@@ -37,6 +37,8 @@ func Entry(method string, peer *signal.Peer, msg map[string]interface{}, accept 
 		result, err = unsubscribe(peer, msg)
 	case proto.ClientBroadcast:
 		result, err = broadcast(peer, msg)
+	case proto.ClientTrickleICE:
+		result, err = trickle(peer, msg)
 	}
 
 	if err != nil {
@@ -64,19 +66,42 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 	return nil, false
 }
 
-func getRPCForSFU() (*nprotoo.Requestor, *nprotoo.Error) {
+func handleSFUBroadCast(msg map[string]interface{}, subj string) {
+	go func(msg map[string]interface{}) {
+		method := util.Val(msg, "method")
+		data := msg["data"].(map[string]interface{})
+		log.Infof("handleSFUBroadCast: method=%s, data=%v", method, data)
+		rid := util.Val(data, "rid")
+		uid := util.Val(data, "uid")
+		switch method {
+		case proto.SFUTrickleICE:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
+		case proto.IslbOnStreamRemove:
+			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
+		}
+	}(msg)
+}
+
+func getRPCForSFU(mid string) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	islb, found := getRPCForIslb()
 	if !found {
-		return nil, util.NewNpError(500, "Not found any node for islb.")
+		return "", nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu"))
+	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu", "mid", mid))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
+
 	log.Infof("SFU result => %v", result)
 	rpcID := result["rpc-id"].(string)
-	sfu := protoo.NewRequestor(rpcID)
-	return sfu, nil
+	eventID := result["event-id"].(string)
+	nodeID := result["id"].(string)
+	rpc, found := rpcs[rpcID]
+	if !found {
+		rpc = protoo.NewRequestor(rpcID)
+		protoo.OnBroadcast(eventID, handleSFUBroadCast)
+	}
+	return nodeID, rpc, nil
 }
 
 func login(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
@@ -169,7 +194,7 @@ func clientClose(peer *signal.Peer, msg map[string]interface{}) (map[string]inte
 func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.publish peer.ID()=%s", peer.ID())
 
-	sfu, err := getRPCForSFU()
+	nid, sfu, err := getRPCForSFU("")
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -197,7 +222,7 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "tracks", tracks))
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks))
 	return result, nil
 }
 
@@ -205,15 +230,15 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
 
-	sfu, err := getRPCForSFU()
+	mid := util.Val(msg, "mid")
+	rid := util.Val(msg, "rid")
+	uid := peer.ID()
+
+	_, sfu, err := getRPCForSFU(mid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, err
 	}
-
-	mid := util.Val(msg, "mid")
-	rid := util.Val(msg, "rid")
-	uid := peer.ID()
 
 	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid))
 	if err != nil {
@@ -233,20 +258,25 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 func subscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
 
-	sfu, err := getRPCForSFU()
+	if ok, err := verifyData(msg, "jsep", "mid"); !ok {
+		return nil, err
+	}
+	mid := util.Val(msg, "mid")
+	nodeID, sfu, err := getRPCForSFU(mid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	if ok, err := verifyData(msg, "jsep", "mid"); !ok {
-		return nil, err
+	// TODO:
+	if nodeID != "node for mid" {
+		log.Warnf("Not the same node, need to enable sfu-sfu relay!")
 	}
 
 	room := signal.GetRoomByPeer(peer.ID())
 	uid := peer.ID()
 	rid := room.ID()
-	mid := util.Val(msg, "mid")
+
 	jsep := msg["jsep"].(map[string]interface{})
 
 	islb, found := getRPCForIslb()
@@ -272,16 +302,21 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 func unsubscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
 
-	sfu, err := getRPCForSFU()
-	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
-	}
-
 	if ok, err := verifyData(msg, "mid"); !ok {
 		return nil, err
 	}
 	mid := util.Val(msg, "mid")
+
+	mediaInfo, perr := proto.ParseMediaInfo(mid)
+	if perr != nil {
+		return nil, util.NewNpError(500, perr.Error())
+	}
+
+	_, sfu, err := getRPCForSFU(mediaInfo.NID)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
 
 	result, err := sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("mid", mid))
 	if err != nil {
@@ -306,5 +341,31 @@ func broadcast(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 	}
 	rid, uid, info := util.Val(msg, "rid"), util.Val(msg, "uid"), util.Val(msg, "info")
 	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info))
+	return emptyMap, nil
+}
+
+func trickle(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+	log.Infof("biz.trickle peer.ID()=%s msg=%v", peer.ID(), msg)
+
+	mid := util.Val(msg, "mid")
+
+	if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
+		return nil, err
+	}
+
+	mediaInfo, perr := proto.ParseMediaInfo(mid)
+	if perr != nil {
+		return nil, util.NewNpError(500, perr.Error())
+	}
+
+	_, sfu, err := getRPCForSFU(mediaInfo.NID)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	trickle := msg["trickle"].(map[string]interface{})
+
+	sfu.AsyncRequest(proto.ClientTrickleICE, util.Map("mid", mid, "trickle", trickle))
 	return emptyMap, nil
 }

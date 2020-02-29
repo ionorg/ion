@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-
 	_ "net/http/pprof"
 
 	conf "github.com/pion/ion/pkg/conf/biz"
@@ -24,17 +23,6 @@ func close() {
 func main() {
 	log.Infof("--- Starting Biz Node ---")
 
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
-	serviceNode.RegisterNode("biz", "node-biz", "biz-channel-id")
-
-	rpcID := serviceNode.GetRPCChannel()
-	eventID := serviceNode.GetEventChannel()
-	biz.Init(conf.Global.Dc, rpcID, eventID, conf.Nats.URL)
-
-	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs)
-	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
-
-	defer close()
 	if conf.Global.Pprof != "" {
 		go func() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
@@ -42,5 +30,16 @@ func main() {
 		}()
 	}
 
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
+	serviceNode.RegisterNode("biz", "node-biz", "biz-channel-id")
+
+	rpcID := serviceNode.GetRPCChannel()
+	eventID := serviceNode.GetEventChannel()
+	biz.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, conf.Nats.URL)
+
+	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
+	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
+
+	defer close()
 	select {}
 }

@@ -11,6 +11,7 @@ import (
 var (
 	db     *Redis
 	dc     = "dc1"
+	node   = "sfu1"
 	room   = "room1"
 	uid    = "uuid-xxxxx-xxxxx-xxxxx-xxxxx"
 	mid    = uid + "#" + "ABCDEF"
@@ -25,7 +26,7 @@ var (
 	uikey = "info"
 	uinfo = `{"name": "Guest"}`
 
-	mkey = proto.BuildMediaInfoKey(dc, room, mid)
+	mkey = proto.BuildMediaInfoKey(dc, room, node, mid)
 	ukey = proto.BuildUserInfoKey(dc, room, uid)
 )
 

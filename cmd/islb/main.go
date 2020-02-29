@@ -18,7 +18,14 @@ func init() {
 func main() {
 	log.Infof("--- Starting ISLB Node ---")
 
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
+	if conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("Start pprof on %s", conf.Global.Pprof)
+			http.ListenAndServe(conf.Global.Pprof, nil)
+		}()
+	}
+
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
 	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
 
 	redisCfg := db.Config{
@@ -28,17 +35,10 @@ func main() {
 	}
 	rpcID := serviceNode.GetRPCChannel()
 	eventID := serviceNode.GetEventChannel()
-	islb.Init(conf.Global.Dc, rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
+	islb.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
 
-	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs)
+	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
 	go serviceWatcher.WatchServiceNode("", islb.WatchServiceNodes)
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			http.ListenAndServe(conf.Global.Pprof, nil)
-		}()
-	}
 
 	select {}
 }

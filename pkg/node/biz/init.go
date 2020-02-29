@@ -8,37 +8,56 @@ import (
 
 var (
 	dc       = "default"
+	nid      = "biz-unkown-node-id"
 	protoo   *nprotoo.NatsProtoo
 	rpcs     map[string]*nprotoo.Requestor
-	services []discovery.Node
+	services map[string]discovery.Node
 )
 
 // Init func
-func Init(dcID, rpcID, eventID string, natsURL string) {
+func Init(dcID, nodeID, rpcID, eventID string, natsURL string) {
 	dc = dcID
-	services = []discovery.Node{}
+	nid = nodeID
+	services = make(map[string]discovery.Node)
 	rpcs = make(map[string]*nprotoo.Requestor)
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 }
 
 // WatchServiceNodes .
-func WatchServiceNodes(service string, nodes []discovery.Node) {
-	for _, item := range nodes {
-		service := item.Info["service"]
-		id := item.Info["id"]
-		name := item.Info["name"]
+func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+	id := node.ID
+
+	if state == discovery.UP {
+
+		if _, found := services[id]; !found {
+			services[id] = node
+		}
+
+		service := node.Info["service"]
+		name := node.Info["name"]
 		log.Debugf("Service [%s] %s => %s", service, name, id)
+
 		_, found := rpcs[id]
 		if !found {
-			rpcID := discovery.GetRPCChannel(item)
-			eventID := discovery.GetEventChannel(item)
+			rpcID := discovery.GetRPCChannel(node)
+			eventID := discovery.GetEventChannel(node)
+
 			log.Infof("Create islb requestor: rpcID => [%s]", rpcID)
 			rpcs[id] = protoo.NewRequestor(rpcID)
+
 			log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
 			protoo.OnBroadcast(eventID, handleIslbBroadCast)
 		}
+
+	} else if state == discovery.DOWN {
+		if _, found := rpcs[id]; found {
+			delete(rpcs, id)
+		}
+
+		if _, found := services[id]; found {
+			delete(services, id)
+		}
 	}
-	services = nodes
 }
 
 // Close func

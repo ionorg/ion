@@ -45,6 +45,17 @@ func handleRequest(rpcID string) {
 	})
 }
 
+func handleTrickle(r *rtc.Router, t *transport.WebRTCTransport)  {
+	for {
+		trickle := <- t.GetCandidateChan()
+		if trickle != nil {
+			broadcaster.Say(proto.SFUTrickleICE, util.Map("mid", t.ID(), "trickle", trickle.ToJSON()))
+		} else {
+			return
+		}
+	}
+}
+
 // publish .
 func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("publish msg=%v", msg)
@@ -63,13 +74,17 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	options["publish"] = "true"
 	options["codec"] = "vp8"
 	pub := transport.NewWebRTCTransport(mid, options)
+
+	router := rtc.GetOrNewRouter(mid)
+	go handleTrickle(router, pub)
+
 	answer, err := pub.Answer(offer, options)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 
-	router := rtc.GetOrNewRouter(mid)
+
 	router.AddPub(uid, pub)
 
 	sdpObj, err := sdptransform.Parse(offer.SDP)
@@ -80,7 +95,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 
 	tracks := make(map[string][]proto.TrackInfo)
 	for _, stream := range sdpObj.GetStreams() {
-
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
 			if track.GetMedia() == "audio" {
@@ -104,7 +118,6 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	mid := util.Val(msg, "mid")
 	router := rtc.GetOrNewRouter(mid)
 	if router != nil {
-		router.DelPub()
 		router.Close()
 		rtc.DelRouter(mid)
 		return emptyMap, nil
@@ -116,8 +129,8 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("subscribe msg=%v", msg)
 
-	pmid := util.Val(msg, "mid")
-	router := rtc.GetOrNewRouter(pmid)
+	pubID := util.Val(msg, "mid")
+	router := rtc.GetOrNewRouter(pubID)
 	if router == nil {
 		return nil, util.NewNpError(404, "Router not found!")
 	}
@@ -135,13 +148,15 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	options["subscribe"] = "true"
 	options["codec"] = "vp8"
 
-	smid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
+	subID := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)
 	ssrcPT := make(map[uint32]uint8)
 	options["ssrcpt"] = ssrcPT
-	sub := transport.NewWebRTCTransport(smid, options)
+	sub := transport.NewWebRTCTransport(subID, options)
+
+	go handleTrickle(router, sub)
 
 	tracks := make(map[string]proto.TrackInfo)
 	for msid, track := range tracksMap {
@@ -178,21 +193,42 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
-	router.AddSub(smid, sub)
+	router.AddSub(subID, sub)
 
-	log.Infof("subscribe mid %s, answer = %v", smid, answer)
-	return util.Map("jsep", answer, "mid", smid), nil
+	log.Infof("subscribe mid %s, answer = %v", subID, answer)
+	return util.Map("jsep", answer, "mid", subID), nil
 }
 
 // unsubscribe .
 func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("unsubscribe msg=%v", msg)
-	pmid := util.Val(msg, "pmid")
-	smid := util.Val(msg, "smid")
-	router := rtc.GetOrNewRouter(pmid)
-	if router != nil {
-		router.DelSub(smid)
+	mid := util.Val(msg, "mid")
+	found := false
+	rtc.MapRouter(func(id string, r *rtc.Router){
+		sub := r.GetSub(mid)
+		if sub != nil {
+			r.DelSub(mid)
+			found = true
+			return
+		}
+	})
+	if found {
 		return emptyMap, nil
 	}
+	return nil, util.NewNpError(404, "Router not found!")
+}
+
+
+func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+	log.Infof("trickle msg=%v", msg)
+	router := util.Val(msg, "router")
+	mid := util.Val(msg, "mid")
+	//cand := msg["trickle"]
+	r := rtc.GetOrNewRouter(router)
+	t := r.GetSub(mid)
+	if t != nil {
+		//t.(*transport.WebRTCTransport).AddCandidate(cand)
+	}
+
 	return nil, util.NewNpError(404, "Router not found!")
 }

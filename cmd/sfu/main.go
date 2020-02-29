@@ -19,18 +19,18 @@ func init() {
 func main() {
 	log.Infof("--- Starting SFU Node ---")
 
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs)
-	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
-
-	rpcID := serviceNode.GetRPCChannel()
-	eventID := serviceNode.GetEventChannel()
-	sfu.Init(conf.Global.Dc, rpcID, eventID, conf.Nats.URL)
-
 	if conf.Global.Pprof != "" {
 		go func() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
 			http.ListenAndServe(conf.Global.Pprof, nil)
 		}()
 	}
+
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
+	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
+
+	rpcID := serviceNode.GetRPCChannel()
+	eventID := serviceNode.GetEventChannel()
+	sfu.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, conf.Nats.URL)
 	select {}
 }

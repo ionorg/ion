@@ -37,24 +37,56 @@ func watchStream(key string) {
 /*Find service nodes by name, such as sfu|mcu|sip-gateway|rtmp-gateway */
 func findServiceNode(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	service := util.Val(data, "service")
-	for _, item := range services {
-		if service == item.Info["service"] {
-			rpcID := discovery.GetRPCChannel(item)
-			name := item.Info["name"]
-			resp := util.Map("name", name, "rpc-id", rpcID, "service", service, "id", item.Name)
+	mid := ""
+	if data["mid"] != nil {
+		mid = util.Val(data, "mid")
+	}
+	if mid != "" {
+		mkey := proto.BuildMediaInfoKey(dc, "*", "*", mid)
+		log.Infof("Find mids by mkey %s", mkey)
+		for _, key := range redis.Keys(mkey + "*") {
+			log.Infof("Got: key => %s", key)
+			minfo, err := proto.ParseMediaInfo(key)
+			if err != nil {
+				break
+			}
+			for _, node := range services {
+				name := node.Info["name"]
+				id := node.Info["id"]
+				if service == node.Info["service"] && minfo.NID == id {
+					rpcID := discovery.GetRPCChannel(node)
+					eventID := discovery.GetRPCChannel(node)
+					resp := util.Map("name", name, "rpc-id", rpcID, "event-id", eventID, "service", service, "id", id)
+					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
+					return resp, nil
+				}
+			}
+		}
+	}
+
+	// TODO: Add a load balancing algorithm.
+	for _, node := range services {
+		if service == node.Info["service"] {
+			rpcID := discovery.GetRPCChannel(node)
+			eventID := discovery.GetRPCChannel(node)
+			name := node.Info["name"]
+			id := node.Info["id"]
+			resp := util.Map("name", name, "rpc-id", rpcID, "event-id", eventID, "service", service, "id", id)
 			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
 			return resp, nil
 		}
 	}
+
 	return nil, util.NewNpError(404, fmt.Sprintf("Service node [%s] not found", service))
 }
 
 func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
+	nid := util.Val(data, "nid")
 	mid := util.Val(data, "mid")
 
-	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	mkey := proto.BuildMediaInfoKey(dc, rid, nid, mid)
 	//TODO: Add identity fo sfu
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
 		Name: "sfu-node-name1",
@@ -109,7 +141,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 
 	if mid == "" {
 		uid := util.Val(data, "uid")
-		mkey := proto.BuildMediaInfoKey(dc, rid, uid)
+		mkey := proto.BuildMediaInfoKey(dc, rid, "*", uid)
 		for _, key := range redis.Keys(mkey + "*") {
 			log.Infof("streamRemove: key => %s", key)
 			err := redis.Del(key)
@@ -120,7 +152,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 		return util.Map(), nil
 	}
 
-	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
+	mkey := proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	log.Infof("streamRemove: key => %s", mkey)
 	err := redis.Del(mkey)
 	if err != nil {
@@ -133,7 +165,7 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 
-	key := proto.BuildMediaInfoKey(dc, rid, "")
+	key := proto.BuildMediaInfoKey(dc, rid, "*", "*")
 	log.Infof("getPubs: root key=%s", key)
 
 	var pubs []map[string]interface{}
@@ -191,25 +223,31 @@ func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.
 func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
-	mkey := proto.BuildMediaInfoKey(dc, rid, mid)
-	log.Infof("getMediaInfo key=%s", mkey)
-	fields := redis.HGetAll(mkey)
 
-	tracks := make(map[string][]proto.TrackInfo)
-	for key, value := range fields {
-		if strings.HasPrefix(key, "track/") {
-			msid, infos, err := proto.UnmarshalTrackField(key, value)
-			if err != nil {
-				log.Errorf("%v", err)
+	mkey := proto.BuildMediaInfoKey(dc, rid, "*", mid)
+	log.Infof("getMediaInfo key=%s", mkey)
+
+	for _, key := range redis.Keys(mkey + "*") {
+		log.Infof("Got: key => %s", key)
+		fields := redis.HGetAll(key)
+		tracks := make(map[string][]proto.TrackInfo)
+		for key, value := range fields {
+			if strings.HasPrefix(key, "track/") {
+				msid, infos, err := proto.UnmarshalTrackField(key, value)
+				if err != nil {
+					log.Errorf("%v", err)
+				}
+				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
+				tracks[msid] = *infos
 			}
-			log.Debugf("msid => %s, tracks => %v\n", msid, infos)
-			tracks[msid] = *infos
 		}
+
+		resp := util.Map("mid", mid, "tracks", tracks)
+		log.Infof("getMediaInfo: resp=%v", resp)
+		return resp, nil
 	}
 
-	resp := util.Map("mid", mid, "tracks", tracks)
-	log.Infof("getMediaInfo: resp=%v", resp)
-	return resp, nil
+	return nil, util.NewNpError(404, "MediaInfo Not found")
 }
 
 func relay(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {

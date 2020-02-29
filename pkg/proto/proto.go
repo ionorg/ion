@@ -17,6 +17,7 @@ const (
 	ClientUnSubscribe = "unsubscribe"
 	ClientClose       = "close"
 	ClientBroadcast   = "broadcast"
+	ClientTrickleICE  = "trickle"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"
@@ -38,6 +39,9 @@ const (
 	IslbOnStreamRemove = ClientOnStreamRemove
 	IslbOnBroadcast    = ClientBroadcast
 
+	SFUTrickleICE   = ClientTrickleICE
+	SFUStreamRemove = ClientOnStreamRemove
+
 	IslbID = "islb"
 )
 
@@ -51,27 +55,30 @@ msid  [{ssrc: 1234, pt: 111, type:audio}]
 msid  [{ssrc: 5678, pt: 96, type:video}]
 */
 
-func BuildMediaInfoKey(dc string, rid string, mid string) string {
-	strs := []string{dc, rid, "media", "pub", mid}
+func BuildMediaInfoKey(dc string, rid string, nid string, mid string) string {
+	strs := []string{dc, rid, nid, "media", "pub", mid}
 	return strings.Join(strs, "/")
 }
 
 type MediaInfo struct {
-	DC  string
-	RID string
-	MID string
-	UID string
+	DC  string //Data Center ID
+	RID string //Room ID
+	NID string //Node ID
+	MID string //Media ID
+	UID string //User ID
 }
 
+// dc1/room1/sfu-tU2GInE5Lfuc/media/pub/7e97c1e8-c80a-4c69-81b0-27efc83e6120#NYYQLV
 func ParseMediaInfo(key string) (*MediaInfo, error) {
 	var info MediaInfo
 	arr := strings.Split(key, "/")
-	if len(arr) != 5 {
+	if len(arr) != 6 {
 		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
 	}
 	info.DC = arr[0]
 	info.RID = arr[1]
-	info.MID = arr[4]
+	info.NID = arr[2]
+	info.MID = arr[5]
 	arr = strings.Split(info.MID, "#")
 	if len(arr) == 2 {
 		info.UID = arr[0]

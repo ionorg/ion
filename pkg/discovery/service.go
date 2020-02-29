@@ -11,9 +11,6 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
-// ServiceWatchCallback .
-type ServiceWatchCallback func(service string, nodes []Node)
-
 //ServiceRegistry lib
 type ServiceRegistry struct {
 	Scheme string
@@ -22,14 +19,15 @@ type ServiceRegistry struct {
 
 //Node service node info
 type Node struct {
-	Name string
+	ID   string
 	Info map[string]string
 }
 
 //NewServiceRegistry ServiceRegistry factory method
 func NewServiceRegistry(endpoints []string, scheme string) *ServiceRegistry {
-	r := &ServiceRegistry{}
-	r.Scheme = scheme
+	r := &ServiceRegistry{
+		Scheme: scheme,
+	}
 	etcd, _ = newEtcd(endpoints)
 	r.etcd = etcd
 	return r
@@ -40,7 +38,7 @@ func (r *ServiceRegistry) RegisterServiceNode(serviceName string, node Node) err
 	if serviceName == "" {
 		return fmt.Errorf("Service name must be non empty")
 	}
-	if node.Name == "" {
+	if node.ID == "" {
 		return fmt.Errorf("Node name must be non empty")
 	}
 	node.Info["ip"] = util.GetIntefaceIP()
@@ -50,13 +48,13 @@ func (r *ServiceRegistry) RegisterServiceNode(serviceName string, node Node) err
 
 func (r *ServiceRegistry) keepRegistered(serviceName string, node Node) {
 	for {
-		nodeID := r.nodePath(serviceName, node.Name)
-		err := r.etcd.keep(nodeID, encode(node.Info))
+		nodePath := r.Scheme + serviceName + "-" + node.ID
+		err := r.etcd.keep(nodePath, encode(node.Info))
 		if err != nil {
 			log.Warnf("Registration got errors. Restarting. err=%s", err)
 			time.Sleep(5 * time.Second)
 		} else {
-			log.Infof("Node [%s] registration success!", nodeID)
+			log.Infof("Node [%s] registration success!", nodePath)
 			return
 		}
 	}
@@ -64,19 +62,19 @@ func (r *ServiceRegistry) keepRegistered(serviceName string, node Node) {
 
 //GetServiceNodes returns a list of active service nodes
 func (r *ServiceRegistry) GetServiceNodes(serviceName string) ([]Node, error) {
-	rsp, err := r.etcd.GetResponseByPrefix(r.servicePath(serviceName) + "/")
+	rsp, err := r.etcd.GetResponseByPrefix(r.servicePath(serviceName))
 	if err != nil {
 		return nil, err
 	}
 	nodes := make([]Node, 0)
 	if len(rsp.Kvs) == 0 {
-		log.Debugf("No services nodes were found under %s", r.servicePath(serviceName)+"/")
+		log.Debugf("No services nodes were found under %s", r.servicePath(serviceName))
 		return nodes, nil
 	}
 
 	for _, n := range rsp.Kvs {
 		node := Node{}
-		node.Name = string(n.Key)
+		node.ID = string(n.Key)
 		node.Info = decode(n.Value)
 		nodes = append(nodes, node)
 	}
@@ -103,10 +101,4 @@ func decode(ds []byte) map[string]string {
 func (r *ServiceRegistry) servicePath(serviceName string) string {
 	service := strings.Replace(serviceName, "/", "-", -1)
 	return path.Join(r.Scheme, service)
-}
-
-func (r *ServiceRegistry) nodePath(serviceName string, nodeName string) string {
-	service := strings.Replace(serviceName, "/", "-", -1)
-	node := strings.Replace(nodeName, "/", "-", -1)
-	return path.Join(r.Scheme, service, node)
 }

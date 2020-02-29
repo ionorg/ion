@@ -32,7 +32,7 @@ func JsonEncode(str string) map[string]interface{} {
 }
 
 func ServiceNodeRegistry() {
-	serviceNode := NewServiceNode([]string{EtcdAddr})
+	serviceNode := NewServiceNode([]string{EtcdAddr}, "dc1")
 	serviceNode.RegisterNode("sfu", "node-name", "nats-channel-test")
 	protoo := nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
 	wg.Add(1)
@@ -55,24 +55,23 @@ func ServiceNodeRegistry() {
 }
 
 func ServiceNodeWatch() {
-	serviceWatcher := NewServiceWatcher([]string{EtcdAddr})
+	serviceWatcher := NewServiceWatcher([]string{EtcdAddr}, "dc1")
 	protoo := nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
-	go serviceWatcher.WatchServiceNode("sfu", func(service string, ns []Node) {
-		if len(nodes) == 0 {
-			nodes = ns
-			log.Infof("Service [%s] => %v", service, nodes)
-			for _, nd := range nodes {
-				req := protoo.NewRequestor(GetRPCChannel(nd))
-				wg.Add(1)
-				req.Request("offer", JsonEncode(`{ "sdp": "dummy-sdp"}`),
-					func(result map[string]interface{}) {
-						log.Infof("offer success: =>  %s", result)
-					},
-					func(code int, err string) {
-						log.Warnf("offer reject: %d => %s", code, err)
-						wg.Done()
-					})
-			}
+	go serviceWatcher.WatchServiceNode("sfu", func(service string, state NodeStateType, node Node) {
+		if state == UP {
+			log.Infof("Service UP [%s] => %v", service, node)
+			req := protoo.NewRequestor(GetRPCChannel(node))
+			wg.Add(1)
+			req.Request("offer", JsonEncode(`{ "sdp": "dummy-sdp"}`),
+				func(result map[string]interface{}) {
+					log.Infof("offer success: =>  %s", result)
+				},
+				func(code int, err string) {
+					log.Warnf("offer reject: %d => %s", code, err)
+					wg.Done()
+				})
+		} else if state == DOWN {
+			log.Infof("Service DOWN [%s] => %v", service, node)
 
 		}
 	})
