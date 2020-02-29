@@ -13,6 +13,55 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+// WatchServiceNodes .
+func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+	id := node.ID
+	if state == discovery.UP {
+		if _, found := services[id]; !found {
+			services[id] = node
+			service := node.Info["service"]
+			name := node.Info["name"]
+			log.Debugf("Service [%s] UP %s => %s", service, name, id)
+		}
+	} else if state == discovery.DOWN {
+		if _, found := services[id]; found {
+			service := node.Info["service"]
+			name := node.Info["name"]
+			log.Debugf("Service [%s] DOWN %s => %s", service, name, id)
+			if service == "sfu" {
+				removeStreamsByNode(node.Info["id"])
+			}
+			delete(services, id)
+		}
+	}
+}
+
+func removeStreamsByNode(nodeID string) {
+	log.Infof("removeStreamsByNode: node => %s", nodeID)
+	mkey := proto.BuildMediaInfoKey(dc, "*", nodeID, "*")
+	for _, key := range redis.Keys(mkey + "*") {
+		log.Infof("streamRemove: key => %s", key)
+		minfo, err := proto.ParseMediaInfo(key)
+		if err == nil {
+			log.Warnf("TODO: Internal Server Error (500) to %s", minfo.UID)
+		}
+		err = redis.Del(key)
+		if err != nil {
+			log.Errorf("redis.Del err = %v", err)
+		}
+	}
+}
+
+// WatchAllStreams .
+func WatchAllStreams() {
+	mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*")
+	log.Infof("Watch all streams, mkey = %s", mkey)
+	for _, key := range redis.Keys(mkey) {
+		log.Infof("Watch stream, key = %s", key)
+		watchStream(key)
+	}
+}
+
 func watchStream(key string) {
 	log.Infof("Start watch stream: key = %s", key)
 	go func() {
