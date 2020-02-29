@@ -1,7 +1,7 @@
 FROM node:12.16.0-buster-slim as builder
 
 WORKDIR /app
-COPY ./sdk/js/package.json ./sdk/js/package-lock.json ./
+COPY ./sdk/js/package.json ./
 RUN npm install
 
 COPY ./sdk/js/demo/package.json ./demo/
