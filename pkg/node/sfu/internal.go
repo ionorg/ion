@@ -98,9 +98,9 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
 			if track.GetMedia() == "audio" {
-				pt = 111
+				pt = webrtc.DefaultPayloadTypeOpus
 			} else if track.GetMedia() == "video" {
-				pt = 96
+				pt = webrtc.DefaultPayloadTypeVP8
 			}
 			var infos []proto.TrackInfo
 			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id})

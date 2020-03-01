@@ -114,7 +114,7 @@ func (r *Router) handle() {
 			if util.IsVideo(pkt.PayloadType) {
 				if count%3000 == 0 {
 					// Init args: (ssrc uint32, pt uint8, rembCycle int, pliCycle int)
-					r.GetPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 1)
+					r.GetPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 2)
 				}
 				r.GetPlugin(jbPlugin).PushRTP(pkt)
 				count++
@@ -170,10 +170,11 @@ func (r *Router) jitter() {
 			pkt := <-r.jbRtcpCh
 			switch pkt.(type) {
 			case *rtcp.TransportLayerNack, *rtcp.ReceiverEstimatedMaximumBitrate, *rtcp.PictureLossIndication:
-				log.Infof("Router.jitter r.GetPub().WriteRTCP %v", pkt.DestinationSSRC())
-				r.GetPub().WriteRTCP(pkt)
+				log.Infof("Router.jitter r.GetPub().WriteRTCP %v", pkt)
+				if r.pub != nil {
+					r.GetPub().WriteRTCP(pkt)
+				}
 			}
-
 		}
 	}()
 }
@@ -258,7 +259,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 func (r *Router) GetSub(id string) transport.Transport {
 	r.subLock.Lock()
 	defer r.subLock.Unlock()
-	log.Infof("Router.GetSub id=%s sub=%v", id, r.subs[id])
+	// log.Infof("Router.GetSub id=%s sub=%v", id, r.subs[id])
 	return r.subs[id]
 }
 

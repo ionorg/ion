@@ -2,11 +2,7 @@ package plugins
 
 import (
 	"fmt"
-	"sort"
 
-	"time"
-
-	"github.com/bluele/gcache"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
@@ -15,28 +11,37 @@ import (
 )
 
 const (
-	maxTTL = time.Millisecond * 1000
+	maxSN      = 65536
+	maxPktSize = 1000
+
+	// kProcessIntervalMs=20 ms
 	//https://chromium.googlesource.com/external/webrtc/+/ad34dbe934/webrtc/modules/video_coding/nack_module.cc#28
-	nackTTL     = time.Millisecond * 20
-	maxPktSize  = 1000
-	maxNackSize = 1000
+
+	// vp8 vp9 h264 clock rate 90000Hz
+	videoClock = 90000
+	// buffer time 2s
+	maxBufferTSDelta = videoClock * 2
 
 	//1+16(FSN+BLP) https://tools.ietf.org/html/rfc2032#page-9
 	maxNackLostSize = 17
 )
 
-type RtpExtensionInfo struct {
-	RtpExtensionSN uint16
-	Timestamp      int64
+func tsDelta(x, y uint32) uint32 {
+	if x > y {
+		return x - y
+	}
+	return y - x
 }
 
 // Buffer contains all packets
 type Buffer struct {
-	maxLate      uint16
-	pktBuffer    gcache.Cache
-	rtpExtBuffer gcache.Cache
-	nackBuffer   gcache.Cache
-	lastPushSN   uint16
+	pktBuffer   [maxSN]*rtp.Packet
+	lastNackSN  uint16
+	lastClearTS uint32
+	lastClearSN uint16
+
+	// Last seqnum that has been added to buffer
+	lastPushSN uint16
 
 	ssrc        uint32
 	payloadType uint8
@@ -52,37 +57,168 @@ type Buffer struct {
 	totalByte uint64
 	byteRate  uint64
 
-	stop       bool
-	lastNackSN uint16
+	stop bool
 }
 
 // NewBuffer constructs a new Buffer
-func NewBuffer(maxLate uint16) *Buffer {
+func NewBuffer() *Buffer {
 	b := &Buffer{
-		maxLate:      maxLate,
-		rtcpCh:       make(chan rtcp.Packet, maxNackSize),
-		pktBuffer:    gcache.New(maxPktSize).Simple().Build(),
-		nackBuffer:   gcache.New(maxNackSize).Simple().Build(),
-		rtpExtBuffer: gcache.New(maxPktSize).Simple().Build(),
+		rtcpCh: make(chan rtcp.Packet, maxPktSize),
 	}
-	b.GatherJitterInfoLoop()
 	return b
 }
 
-func (b *Buffer) GatherJitterInfoLoop() {
-	go func() {
-		t := time.NewTicker(nackTTL)
-		defer t.Stop()
-		for {
-			if b.stop {
-				return
+// Push adds a RTP Packet, out of order, new packet may be arrived later
+func (b *Buffer) Push(p *rtp.Packet) {
+	// log.Infof("Buffer.Push pt=%v sn=%v ts=%v", p.PayloadType, p.SequenceNumber, p.Timestamp)
+	b.receivedPkt++
+	b.totalByte += uint64(p.MarshalSize())
+
+	// init ssrc payloadType
+	if b.ssrc == 0 || b.payloadType == 0 {
+		b.ssrc = p.SSRC
+		b.payloadType = p.PayloadType
+	}
+
+	// init lastClearTS
+	if b.lastClearTS == 0 {
+		b.lastClearTS = p.Timestamp
+	}
+
+	// init lastClearSN
+	if b.lastClearSN == 0 {
+		b.lastClearSN = p.SequenceNumber
+	}
+
+	// init lastNackSN
+	if b.lastNackSN == 0 {
+		b.lastNackSN = p.SequenceNumber
+	}
+
+	// log.Infof("p.SequenceNumber=%d", p.SequenceNumber)
+	b.pktBuffer[p.SequenceNumber] = p
+	b.lastPushSN = p.SequenceNumber
+
+	// clear old packet by timestamp
+	b.clearOldPkt(p.Timestamp, p.SequenceNumber)
+
+	// limit nack range
+	if b.lastPushSN-b.lastNackSN >= maxNackLostSize {
+		b.lastNackSN = b.lastPushSN - maxNackLostSize
+	}
+
+	if b.lastPushSN-b.lastNackSN >= maxNackLostSize {
+		// calc [lastNackSN, lastpush-8] if has keyframe
+		nackPair, lostPkt := b.GetNackPair(b.pktBuffer, b.lastNackSN, b.lastPushSN)
+		b.lastNackSN = b.lastPushSN
+		// log.Infof("b.lastNackSN=%v, b.lastPushSN=%v, lostPkt=%v, nackPair=%v", b.lastNackSN, b.lastPushSN, lostPkt, nackPair)
+		if lostPkt > 0 {
+			b.lostPkt += lostPkt
+			nack := &rtcp.TransportLayerNack{
+				//origin ssrc
+				SenderSSRC: b.ssrc,
+				MediaSSRC:  b.ssrc,
+				Nacks: []rtcp.NackPair{
+					nackPair,
+				},
 			}
-			select {
-			case <-t.C:
-				b.GatherJitterInfo()
+			b.rtcpCh <- nack
+		}
+	}
+}
+
+// clearOldPkt clear old packet
+func (b *Buffer) clearOldPkt(pushPktTS uint32, pushPktSN uint16) {
+	clearTS := b.lastClearTS
+	clearSN := b.lastClearSN
+	if tsDelta(pushPktTS, clearTS) >= maxBufferTSDelta {
+		for i := clearSN + 1; i <= pushPktSN; i++ {
+			if b.pktBuffer[i] == nil {
+				log.Infof("b.pktBuffer[i] == nil")
+				continue
+			}
+			if tsDelta(pushPktTS, b.pktBuffer[i].Timestamp) >= maxBufferTSDelta {
+				b.lastClearTS = b.pktBuffer[i].Timestamp
+				b.lastClearSN = i
+				b.pktBuffer[i] = nil
+			} else {
+				break
 			}
 		}
-	}()
+	}
+}
+
+// FindPacket find packet from buffer
+func (b *Buffer) FindPacket(sn uint16) *rtp.Packet {
+	return b.pktBuffer[sn]
+}
+
+// Stop stop buffer
+func (b *Buffer) Stop() {
+	b.stop = true
+	close(b.rtcpCh)
+}
+
+// GetPayloadType get payloadtype
+func (b *Buffer) GetPayloadType() uint8 {
+	return b.payloadType
+}
+
+// GetStat get status from buffer
+func (b *Buffer) GetStat() string {
+	out := fmt.Sprintf("buffer:[%d, %d] | lastNackSN:%d | lostRate:%.2f |\n", b.lastClearSN, b.lastPushSN, b.lastNackSN, float64(b.lostPkt)/float64(b.receivedPkt+b.lostPkt))
+	return out
+}
+
+// GetNackPair calc nackpair
+func (b *Buffer) GetNackPair(buffer [65536]*rtp.Packet, begin, end uint16) (rtcp.NackPair, int) {
+
+	var lostPkt int
+
+	//size is <= 17
+	if end-begin > maxNackLostSize {
+		return rtcp.NackPair{}, lostPkt
+	}
+
+	//Bitmask of following lost packets (BLP)
+	blp := uint16(0)
+	lost := uint16(0)
+
+	//find first lost pkt
+	for i := begin; i < end; i++ {
+		if buffer[i] == nil {
+			lost = i
+			lostPkt++
+			break
+		}
+	}
+
+	//no packet lost
+	if lost == 0 {
+		return rtcp.NackPair{}, lostPkt
+	}
+
+	//calc blp
+	for i := lost; i < end; i++ {
+		//calc from next lost packet
+		if i > lost && buffer[i] == nil {
+			blp = blp | (1 << (i - lost - 1))
+			lostPkt++
+		}
+	}
+	log.Debugf("NackPair begin=%v end=%v buffer=%v\n", begin, end, buffer[begin:end])
+	return rtcp.NackPair{PacketID: lost, LostPackets: rtcp.PacketBitmap(blp)}, lostPkt
+}
+
+// SetSSRCPT set ssrc payloadtype
+func (b *Buffer) SetSSRCPT(ssrc uint32, pt uint8) {
+	b.ssrc = ssrc
+	b.payloadType = pt
+}
+
+// GetSSRC get ssrc
+func (b *Buffer) GetSSRC() uint32 {
+	return b.ssrc
 }
 
 // GetRTCPChan return rtcp channel
@@ -90,203 +226,21 @@ func (b *Buffer) GetRTCPChan() chan rtcp.Packet {
 	return b.rtcpCh
 }
 
-// Push adds a RTP Packet, out of order, new packet may be arrived later
-func (b *Buffer) Push(pkt *rtp.Packet) {
-	// log.Infof("Buffer.Push pt=%v sn=%v ts=%v", pkt.PayloadType, pkt.SequenceNumber, pkt.Timestamp)
-	b.receivedPkt++
-	b.totalByte += uint64(pkt.MarshalSize())
-	if b.ssrc == 0 || b.payloadType == 0 {
-		b.ssrc = pkt.SSRC
-		b.payloadType = pkt.PayloadType
-	}
-
-	b.pktBuffer.SetWithExpire(pkt.SequenceNumber, pkt, maxTTL)
-	b.nackBuffer.SetWithExpire(pkt.SequenceNumber, pkt, nackTTL)
-	if pkt.Extension {
-		rtpTCC := rtp.TransportCCExtension{}
-		err := rtpTCC.Unmarshal(pkt.ExtensionPayload)
-		if err == nil {
-			rtpExt := RtpExtensionInfo{
-				RtpExtensionSN: rtpTCC.TransportSequence,
-				Timestamp:      time.Now().UnixNano() / 1e6,
-			}
-			b.rtpExtBuffer.SetWithExpire(pkt.SequenceNumber, rtpExt, maxTTL)
-			log.Infof("rtpExt=%v", rtpExt)
-		} else {
-			log.Errorf("rtpTCC.Unmarshal err: %v", err)
-		}
-	}
-	b.lastPushSN = pkt.SequenceNumber
-}
-
-func (b *Buffer) GatherJitterInfo() {
-	// 1. find ordered sequence nums
-	var sns []int
-	keys := b.nackBuffer.Keys(true)
-
-	for _, sn := range keys {
-		sns = append(sns, int(sn.(uint16)))
-	}
-
-	if len(sns) == 0 {
-		return
-	}
-
-	sort.Ints(sns)
-
-	if b.lastNackSN == 0 {
-		b.lastNackSN = uint16(sns[0])
-	}
-
-	// log.Infof("sns=%v b.lastNackSN=%v", sns, b.lastNackSN)
-	// 2. caculate nacks and lostPkt
-	for ; b.lastNackSN < uint16(sns[len(sns)-1]); b.lastNackSN++ {
-		if b.GetPacket(b.lastNackSN) == nil {
-			break
-		}
-	}
-	nacks, lostPkt := b.GetNackPairsAndLostPkts(sns, b.lastNackSN, false)
-	b.lastNackSN = uint16(sns[len(sns)-1])
-	// log.Infof("b.lastNackSN=%v", b.lastNackSN)
-	if nacks != nil {
-		nack := &rtcp.TransportLayerNack{
-			//origin ssrc
-			SenderSSRC: b.ssrc,
-			MediaSSRC:  b.ssrc,
-			Nacks:      nacks,
-		}
-		if !b.stop {
-			b.rtcpCh <- nack
-		}
-	}
-	b.lostPkt += lostPkt
-}
-
+// CalcLostRateByteRate calc lostRate and byteRate by cycle
 func (b *Buffer) CalcLostRateByteRate(cycle uint64) (float64, uint64) {
 	lostRate := float64(b.lostPkt) / float64(b.receivedPkt+b.lostPkt)
 	byteRate := b.totalByte / cycle
-	log.Debugf("Buffer.CalcLostRateByteRate b.receivedPkt=%d b.lostPkt=%d lostRate=%v byteRate=%v", b.receivedPkt, b.lostPkt, lostRate, byteRate)
+	log.Debugf("Buffer.CalcLostRateByteRate b.receivedPkt=%d b.lostPkt=%d   lostRate=%v byteRate=%v", b.receivedPkt, b.lostPkt, lostRate, byteRate)
 	b.receivedPkt, b.lostPkt, b.totalByte = 0, 0, 0
 	return lostRate, byteRate
 }
 
+// GetPacket get packet by sequence number
 func (b *Buffer) GetPacket(sn uint16) *rtp.Packet {
-	pkt, _ := b.pktBuffer.Get(sn)
-	if pkt == nil {
-		return nil
-	}
-	return pkt.(*rtp.Packet)
+	return b.pktBuffer[sn]
 }
 
-func (b *Buffer) existInNackBuf(sn uint16) bool {
-	pkt, _ := b.nackBuffer.Get(sn)
-	if pkt == nil {
-		return false
-	}
-	return true
-}
-
-func (b *Buffer) GetPayloadType() uint8 {
-	return b.payloadType
-}
-
-func (b *Buffer) SetSSRCPT(ssrc uint32, pt uint8) {
-	b.ssrc = ssrc
-	b.payloadType = pt
-}
-
-func (b *Buffer) GetSSRC() uint32 {
-	return b.ssrc
-}
-
-func (b *Buffer) GetStat() string {
-	out := fmt.Sprintf("buffer:lastPushSN:%d |\n", b.lastPushSN)
-	return out
-}
-
-func (b *Buffer) Stop() {
-	b.stop = true
-	close(b.rtcpCh)
-}
-
-// GetNackPairsAndLostPkts get nack lost pkts
-func (b *Buffer) GetNackPairsAndLostPkts(sns []int, begin uint16, keyFrame bool) ([]rtcp.NackPair, int) {
-	// log.Infof("packer.GetNackPairsAndLostPkts sns=%v", sns)
-	//Bitmask of following lost packets (BLP)
-	blp := uint16(0)
-	// begin := uint16(sns[0])
-	end := uint16(sns[len(sns)-1])
-	lostPkt := 0
-	lostSN := uint16(0)
-	hasKeyFrame := false
-
-	// begin = b.lastNackSN + 1
-	if end-begin > maxNackLostSize*3 {
-		begin = end - maxNackLostSize*3
-	}
-
-	//find first lostSN
-	for i := begin; i < end; i++ {
-		if !hasKeyFrame && IsVP8KeyFrame(b.GetPacket(i)) {
-			hasKeyFrame = true
-		}
-
-		if !b.existInNackBuf(i) {
-			lostSN = i
-			// find in the old buffer, prevent repeatly counting
-			// example: [2,  5]  [1, 4]
-			if b.GetPacket(i) == nil {
-				lostPkt++
-			}
-			break
-		}
-	}
-
-	//no packet lost
-	if lostPkt == 0 {
-		return nil, 0
-	}
-
-	var nacks []rtcp.NackPair
-
-	// find looping
-	for i := lostSN + 1; i < end; i++ {
-		if !b.existInNackBuf(i) {
-			//https://tools.ietf.org/html/rfc2032
-			blp = blp | (1 << (i - lostSN - 1))
-			if b.GetPacket(i) == nil {
-				lostPkt++
-			}
-		}
-
-		if (i-lostSN)%maxNackLostSize == 0 {
-			nacks = append(nacks, rtcp.NackPair{PacketID: lostSN, LostPackets: rtcp.PacketBitmap(blp)})
-			blp = 0
-			//find next beginning packetID
-			for j := i; j < end; j++ {
-				if !b.existInNackBuf(j) {
-					i, lostSN = j, j
-					if b.GetPacket(i) == nil {
-						lostPkt++
-					}
-					break
-				}
-			}
-		}
-	}
-
-	// add last one
-	if (end-lostSN)%maxNackLostSize != 0 {
-		nacks = append(nacks, rtcp.NackPair{PacketID: lostSN, LostPackets: rtcp.PacketBitmap(blp)})
-	}
-
-	if keyFrame && !hasKeyFrame {
-		return nil, 0
-	}
-	// log.Infof("packer.GetNackPairsAndLostPkts nacks=%v lostPkt=%v", nacks, lostPkt)
-	return nacks, lostPkt
-}
-
+// IsVP8KeyFrame check key frame
 func IsVP8KeyFrame(pkt *rtp.Packet) bool {
 	if pkt != nil && pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
 		vp8 := &codecs.VP8Packet{}

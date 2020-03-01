@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	bufferSize = 200
 	rembLowBW  = 30 * 1000
-	rembHighBW = 500 * 1000
+	rembHighBW = 200 * 1000
 )
 
+// JitterBuffer core buffer module
 type JitterBuffer struct {
 	id       string
 	buffers  map[uint32]*Buffer
@@ -29,6 +29,7 @@ type JitterBuffer struct {
 	pliCycle  int
 }
 
+// NewJitterBuffer return new JitterBuffer
 func NewJitterBuffer(id string) *JitterBuffer {
 	j := &JitterBuffer{
 		buffers: make(map[uint32]*Buffer),
@@ -63,25 +64,30 @@ func (j *JitterBuffer) Init(args ...interface{}) {
 	log.Infof("JitterBuffer.Init pli=%d remb=%d", j.pliCycle, j.rembCycle)
 }
 
+// ID return id
 func (j *JitterBuffer) ID() string {
 	return j.id
 }
 
+// GetRTCPChan get response rtcp channel
 func (j *JitterBuffer) GetRTCPChan() chan rtcp.Packet {
 	return j.rtcpCh
 }
 
+// AddBuffer add a buffer by ssrc
 func (j *JitterBuffer) AddBuffer(ssrc uint32) *Buffer {
-	p := NewBuffer(bufferSize)
-	j.buffers[ssrc] = p
-	j.nackLoop(p)
-	return p
+	b := NewBuffer()
+	j.buffers[ssrc] = b
+	j.nackLoop(b)
+	return b
 }
 
+// GetBuffer get a buffer by ssrc
 func (j *JitterBuffer) GetBuffer(ssrc uint32) *Buffer {
 	return j.buffers[ssrc]
 }
 
+// GetBuffers get all buffers
 func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
 	return j.buffers
 }
@@ -90,15 +96,15 @@ func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
 func (j *JitterBuffer) PushRTP(pkt *rtp.Packet) error {
 	ssrc := pkt.SSRC
 
-	p := j.GetBuffer(ssrc)
-	if p == nil {
-		p = j.AddBuffer(ssrc)
+	buffer := j.GetBuffer(ssrc)
+	if buffer == nil {
+		buffer = j.AddBuffer(ssrc)
 	}
-	if p == nil {
+	if buffer == nil {
 		return errors.New("buffer is nil")
 	}
 
-	p.Push(pkt)
+	buffer.Push(pkt)
 	return nil
 }
 
@@ -107,9 +113,10 @@ func (j *JitterBuffer) PushRTCP(pkt rtcp.Packet) error {
 	// log.Infof("JitterBuffer.PushRTCP %v", pkt)
 	return nil
 }
-func (j *JitterBuffer) nackLoop(p *Buffer) {
+
+func (j *JitterBuffer) nackLoop(b *Buffer) {
 	go func() {
-		for nack := range p.GetRTCPChan() {
+		for nack := range b.GetRTCPChan() {
 			if j.stop {
 				return
 			}
@@ -132,7 +139,7 @@ func (j *JitterBuffer) rembLoop() {
 
 			time.Sleep(time.Duration(j.rembCycle) * time.Second)
 			for _, buffer := range j.GetBuffers() {
-				j.lostRate, j.byteRate = buffer.CalcLostRateByteRate(1)
+				j.lostRate, j.byteRate = buffer.CalcLostRateByteRate(uint64(j.rembCycle))
 				var bw uint64
 				if j.lostRate == 0 && j.byteRate == 0 {
 					bw = rembHighBW
@@ -183,6 +190,7 @@ func (j *JitterBuffer) pliLoop() {
 	}()
 }
 
+// GetPacket get packet from buffer
 func (j *JitterBuffer) GetPacket(ssrc uint32, sn uint16) *rtp.Packet {
 	buffer := j.buffers[ssrc]
 	if buffer == nil {
@@ -191,6 +199,7 @@ func (j *JitterBuffer) GetPacket(ssrc uint32, sn uint16) *rtp.Packet {
 	return buffer.GetPacket(sn)
 }
 
+// Stop stop all buffer
 func (j *JitterBuffer) Stop() {
 	if j.stop {
 		return
@@ -201,6 +210,7 @@ func (j *JitterBuffer) Stop() {
 	}
 }
 
+// Stat get stat from buffers
 func (j *JitterBuffer) Stat() string {
 	out := ""
 	for ssrc, buffer := range j.buffers {
