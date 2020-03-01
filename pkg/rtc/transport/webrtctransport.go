@@ -64,6 +64,7 @@ type WebRTCTransport struct {
 	candidateLock     sync.RWMutex
 	candidateCh       chan *webrtc.ICECandidate
 	alive             bool
+	bandwidth         int
 }
 
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
@@ -75,20 +76,33 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 			Type: webrtc.TypeRTCPFBTransportCC,
 		},
 	}
+	publish := KvOK(options, "publish", "true")
 	tcc := KvOK(options, "transport-cc", "true")
 	dc := KvOK(options, "data-channel", "true")
-	codec := ValUpper(options, "codec")
+	codec := GetUpperString(options, "codec")
+	bandwidth, err := GetInt(options, "bandwidth")
+	if err == nil {
+		if publish {
+			w.bandwidth = bandwidth
+		}
+	}
 
-	if codec == webrtc.H264 && tcc {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
-	} else if codec == webrtc.VP8 && tcc {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
-	} else if codec == webrtc.VP8 {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
-	} else if codec == webrtc.VP9 {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+	if publish {
+		if codec == webrtc.H264 && tcc {
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
+		} else if codec == webrtc.VP8 && tcc {
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
+		} else if codec == webrtc.VP8 {
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+		} else if codec == webrtc.VP9 {
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+		} else {
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
+		}
 	} else {
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
 	}
 
 	if !dc {
@@ -148,7 +162,9 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 			w.candidateLock.Lock()
 			defer w.candidateLock.Unlock()
 			w.pendingCandidates = append(w.pendingCandidates, c)
+			log.Infof("w.pc.OnICECandidate remoteSDP == nil c=%v", c)
 		} else {
+			log.Infof("w.pc.OnICECandidate remoteSDP != nil c=%v", c)
 			w.candidateCh <- c
 		}
 	})
@@ -420,4 +436,9 @@ func (w *WebRTCTransport) GetRTCPChan() chan rtcp.Packet {
 // GetCandidateChan return a candidate channel
 func (w *WebRTCTransport) GetCandidateChan() chan *webrtc.ICECandidate {
 	return w.candidateCh
+}
+
+// GetBandwidth return bandwidth
+func (w *WebRTCTransport) GetBandwidth() int {
+	return w.bandwidth
 }

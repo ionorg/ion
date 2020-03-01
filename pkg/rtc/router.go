@@ -48,6 +48,7 @@ type Router struct {
 	stop       bool
 	liveTime   time.Time
 	jbRtcpCh   chan rtcp.Packet
+	jbConfig   plugins.JitterBufferConfig
 }
 
 // NewRouter return a new Router
@@ -113,8 +114,7 @@ func (r *Router) handle() {
 			//only buffer video
 			if util.IsVideo(pkt.PayloadType) {
 				if count%3000 == 0 {
-					// Init args: (ssrc uint32, pt uint8, rembCycle int, pliCycle int)
-					r.GetPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 2)
+					r.GetPlugin(jbPlugin).(*plugins.JitterBuffer).Init(pkt.SSRC, pkt.PayloadType, r.jbConfig)
 				}
 				r.GetPlugin(jbPlugin).PushRTP(pkt)
 				count++
@@ -190,6 +190,11 @@ func (r *Router) start() {
 func (r *Router) AddPub(id string, t transport.Transport) transport.Transport {
 	log.Infof("AddPub id=%s", id)
 	r.pub = t
+	r.jbConfig = plugins.JitterBufferConfig{
+		RembCycle: 2,
+		PliCycle:  1,
+		Bandwidth: t.GetBandwidth(),
+	}
 	return t
 }
 
@@ -204,11 +209,11 @@ func (r *Router) DelPub() {
 }
 
 func MapRouter(fn func(id string, r *Router)) {
-       routerLock.RLock()
-       defer routerLock.RUnlock()
-       for id, r := range routers{
-               fn(id,r)
-       }
+	routerLock.RLock()
+	defer routerLock.RUnlock()
+	for id, r := range routers {
+		fn(id, r)
+	}
 }
 
 // GetPub get pub

@@ -45,9 +45,9 @@ func handleRequest(rpcID string) {
 	})
 }
 
-func handleTrickle(r *rtc.Router, t *transport.WebRTCTransport)  {
+func handleTrickle(r *rtc.Router, t *transport.WebRTCTransport) {
 	for {
-		trickle := <- t.GetCandidateChan()
+		trickle := <-t.GetCandidateChan()
 		if trickle != nil {
 			broadcaster.Say(proto.SFUTrickleICE, util.Map("mid", t.ID(), "trickle", trickle.ToJSON()))
 		} else {
@@ -64,26 +64,32 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 	sdp := util.Val(jsep, "sdp")
-	//options := msg["options"].(map[string]interface{})
 	uid := util.Val(msg, "uid")
 	mid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
-	options := make(map[string]interface{})
-	options["transport-cc"] = "false"
-	options["publish"] = "true"
-	options["codec"] = "vp8"
-	pub := transport.NewWebRTCTransport(mid, options)
+	rtcOptions := make(map[string]interface{})
+	rtcOptions["transport-cc"] = "false"
+	rtcOptions["publish"] = "true"
+
+	options := msg["options"]
+	if options != nil {
+		options, ok := msg["options"].(map[string]interface{})
+		if ok {
+			rtcOptions["codec"] = options["codec"]
+			rtcOptions["bandwidth"] = options["bandwidth"]
+		}
+	}
+	pub := transport.NewWebRTCTransport(mid, rtcOptions)
 
 	router := rtc.GetOrNewRouter(mid)
 	go handleTrickle(router, pub)
 
-	answer, err := pub.Answer(offer, options)
+	answer, err := pub.Answer(offer, rtcOptions)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
-
 
 	router.AddPub(uid, pub)
 
@@ -97,10 +103,22 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
-			if track.GetMedia() == "audio" {
-				pt = webrtc.DefaultPayloadTypeOpus
-			} else if track.GetMedia() == "video" {
-				pt = webrtc.DefaultPayloadTypeVP8
+			media := sdpObj.GetMedia(track.GetMedia())
+			codecs := media.GetCodecs()
+
+			for payload, codec := range codecs {
+				if track.GetMedia() == "audio" {
+					if strings.ToUpper(codec.GetCodec()) == webrtc.Opus {
+						pt = payload
+						break
+					}
+				} else if track.GetMedia() == "video" {
+					codecType := strings.ToUpper(codec.GetCodec())
+					if codecType == webrtc.H264 || codecType == webrtc.VP8 || codecType == webrtc.VP9 {
+						pt = payload
+						break
+					}
+				}
 			}
 			var infos []proto.TrackInfo
 			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id})
@@ -143,18 +161,26 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	sdp := util.Val(jsep, "sdp")
 	uid := util.Val(msg, "uid")
 
-	options := make(map[string]interface{})
-	options["transport-cc"] = "false"
-	options["subscribe"] = "true"
-	options["codec"] = "vp8"
+	rtcOptions := make(map[string]interface{})
+	rtcOptions["transport-cc"] = "false"
+	rtcOptions["subscribe"] = "true"
+
+	options := msg["options"]
+	if options != nil {
+		options, ok := msg["options"].(map[string]interface{})
+		if ok {
+			rtcOptions["codec"] = options["codec"]
+			rtcOptions["bandwidth"] = options["bandwidth"]
+		}
+	}
 
 	subID := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)
 	ssrcPT := make(map[uint32]uint8)
-	options["ssrcpt"] = ssrcPT
-	sub := transport.NewWebRTCTransport(subID, options)
+	rtcOptions["ssrcpt"] = ssrcPT
+	sub := transport.NewWebRTCTransport(subID, rtcOptions)
 
 	go handleTrickle(router, sub)
 
@@ -188,7 +214,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	}
 
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
-	answer, err := sub.Answer(offer, options)
+	answer, err := sub.Answer(offer, rtcOptions)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
@@ -204,7 +230,7 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	log.Infof("unsubscribe msg=%v", msg)
 	mid := util.Val(msg, "mid")
 	found := false
-	rtc.MapRouter(func(id string, r *rtc.Router){
+	rtc.MapRouter(func(id string, r *rtc.Router) {
 		sub := r.GetSub(mid)
 		if sub != nil {
 			r.DelSub(mid)
@@ -217,7 +243,6 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	}
 	return nil, util.NewNpError(404, "Router not found!")
 }
-
 
 func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("trickle msg=%v", msg)
