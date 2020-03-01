@@ -114,7 +114,7 @@ func (r *Router) handle() {
 			if util.IsVideo(pkt.PayloadType) {
 				if count%3000 == 0 {
 					// Init args: (ssrc uint32, pt uint8, rembCycle int, pliCycle int)
-					r.GetPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 1)
+					r.GetPlugin(jbPlugin).Init(pkt.SSRC, pkt.PayloadType, 2, 2)
 				}
 				r.GetPlugin(jbPlugin).PushRTP(pkt)
 				count++

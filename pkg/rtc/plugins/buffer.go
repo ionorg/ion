@@ -35,7 +35,6 @@ func tsDelta(x, y uint32) uint32 {
 
 // Buffer contains all packets
 type Buffer struct {
-	maxLate     uint16
 	pktBuffer   [maxSN]*rtp.Packet
 	lastNackSN  uint16
 	lastClearTS uint32
@@ -62,10 +61,9 @@ type Buffer struct {
 }
 
 // NewBuffer constructs a new Buffer
-func NewBuffer(maxLate uint16) *Buffer {
+func NewBuffer() *Buffer {
 	b := &Buffer{
-		maxLate: maxLate,
-		rtcpCh:  make(chan rtcp.Packet, maxPktSize),
+		rtcpCh: make(chan rtcp.Packet, maxPktSize),
 	}
 	return b
 }
@@ -105,26 +103,25 @@ func (b *Buffer) Push(p *rtp.Packet) {
 	b.clearOldPkt(p.Timestamp, p.SequenceNumber)
 
 	// limit nack range
-	if b.lastPushSN-b.lastNackSN >= 16 {
-		b.lastNackSN = b.lastPushSN - 16
+	if b.lastPushSN-b.lastNackSN >= maxNackLostSize {
+		b.lastNackSN = b.lastPushSN - maxNackLostSize
 	}
 
-	var nackPairs []rtcp.NackPair
-	if b.lastPushSN-b.lastNackSN >= 16 && (b.lastPushSN-b.lastNackSN)/8 <= 2 {
+	if b.lastPushSN-b.lastNackSN >= maxNackLostSize {
 		// calc [lastNackSN, lastpush-8] if has keyframe
-		nackPair, lostPkt := b.NackPair(b.pktBuffer, b.lastNackSN, b.lastPushSN-8, true)
-		b.lostPkt += lostPkt
-		b.lastNackSN += 8
-		if nackPair != nil {
-			nackPairs = append(nackPairs, *nackPair)
+		nackPair, lostPkt := b.GetNackPair(b.pktBuffer, b.lastNackSN, b.lastPushSN)
+		b.lastNackSN = b.lastPushSN
+		// log.Infof("b.lastNackSN=%v, b.lastPushSN=%v, lostPkt=%v, nackPair=%v", b.lastNackSN, b.lastPushSN, lostPkt, nackPair)
+		if lostPkt > 0 {
+			b.lostPkt += lostPkt
 			nack := &rtcp.TransportLayerNack{
 				//origin ssrc
 				SenderSSRC: b.ssrc,
 				MediaSSRC:  b.ssrc,
-				Nacks:      nackPairs,
+				Nacks: []rtcp.NackPair{
+					nackPair,
+				},
 			}
-			// log.Infof("nackPairs=%+v", nackPairs)
-			// log.Infof("nack=%+v", nack)
 			b.rtcpCh <- nack
 		}
 	}
@@ -169,53 +166,23 @@ func (b *Buffer) GetPayloadType() uint8 {
 
 // GetStat get status from buffer
 func (b *Buffer) GetStat() string {
-	out := fmt.Sprintf("buffer:[%d, %d] | lastNackSN:%d | lostRate:%.2f |\n", b.lastPushSN-b.maxLate, b.lastPushSN, b.lastNackSN, float64(b.lostPkt)/float64(b.receivedPkt+b.lostPkt))
+	out := fmt.Sprintf("buffer:[%d, %d] | lastNackSN:%d | lostRate:%.2f |\n", b.lastClearSN, b.lastPushSN, b.lastNackSN, float64(b.lostPkt)/float64(b.receivedPkt+b.lostPkt))
 	return out
 }
 
-// NackPair calc nackpair
-func (b *Buffer) NackPair(buffer [65536]*rtp.Packet, begin, end uint16, keyFrame bool) (*rtcp.NackPair, int) {
+// GetNackPair calc nackpair
+func (b *Buffer) GetNackPair(buffer [65536]*rtp.Packet, begin, end uint16) (rtcp.NackPair, int) {
 
 	var lostPkt int
 
-	//size is <= 16
-	if end-begin > 16 {
-		return nil, lostPkt
+	//size is <= 17
+	if end-begin > maxNackLostSize {
+		return rtcp.NackPair{}, lostPkt
 	}
 
-	//only check key frame if keyFrame=true
-	var keyBegin, keyEnd uint16
-	if keyFrame {
-		//find key frame begin pkt
-		for i := begin; i < end; i++ {
-			if IsVP8KeyFrame(buffer[i]) {
-				keyBegin = i
-				break
-			}
-		}
-
-		//find key frame end pkt
-		if keyBegin != 0 {
-			for i := keyBegin; i < end; i++ {
-				if !IsVP8KeyFrame(buffer[i]) {
-					keyEnd = i
-					break
-				}
-			}
-		}
-	}
 	//Bitmask of following lost packets (BLP)
 	blp := uint16(0)
 	lost := uint16(0)
-
-	if keyFrame {
-		if keyBegin != 0 {
-			begin = keyBegin
-		}
-		if keyEnd != 0 {
-			end = keyEnd
-		}
-	}
 
 	//find first lost pkt
 	for i := begin; i < end; i++ {
@@ -228,7 +195,7 @@ func (b *Buffer) NackPair(buffer [65536]*rtp.Packet, begin, end uint16, keyFrame
 
 	//no packet lost
 	if lost == 0 {
-		return nil, lostPkt
+		return rtcp.NackPair{}, lostPkt
 	}
 
 	//calc blp
@@ -240,7 +207,7 @@ func (b *Buffer) NackPair(buffer [65536]*rtp.Packet, begin, end uint16, keyFrame
 		}
 	}
 	log.Debugf("NackPair begin=%v end=%v buffer=%v\n", begin, end, buffer[begin:end])
-	return &rtcp.NackPair{PacketID: lost, LostPackets: rtcp.PacketBitmap(blp)}, lostPkt
+	return rtcp.NackPair{PacketID: lost, LostPackets: rtcp.PacketBitmap(blp)}, lostPkt
 }
 
 // SetSSRCPT set ssrc payloadtype

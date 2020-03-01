@@ -3,7 +3,6 @@ package plugins
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pion/ion/pkg/log"
@@ -13,20 +12,18 @@ import (
 )
 
 const (
-	bufferSize = 200
 	rembLowBW  = 30 * 1000
-	rembHighBW = 500 * 1000
+	rembHighBW = 200 * 1000
 )
 
 // JitterBuffer core buffer module
 type JitterBuffer struct {
-	id         string
-	buffers    map[uint32]*Buffer
-	bufferLock sync.RWMutex
-	rtcpCh     chan rtcp.Packet
-	stop       bool
-	byteRate   uint64
-	lostRate   float64
+	id       string
+	buffers  map[uint32]*Buffer
+	rtcpCh   chan rtcp.Packet
+	stop     bool
+	byteRate uint64
+	lostRate float64
 
 	rembCycle int
 	pliCycle  int
@@ -79,25 +76,19 @@ func (j *JitterBuffer) GetRTCPChan() chan rtcp.Packet {
 
 // AddBuffer add a buffer by ssrc
 func (j *JitterBuffer) AddBuffer(ssrc uint32) *Buffer {
-	p := NewBuffer(bufferSize)
-	j.bufferLock.Lock()
-	defer j.bufferLock.Unlock()
-	j.buffers[ssrc] = p
-	j.nackLoop(p)
-	return p
+	b := NewBuffer()
+	j.buffers[ssrc] = b
+	j.nackLoop(b)
+	return b
 }
 
 // GetBuffer get a buffer by ssrc
 func (j *JitterBuffer) GetBuffer(ssrc uint32) *Buffer {
-	j.bufferLock.RLock()
-	defer j.bufferLock.RUnlock()
 	return j.buffers[ssrc]
 }
 
 // GetBuffers get all buffers
 func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
-	j.bufferLock.RLock()
-	defer j.bufferLock.RUnlock()
 	return j.buffers
 }
 
@@ -105,15 +96,15 @@ func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
 func (j *JitterBuffer) PushRTP(pkt *rtp.Packet) error {
 	ssrc := pkt.SSRC
 
-	p := j.GetBuffer(ssrc)
-	if p == nil {
-		p = j.AddBuffer(ssrc)
+	buffer := j.GetBuffer(ssrc)
+	if buffer == nil {
+		buffer = j.AddBuffer(ssrc)
 	}
-	if p == nil {
+	if buffer == nil {
 		return errors.New("buffer is nil")
 	}
 
-	p.Push(pkt)
+	buffer.Push(pkt)
 	return nil
 }
 
@@ -122,9 +113,10 @@ func (j *JitterBuffer) PushRTCP(pkt rtcp.Packet) error {
 	// log.Infof("JitterBuffer.PushRTCP %v", pkt)
 	return nil
 }
-func (j *JitterBuffer) nackLoop(p *Buffer) {
+
+func (j *JitterBuffer) nackLoop(b *Buffer) {
 	go func() {
-		for nack := range p.GetRTCPChan() {
+		for nack := range b.GetRTCPChan() {
 			if j.stop {
 				return
 			}

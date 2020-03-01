@@ -25,7 +25,7 @@ func Init(level string) {
 		l = zerolog.ErrorLevel
 	}
 	zerolog.TimeFieldFormat = timeFormat
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
+	output := zerolog.ConsoleWriter{Out: os.Stdout, NoColor: true, TimeFormat: timeFormat}
 	log = zerolog.New(output).Level(l).With().Timestamp().Logger()
 }
 
