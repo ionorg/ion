@@ -307,12 +307,7 @@ func unsubscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]inte
 	}
 	mid := util.Val(msg, "mid")
 
-	mediaInfo, perr := proto.ParseMediaInfo(mid)
-	if perr != nil {
-		return nil, util.NewNpError(500, perr.Error())
-	}
-
-	_, sfu, err := getRPCForSFU(mediaInfo.NID)
+	_, sfu, err := getRPCForSFU(mid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -353,12 +348,7 @@ func trickle(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 		return nil, err
 	}
 
-	mediaInfo, perr := proto.ParseMediaInfo(mid)
-	if perr != nil {
-		return nil, util.NewNpError(500, perr.Error())
-	}
-
-	_, sfu, err := getRPCForSFU(mediaInfo.NID)
+	_, sfu, err := getRPCForSFU(mid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

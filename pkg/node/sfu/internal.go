@@ -61,7 +61,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	log.Infof("publish msg=%v", msg)
 	jsep := msg["jsep"].(map[string]interface{})
 	if jsep == nil {
-		return nil, util.NewNpError(415, "Unsupported Media Type")
+		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
 	sdp := util.Val(jsep, "sdp")
 	uid := util.Val(msg, "uid")
@@ -88,7 +88,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	answer, err := pub.Answer(offer, rtcOptions)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
-		return nil, util.NewNpError(415, "Unsupported Media Type")
+		return nil, util.NewNpError(415, "publish: pub.Answer failed.")
 	}
 
 	router.AddPub(uid, pub)
@@ -96,7 +96,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	sdpObj, err := sdptransform.Parse(offer.SDP)
 	if err != nil {
 		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
-		return nil, util.NewNpError(415, "Unsupported Media Type")
+		return nil, util.NewNpError(415, "publish: sdp parse failed.")
 	}
 
 	tracks := make(map[string][]proto.TrackInfo)
@@ -140,7 +140,7 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		rtc.DelRouter(mid)
 		return emptyMap, nil
 	}
-	return nil, util.NewNpError(404, "Router not found!")
+	return nil, util.NewNpError(404, "unpublish: Router not found!")
 }
 
 // subscribe .
@@ -150,12 +150,12 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	pubID := util.Val(msg, "mid")
 	router := rtc.GetOrNewRouter(pubID)
 	if router == nil {
-		return nil, util.NewNpError(404, "Router not found!")
+		return nil, util.NewNpError(404, "subscribe: Router not found!")
 	}
 
 	jsep := msg["jsep"].(map[string]interface{})
 	if jsep == nil {
-		return nil, util.NewNpError(415, "Unsupported Media Type")
+		return nil, util.NewNpError(415, "subscribe: Unsupported Media Type")
 	}
 
 	sdp := util.Val(jsep, "sdp")
@@ -241,7 +241,7 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	if found {
 		return emptyMap, nil
 	}
-	return nil, util.NewNpError(404, "Router not found!")
+	return nil, util.NewNpError(404, fmt.Sprintf("unsubscribe: Sub [%s] not found!", mid))
 }
 
 func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
@@ -255,5 +255,5 @@ func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		//t.(*transport.WebRTCTransport).AddCandidate(cand)
 	}
 
-	return nil, util.NewNpError(404, "Router not found!")
+	return nil, util.NewNpError(404, "trickle: WebRTCTransport not found!")
 }

@@ -73,7 +73,7 @@ func ParseMediaInfo(key string) (*MediaInfo, error) {
 	var info MediaInfo
 	arr := strings.Split(key, "/")
 	if len(arr) != 6 {
-		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
+		return nil, fmt.Errorf("Can‘t parse mediainfo; [%s]", key)
 	}
 	info.DC = arr[0]
 	info.RID = arr[1]
