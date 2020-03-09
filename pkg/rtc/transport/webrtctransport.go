@@ -3,6 +3,7 @@ package transport
 import (
 	"errors"
 	"io"
+	"time"
 
 	"sync"
 
@@ -65,6 +66,7 @@ type WebRTCTransport struct {
 	candidateCh       chan *webrtc.ICECandidate
 	alive             bool
 	bandwidth         int
+	isPub             bool
 }
 
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
@@ -165,6 +167,8 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 			log.Infof("w.pc.OnICECandidate remoteSDP == nil c=%v", c)
 		} else {
 			log.Infof("w.pc.OnICECandidate remoteSDP != nil c=%v", c)
+			//fix pc ERROR: 2020/03/09 23:38:13 Incoming unhandled RTP ssrc(2693032141)
+			time.Sleep(time.Millisecond * 100)
 			w.candidateCh <- c
 		}
 	})
@@ -247,8 +251,8 @@ func (w *WebRTCTransport) AddCandidate(candidate string) error {
 
 // Answer answer to pub or sub
 func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[string]interface{}) (webrtc.SessionDescription, error) {
-	isPub := KvOK(options, "publish", "true")
-	if isPub {
+	w.isPub = KvOK(options, "publish", "true")
+	if w.isPub {
 		w.pc.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
 			w.inTrackLock.Lock()
 			w.inTracks[remoteTrack.SSRC()] = remoteTrack
@@ -301,6 +305,7 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 		w.candidateLock.Lock()
 		defer w.candidateLock.Unlock()
 		for _, candidate := range w.pendingCandidates {
+			log.Infof("WebRTCTransport.Answer candidate=%v", candidate)
 			w.candidateCh <- candidate
 		}
 		w.pendingCandidates = nil
@@ -368,6 +373,7 @@ func (w *WebRTCTransport) Close() {
 	// close pc first, otherwise remoteTrack.ReadRTP will be blocked
 	w.pc.Close()
 	w.stop = true
+	w.pubSdpOK = false
 }
 
 // receive rtcp from outgoing tracks
