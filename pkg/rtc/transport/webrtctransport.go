@@ -373,7 +373,6 @@ func (w *WebRTCTransport) Close() {
 	// close pc first, otherwise remoteTrack.ReadRTP will be blocked
 	w.pc.Close()
 	w.stop = true
-	w.pubSdpOK = false
 }
 
 // receive rtcp from outgoing tracks
