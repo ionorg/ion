@@ -1,15 +1,16 @@
 version: '3.7'
 
 services:
+  # web conference demo
   web:
     build:
       dockerfile: web.Dockerfile
       context: .
-    command: ["--port", "9000", "--ssl", "--cert", "/cert/cert.pem", "--key", "/cert/key.pem"]
     volumes:
       - "./configs:/cert"
+      - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
     ports:
-      - 8080:9000
+      - 8080:443
     depends_on:
       - ion
 
@@ -17,7 +18,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
-    command: "-c /configs/ion.toml"
+    entrypoint: "sh"
+    command: "-c '/wait-for rabbitmq:5672 -t 10 -- ion -c /configs/ion.toml'"
     volumes:
       - "./docker/ion.toml:/configs/ion.toml"
       - "./configs/cert.pem:/configs/cert.pem"
@@ -25,7 +27,6 @@ services:
     ports:
       - 6666:6666 # rtp
       - 8443:8443 # websocket
-    restart: on-failure
     depends_on:
       - rabbitmq
       - etcd
@@ -34,10 +35,10 @@ services:
     build:
       dockerfile: islb.Dockerfile
       context: .
-    command: "-c /configs/islb.toml"
+    entrypoint: "sh"
+    command: "-c '/wait-for rabbitmq:5672 -t 10 -- islb -c /configs/islb.toml'"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
-    restart: on-failure
     depends_on:
       - rabbitmq
       - etcd
@@ -48,15 +49,16 @@ services:
     environment:
       RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
     healthcheck:
+      start_period: 5s
       test: [ "CMD", "nc", "-z", "localhost", "5672" ]
-      interval: 5s
-      timeout: 15s
+      timeout: 3s
+      interval: 3s
       retries: 3
 
   etcd:
-    image: bitnami/etcd:3.4.3-debian-10-r10
-    environment:
-      - "ALLOW_NONE_AUTHENTICATION=yes"
+    image: gcr.io/etcd-development/etcd:v3.3.18
+    entrypoint: "/usr/local/bin/etcd"
+    command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
 
   redis:
     image: redis:5.0.7
