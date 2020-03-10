@@ -2,28 +2,43 @@ package main
 
 import (
 	"net/http"
+	_ "net/http/pprof"
 
-	biz "github.com/pion/ion/pkg/biz/islb"
 	conf "github.com/pion/ion/pkg/conf/islb"
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/node/islb"
 )
 
-func main() {
+func init() {
 	log.Init(conf.Log.Level)
+}
+
+func main() {
+	log.Infof("--- Starting ISLB Node ---")
+
 	if conf.Global.Pprof != "" {
 		go func() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
 			http.ListenAndServe(conf.Global.Pprof, nil)
 		}()
 	}
-	discovery.Init(conf.Etcd.Addrs)
-	config := db.Config{
+
+	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
+	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
+
+	redisCfg := db.Config{
 		Addrs: conf.Redis.Addrs,
 		Pwd:   conf.Redis.Pwd,
 		DB:    conf.Redis.DB,
 	}
-	biz.Init(conf.Amqp.Url, config)
+	rpcID := serviceNode.GetRPCChannel()
+	eventID := serviceNode.GetEventChannel()
+	islb.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
+
+	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
+	go serviceWatcher.WatchServiceNode("", islb.WatchServiceNodes)
+
 	select {}
 }

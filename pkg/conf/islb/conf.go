@@ -13,7 +13,7 @@ var (
 	Global = &cfg.Global
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
-	Amqp   = &cfg.Amqp
+	Nats   = &cfg.Nats
 	Redis  = &cfg.Redis
 )
 
@@ -27,6 +27,7 @@ func init() {
 
 type global struct {
 	Pprof string `mapstructure:"pprof"`
+	Dc    string `mapstructure:"dc"`
 	// TestIP []string `mapstructure:"testip"`
 }
 
@@ -38,8 +39,8 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
-type amqp struct {
-	Url string `mapstructure:"url"`
+type nats struct {
+	URL string `mapstructure:"url"`
 }
 
 type redis struct {
@@ -52,7 +53,7 @@ type config struct {
 	Global  global `mapstructure:"global"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
-	Amqp    amqp   `mapstructure:"amqp"`
+	Nats    nats   `mapstructure:"nats"`
 	Redis   redis  `mapstructure:"redis"`
 	CfgFile string
 }

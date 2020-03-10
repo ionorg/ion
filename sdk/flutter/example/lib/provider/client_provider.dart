@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ion/flutter_ion.dart';
-import 'package:flutter_webrtc/webrtc.dart';
 import '../widget/video_render_adapter.dart';
 
 class ClientProvider with ChangeNotifier {
@@ -10,6 +8,7 @@ class ClientProvider with ChangeNotifier {
   bool _inCalling = false;
   bool _connected = false;
   String roomId;
+  Map<Stream, bool> _streams = Map();
   List<VideoRendererAdapter> _videoRendererAdapters = List();
   VideoRendererAdapter _localVideoAdapter;
 
@@ -36,6 +35,7 @@ class ClientProvider with ChangeNotifier {
 
       _client.on('stream-add', (rid, mid, info) async {
         var stream = await _client.subscribe(rid, mid);
+        _streams[stream] = false;
         var adapter = VideoRendererAdapter(stream.mid, false);
         await adapter.setSrcObject(stream.stream);
         _videoRendererAdapters.add(adapter);
@@ -63,8 +63,8 @@ class ClientProvider with ChangeNotifier {
       roomId = roomId;
       await _client.join(roomId, {'name': 'Guest'});
       _inCalling = true;
-
       var stream = await _client.publish();
+      _streams[stream] = true;
       var adapter = VideoRendererAdapter(stream.mid, true);
       await adapter.setSrcObject(stream.stream);
       _localVideoAdapter = adapter;
@@ -73,22 +73,21 @@ class ClientProvider with ChangeNotifier {
   }
 
   cleanUp() async {
-    _videoRendererAdapters.forEach((item) async {
-      if (item.local) {
-        await item.stream.dispose();
-        if(_client != null){
-          await _client.unpublish(item.id);
-        }
+
+    _streams.forEach((stream, local) {
+      stream.stream.dispose();
+      if(local){
+        _client.unpublish(stream.mid);
       } else {
-        await item.stream.dispose();
-        await _client.unsubscribe(this.roomId, item.id);
+        _client.unsubscribe(roomId, stream.mid);
       }
     });
-    _videoRendererAdapters.clear();
+
     if (_client != null) {
       await _client.leave();
       _client.close();
       _client = null;
     }
+    _videoRendererAdapters.clear();
   }
 }

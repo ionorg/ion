@@ -1,0 +1,27 @@
+[global]
+pprof = ":6060"
+
+# internet ip
+addr = "127.0.0.1"
+
+# data center id
+dc = "dc1"
+
+[log]
+level = "info"
+# level = "debug"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["127.0.0.1:2379"]
+
+[signal]
+#listen ip port
+host = "0.0.0.0"
+port = "8443"
+cert= "configs/cert.pem"
+key= "configs/key.pem"
+
+[nats]
+url = "nats://127.0.0.1:4222"
+

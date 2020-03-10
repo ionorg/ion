@@ -22,6 +22,7 @@ type Etcd struct {
 	client        *clientv3.Client
 	liveKeyID     map[string]clientv3.LeaseID
 	liveKeyIDLock sync.RWMutex
+	stop          bool
 }
 
 func newEtcd(endpoints []string) (*Etcd, error) {
@@ -60,8 +61,13 @@ func (e *Etcd) keep(key, value string) error {
 	}
 	go func() {
 		for {
+			if e.stop {
+				return
+			}
+
 			//just read, fix etcd-server warning "lease keepalive response queue is full; dropping response send""
 			<-ch
+			time.Sleep(time.Millisecond * 100)
 		}
 	}()
 	e.liveKeyIDLock.Lock()
@@ -98,6 +104,10 @@ func (e *Etcd) watch(key string, watchFunc WatchCallback, prefix bool) error {
 }
 
 func (e *Etcd) close() error {
+	if e.stop {
+		return errors.New("Etcd already close")
+	}
+	e.stop = true
 	e.liveKeyIDLock.Lock()
 	for k, _ := range e.liveKeyID {
 		e.client.Delete(context.TODO(), k)
@@ -146,6 +156,16 @@ func (e *Etcd) getByPrefix(key string) (map[string]string, error) {
 	return m, err
 }
 
+// GetResponseByPrefix .
+func (e *Etcd) GetResponseByPrefix(key string) (*clientv3.GetResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)
+	resp, err := e.client.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return resp, nil
+}
 func (e *Etcd) update(key, value string) error {
 	e.liveKeyIDLock.Lock()
 	id := e.liveKeyID[key]

@@ -4,7 +4,6 @@ package udp
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -121,7 +120,6 @@ func (l *Listener) readLoop() {
 		if err != nil {
 			return
 		}
-		fmt.Println("Listener.readLoop raddr=%v", raddr)
 		conn, err := l.getConn(raddr)
 		if err != nil {
 			continue
@@ -136,7 +134,6 @@ func (l *Listener) getConn(raddr net.Addr) (*Conn, error) {
 	l.connLock.Lock()
 	defer l.connLock.Unlock()
 	conn, ok := l.conns[raddr.String()]
-	fmt.Println("Listener.getConn raddr=%v ok=%v", raddr, ok)
 	if !ok {
 		if !l.accepting.Load().(bool) {
 			return nil, errClosedListener

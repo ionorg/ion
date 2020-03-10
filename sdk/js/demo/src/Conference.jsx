@@ -2,7 +2,6 @@ import React from "react";
 import { Spin } from "antd";
 import { LocalVideoView, MainVideoView, SmallVideoView } from "./videoview";
 
-
 class Conference extends React.Component {
   constructor() {
     super();
@@ -27,7 +26,7 @@ class Conference extends React.Component {
     client.off("stream-remove", this._handleAddStream);
   };
 
-  _publish = async (type,codec) => {
+  _publish = async (type, codec) => {
     const { client, settings } = this.props;
     let stream = await client.publish({
       codec: settings.codec,
@@ -41,17 +40,22 @@ class Conference extends React.Component {
   };
 
   cleanUp = () => {
-    let { localStream, localScreen } = this.state;
+    let { localStream, localScreen, streams } = this.state;
+    streams.map(async item => {
+      await this._unsubscribe(item);
+    });
+
     if (localStream) this._unpublish(localStream);
     if (localScreen) this._unpublish(localScreen);
-    this.setState({ localStream: null, localScreen: null });
+
+    this.setState({ localStream: null, localScreen: null, streams: [] });
   };
 
   _notification = (message, description) => {
     notification.info({
       message: message,
       description: description,
-      placement: 'bottomRight',
+      placement: "bottomRight"
     });
   };
 
@@ -60,6 +64,13 @@ class Conference extends React.Component {
     if (stream) {
       this._stopMediaStream(stream.stream);
       await client.unpublish(stream.mid);
+    }
+  };
+
+  _unsubscribe = async item => {
+    const { client } = this.props;
+    if (item) {
+      await client.unsubscribe(item.rid, item.mid);
     }
   };
 
@@ -89,9 +100,9 @@ class Conference extends React.Component {
         }
       }
       this.setState({ localStream });
-    } catch(e){
+    } catch (e) {
       console.log("handleLocalStream error => " + e);
-      _notification("publish/unpublish failed!", e)
+      _notification("publish/unpublish failed!", e);
     }
   };
 
@@ -126,7 +137,7 @@ class Conference extends React.Component {
     let streams = this.state.streams;
     let stream = await client.subscribe(rid, mid);
     stream.info = info;
-    streams.push({ mid, stream });
+    streams.push({ mid, stream, rid });
     this.setState({ streams });
   };
 
@@ -217,24 +228,23 @@ class Conference extends React.Component {
         )}
         <div className="small-video-list-div">
           <div className="small-video-list">
-          {streams.map((item, index) => {
-            return index > 0 ? (
-              <SmallVideoView
-                key={item.mid}
-                id={item.mid}
-                stream={item.stream}
-                videoCount={streams.length}
-                collapsed={this.props.collapsed}
-                index={index}
-                onClick={this._onChangeVideoPosition}
-              />
-            ) : (
-              <div />
-            );
-          })}
+            {streams.map((item, index) => {
+              return index > 0 ? (
+                <SmallVideoView
+                  key={item.mid}
+                  id={item.mid}
+                  stream={item.stream}
+                  videoCount={streams.length}
+                  collapsed={this.props.collapsed}
+                  index={index}
+                  onClick={this._onChangeVideoPosition}
+                />
+              ) : (
+                <div />
+              );
+            })}
+          </div>
         </div>
-        </div>
-        
       </div>
     );
   };

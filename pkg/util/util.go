@@ -12,6 +12,7 @@ import (
 
 	"time"
 
+	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtp"
 	"github.com/pion/stun"
@@ -256,4 +257,12 @@ func RandStr(l int) string {
 		bytes[i] = byte(randInt(65, 90))
 	}
 	return string(bytes)
+}
+
+func NewNpError(code int, reason string) *nprotoo.Error {
+	err := nprotoo.Error{
+		Code:   code,
+		Reason: reason,
+	}
+	return &err
 }
