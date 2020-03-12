@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pion_sfu_example/helper/ion_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
-import '../provider/client_provider.dart';
-import '../router/application.dart';
 import '../utils/utils.dart';
 
 class LoginPage extends StatefulWidget {
-  LoginPage({Key key, this.title}) : super(key: key);
+  final IonHelper _helper;
+  LoginPage(this._helper, {Key key, this.title}) : super(key: key);
   final String title;
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -24,27 +23,31 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   init() async {
+    IonHelper helper = widget._helper;
     prefs = await SharedPreferences.getInstance();
     setState(() {
       _server = prefs.getString('server') ?? 'pionion.org';
       _roomID = prefs.getString('room') ?? 'room1';
     });
+
+    helper.on('transport-open', () {
+      helper.join(_roomID);
+    });
+
+    helper.on('join', () {
+      Navigator.pushNamed(context, '/meeting');
+    });
   }
 
   handleJoin() async {
-    ClientProvider client = Provider.of<ClientProvider>(context);
-
+    IonHelper helper = widget._helper;
     prefs.setString('server', _server);
     prefs.setString('room', _roomID);
     prefs.commit();
-
-    await client.connect(_server);
-    Application.router.navigateTo(context, "/meeting");
-    await client.join(_roomID);
+    helper.connect(_server);
   }
 
   Widget buildJoinView(context) {
-
     return Align(
         alignment: Alignment(0, 0),
         child: Column(
@@ -59,8 +62,8 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(10.0),
                         border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                          hintText: _server ?? 'Enter Ion Server.',
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _server ?? 'Enter Ion Server.',
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -68,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                         });
                       },
                       controller:
-                      TextEditingController.fromValue(TextEditingValue(
+                          TextEditingController.fromValue(TextEditingValue(
                         text: '${this._server == null ? "" : this._server}',
                         selection: TextSelection.fromPosition(TextPosition(
                             affinity: TextAffinity.downstream,
@@ -82,8 +85,8 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(10.0),
                         border: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black12)),
-                          hintText: _roomID ?? 'Enter RoomID.',
+                            borderSide: BorderSide(color: Colors.black12)),
+                        hintText: _roomID ?? 'Enter RoomID.',
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -91,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                         });
                       },
                       controller:
-                      TextEditingController.fromValue(TextEditingValue(
+                          TextEditingController.fromValue(TextEditingValue(
                         text: '${this._roomID == null ? "" : this._roomID}',
                         selection: TextSelection.fromPosition(TextPosition(
                             affinity: TextAffinity.downstream,
@@ -104,20 +107,20 @@ class _LoginPageState extends State<LoginPage> {
                   height: 48.0,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color:string2Color('#e13b3f'),
-                        width: 1,
+                      color: string2Color('#e13b3f'),
+                      width: 1,
                     ),
                   ),
-                    child: Center(
-                      child: Text(
-                        'Join',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          color: Colors.black,
-                          fontWeight:FontWeight.bold,
-                        ),
+                  child: Center(
+                    child: Text(
+                      'Join',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
                 ),
                 onTap: () {
                   if (_roomID != null) {
@@ -154,12 +157,10 @@ class _LoginPageState extends State<LoginPage> {
       return Scaffold(
         appBar: orientation == Orientation.portrait
             ? AppBar(
-          title: Text('PION'),
-        )
+                title: Text('PION'),
+              )
             : null,
-        body: Center(
-          child: buildJoinView(context)
-        ),
+        body: Center(child: buildJoinView(context)),
       );
     });
   }

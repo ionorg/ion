@@ -1,32 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:fluro/fluro.dart';
-import 'package:provider/provider.dart';
+import 'helper/ion_helper.dart';
+
 import 'page/login_page.dart';
-import 'provider/client_provider.dart';
-import 'router/application.dart';
-import 'router/routes.dart';
+import 'page/meeting_page.dart';
 import 'utils/utils.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
+  final IonHelper _helper = IonHelper();
   @override
   Widget build(BuildContext context) {
-    final router = Router();
-    Routes.configureRoutes(router);
-    Application.router = router;
-
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(builder: (_) => ClientProvider()),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: '',
-        onGenerateRoute: Application.router.generator,
-        home: LoginPage(),
-        theme: mDefaultTheme,
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: mDefaultTheme,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => LoginPage(_helper),
+        '/meeting': (context) => MeetingPage(_helper),
+      },
     );
   }
 }

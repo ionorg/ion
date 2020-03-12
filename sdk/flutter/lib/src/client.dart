@@ -108,6 +108,7 @@ class Client extends EventEmitter {
       video = true,
       screen = false,
       codec = 'vp8',
+      bandwidth = 512,
       quality = 'hd']) async {
     logger.debug('publish');
     Completer completer = new Completer<Stream>();
@@ -128,7 +129,8 @@ class Client extends EventEmitter {
             'audio': audio,
             'video': video,
             'screen': screen,
-            'codec': codec
+            'codec': codec,
+            'bandwidth': bandwidth,
           };
           var result = await this._protoo.send('publish',
               {'rid': this._rid, 'jsep': offer.toMap(), 'options': options});
@@ -147,11 +149,13 @@ class Client extends EventEmitter {
         },
         'optional': [],
       });
-      var desc = this._payloadModify(offer, codec);
+      var desc = this._payloadModify(offer, codec, true);
       await pc.setLocalDescription(desc);
     } catch (error) {
       logger.debug('publish request error  => ' + error);
-      pc.close();
+      if (pc != null) {
+        pc.close();
+      }
       completer.completeError(error);
     }
     return completer.future;
@@ -173,6 +177,10 @@ class Client extends EventEmitter {
   Future<Stream> subscribe(rid, mid) async {
     logger.debug('subscribe rid => $rid, mid => $mid');
     Completer completer = new Completer<Stream>();
+    var options = {
+      'codec': "vp8",
+      'bandwidth': 512,
+    };
     try {
       logger.debug('create receiver => $mid');
       RTCPeerConnection pc = await createPeerConnection(_iceServers, _config);
@@ -189,25 +197,37 @@ class Client extends EventEmitter {
           sendOffer = true;
           RTCSessionDescription jsep = await pc.getLocalDescription();
           logger.debug('Send offer sdp => ' + jsep.sdp);
-          var result = await this._protoo.send(
-              'subscribe', {'rid': rid, 'jsep': jsep.toMap(), 'mid': mid});
+          var result = await this._protoo.send('subscribe', {
+            'rid': rid,
+            'jsep': jsep.toMap(),
+            'mid': mid,
+            'options': options
+          });
           logger.debug('subscribe success => result($mid) sdp => ' +
               result['jsep']['sdp']);
           await pc.setRemoteDescription(RTCSessionDescription(
               result['jsep']['sdp'], result['jsep']['type']));
         }
       };
-      var desc = await pc.createOffer({
+
+      /*
+      if (pc.addTransceiver != null) {
+        pc.addTransceiver("audio", {"direction": "recvonly"});
+        pc.addTransceiver("video", {"direction": "recvonly"});
+      }
+      */
+      var offer = await pc.createOffer({
         'mandatory': {
           'OfferToReceiveAudio': true,
           'OfferToReceiveVideo': true,
         },
         'optional': [],
       });
-      pc.setLocalDescription(desc);
+      var desc = this._payloadModify(offer, options['codec'], false);
+      await pc.setLocalDescription(desc);
       this._pcs[mid] = pc;
     } catch (error) {
-      logger.debug('subscribe request error  => ' + error);
+      logger.debug('subscribe request error  => ' + error.toString());
       completer.completeError(error);
     }
 
@@ -223,7 +243,7 @@ class Client extends EventEmitter {
       this._removePC(mid);
       return data;
     } catch (error) {
-      logger.debug('unsubscribe reject: error =>' + error);
+      logger.debug('unsubscribe reject: error =>' + error.toString());
     }
   }
 
@@ -231,24 +251,18 @@ class Client extends EventEmitter {
     this._protoo.close();
   }
 
-  _payloadModify(desc, codec) {
+  _payloadModify(desc, codec, sender) {
     if (codec == null) return desc;
-    /*
-         * DefaultPayloadTypePCMU = 0
-         * DefaultPayloadTypePCMA = 8
-         * DefaultPayloadTypeG722 = 9
-         * DefaultPayloadTypeOpus = 111
-         * DefaultPayloadTypeVP8  = 96
-         * DefaultPayloadTypeVP9  = 98
-         * DefaultPayloadTypeH264 = 102
-        */
-    var payload;
-    var codeName = '';
+
+    //logger.debug('SDP string => ${desc.sdp}');
     var session = sdpTransform.parse(desc.sdp);
-    logger.debug('SDP object => $session');
+    //logger.debug('SDP object => $session');
     var videoIdx = session['media'].indexWhere((e) => e['type'] == 'video');
     if (videoIdx == -1) return desc;
 
+    var payload;
+    var rtx = 97;
+    var codeName = '';
     if (codec.toLowerCase() == 'vp8') {
       payload = DefaultPayloadTypeVP8;
       codeName = "VP8";
@@ -266,17 +280,12 @@ class Client extends EventEmitter {
 
     var rtp = [
       {"payload": payload, "codec": codeName, "rate": 90000, "encoding": null},
-      {"payload": 97, "codec": "rtx", "rate": 90000, "encoding": null}
+      {"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null}
     ];
-
-    session['media'][videoIdx]["payloads"] = '$payload 97';
-    session['media'][videoIdx]["rtp"] = rtp;
 
     var fmtp = [
-      {"payload": 97, "config": "apt=$payload"}
+      {"payload": rtx, "config": "apt=$payload"}
     ];
-
-    session['media'][videoIdx]["fmtp"] = fmtp;
 
     var rtcpFB = [
       {"payload": payload, "type": "transport-cc", "subtype": null},
@@ -284,7 +293,71 @@ class Client extends EventEmitter {
       {"payload": payload, "type": "nack", "subtype": null},
       {"payload": payload, "type": "nack", "subtype": "pli"}
     ];
+
+    session['media'][videoIdx]["payloads"] = '$payload $rtx';
+    session['media'][videoIdx]["rtp"] = rtp;
+    session['media'][videoIdx]["fmtp"] = fmtp;
     session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+    if (sender) {
+      session['media'][videoIdx]["direction"] = "sendonly";
+    } else {
+      session['media'][videoIdx]["direction"] = "recvonly";
+    }
+    /*else {
+      List<Map<String, dynamic>> payloadMap = [
+        {
+          'codec': "VP8",
+          'payload': DefaultPayloadTypeVP8,
+          'rtx': 97,
+        },
+        {
+          'codec': "VP9",
+          'payload': DefaultPayloadTypeVP9,
+          'rtx': 124,
+        },
+        {
+          'codec': "H264",
+          'payload': DefaultPayloadTypeH264,
+          'rtx': 125,
+        }
+      ];
+
+      var payloads = "";
+      var rtps = [];
+      var fmtps = [];
+      var rtcpFBs = [];
+
+      payloadMap.map((e) {
+        var name = e['name'];
+        var payload = e['payload'];
+        var rtx = e['rtx'];
+
+        payloads += '$payload $rtx';
+
+        rtps.add({
+          "payload": payload,
+          "codec": name,
+          "rate": 90000,
+          "encoding": null
+        });
+        rtps.add(
+            {"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null});
+
+        fmtps.add({"payload": rtx, "config": "apt=$payload"});
+
+        rtcpFBs.addAll([
+          {"payload": payload, "type": "transport-cc", "subtype": null},
+          {"payload": payload, "type": "ccm", "subtype": "fir"},
+          {"payload": payload, "type": "nack", "subtype": null},
+          {"payload": payload, "type": "nack", "subtype": "pli"}
+        ]);
+      });
+
+      session['media'][videoIdx]["payloads"] = payloads;
+      session['media'][videoIdx]["rtp"] = rtps;
+      session['media'][videoIdx]["fmtp"] = fmtps;
+      session['media'][videoIdx]["rtcpFb"] = rtcpFBs;
+    }*/
 
     var tmp = desc;
     tmp.sdp = sdpTransform.write(session, null);
