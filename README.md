@@ -13,33 +13,36 @@ ION is a distributed RTC system written by pure go and flutter
 
 ## Features
 
-- [x] Server
-  - [x] OS
-    - [x] CentOS 7
-    - [x] Ubuntu 16.04.6 LTS
-    - [x] macOS Mojave
-  - [x] Signal
-    - [x] WebSocket
-  - [x] Media
-    - [x] WebRTC
-    - [x] RTP/RTCP
-    - [x] Nack
-    - [x] PLI
-    - [x] Anti-Loss-Package 30%~50%
-  - [x] Distributed System
-    - [x] ION-ION RTP relay
-    - [x] MQ support
-- [x] Client
-  - [x] SDK
-    - [x] Flutter
-    - [x] JS
-  - [x] Demo
+- [x] Distributed Node
+
+  - [x] Standalone BIZ/ISLB and SFU node
+  - [x] Message Queue by NATS
+  - [x] SFU by Pure GO
+  - [x] MCU (WIP)
+  - [x] SFU<-->SFU relay (WIP)
+  - [x] High Performance (WIP)
+
+  - [x] Media Streaming
+    - [x] WebRTC stack
+    - [x] SIP stack (WIP)
+    - [x] RTP/RTP over KCP
+    - [x] JitterBuffer
+      - [x] Nack
+      - [x] PLI
+      - [x] Lite-REMB
+      - [x] Transport-CC(WIP)
+      - [x] Anti-Loss-Package 30%+
+
+- [x] SDK
+  - [x] Flutter SDK
+  - [x] JS SDK
+- [x] Demo
 
 ## Contributing
 
-- [adwpc](https://github.com/adwpc) - _Original Author - ion sfu server_
-- [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion sfu sdk_
-- [kangshaojun](https://github.com/kangshaojun) - _Contributor UI(flutter/react.js)_
+- [adwpc](https://github.com/adwpc) - _Original Author - ion server_
+- [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
+- [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
 
 ## Roadmap
 
@@ -72,33 +75,21 @@ Welcome contributing to ion!
 ### 2. build
 
 ```
+#non-docker
+./scripts/installDeps.sh
+
 #docker
 docker-compose build
-
-#centos
-./scripts/centos/installDeps.sh
-
-#ubuntu
-./scripts/ubuntu/installDeps.sh
-
-#mac
-./scripts/mac/installDeps.sh
 ```
 
 ### 3. run
 
 ```
+#non-docker
+./scripts/allRestart.sh
+
 #docker
 docker-compose up
-
-#centos
-./scripts/centos/allRestart.sh
-
-#ubuntu
-./scripts/centos/allRestart.sh
-
-#mac
-./scripts/mac/allRestart.sh
 ```
 
 ### 4. let's chat
