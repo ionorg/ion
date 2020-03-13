@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 import 'package:flutter_icons/flutter_icons.dart';
-import 'package:flutter_ion/flutter_ion.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../widget/video_render_adapter.dart';
 import '../helper/ion_helper.dart';
 
@@ -17,7 +15,6 @@ class MeetingPage extends StatefulWidget {
 
 class _MeetingPageState extends State<MeetingPage> {
   SharedPreferences prefs;
-  Map<Stream, bool> _streams = Map();
   List<VideoRendererAdapter> _remoteVideos = List();
   VideoRendererAdapter _localVideo;
 
@@ -36,22 +33,8 @@ class _MeetingPageState extends State<MeetingPage> {
 
   init() async {
     prefs = await SharedPreferences.getInstance();
+    var helper = widget._helper;
     var client = widget._helper.client;
-
-    try {
-      var resolution = prefs.getString('resolution') ?? 'vga';
-      var bandwidth = prefs.getString('bandwidth') ?? '512';
-      var codec = prefs.getString('codec') ?? 'vp8';
-      client
-          .publish(true, true, false, codec, bandwidth, resolution)
-          .then((stream) {
-        _streams[stream] = true;
-        var adapter = VideoRendererAdapter(stream.mid, true);
-        adapter.setSrcObject(stream.stream);
-        _localVideo = adapter;
-        this.setState(() {});
-      });
-    } catch (error) {}
 
     client.on('peer-join', (rid, id, info) async {
       var name = info['name'];
@@ -66,48 +49,67 @@ class _MeetingPageState extends State<MeetingPage> {
       var bandwidth = prefs.getString('bandwidth') ?? '512';
       var codec = prefs.getString('codec') ?? 'vp8';
       var stream = await client.subscribe(rid, mid, codec, bandwidth);
-      var adapter = VideoRendererAdapter(stream.mid, false);
-      await adapter.setSrcObject(stream.stream);
+      var adapter = VideoRendererAdapter(stream.mid, stream, false, mid);
+      await adapter.setupSrcObject();
       this.setState(() {
-        _streams[stream] = false;
         _remoteVideos.add(adapter);
       });
       this._showSnackBar(":::stream-add [$mid]:::");
     });
 
     client.on('stream-remove', (rid, mid) async {
-      var adapter = _remoteVideos.firstWhere((item) => item.id == mid);
+      var adapter = _remoteVideos.firstWhere((item) => item.sid == mid);
       if (adapter != null) {
         await adapter.dispose();
         this.setState(() {
-          _streams.removeWhere((item, _) => item.mid == mid);
           _remoteVideos.remove(adapter);
         });
       }
       this._showSnackBar(":::stream-remove [$mid]:::");
     });
+
+    var name = prefs.getString('display_name') ?? 'Guest';
+    var room = prefs.getString('room') ?? 'room1';
+
+    helper.join(room, name);
+    try {
+      var resolution = prefs.getString('resolution') ?? 'vga';
+      var bandwidth = prefs.getString('bandwidth') ?? '512';
+      var codec = prefs.getString('codec') ?? 'vp8';
+      client
+          .publish(true, true, false, codec, bandwidth, resolution)
+          .then((stream) async {
+        var adapter = VideoRendererAdapter(stream.mid, stream, true);
+        await adapter.setupSrcObject();
+        this.setState(() {
+          _localVideo = adapter;
+        });
+      });
+    } catch (error) {}
   }
 
   _cleanUp() async {
     var helper = widget._helper;
     var rid = helper.roomId;
     var client = helper.client;
-    _streams.forEach((stream, local) async {
-      await stream.stream.dispose();
+
+    if (_localVideo != null) {
+      // stop local video
+      var stream = _localVideo.stream;
+      await client.unpublish(_localVideo.mid);
+      await stream.dispose();
+      _localVideo = null;
+    }
+
+    _remoteVideos.forEach((item) async {
+      var stream = item.stream;
       try {
-        if (local) {
-          await client.unpublish(stream.mid);
-        } else {
-          await client.unsubscribe(rid, stream.mid);
-        }
+        await client.unsubscribe(rid, item.mid);
+        await stream.dispose();
       } catch (error) {}
     });
-
-    this.setState(() {
-      _localVideo = null;
-      _remoteVideos.clear();
-    });
-
+    this.setState(() {});
+    _remoteVideos.clear();
     await widget._helper.close();
     Navigator.of(context).pop();
   }
@@ -175,7 +177,8 @@ class _MeetingPageState extends State<MeetingPage> {
   }
 
   _swapVideoPostion(adapter) {
-    var index = _remoteVideos.indexWhere((element) => element.id == adapter.id);
+    var index =
+        _remoteVideos.indexWhere((element) => element.mid == adapter.mid);
     if (index == -1) return;
     setState(() {
       var temp = _remoteVideos[0];
@@ -444,9 +447,12 @@ class _MeetingPageState extends State<MeetingPage> {
                                 right: 0,
                                 bottom: 48,
                                 height: 90,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: _buildVideoViews(),
+                                child: Container(
+                                  margin: EdgeInsets.all(6.0),
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: _buildVideoViews(),
+                                  ),
                                 ),
                               ),
                             ],
@@ -547,9 +553,12 @@ class _MeetingPageState extends State<MeetingPage> {
                                 top: 0,
                                 bottom: 0,
                                 width: 120,
-                                child: ListView(
-                                  scrollDirection: Axis.vertical,
-                                  children: _buildVideoViews(),
+                                child: Container(
+                                  margin: EdgeInsets.all(6.0),
+                                  child: ListView(
+                                    scrollDirection: Axis.vertical,
+                                    children: _buildVideoViews(),
+                                  ),
                                 ),
                               ),
                             ],

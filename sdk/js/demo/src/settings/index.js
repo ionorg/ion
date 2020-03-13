@@ -44,17 +44,17 @@ export default class MediaSettings extends React.Component {
 
     constructor(props) {
         super(props)
+        let settings = settings = props.settings;
         this.state = {
             visible: false,
             videoDevices: [],
             audioDevices: [],
             audioOutputDevices: [],
-            resolution: 'vga',
-            bandwidth: '512',
-            selectedAudioDevice: "",
-            selectedVideoDevice: "",
-            audioLevel: 0,
-            codec: 'h264',
+            resolution: settings.resolution,
+            bandwidth: settings.bandwidth,
+            selectedAudioDevice: settings.selectedAudioDevice,
+            selectedVideoDevice: settings.selectedVideoDevice,
+            codec: settings.codec,
         }
 
         try {
@@ -89,30 +89,20 @@ export default class MediaSettings extends React.Component {
     }
 
     componentDidMount() {
-        if (window.localStorage) {
-            let deviceInfo = localStorage["deviceInfo"];
-            console.log("deviceInfo:::" + deviceInfo);
-            if (deviceInfo) {
-                let info = JSON.parse(deviceInfo);
-                this.setState({
-                    selectedAudioDevice: info.audioDevice,
-                    selectedVideoDevice: info.videoDevice,
-                    bandwidth: info.bandwidth,
-                    resolution: info.resolution,
-                    codec: info.codec,
-                });
-            }
-        }
-        this.updateInputDevices().then((data)=>{
+        this.updateInputDevices().then((data) => {
+
             if (this.state.selectedAudioDevice === "" && data.audioDevices.length > 0) {
                 this.state.selectedAudioDevice = data.audioDevices[0].deviceId;
             }
             if (this.state.selectedVideoDevice === "" && data.videoDevices.length > 0) {
                 this.state.selectedVideoDevice = data.videoDevices[0].deviceId;
             }
-            this.state.videoDevices = data.videoDevices;
-            this.state.audioDevices = data.audioDevices;
-            this.state.audioOutputDevices = data.audioOutputDevices;
+
+            this.setState({
+                videoDevices: data.videoDevices,
+                audioDevices: data.audioDevices,
+                audioOutputDevices: data.audioOutputDevices,
+             })
 
             this.state.audioDevices.map((device, index) => {
                 if (this.state.selectedAudioDevice == device.deviceId) {
@@ -184,19 +174,7 @@ export default class MediaSettings extends React.Component {
         this.setState({
             visible: false,
         });
-
-        if (window.localStorage) {
-            let deviceInfo = {
-                audioDevice: this.state.selectedAudioDevice,
-                videoDevice: this.state.selectedVideoDevice,
-                resolution: this.state.resolution,
-                bandwidth: this.state.bandwidth,
-                codec: this.state.codec,
-            };
-            localStorage["deviceInfo"] = JSON.stringify(deviceInfo);
-        }
         this.stopPreview();
-
         if(this.props.onMediaSettingsChanged !== undefined) {
             this.props.onMediaSettingsChanged(
                 this.state.selectedAudioDevice,
@@ -281,7 +259,7 @@ export default class MediaSettings extends React.Component {
                                 }
                             </Select>
                             <div className="videobox">
-                                <video id='previewVideo' ref='previewVideo' autoPlay playsInline muted="true" style={{ width: '100%', height: '100%', objectFit: 'contain' }}></video>
+                                <video id='previewVideo' ref='previewVideo' autoPlay playsInline muted={true} style={{ width: '100%', height: '100%', objectFit: 'contain' }}></video>
                             </div>
 
                         </div>

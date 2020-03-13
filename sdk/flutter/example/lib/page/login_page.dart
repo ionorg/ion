@@ -31,11 +31,6 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     helper.on('transport-open', () {
-      var name = prefs.getString('display_name') ?? 'Guest';
-      helper.join(_roomID, name);
-    });
-
-    helper.on('join', () {
       Navigator.pushNamed(context, '/meeting');
     });
   }

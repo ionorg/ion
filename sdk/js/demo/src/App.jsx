@@ -1,5 +1,5 @@
 import React from "react";
-import { Layout, Button, Modal, Icon, notification, Card, Spin,Tooltip } from "antd";
+import { Layout, Button, Modal, Icon, notification, Card, Spin, Tooltip } from "antd";
 const { confirm } = Modal;
 const { Header, Content, Footer, Sider } = Layout;
 import { reactLocalStorage } from "reactjs-localstorage";
@@ -27,7 +27,7 @@ class App extends React.Component {
       localVideoEnabled: true,
       screenSharingEnabled: false,
       collapsed: true,
-      isFullScreen:false
+      isFullScreen: false
     };
 
     this._settings = {
@@ -35,10 +35,15 @@ class App extends React.Component {
       selectedVideoDevice: "",
       resolution: "hd",
       bandwidth: 1024,
-      codec: "h264"
+      codec: "vp8"
     }
 
     let client = new Client();
+
+    let settings = reactLocalStorage.getObject("settings");
+    if ( settings.codec !== undefined ){
+        this._settings = settings;
+    }
 
     window.onunload = async () => {
       await this._cleanUp();
@@ -52,11 +57,11 @@ class App extends React.Component {
       this._notification("Peer Leave", "peer => " + id + ", leave!");
     });
 
-    client.on("transport-open", function() {
+    client.on("transport-open", function () {
       console.log("transport open!");
     });
 
-    client.on("transport-closed", function() {
+    client.on("transport-closed", function () {
       console.log("transport closed!");
     });
 
@@ -156,51 +161,52 @@ class App extends React.Component {
 
     if (this._fullscreenState()) {
 
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-        else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        }
-        else if (document.webkitCancelFullScreen) {
-            document.webkitCancelFullScreen();
-        }
-        else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      }
+      else if (document.webkitCancelFullScreen) {
+        document.webkitCancelFullScreen();
+      }
+      else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
 
-        this.setState({ isFullScreen: false });
+      this.setState({ isFullScreen: false });
 
     } else {
-        if (docElm.requestFullscreen) {
-            docElm.requestFullscreen();
-        }
-        //FireFox
-        else if (docElm.mozRequestFullScreen) {
-            docElm.mozRequestFullScreen();
-        }
-        //Chrome等
-        else if (docElm.webkitRequestFullScreen) {
-            docElm.webkitRequestFullScreen();
-        }
-        //IE11
-        else if (elem.msRequestFullscreen) {
-            elem.msRequestFullscreen();
-        }
+      if (docElm.requestFullscreen) {
+        docElm.requestFullscreen();
+      }
+      //FireFox
+      else if (docElm.mozRequestFullScreen) {
+        docElm.mozRequestFullScreen();
+      }
+      //Chrome等
+      else if (docElm.webkitRequestFullScreen) {
+        docElm.webkitRequestFullScreen();
+      }
+      //IE11
+      else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
 
-        this.setState({ isFullScreen: true });
+      this.setState({ isFullScreen: true });
     }
   }
 
   _fullscreenState = () => {
-      return document.fullscreen ||
-          document.webkitIsFullScreen ||
-          document.mozFullScreen ||
-          false;
+    return document.fullscreen ||
+      document.webkitIsFullScreen ||
+      document.mozFullScreen ||
+      false;
   }
 
-  _onMediaSettingsChanged = (selectedAudioDevice,selectedVideoDevice,resolution,bandwidth,codec) => {
-    this._settings = {selectedAudioDevice,selectedVideoDevice,resolution,bandwidth,codec}
+  _onMediaSettingsChanged = (selectedAudioDevice, selectedVideoDevice, resolution, bandwidth, codec) => {
+    this._settings = { selectedAudioDevice, selectedVideoDevice, resolution, bandwidth, codec }
+    reactLocalStorage.setObject("settings", this._settings);
   }
 
   render() {
@@ -223,22 +229,22 @@ class App extends React.Component {
           {login ? (
             <div className="app-header-tool">
               <Tooltip title='Mute/Cancel'>
-              <Button
-                ghost
-                size="large"
-                style={{ color: localAudioEnabled ? "" : "red" }}
-                type="link"
-                onClick={() =>
-                  this._handleAudioTrackEnabled(!localAudioEnabled)
-                }
-              >
-                <Icon
-                  component={
-                    localAudioEnabled ? MicrophoneIcon : MicrophoneOffIcon
+                <Button
+                  ghost
+                  size="large"
+                  style={{ color: localAudioEnabled ? "" : "red" }}
+                  type="link"
+                  onClick={() =>
+                    this._handleAudioTrackEnabled(!localAudioEnabled)
                   }
-                  style={{ display: "flex", justifyContent: "center" }}
-                />
-              </Button>
+                >
+                  <Icon
+                    component={
+                      localAudioEnabled ? MicrophoneIcon : MicrophoneOffIcon
+                    }
+                    style={{ display: "flex", justifyContent: "center" }}
+                  />
+                </Button>
               </Tooltip>
               <Tooltip title='Open/Close video'>
                 <Button
@@ -287,13 +293,13 @@ class App extends React.Component {
                   />
                 </Button>
               </Tooltip>
-              <ToolShare loginInfo={this.state.loginInfo}/>
+              <ToolShare loginInfo={this.state.loginInfo} />
             </div>
           ) : (
-            <div />
-          )}
+              <div />
+            )}
           <div className="app-header-right">
-            <MediaSettings onMediaSettingsChanged={this._onMediaSettingsChanged} />
+            <MediaSettings onMediaSettingsChanged={this._onMediaSettingsChanged} settings={this._settings} />
           </div>
         </Header>
 
@@ -329,7 +335,7 @@ class App extends React.Component {
                       onClick={() => this._openOrCloseLeftContainer(!collapsed)}
                     />
                   </Tooltip>
-                </div>  
+                </div>
                 <div className="app-fullscreen-button">
                   <Tooltip title='Fullscreen/Exit'>
                     <Button
@@ -341,16 +347,16 @@ class App extends React.Component {
                     />
                   </Tooltip>
                 </div>
-                
+
               </Layout>
             </Layout>
           ) : loading ? (
             <Spin size="large" tip="Connecting..." />
           ) : (
-            <Card title="Join to Ion" className="app-login-card">
-              <LoginForm handleLogin={this._handleJoin} />
-            </Card>
-          )}
+                <Card title="Join to Ion" className="app-login-card">
+                  <LoginForm handleLogin={this._handleJoin} />
+                </Card>
+              )}
         </Content>
 
         {!login && (

@@ -75,7 +75,16 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 
 	rtcpfb := []webrtc.RTCPFeedback{
 		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBTransportCC,
+			Type: webrtc.TypeRTCPFBGoogREMB,
+		},
+		webrtc.RTCPFeedback{
+			Type: webrtc.TypeRTCPFBCCM,
+		},
+		webrtc.RTCPFeedback{
+			Type: webrtc.TypeRTCPFBNACK,
+		},
+		webrtc.RTCPFeedback{
+			Type: "nack pli",
 		},
 	}
 	publish := KvOK(options, "publish", "true")
@@ -89,21 +98,25 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		}
 	}
 
+	if tcc {
+		rtcpfb = append(rtcpfb, webrtc.RTCPFeedback{
+			Type: webrtc.TypeRTCPFBTransportCC,
+		})
+	}
+
 	if publish {
-		if codec == webrtc.H264 && tcc {
+		if codec == webrtc.H264 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
-		} else if codec == webrtc.VP8 && tcc {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
 		} else if codec == webrtc.VP8 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
 		} else if codec == webrtc.VP9 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
 		} else {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
 		}
 	} else {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264Codec(webrtc.DefaultPayloadTypeH264, 90000))
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
 	}
 

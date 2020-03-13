@@ -258,56 +258,97 @@ class Client extends EventEmitter {
   _payloadModify(desc, codec, sender) {
     if (codec == null) return desc;
 
-    //logger.debug('SDP string => ${desc.sdp}');
+    logger.debug('SDP string => ${desc.sdp}');
     var session = sdpTransform.parse(desc.sdp);
     //logger.debug('SDP object => $session');
+
+    var audioIndex = session['media'].indexWhere((e) => e['type'] == 'audio');
+    if (audioIndex != -1) {
+      var codeName = "OPUS";
+      var payload = 111;
+      logger.debug('Setup audio codec => $codeName, payload => $payload');
+      var rtp = [
+        {"payload": payload, "codec": codeName, "rate": 48000, "encoding": 2},
+      ];
+      var fmtp = [
+        {"payload": payload, "config": "minptime=10;useinbandfec=1"}
+      ];
+
+      session['media'][audioIndex]["payloads"] = '$payload';
+      session['media'][audioIndex]["rtp"] = rtp;
+      session['media'][audioIndex]["fmtp"] = fmtp;
+
+      if (sender) {
+        session['media'][audioIndex]["direction"] = "sendonly";
+      } else {
+        session['media'][audioIndex]["direction"] = "recvonly";
+      }
+    }
+
     var videoIdx = session['media'].indexWhere((e) => e['type'] == 'video');
-    if (videoIdx == -1) return desc;
 
-    var payload;
-    var rtx = 97;
-    var codeName = '';
-    if (codec.toLowerCase() == 'vp8') {
-      payload = DefaultPayloadTypeVP8;
-      codeName = "VP8";
-    } else if (codec.toLowerCase() == 'vp9') {
-      payload = DefaultPayloadTypeVP9;
-      codeName = "VP9";
-    } else if (codec.toLowerCase() == 'h264') {
-      payload = DefaultPayloadTypeH264;
-      codeName = "H264";
-    } else {
-      return desc;
+    if (videoIdx != -1) {
+      var payload;
+      var rtx = 97;
+      var codeName = '';
+      if (codec.toLowerCase() == 'vp8') {
+        payload = DefaultPayloadTypeVP8;
+        codeName = "VP8";
+      } else if (codec.toLowerCase() == 'vp9') {
+        payload = DefaultPayloadTypeVP9;
+        codeName = "VP9";
+      } else if (codec.toLowerCase() == 'h264') {
+        payload = 96;
+        codeName = "H264";
+      } else {
+        return desc;
+      }
+
+      logger.debug('Setup video codec => $codeName, payload => $payload');
+
+      var rtp = [
+        {
+          "payload": payload,
+          "codec": codeName,
+          "rate": 90000,
+          "encoding": null
+        },
+        {"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null}
+      ];
+
+      var fmtp = [
+        {"payload": rtx, "config": "apt=$payload"}
+      ];
+
+      if (payload == DefaultPayloadTypeH264) {
+        fmtp.add({
+          "payload": payload,
+          "config":
+              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
+        });
+      }
+
+      var rtcpFB = [
+        {"payload": payload, "type": "goog-remb", "subtype": null},
+        {"payload": payload, "type": "transport-cc", "subtype": null},
+        {"payload": payload, "type": "ccm", "subtype": null},
+        {"payload": payload, "type": "ccm", "subtype": "fir"},
+        {"payload": payload, "type": "nack", "subtype": null},
+        {"payload": payload, "type": "nack", "subtype": "pli"}
+      ];
+
+      session['media'][videoIdx]["payloads"] = '$payload $rtx';
+      session['media'][videoIdx]["rtp"] = rtp;
+      session['media'][videoIdx]["fmtp"] = fmtp;
+      session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+
+      if (sender) {
+        session['media'][videoIdx]["direction"] = "sendonly";
+      } else {
+        session['media'][videoIdx]["direction"] = "recvonly";
+      }
     }
 
-    logger.debug('Setup codec => $codeName, payload => $payload');
-
-    var rtp = [
-      {"payload": payload, "codec": codeName, "rate": 90000, "encoding": null},
-      {"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null}
-    ];
-
-    var fmtp = [
-      {"payload": rtx, "config": "apt=$payload"}
-    ];
-
-    var rtcpFB = [
-      {"payload": payload, "type": "goog-remb", "subtype": null},
-      {"payload": payload, "type": "ccm", "subtype": null},
-      {"payload": payload, "type": "ccm", "subtype": "fir"},
-      {"payload": payload, "type": "nack", "subtype": null},
-      {"payload": payload, "type": "nack", "subtype": "pli"}
-    ];
-
-    session['media'][videoIdx]["payloads"] = '$payload $rtx';
-    session['media'][videoIdx]["rtp"] = rtp;
-    session['media'][videoIdx]["fmtp"] = fmtp;
-    session['media'][videoIdx]["rtcpFb"] = rtcpFB;
-    if (sender) {
-      session['media'][videoIdx]["direction"] = "sendonly";
-    } else {
-      session['media'][videoIdx]["direction"] = "recvonly";
-    }
     /*else {
       List<Map<String, dynamic>> payloadMap = [
         {
@@ -366,6 +407,7 @@ class Client extends EventEmitter {
 
     var tmp = desc;
     tmp.sdp = sdpTransform.write(session, null);
+    logger.debug('SDP => ${tmp.sdp}');
     return tmp;
   }
 

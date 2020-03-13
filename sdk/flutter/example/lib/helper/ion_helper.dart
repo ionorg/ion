@@ -25,7 +25,6 @@ class IonHelper extends EventEmitter {
   join(String roomId, String displayName) async {
     this._rid = roomId;
     await _client.join(roomId, {'name': '$displayName'});
-    this.emit('join');
   }
 
   close() async {

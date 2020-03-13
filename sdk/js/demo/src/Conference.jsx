@@ -137,13 +137,13 @@ class Conference extends React.Component {
     let streams = this.state.streams;
     let stream = await client.subscribe(rid, mid);
     stream.info = info;
-    streams.push({ mid, stream, rid });
+    streams.push({ mid: stream.mid, stream, rid, sid: mid });
     this.setState({ streams });
   };
 
   _handleRemoveStream = async (rid, mid) => {
     let streams = this.state.streams;
-    streams = streams.filter(item => item.mid !== mid);
+    streams = streams.filter(item => item.sid !== mid);
     this.setState({ streams });
   };
 

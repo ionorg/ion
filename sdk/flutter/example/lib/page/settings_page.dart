@@ -79,7 +79,11 @@ class _MySettingsPage extends State<SettingsPage> {
       'value': '512',
     },
     {
-      'name': '1mbps',
+      'name': '768kbps',
+      'value': '768',
+    },
+    {
+      'name': '1Mbps',
       'value': '1024',
     },
   ];
@@ -113,32 +117,25 @@ class _MySettingsPage extends State<SettingsPage> {
 
   Widget _buildRowFixTitleRadio(List<Map<String, dynamic>> items, var value,
       ValueChanged<String> onValueChanged) {
-    return Row(
-        children: items
-            .map((item) => Flexible(
-                  child: RadioListTile<String>(
-                    value: item['value'],
-                    title: Text(item['name']),
-                    groupValue: value,
-                    onChanged: (value) => onValueChanged(value),
-                  ),
-                ))
-            .toList());
-  }
-
-  Widget _buildColumnFixTitleRadio(List<Map<String, dynamic>> items, var value,
-      ValueChanged<String> onValueChanged) {
-    return Column(
-        children: items
-            .map((item) => Flexible(
-                  child: RadioListTile<String>(
-                    value: item['value'],
-                    title: Text(item['name']),
-                    groupValue: value,
-                    onChanged: (value) => onValueChanged(value),
-                  ),
-                ))
-            .toList());
+    return Container(
+        width: 320,
+        height: 100,
+        child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10.0,
+            childAspectRatio: 2.8,
+            children: items
+                .map((item) => ConstrainedBox(
+                      constraints:
+                          BoxConstraints.tightFor(width: 120.0, height: 36.0),
+                      child: RadioListTile<String>(
+                        value: item['value'],
+                        title: Text(item['name']),
+                        groupValue: value,
+                        onChanged: (value) => onValueChanged(value),
+                      ),
+                    ))
+                .toList()));
   }
 
   @override
@@ -192,7 +189,7 @@ class _MySettingsPage extends State<SettingsPage> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(48.0, 0.0, 48.0, 0),
+                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
                         child: _buildRowFixTitleRadio(
                             _codecItems, _codec, _onCodecChanged),
                       ),
@@ -208,7 +205,7 @@ class _MySettingsPage extends State<SettingsPage> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(48.0, 0.0, 48.0, 0),
+                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
                         child: _buildRowFixTitleRadio(_resolutionItems,
                             _resolution, _onResolutionChanged),
                       ),
@@ -224,7 +221,7 @@ class _MySettingsPage extends State<SettingsPage> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(48.0, 0.0, 48.0, 0),
+                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
                         child: _buildRowFixTitleRadio(
                             _bandwidthItems, _bandwidth, _onbandwidthChanged),
                       ),

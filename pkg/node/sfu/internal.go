@@ -231,11 +231,13 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	mid := util.Val(msg, "mid")
 	found := false
 	rtc.MapRouter(func(id string, r *rtc.Router) {
-		sub := r.GetSub(mid)
-		if sub != nil {
-			r.DelSub(mid)
-			found = true
-			return
+		subs := r.GetSubs()
+		for sid, _ := range subs {
+			if sid == mid {
+				r.DelSub(mid)
+				found = true
+				return
+			}
 		}
 	})
 	if found {
