@@ -238,7 +238,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 			case *rtcp.PictureLossIndication:
 				if r.pub != nil {
 					// Request a Key Frame
-					log.Infof("rtptransport got pli: %+v", pkt)
+					log.Infof("Router.AddSub got pli: %+v", pkt)
 					r.GetPub().WriteRTCP(pkt)
 				}
 			case *rtcp.TransportLayerNack:

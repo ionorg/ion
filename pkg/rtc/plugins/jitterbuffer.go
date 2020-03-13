@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	// bandwidth range by KB/s
-	minBandwidth = 30
-	maxBandwidth = 3000
+	// bandwidth range(kbps)
+	minBandwidth = 200
+	maxBandwidth = 2000
 )
 
 // JitterBufferConfig .
@@ -50,6 +50,7 @@ func NewJitterBuffer(id string) *JitterBuffer {
 
 // Init jitterbuffer config
 func (j *JitterBuffer) Init(ssrc uint32, pt uint8, config JitterBufferConfig) {
+	log.Infof("JitterBuffer.Init ssrc=%d pt=%d config=%v", ssrc, pt, config)
 	j.config = config
 	if j.config.RembCycle > 5 {
 		j.config.RembCycle = 5
@@ -170,7 +171,7 @@ func (j *JitterBuffer) rembLoop() {
 
 				remb := &rtcp.ReceiverEstimatedMaximumBitrate{
 					SenderSSRC: buffer.GetSSRC(),
-					Bitrate:    bw * 8 * 1000,
+					Bitrate:    bw * 1000,
 					SSRCs:      []uint32{buffer.GetSSRC()},
 				}
 				j.rtcpCh <- remb
@@ -225,7 +226,7 @@ func (j *JitterBuffer) Stop() {
 func (j *JitterBuffer) Stat() string {
 	out := ""
 	for ssrc, buffer := range j.buffers {
-		out += fmt.Sprintf("ssrc:%d payload:%d | lostRate:%.2f | bandwidth:%dKB/s | %s", ssrc, buffer.GetPayloadType(), j.lostRate, j.bandwidth, buffer.GetStat())
+		out += fmt.Sprintf("ssrc:%d payload:%d | lostRate:%.2f | bandwidth:%dkbps | %s", ssrc, buffer.GetPayloadType(), j.lostRate, j.bandwidth, buffer.GetStat())
 	}
 	return out
 }

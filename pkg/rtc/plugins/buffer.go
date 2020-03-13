@@ -232,7 +232,7 @@ func (b *Buffer) GetLostRateBandwidth(cycle uint64) (float64, uint64) {
 	byteRate := b.totalByte / cycle
 	log.Debugf("Buffer.CalcLostRateByteRate b.receivedPkt=%d b.lostPkt=%d   lostRate=%v byteRate=%v", b.receivedPkt, b.lostPkt, lostRate, byteRate)
 	b.receivedPkt, b.lostPkt, b.totalByte = 0, 0, 0
-	return lostRate, byteRate / 1000
+	return lostRate, byteRate * 8 / 1000
 }
 
 // GetPacket get packet by sequence number
