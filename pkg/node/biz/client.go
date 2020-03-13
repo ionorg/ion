@@ -100,6 +100,7 @@ func getRPCForSFU(mid string) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	if !found {
 		rpc = protoo.NewRequestor(rpcID)
 		protoo.OnBroadcast(eventID, handleSFUBroadCast)
+		rpcs[rpcID] = rpc
 	}
 	return nodeID, rpc, nil
 }
