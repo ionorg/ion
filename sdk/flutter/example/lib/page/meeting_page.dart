@@ -92,13 +92,15 @@ class _MeetingPageState extends State<MeetingPage> {
     var helper = widget._helper;
     var rid = helper.roomId;
     var client = helper.client;
-    _streams.forEach((stream, local) {
-      if (local) {
-        client.unpublish(stream.mid);
-      } else {
-        client.unsubscribe(rid, stream.mid);
-      }
-      stream.stream.dispose();
+    _streams.forEach((stream, local) async {
+      await stream.stream.dispose();
+      try {
+        if (local) {
+          await client.unpublish(stream.mid);
+        } else {
+          await client.unsubscribe(rid, stream.mid);
+        }
+      } catch (error) {}
     });
 
     this.setState(() {
@@ -106,7 +108,7 @@ class _MeetingPageState extends State<MeetingPage> {
       _remoteVideos.clear();
     });
 
-    widget._helper.close();
+    await widget._helper.close();
     Navigator.of(context).pop();
   }
 

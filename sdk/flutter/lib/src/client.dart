@@ -186,9 +186,10 @@ class Client extends EventEmitter {
       logger.debug('create receiver => $mid');
       RTCPeerConnection pc = await createPeerConnection(_iceServers, _config);
       bool sendOffer = false;
+      var sub_mid = "";
       pc.onAddStream = (stream) {
         logger.debug('Stream::pc::onaddstream ' + stream.id);
-        completer.complete(new Stream(mid, stream));
+        completer.complete(new Stream(sub_mid, stream));
       };
       pc.onRemoveStream = (stream) {
         logger.debug('Stream::pc::onremovestream ' + stream.id);
@@ -204,7 +205,8 @@ class Client extends EventEmitter {
             'mid': mid,
             'options': options
           });
-          logger.debug('subscribe success => result($mid) sdp => ' +
+          sub_mid = result['mid'];
+          logger.debug('subscribe success => result(mid => $sub_mid) sdp => ' +
               result['jsep']['sdp']);
           await pc.setRemoteDescription(RTCSessionDescription(
               result['jsep']['sdp'], result['jsep']['type']));
@@ -245,6 +247,7 @@ class Client extends EventEmitter {
       return data;
     } catch (error) {
       logger.debug('unsubscribe reject: error =>' + error.toString());
+      this._removePC(mid);
     }
   }
 
@@ -289,7 +292,8 @@ class Client extends EventEmitter {
     ];
 
     var rtcpFB = [
-      {"payload": payload, "type": "transport-cc", "subtype": null},
+      {"payload": payload, "type": "goog-remb", "subtype": null},
+      {"payload": payload, "type": "ccm", "subtype": null},
       {"payload": payload, "type": "ccm", "subtype": "fir"},
       {"payload": payload, "type": "nack", "subtype": null},
       {"payload": payload, "type": "nack", "subtype": "pli"}

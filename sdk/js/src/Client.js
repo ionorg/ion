@@ -119,10 +119,11 @@ export default class Client extends EventEmitter {
         var promise = new Promise(async (resolve, reject) => {
             try {
                 let pc = await this._createReceiver(mid);
+                var sub_mid = "";
                 pc.onaddstream = (e) => {
                     var stream = e.stream;
                     console.log('Stream::pc::onaddstream', stream.id);
-                    resolve(new Stream(mid, stream));
+                    resolve(new Stream(sub_mid, stream));
                 }
                 pc.onremovestream = (e) => {
                     var stream = e.stream;
@@ -134,7 +135,8 @@ export default class Client extends EventEmitter {
                         console.log('Send offer sdp => ' + jsep.sdp);
                         pc.sendOffer = true
                         let result = await this._protoo.request('subscribe', { rid, jsep, mid });
-                        console.log('subscribe success => result(' + mid + ') sdp => ' + result.jsep.sdp);
+                        sub_mid = result['mid'];
+                        console.log('subscribe success => result(mid: ' + sub_mid + ') sdp => ' + result.jsep.sdp);
                         await pc.setRemoteDescription(result.jsep);
                     }
                 }
