@@ -22,9 +22,9 @@ class IonHelper extends EventEmitter {
     await _client.connect();
   }
 
-  join(String roomId) async {
+  join(String roomId, String displayName) async {
     this._rid = roomId;
-    await _client.join(roomId, {'name': 'Guest'});
+    await _client.join(roomId, {'name': '$displayName'});
     this.emit('join');
   }
 

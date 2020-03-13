@@ -174,12 +174,13 @@ class Client extends EventEmitter {
     }
   }
 
-  Future<Stream> subscribe(rid, mid) async {
+  Future<Stream> subscribe(rid, mid,
+      [String codec = 'vp8', String bandwidth = '512']) async {
     logger.debug('subscribe rid => $rid, mid => $mid');
     Completer completer = new Completer<Stream>();
     var options = {
-      'codec': "vp8",
-      'bandwidth': 512,
+      'codec': codec,
+      'bandwidth': bandwidth,
     };
     try {
       logger.debug('create receiver => $mid');

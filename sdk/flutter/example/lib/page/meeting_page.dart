@@ -28,8 +28,6 @@ class _MeetingPageState extends State<MeetingPage> {
   final double LOCAL_VIDEO_WIDTH = 114.0;
   final double LOCAL_VIDEO_HEIGHT = 72.0;
 
-  BuildContext _context;
-
   @override
   initState() {
     super.initState();
@@ -41,7 +39,12 @@ class _MeetingPageState extends State<MeetingPage> {
     var client = widget._helper.client;
 
     try {
-      client.publish().then((stream) {
+      var resolution = prefs.getString('resolution') ?? 'vga';
+      var bandwidth = prefs.getString('bandwidth') ?? '512';
+      var codec = prefs.getString('codec') ?? 'vp8';
+      client
+          .publish(true, true, false, codec, bandwidth, resolution)
+          .then((stream) {
         _streams[stream] = true;
         var adapter = VideoRendererAdapter(stream.mid, true);
         adapter.setSrcObject(stream.stream);
@@ -60,7 +63,9 @@ class _MeetingPageState extends State<MeetingPage> {
     });
 
     client.on('stream-add', (rid, mid, info) async {
-      var stream = await client.subscribe(rid, mid);
+      var bandwidth = prefs.getString('bandwidth') ?? '512';
+      var codec = prefs.getString('codec') ?? 'vp8';
+      var stream = await client.subscribe(rid, mid, codec, bandwidth);
       var adapter = VideoRendererAdapter(stream.mid, false);
       await adapter.setSrcObject(stream.stream);
       this.setState(() {
@@ -398,7 +403,6 @@ class _MeetingPageState extends State<MeetingPage> {
 
   @override
   Widget build(BuildContext context) {
-    _context = context;
     return OrientationBuilder(builder: (context, orientation) {
       return SafeArea(
         child: Scaffold(

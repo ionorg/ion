@@ -31,7 +31,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     helper.on('transport-open', () {
-      helper.join(_roomID);
+      var name = prefs.getString('display_name') ?? 'Guest';
+      helper.join(_roomID, name);
     });
 
     helper.on('join', () {
@@ -155,13 +156,27 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return OrientationBuilder(builder: (context, orientation) {
       return Scaffold(
-        appBar: orientation == Orientation.portrait
-            ? AppBar(
-                title: Text('PION'),
-              )
-            : null,
-        body: Center(child: buildJoinView(context)),
-      );
+          appBar: orientation == Orientation.portrait
+              ? AppBar(
+                  title: Text('PION'),
+                )
+              : null,
+          body: Stack(children: <Widget>[
+            Center(child: buildJoinView(context)),
+            Positioned(
+              bottom: 6.0,
+              right: 6.0,
+              child: FlatButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/settings');
+                },
+                child: Text(
+                  "Settings",
+                  style: TextStyle(fontSize: 16.0, color: Colors.black54),
+                ),
+              ),
+            ),
+          ]));
     });
   }
 }

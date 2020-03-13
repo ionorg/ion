@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'helper/ion_helper.dart';
 
+import 'helper/ion_helper.dart';
+import 'page/settings_page.dart';
 import 'page/login_page.dart';
 import 'page/meeting_page.dart';
 import 'utils/utils.dart';
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => LoginPage(_helper),
         '/meeting': (context) => MeetingPage(_helper),
+        '/settings': (context) => SettingsPage(),
       },
     );
   }
