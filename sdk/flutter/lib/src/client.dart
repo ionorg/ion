@@ -213,19 +213,10 @@ class Client extends EventEmitter {
         }
       };
 
-      /*
-      if (pc.addTransceiver != null) {
-        pc.addTransceiver("audio", {"direction": "recvonly"});
-        pc.addTransceiver("video", {"direction": "recvonly"});
-      }
-      */
-      var offer = await pc.createOffer({
-        'mandatory': {
-          'OfferToReceiveAudio': true,
-          'OfferToReceiveVideo': true,
-        },
-        'optional': [],
-      });
+      pc.addTransceiver("audio", {"direction": 'recvonly'});
+      pc.addTransceiver("video", {"direction": 'recvonly'});
+
+      var offer = await pc.createOffer({});
       var desc = this._payloadModify(offer, options['codec'], false);
       await pc.setLocalDescription(desc);
       this._pcs[mid] = pc;
