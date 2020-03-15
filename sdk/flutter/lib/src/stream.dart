@@ -2,6 +2,7 @@ import 'package:events2/events2.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 import 'logger.dart' show Logger;
 
+// 'vga': {'minWidth': '640', 'minHeight': '360'},
 final Map<String, dynamic> resolutions = {
   'qvga': {'width': '320', 'height': '180'},
   'vga': {'width': '640', 'height': '360'},
@@ -28,13 +29,12 @@ class Stream extends EventEmitter {
             .getDisplayMedia(_buildMediaConstraints(false, true));
       } else {
         Map<String, dynamic> videoConstrains = {
-          'mandatory': {
-            'minWidth': resolutions[quality]['width'],
-            'minHeight': resolutions[quality]['height'],
-            'minFrameRate': '30',
+          "mandatory": {
+            "minWidth": resolutions[quality]['width'],
+            "minHeight": resolutions[quality]['height'],
+            "minFrameRate": '30',
           },
-          'facingMode': 'user',
-          'optional': [],
+          "facingMode": 'user',
         };
         this._stream = await navigator
             .getUserMedia(_buildMediaConstraints(audio, videoConstrains));
