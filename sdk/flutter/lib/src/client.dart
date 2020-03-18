@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:events2/events2.dart';
 import 'package:flutter_webrtc/webrtc.dart';
 import 'package:protoo_client/protoo_client.dart';
@@ -9,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 import 'logger.dart' show Logger;
 import 'stream.dart';
+import 'utils.dart' if (dart.library.js) 'utils_web.dart';
 
 const DefaultPayloadTypePCMU = 0;
 const DefaultPayloadTypePCMA = 8;
@@ -213,10 +215,16 @@ class Client extends EventEmitter {
         }
       };
 
-      pc.addTransceiver("audio", {"direction": 'recvonly'});
-      pc.addTransceiver("video", {"direction": 'recvonly'});
+      addTransceiver(pc, "audio", {"direction": 'recvonly'});
+      addTransceiver(pc, "video", {"direction": 'recvonly'});
 
-      var offer = await pc.createOffer({});
+      var offer = await pc.createOffer({
+        'mandatory': {
+          'OfferToReceiveAudio': true,
+          'OfferToReceiveVideo': true,
+        },
+        'optional': [],
+      });
       var desc = this._payloadModify(offer, options['codec'], false);
       await pc.setLocalDescription(desc);
       this._pcs[mid] = pc;
