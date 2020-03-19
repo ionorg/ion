@@ -1,5 +1,8 @@
 [global]
-# pprof = ":6060"
+pprof = ":6061"
+
+# data center id
+dc = "dc1"
 
 [log]
 level = "info"
@@ -8,8 +11,8 @@ level = "info"
 # ["ip:port", "ip:port"]
 addrs = ["etcd:2379"]
 
-[amqp]
-url = "amqp://guest:guest@rabbitmq:5672/"
+[nats]
+url = "nats://nats:4222"
 
 [redis]
 addrs = ["redis:6379"]
