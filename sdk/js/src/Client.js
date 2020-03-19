@@ -89,6 +89,7 @@ export default class Client extends EventEmitter {
                         await pc.setRemoteDescription(result.jsep);
                         console.log('publish success => ' + JSON.stringify(result));
                         stream.mid = result.mid;
+                        this._streams[stream.mid] = stream;
                         this._pcs[stream.mid] = pc;
                         resolve(stream);
                     }
@@ -121,9 +122,10 @@ export default class Client extends EventEmitter {
                 let pc = await this._createReceiver(mid);
                 var sub_mid = "";
                 pc.onaddstream = (e) => {
-                    var stream = e.stream;
-                    console.log('Stream::pc::onaddstream', stream.id);
-                    resolve(new Stream(sub_mid, stream));
+                    var stream = new Stream(sub_mid, e.stream);
+                    console.log('Stream::pc::onaddstream', stream.mid);
+                    this._streams[sub_mid] = stream;
+                    resolve(stream);
                 }
                 pc.onremovestream = (e) => {
                     var stream = e.stream;
@@ -207,14 +209,14 @@ export default class Client extends EventEmitter {
 
         var rtp = [
             { "payload": payload, "codec": codeName, "rate": 90000, "encoding": null },
-            { "payload": 97, "codec": "rtx", "rate": 90000, "encoding": null }
+            //{ "payload": 97, "codec": "rtx", "rate": 90000, "encoding": null }
         ];
 
-        session['media'][videoIdx]["payloads"] = payload + " 97";
+        session['media'][videoIdx]["payloads"] = payload ;//+ " 97";
         session['media'][videoIdx]["rtp"] = rtp;
 
         var fmtp = [
-            { "payload": 97, "config": "apt=" + payload }
+            //{ "payload": 97, "config": "apt=" + payload }
         ];
 
         session['media'][videoIdx]["fmtp"] = fmtp;
@@ -226,6 +228,17 @@ export default class Client extends EventEmitter {
             { "payload": payload, "type": "nack", "subtype": "pli" }
         ];
         session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+
+        let ssrcGroup = session['media'][videoIdx].ssrcGroups[0];
+        let ssrcs = ssrcGroup.ssrcs;
+        let videoSsrc = ssrcs.split(" ")[0];
+        console.log('ssrcs => %s, video %s', ssrcs, videoSsrc);
+
+        let newSsrcs = session['media'][videoIdx].ssrcs;
+        newSsrcs = newSsrcs.filter(item => item.id == videoSsrc);
+
+        session['media'][videoIdx].ssrcGroups = [];
+        session['media'][videoIdx].ssrcs = newSsrcs;
 
         let tmp = desc;
         tmp.sdp = sdpTransform.write(session);
@@ -260,7 +273,16 @@ export default class Client extends EventEmitter {
         let pc = this._pcs[id];
         if (pc) {
             console.log('remove pc mid => %s', id);
+            let stream = this._streams[id];
+            if(stream) {
+                pc.removeStream(stream.stream);
+                delete this._streams[id];;
+            }
+            pc.onicecandidate = null;
+            pc.onaddstream = null;
+            pc.onremovestream = null;
             pc.close();
+            pc = null;
             delete this._pcs[id];
         }
     }
