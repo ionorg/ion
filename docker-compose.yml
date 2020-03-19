@@ -22,6 +22,8 @@ services:
     command: "-c '/wait-for rabbitmq:5672 -t 10 -- ion -c /configs/ion.toml'"
     volumes:
       - "./docker/ion.toml:/configs/ion.toml"
+      - "./configs/biz.toml:/configs/biz.toml"
+      - "./configs/sfu.toml:/configs/sfu.toml"
       - "./configs/cert.pem:/configs/cert.pem"
       - "./configs/key.pem:/configs/key.pem"
     ports:
