@@ -312,11 +312,11 @@ class Client extends EventEmitter {
           "rate": 90000,
           "encoding": null
         },
-        {"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null}
+        //{"payload": rtx, "codec": "rtx", "rate": 90000, "encoding": null}
       ];
 
       var fmtp = [
-        {"payload": rtx, "config": "apt=$payload"}
+        //{"payload": rtx, "config": "apt=$payload"}
       ];
 
       if (payload == DefaultPayloadTypeH264) {
@@ -336,10 +336,23 @@ class Client extends EventEmitter {
         {"payload": payload, "type": "nack", "subtype": "pli"}
       ];
 
-      session['media'][videoIdx]["payloads"] = '$payload $rtx';
+      session['media'][videoIdx]["payloads"] = '$payload'; // $rtx';
       session['media'][videoIdx]["rtp"] = rtp;
       session['media'][videoIdx]["fmtp"] = fmtp;
       session['media'][videoIdx]["rtcpFb"] = rtcpFB;
+
+      if (session['media'][videoIdx]['ssrcGroups'] != null) {
+        var ssrcGroup = session['media'][videoIdx]['ssrcGroups'][0];
+        var ssrcs = ssrcGroup['ssrcs'];
+        var videoSsrc = ssrcs.split(" ")[0];
+        logger.debug('ssrcs => $ssrcs, video $videoSsrc');
+
+        List newSsrcs = session['media'][videoIdx]['ssrcs'] as List;
+        newSsrcs.removeWhere((item) => '${item['id']}' != videoSsrc);
+
+        session['media'][videoIdx]['ssrcGroups'] = [];
+        session['media'][videoIdx]['ssrcs'] = newSsrcs;
+      }
 
       if (sender) {
         session['media'][videoIdx]["direction"] = "sendonly";
