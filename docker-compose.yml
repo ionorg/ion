@@ -12,48 +12,50 @@ services:
     ports:
       - 8080:443
     depends_on:
-      - ion
+      - biz
 
-  ion:
+  sfu:
     build:
-      dockerfile: Dockerfile
+      dockerfile: ./docker/sfu.Dockerfile
       context: .
-    entrypoint: "sh"
-    command: "-c '/wait-for rabbitmq:5672 -t 10 -- ion -c /configs/ion.toml'"
+    command: "-c /configs/sfu.toml"
     volumes:
-      - "./docker/ion.toml:/configs/ion.toml"
+      - "./docker/sfu.toml:/configs/sfu.toml"
+    ports:
+      - 6666:6666 # rtp
+    depends_on:
+      - nats
+      - etcd
+
+  biz:
+    build:
+      dockerfile: ./docker/biz.Dockerfile
+      context: docker
+    command: "-c /configs/biz.toml"
+    volumes:
+      - "./docker/biz.toml:/configs/biz.toml"
       - "./configs/cert.pem:/configs/cert.pem"
       - "./configs/key.pem:/configs/key.pem"
     ports:
-      - 6666:6666 # rtp
       - 8443:8443 # websocket
     depends_on:
-      - rabbitmq
+      - nats
       - etcd
 
   islb:
     build:
-      dockerfile: islb.Dockerfile
+      dockerfile: ./docker/islb.Dockerfile
       context: .
-    entrypoint: "sh"
-    command: "-c '/wait-for rabbitmq:5672 -t 10 -- islb -c /configs/islb.toml'"
+    command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
     depends_on:
-      - rabbitmq
+      - nats
       - etcd
       - redis
 
-  rabbitmq:
-    image: rabbitmq:3.8.2-management
-    environment:
-      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
-    healthcheck:
-      start_period: 5s
-      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
-      timeout: 3s
-      interval: 3s
-      retries: 3
+  nats:
+    image: nats
 
   etcd:
     image: gcr.io/etcd-development/etcd:v3.3.18
