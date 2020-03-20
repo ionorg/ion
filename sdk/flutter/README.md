@@ -8,20 +8,19 @@
 
 `./scripts/project_tools.sh create`
 
-### Run app
-
 `flutter pub get`
+
+
+### Run app
 
 `flutter run`
 
-### Web
 
-`flutter pub get`
+### Web
 
 `flutter run -d chrome`
 
+
 ### macOS
 
-`flutter pub get`
-
-`flutter run -d macOS`
+`flutter run -d macos`
