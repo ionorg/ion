@@ -4,7 +4,7 @@ services:
   # web conference demo
   web:
     build:
-      dockerfile: web.Dockerfile
+      dockerfile: ./docker/web.Dockerfile
       context: .
     volumes:
       - "./configs:/cert"
@@ -30,7 +30,7 @@ services:
   biz:
     build:
       dockerfile: ./docker/biz.Dockerfile
-      context: docker
+      context: .
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
