@@ -1,9 +1,8 @@
-language: go
+services:
+  - docker
 
-go:
-  - "1.13.4"
+before_install:
+- ./scripts/makeKey.sh
+
 script:
-  - go build ./cmd/biz
-  - go build ./cmd/islb
-  - go build ./cmd/sfu
-
+- docker-compose build
