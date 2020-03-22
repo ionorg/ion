@@ -27,10 +27,12 @@ var (
 )
 
 // Init port and ice urls
-func Init(port int, ices []string, kcpKey, kcpSalt string) error {
+func Init(port int, ices []string, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
 
-	//init ice urls and trickle-ICE
-	transport.InitWebRTC(ices, true, false)
+	//init ice urls and ICE settings
+	if err := transport.InitWebRTC(ices, icePortStart, icePortEnd); err != nil {
+		return err
+	}
 
 	// show stat about all pipelines
 	go check()

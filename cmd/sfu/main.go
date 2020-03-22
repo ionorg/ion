@@ -12,8 +12,17 @@ import (
 )
 
 func init() {
+	var icePortStart, icePortEnd uint16
+
+	if len(conf.WebRTC.ICEPortRange) == 2 {
+		icePortStart = conf.WebRTC.ICEPortRange[0]
+		icePortEnd = conf.WebRTC.ICEPortRange[1]
+	}
+
 	log.Init(conf.Log.Level)
-	rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE, "", "")
+	if err := rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE, icePortStart, icePortEnd, "", ""); err != nil {
+		panic(err)
+	}
 }
 
 func main() {

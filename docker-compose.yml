@@ -22,7 +22,7 @@ services:
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
-      - 6666:6666 # rtp
+      - "5000-5200:5000-5200/udp"
     depends_on:
       - nats
       - etcd
