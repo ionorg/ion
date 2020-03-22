@@ -79,7 +79,7 @@ Welcome contributing to ion!
 ./scripts/installDeps.sh
 
 #docker
-docker-compose build
+Building is not required, pre-made images are hosted
 ```
 
 ### 3. run
