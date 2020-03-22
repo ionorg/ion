@@ -79,7 +79,7 @@ Welcome contributing to ion!
 ./scripts/installDeps.sh
 
 #docker
-Building is not required, pre-made images are hosted
+Step is not required for Docker
 ```
 
 ### 3. run
