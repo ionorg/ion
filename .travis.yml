@@ -1,8 +1,5 @@
 services:
   - docker
 
-before_install:
-- ./scripts/makeKey.sh
-
 script:
 - docker-compose build
