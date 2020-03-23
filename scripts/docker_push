@@ -1,22 +1,22 @@
 #!/bin/bash
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-docker tag ion_web:latest $DOCKER_USERNAME/ion-web:$TRAVIS_TAG
-docker tag ion_web:latest $DOCKER_USERNAME/ion-web:latest
+docker tag ion-web $DOCKER_USERNAME/ion-web:$TRAVIS_TAG
+docker tag ion-web $DOCKER_USERNAME/ion-web:latest
 docker push $DOCKER_USERNAME/ion-web:$TRAVIS_TAG
 docker push $DOCKER_USERNAME/ion-web:latest
 
-docker tag ion_islib:latest $DOCKER_USERNAME/ion-islib:$TRAVIS_TAG
-docker tag ion_islib:latest $DOCKER_USERNAME/ion-islib:latest
+docker tag ion-islib $DOCKER_USERNAME/ion-islib:$TRAVIS_TAG
+docker tag ion-islib $DOCKER_USERNAME/ion-islib:latest
 docker push $DOCKER_USERNAME/ion-islib:$TRAVIS_TAG
 docker push $DOCKER_USERNAME/ion-islib:latest
 
-docker tag ion_biz:latest $DOCKER_USERNAME/ion-biz:$TRAVIS_TAG
-docker tag ion_biz:latest $DOCKER_USERNAME/ion-biz:latest
+docker tag ion-biz $DOCKER_USERNAME/ion-biz:$TRAVIS_TAG
+docker tag ion-biz $DOCKER_USERNAME/ion-biz:latest
 docker push $DOCKER_USERNAME/ion-biz:$TRAVIS_TAG
 docker push $DOCKER_USERNAME/ion-biz:latest
 
-docker tag ion_sfu:latest $DOCKER_USERNAME/ion-sfu:$TRAVIS_TAG
-docker tag ion_sfu:latest $DOCKER_USERNAME/ion-sfu:latest
+docker tag ion-sfu $DOCKER_USERNAME/ion-sfu:$TRAVIS_TAG
+docker tag ion-sfu $DOCKER_USERNAME/ion-sfu:latest
 docker push $DOCKER_USERNAME/ion-sfu:$TRAVIS_TAG
 docker push $DOCKER_USERNAME/ion-sfu:latest

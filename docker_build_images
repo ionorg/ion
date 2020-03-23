@@ -1,0 +1,7 @@
+#!/bin/bash
+
+docker build . -f docker/web.Dockerfile -t ion-web 
+docker build . -f docker/biz.Dockerfile -t ion-biz
+docker build . -f docker/islib.Dockerfile -t ion-islib
+docker build . -f docker/sfu.Dockerfile -t ion-sfu
+

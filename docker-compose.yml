@@ -1,11 +1,12 @@
+
 version: '3.7'
 
 services:
-  # web conference demo
   web:
-    build:
-      dockerfile: ./docker/web.Dockerfile
-      context: .
+    # build:
+    #   dockerfile: ./docker/web.Dockerfile
+    #   context: .
+    image: pionwebrtc/ion-web
     volumes:
       - "./configs:/cert"
       - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
@@ -15,22 +16,24 @@ services:
       - biz
 
   sfu:
-    build:
-      dockerfile: ./docker/sfu.Dockerfile
-      context: .
+    # build:
+    #   dockerfile: ./docker/sfu.Dockerfile
+    #   context: .
     command: "-c /configs/sfu.toml"
+    image: pionwebrtc/ion-sfu
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
-      - 6666:6666 # rtp
+      - "5000-5200:5000-5200/udp"
     depends_on:
       - nats
       - etcd
 
   biz:
-    build:
-      dockerfile: ./docker/biz.Dockerfile
-      context: .
+    # build:
+    #   dockerfile: ./docker/biz.Dockerfile
+    #   context: .
+    image: pionwebrtc/ion-biz
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
@@ -43,9 +46,10 @@ services:
       - etcd
 
   islb:
-    build:
-      dockerfile: ./docker/islb.Dockerfile
-      context: .
+    # build:
+    #   dockerfile: ./docker/islb.Dockerfile
+    #   context: .
+    image: pionwebrtc/ion-islb
     command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"

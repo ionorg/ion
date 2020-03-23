@@ -2,7 +2,7 @@ services:
   - docker
 
 script:
-- docker-compose build
+- bash docker_build_images
 
 deploy:
   provider: script
