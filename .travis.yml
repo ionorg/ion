@@ -9,5 +9,4 @@ deploy:
   script: bash scripts/docker_push
   on:
     tags: true
-    repo: saied89/ion
     branch: master
