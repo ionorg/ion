@@ -12,4 +12,6 @@ deploy:
   provider: script
   script: docker push saied89/ion_web:$TRAVIS_TAG
   on:
+    tags: true
+    repo: saied89/ion
     branch: master
