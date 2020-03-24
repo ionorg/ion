@@ -23,7 +23,7 @@ class Conference extends React.Component {
   componentWillUnmount = () => {
     const { client } = this.props;
     client.off("stream-add", this._handleAddStream);
-    client.off("stream-remove", this._handleAddStream);
+    client.off("stream-remove", this._handleRemoveStream);
   };
 
   _publish = async (type, codec) => {
@@ -39,16 +39,16 @@ class Conference extends React.Component {
     return stream;
   };
 
-  cleanUp = () => {
+  cleanUp = async () => {
     let { localStream, localScreen, streams } = this.state;
+    await this.setState({ localStream: null, localScreen: null, streams: [] });
+
     streams.map(async item => {
       await this._unsubscribe(item);
     });
 
-    if (localStream) this._unpublish(localStream);
-    if (localScreen) this._unpublish(localScreen);
-
-    this.setState({ localStream: null, localScreen: null, streams: [] });
+    if (localStream) await this._unpublish(localStream);
+    if (localScreen) await this._unpublish(localScreen);
   };
 
   _notification = (message, description) => {
@@ -62,7 +62,7 @@ class Conference extends React.Component {
   _unpublish = async stream => {
     const { client } = this.props;
     if (stream) {
-      this._stopMediaStream(stream.stream);
+      await this._stopMediaStream(stream);
       await client.unpublish(stream.mid);
     }
   };
@@ -70,6 +70,7 @@ class Conference extends React.Component {
   _unsubscribe = async item => {
     const { client } = this.props;
     if (item) {
+      item.stop();
       await client.unsubscribe(item.rid, item.mid);
     }
   };
@@ -125,10 +126,11 @@ class Conference extends React.Component {
     this.setState({ localScreen });
   };
 
-  _stopMediaStream = mediaStream => {
-    let tracks = mediaStream.getTracks();
+  _stopMediaStream = async (stream) => {
+    let mstream =  stream.stream;
+    let tracks = mstream.getTracks();
     for (let i = 0, len = tracks.length; i < len; i++) {
-      tracks[i].stop();
+      await tracks[i].stop();
     }
   };
 

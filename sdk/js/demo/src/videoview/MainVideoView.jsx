@@ -6,6 +6,10 @@ class MainVideoView extends React.Component {
     this.video.srcObject = stream.stream;
   };
 
+  componentWillUnmount = () => {
+    this.video.srcObject = null;
+  }
+
   render = () => {
     const { id, stream } = this.props;
     return (

@@ -9,6 +9,10 @@ class LocalVideoView extends React.Component {
     this.video.srcObject = stream.stream;
   };
 
+  componentWillUnmount = () => {
+    this.video.srcObject = null;
+  }
+
   render = () => {
     const { id, label, audioMuted, videoMuted } = this.props;
     return (

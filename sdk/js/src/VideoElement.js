@@ -18,7 +18,7 @@ class VideoElement {
     }
 
     stop() {
-        this._video.pause();
+        this._video.stop();
         this.parentElement.removeChild(this._video);
     }
 }

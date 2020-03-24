@@ -17,6 +17,10 @@ class SmallVideoView extends React.Component {
     
   };
 
+  componentWillUnmount = () => {
+    this.video.srcObject = null;
+  }
+
   _handleClick = () => {
     let { id, index } = this.props;
     this.props.onClick({ id, index });
