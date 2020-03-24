@@ -22,8 +22,8 @@ github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wX
 github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9 h1:xz6Nv3zcwO2Lila35hcb0QloCQsc38Al13RNEzWRpX4=
 github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9/go.mod h1:2wSM9zJkl1UQEFZgSd68NfCgRz1VL1jzy/RjCg+ULrs=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
-github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9 h1:PCw+25vDoh6KnxyZcO7V+rDGr+PvMiPieldeELaGFhg=
-github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
+github.com/cloudwebrtc/go-protoo v0.0.0-20200324091126-61fe57ffd18f h1:I9FnOOvegGTvlT2FUuh8skmkCfusD5jfGVI623l+Evo=
+github.com/cloudwebrtc/go-protoo v0.0.0-20200324091126-61fe57ffd18f/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55 h1:HckVH3N4Cz/rY4x1Whmk67KbTglt1zPbIVyv5hs+s+g=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55/go.mod h1:GChOgYiUBBZTCzjSPbPCDIQCAtScaaJmvb41Vw83TLQ=
 github.com/coreos/bbolt v1.3.2 h1:wZwiHHUieZCquLkDL0B8UhzreNWsPHooDAG3q34zk0s=

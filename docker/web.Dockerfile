@@ -1,4 +1,4 @@
-FROM node:12.16.0-buster-slim as builder
+FROM node:12.16.0-buster-slim
 
 WORKDIR /app
 COPY ./sdk/js/package.json ./
@@ -14,6 +14,12 @@ COPY ./sdk/js ./
 WORKDIR /app/demo
 RUN npm run build
 
-FROM nginx:1.17
-WORKDIR /dist
-COPY --from=builder /app/demo/dist .
+RUN apt-get update && apt-get install -y \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV ENABLE_TELEMETRY="false"
+RUN curl https://getcaddy.com | bash -s personal
+
+ENTRYPOINT ["/usr/local/bin/caddy"]
+CMD ["--conf", "/etc/Caddyfile", "--log", "stdout", "--agree=true"]

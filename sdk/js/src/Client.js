@@ -289,7 +289,8 @@ export default class Client extends EventEmitter {
 
     _getProtooUrl(pid) {
         const hostname = window.location.hostname;
-        let url = `wss://${hostname}:${this._port}/ws?peer=${pid}`;
+        const websocketProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
+        let url = `${websocketProtocol}://${hostname}:${this._port}/ws?peer=${pid}`;
         return url;
     }
 

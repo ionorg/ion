@@ -7,12 +7,16 @@ services:
     #   context: .
     image: pionwebrtc/ion-web
     volumes:
-      - "./configs:/cert"
-      - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
+      - "./docker/Caddyfile:/etc/Caddyfile"
     ports:
-      - 8080:443
+      - 80:80
+      - 8080:8080
+      - 8443:8443
     depends_on:
       - biz
+    environment:
+    - WWW_URL
+    - ADMIN_EMAIL
 
   sfu:
     # build:
@@ -36,10 +40,6 @@ services:
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
-      - "./configs/cert.pem:/configs/cert.pem"
-      - "./configs/key.pem:/configs/key.pem"
-    ports:
-      - 8443:8443 # websocket
     depends_on:
       - nats
       - etcd
