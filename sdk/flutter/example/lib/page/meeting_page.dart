@@ -20,6 +20,7 @@ class _MeetingPageState extends State<MeetingPage> {
 
   bool _cameraOff = false;
   bool _microphoneOff = false;
+  bool _speakerOn = true;
   var _scaffoldkey = new GlobalKey<ScaffoldState>();
 
   final double LOCAL_VIDEO_WIDTH = 114.0;
@@ -81,6 +82,9 @@ class _MeetingPageState extends State<MeetingPage> {
           .then((stream) async {
         var adapter = VideoRendererAdapter(stream.mid, stream, true);
         await adapter.setupSrcObject();
+        var localStream = stream.stream;
+        MediaStreamTrack audioTrack = localStream.getAudioTracks()[0];
+        audioTrack.enableSpeakerphone(true);
         this.setState(() {
           _localVideo = adapter;
         });
@@ -207,6 +211,17 @@ class _MeetingPageState extends State<MeetingPage> {
     );
   }
 
+  //Switch speaker/earpiece
+  _switchSpeaker() {
+    this.setState(() {
+      _speakerOn = !_speakerOn;
+      MediaStreamTrack audioTrack = _localVideo.stream.getAudioTracks()[0];
+      audioTrack.enableSpeakerphone(_speakerOn);
+      _showSnackBar(
+          ":::Switch to " + (_speakerOn ? "speaker" : "earpiece") + ":::");
+    });
+  }
+
   //Switch local camera
   _switchCamera() {
     if (_localVideo != null && _localVideo.stream.getVideoTracks().length > 0) {
@@ -325,9 +340,8 @@ class _MeetingPageState extends State<MeetingPage> {
             ),
           ),
           child: Icon(
-            _cameraOff
-                ? MaterialCommunityIcons.getIconData("video-off")
-                : MaterialCommunityIcons.getIconData("video"),
+            MaterialCommunityIcons.getIconData(
+                _cameraOff ? "video-off" : "video"),
             color: _cameraOff ? Colors.red : Colors.white,
           ),
           onPressed: _turnCamera,
@@ -361,9 +375,8 @@ class _MeetingPageState extends State<MeetingPage> {
             ),
           ),
           child: Icon(
-            _microphoneOff
-                ? MaterialCommunityIcons.getIconData("microphone-off")
-                : MaterialCommunityIcons.getIconData("microphone"),
+            MaterialCommunityIcons.getIconData(
+                _microphoneOff ? "microphone-off" : "microphone"),
             color: _microphoneOff ? Colors.red : Colors.white,
           ),
           onPressed: _turnMicrophone,
@@ -380,10 +393,11 @@ class _MeetingPageState extends State<MeetingPage> {
             ),
           ),
           child: Icon(
-            MaterialIcons.getIconData("volume-up"),
+            MaterialIcons.getIconData(
+                _speakerOn ? "volume-up" : "speaker-phone"),
             color: Colors.white,
           ),
-          onPressed: () {},
+          onPressed: _switchSpeaker,
         ),
       ),
       SizedBox(
