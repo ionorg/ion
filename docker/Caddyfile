@@ -1,0 +1,15 @@
+* {
+  tls {$ADMIN_EMAIL}
+}
+
+{$WWW_URL}:8080 {
+  root /app/demo/dist
+}
+
+{$WWW_URL}:8443 {
+  proxy / biz:8443 {
+    transparent
+    websocket
+    header_upstream Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+  }
+}

@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/at-wat/ebml-go v0.9.2
-	github.com/cloudwebrtc/go-protoo v0.0.0-20200226145235-c53bf45a00f9
+	github.com/cloudwebrtc/go-protoo v0.0.0-20200324091126-61fe57ffd18f
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200226142647-79046db44f55
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect

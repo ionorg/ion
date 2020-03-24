@@ -65,35 +65,35 @@ Welcome contributing to ion!
 <img width="360" height="265" src="screenshots/web/ion-04.jpg"/> <img width="360" height="265" src="screenshots/web/ion-05.jpg"/>
 
 ## How to use
+### Docker
+The provided docker-compose works for deploying to open usage, and can also be used for local development. It also supports auto-generate of certificates via LetsEncrypt.
 
-### 1. make key
+It accepts the following enviroment variables.
+* `WWW_URL` -- Public URL if auto-generating certificates
+* `ADMIN_EMAIL`  -- Email if auto-generating certificates
 
+To run on `conference.pion.ly` you would run `WWW_URL=conference.pion.ly ADMIN_EMAIL=admin@pion.ly docker-compose up`
+
+If `WWW_URL` is set you will access via `https://yourip:8080` OR `http://yourip:8080` if not running with TLS enabled.
+
+
+### Scripts
+#### 1. make key
 ```
 ./scripts/makeKey.sh
 ```
 
-### 2. build
-
+#### 2. build
 ```
-#non-docker
 ./scripts/installDeps.sh
-
-#docker
-Step is not required for Docker
 ```
 
-### 3. run
-
+#### 3. run
 ```
-#non-docker
-./scripts/allRestart.sh
-
-#docker
 docker-compose up
 ```
 
-### 4. let's chat
-
+#### 4. let's chat
 Open this url with chrome
 
 ```
