@@ -43,13 +43,14 @@ ION is a distributed RTC system written by pure go and flutter
 - [adwpc](https://github.com/adwpc) - _Original Author - ion server_
 - [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
 - [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
+- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker_
 
 ## Roadmap
 
 [Projects](https://github.com/pion/ion/projects/1)
 Welcome contributing to ion!
 
-## Project status
+## Stars
 
 [![Stargazers over time](https://starchart.cc/pion/ion.svg)](https://starchart.cc/pion/ion)
 
@@ -65,37 +66,63 @@ Welcome contributing to ion!
 <img width="360" height="265" src="screenshots/web/ion-04.jpg"/> <img width="360" height="265" src="screenshots/web/ion-05.jpg"/>
 
 ## How to use
-### Docker
+
+### Local Deployment
+#### 1. clone
+```
+git clone https://github.com/pion/ion
+```
+
+#### 2. run
+```
+docker-compose up
+```
+
+#### 3. chat
+Open this url with chrome
+
+```
+http://localhost:8080
+```
+
+### Online Deployment
+
+#### 1. clone
+
+```
+git clone https://github.com/pion/ion
+```
+
+#### 2. set env
+
+```
+export WWW_URL=yourdomain
+export ADMIN_EMAIL=yourname@yourdomain
+```
+
+#### 3. run
+
+```
+docker-compose up
+```
+
+#### 3. chat
+
+Open this url with chrome
+
+```
+https://yourdomain:8080
+```
+
+### Docker Tips
+
 The provided docker-compose works for deploying to open usage, and can also be used for local development. It also supports auto-generate of certificates via LetsEncrypt.
 
 It accepts the following enviroment variables.
+
 * `WWW_URL` -- Public URL if auto-generating certificates
 * `ADMIN_EMAIL`  -- Email if auto-generating certificates
 
 To run on `conference.pion.ly` you would run `WWW_URL=conference.pion.ly ADMIN_EMAIL=admin@pion.ly docker-compose up`
 
 If `WWW_URL` is set you will access via `https://yourip:8080` OR `http://yourip:8080` if not running with TLS enabled.
-
-
-### Scripts
-#### 1. make key
-```
-./scripts/makeKey.sh
-```
-
-#### 2. build
-```
-./scripts/installDeps.sh
-```
-
-#### 3. run
-```
-docker-compose up
-```
-
-#### 4. let's chat
-Open this url with chrome
-
-```
-https://yourip:8080
-```
