@@ -146,115 +146,124 @@ class _MySettingsPage extends State<SettingsPage> {
         ),
         body: Align(
             alignment: Alignment(0, 0),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
-                        child: Align(
-                          child: Text('DisplayName:'),
-                          alignment: Alignment.centerLeft,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(48.0, 0.0, 48.0, 0),
-                        child: TextField(
-                          keyboardType: TextInputType.text,
-                          textAlign: TextAlign.center,
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.all(10.0),
-                            border: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.black12)),
-                            hintText: _displayName,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    Column(
+                      children: <Widget>[
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
+                          child: Align(
+                            child: Text('DisplayName:'),
+                            alignment: Alignment.centerLeft,
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              _displayName = value;
-                            });
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
-                        child: Align(
-                          child: Text('Codec:'),
-                          alignment: Alignment.centerLeft,
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(48.0, 0.0, 48.0, 0),
+                          child: TextField(
+                            keyboardType: TextInputType.text,
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.all(10.0),
+                              border: UnderlineInputBorder(
+                                  borderSide:
+                                      BorderSide(color: Colors.black12)),
+                              hintText: _displayName,
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _displayName = value;
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
-                        child: _buildRowFixTitleRadio(
-                            _codecItems, _codec, _onCodecChanged),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
-                        child: Align(
-                          child: Text('Resolution:'),
-                          alignment: Alignment.centerLeft,
+                      ],
+                    ),
+                    Column(
+                      children: <Widget>[
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
+                          child: Align(
+                            child: Text('Codec:'),
+                            alignment: Alignment.centerLeft,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
-                        child: _buildRowFixTitleRadio(_resolutionItems,
-                            _resolution, _onResolutionChanged),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
-                        child: Align(
-                          child: Text('Bandwidth:'),
-                          alignment: Alignment.centerLeft,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
+                          child: _buildRowFixTitleRadio(
+                              _codecItems, _codec, _onCodecChanged),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
-                        child: _buildRowFixTitleRadio(
-                            _bandwidthItems, _bandwidth, _onbandwidthChanged),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                      padding: const EdgeInsets.fromLTRB(0.0, 18.0, 0.0, 0.0),
-                      child: Container(
-                          height: 48.0,
-                          width: 160.0,
-                          child: InkWell(
-                            child: Container(
-                              width: 220.0,
-                              height: 48.0,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: string2Color('#e13b3f'),
-                                  width: 1,
+                      ],
+                    ),
+                    Column(
+                      children: <Widget>[
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
+                          child: Align(
+                            child: Text('Resolution:'),
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
+                          child: _buildRowFixTitleRadio(_resolutionItems,
+                              _resolution, _onResolutionChanged),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: <Widget>[
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(46.0, 18.0, 48.0, 0),
+                          child: Align(
+                            child: Text('Bandwidth:'),
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0),
+                          child: _buildRowFixTitleRadio(
+                              _bandwidthItems, _bandwidth, _onbandwidthChanged),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                        padding: const EdgeInsets.fromLTRB(0.0, 18.0, 0.0, 0.0),
+                        child: Container(
+                            height: 48.0,
+                            width: 160.0,
+                            child: InkWell(
+                              child: Container(
+                                width: 220.0,
+                                height: 48.0,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: string2Color('#e13b3f'),
+                                    width: 1,
+                                  ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Save',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
+                                child: Center(
+                                  child: Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            onTap: () => _handleSave(context),
-                          )))
-                ])));
+                              onTap: () => _handleSave(context),
+                            )))
+                  ]),
+            )));
   }
 }
