@@ -202,7 +202,6 @@ class Conference extends React.Component {
         })}
         {localStream && (
           <div className="conference-local-video-layout">
-            <div className="conference-local-video-size">
               <LocalVideoView
                 id={id + "-video"}
                 label="Local Stream"
@@ -210,13 +209,12 @@ class Conference extends React.Component {
                 stream={localStream}
                 audioMuted={audioMuted}
                 videoMuted={videoMuted}
+                videoType="localVideo"
               />
             </div>
-          </div>
         )}
         {localScreen && (
           <div className="conference-local-screen-layout">
-            <div className="conference-local-video-size">
               <LocalVideoView
                 id={id + "-screen"}
                 label="Screen Sharing"
@@ -224,8 +222,8 @@ class Conference extends React.Component {
                 stream={localScreen}
                 audioMuted={false}
                 videoMuted={false}
+                videoType="localScreen"
               />
-            </div>
           </div>
         )}
         <div className="small-video-list-div">
