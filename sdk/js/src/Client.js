@@ -81,23 +81,22 @@ export default class Client extends EventEmitter {
                 let pc = await this._createSender(stream.stream, options.codec);
 
                 pc.onicecandidate = async (e) => {
-                    if (!pc.sendOffer) {
-                        var offer = pc.localDescription;
-                        console.log('Send offer sdp => ' + offer.sdp);
-                        pc.sendOffer = true
-                        let result = await this._protoo.request('publish', { rid: this._rid, jsep: offer, options });
-                        await pc.setRemoteDescription(result.jsep);
-                        console.log('publish success => ' + JSON.stringify(result));
-                        stream.mid = result.mid;
-                        this._streams[stream.mid] = stream;
-                        this._pcs[stream.mid] = pc;
-                        resolve(stream);
-                    }
+                    console.log('publish [' + stream.mid + '] send trickle: ' + JSON.stringify(e.candidate));
+                    await this._protoo.request('trickle', { mid: stream.mid, trickle: e.candidate });
                 }
+                let offer = await pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
+                let desc = this._payloadModify(offer, options.codec);
+                console.log('Send offer sdp => ' + desc.sdp);
+                let result = await this._protoo.request('publish', { rid: this._rid, jsep: desc, options });
+                console.log('publish success => ' + JSON.stringify(result));
+                stream.mid = result.mid;
+                this._streams[stream.mid] = stream;
+                this._pcs[stream.mid] = pc;
+                pc.setLocalDescription(desc);
+                await pc.setRemoteDescription(result.jsep);
+                resolve(stream);
             } catch (error) {
-                throw error;
                 console.log('publish request error  => ' + error);
-                pc.close();
                 reject(error);
             }
         });
@@ -132,16 +131,17 @@ export default class Client extends EventEmitter {
                     console.log('Stream::pc::onremovestream', stream.id);
                 }
                 pc.onicecandidate = async (e) => {
-                    if (!pc.sendOffer) {
-                        var jsep = pc.localDescription;
-                        console.log('Send offer sdp => ' + jsep.sdp);
-                        pc.sendOffer = true
-                        let result = await this._protoo.request('subscribe', { rid, jsep, mid });
-                        sub_mid = result['mid'];
-                        console.log('subscribe success => result(mid: ' + sub_mid + ') sdp => ' + result.jsep.sdp);
-                        await pc.setRemoteDescription(result.jsep);
-                    }
+                    console.log('subscribe [' + sub_mid + '] send trickle: ' + JSON.stringify(e.candidate));
+                    await this._protoo.request('trickle', { mid: sub_mid, trickle: e.candidate });
                 }
+                let offer = await pc.createOffer();
+                console.log('Send offer sdp => ' + offer.sdp);
+                let result = await this._protoo.request('subscribe', { rid, jsep: offer, mid });
+                sub_mid = result.mid;
+                let answer = result.jsep;
+                console.log('subscribe success => result(mid: ' + sub_mid + ') sdp => ' + answer.sdp);
+                await pc.setLocalDescription(offer);
+                await pc.setRemoteDescription(answer);
             } catch (error) {
                 console.log('subscribe request error  => ' + error);
                 reject(error);
@@ -212,7 +212,7 @@ export default class Client extends EventEmitter {
             //{ "payload": 97, "codec": "rtx", "rate": 90000, "encoding": null }
         ];
 
-        session['media'][videoIdx]["payloads"] = payload ;//+ " 97";
+        session['media'][videoIdx]["payloads"] = payload;//+ " 97";
         session['media'][videoIdx]["rtp"] = rtp;
 
         var fmtp = [
@@ -250,10 +250,6 @@ export default class Client extends EventEmitter {
         let pc = new RTCPeerConnection({ iceServers: [{ urls: ices }] });
         pc.sendOffer = false;
         pc.addStream(stream);
-        let offer = await
-            pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
-        let desc = this._payloadModify(offer, codec);
-        pc.setLocalDescription(desc);
         return pc;
     }
 
@@ -263,8 +259,6 @@ export default class Client extends EventEmitter {
         pc.sendOffer = false;
         pc.addTransceiver('audio', { 'direction': 'recvonly' });
         pc.addTransceiver('video', { 'direction': 'recvonly' });
-        let desc = await pc.createOffer();
-        pc.setLocalDescription(desc);
         this._pcs[uid] = pc;
         return pc;
     }
@@ -274,7 +268,7 @@ export default class Client extends EventEmitter {
         if (pc) {
             console.log('remove pc mid => %s', id);
             let stream = this._streams[id];
-            if(stream) {
+            if (stream) {
                 pc.removeStream(stream.stream);
                 delete this._streams[id];;
             }
@@ -284,6 +278,13 @@ export default class Client extends EventEmitter {
             pc.close();
             pc = null;
             delete this._pcs[id];
+        }
+    }
+
+    _handleTrickle(id, candidate) {
+        let pc = this._pcs[id];
+        if (pc) {
+            pc.addIceCandidate(candidate);
         }
     }
 
@@ -329,6 +330,13 @@ export default class Client extends EventEmitter {
                     console.log('stream-remove peer rid => %s, mid => %s', rid, mid);
                     this.emit('stream-remove', rid, mid);
                     this._removePC(mid);
+                    break;
+                }
+            case 'trickle':
+                {
+                    const { mid, trickle } = data;
+                    console.log('trickle: mid => %s, candidate => %o', mid, trickle);
+                    this._handleTrickle(mid, trickle);
                     break;
                 }
         }

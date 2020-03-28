@@ -60,6 +60,22 @@ func GetRoomByPeer(id string) *Room {
 	return nil
 }
 
+// GetPeerByID find peer by ID
+func GetPeerByID(id string) *peer.Peer {
+	roomLock.RLock()
+	defer roomLock.RUnlock()
+	for _, room := range rooms {
+		//log.Debugf("signal.GetRoomsByPeer rid=%v id=%v", rid, id)
+		if room == nil {
+			continue
+		}
+		if peer := room.GetPeer(id); peer != nil {
+			return peer
+		}
+	}
+	return nil
+}
+
 // one peer in many room
 func GetRoomsByPeer(id string) []*Room {
 	var r []*Room

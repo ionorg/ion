@@ -35,6 +35,8 @@ func handleRequest(rpcID string) {
 			result, err = subscribe(data)
 		case proto.ClientUnSubscribe:
 			result, err = unsubscribe(data)
+		case proto.ClientTrickleICE:
+			result, err = trickle(data)
 		}
 
 		if err != nil {
@@ -255,6 +257,7 @@ func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	t := r.GetSub(mid)
 	if t != nil {
 		//t.(*transport.WebRTCTransport).AddCandidate(cand)
+		return emptyMap, nil
 	}
 
 	return nil, util.NewNpError(404, "trickle: WebRTCTransport not found!")

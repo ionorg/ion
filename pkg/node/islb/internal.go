@@ -104,7 +104,7 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 				id := node.Info["id"]
 				if service == node.Info["service"] && minfo.NID == id {
 					rpcID := discovery.GetRPCChannel(node)
-					eventID := discovery.GetRPCChannel(node)
+					eventID := discovery.GetEventChannel(node)
 					resp := util.Map("name", name, "rpc-id", rpcID, "event-id", eventID, "service", service, "id", id)
 					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
 					return resp, nil
@@ -117,7 +117,7 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 	for _, node := range services {
 		if service == node.Info["service"] {
 			rpcID := discovery.GetRPCChannel(node)
-			eventID := discovery.GetRPCChannel(node)
+			eventID := discovery.GetEventChannel(node)
 			name := node.Info["name"]
 			id := node.Info["id"]
 			resp := util.Map("name", name, "rpc-id", rpcID, "event-id", eventID, "service", service, "id", id)

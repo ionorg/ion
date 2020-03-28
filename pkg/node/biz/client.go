@@ -71,13 +71,14 @@ func handleSFUBroadCast(msg map[string]interface{}, subj string) {
 		method := util.Val(msg, "method")
 		data := msg["data"].(map[string]interface{})
 		log.Infof("handleSFUBroadCast: method=%s, data=%v", method, data)
-		rid := util.Val(data, "rid")
-		uid := util.Val(data, "uid")
 		switch method {
 		case proto.SFUTrickleICE:
-			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
-			//case proto.IslbOnStreamRemove:
-			//	signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamRemove, data)
+			{
+				mid := util.Val(data, "mid")
+				uid := proto.GetUIDFromMID(mid)
+				peer := signal.GetPeerByID(uid)
+				peer.Notify(proto.ClientTrickleICE, data)
+			}
 		}
 	}(msg)
 }
@@ -345,7 +346,7 @@ func trickle(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 
 	mid := util.Val(msg, "mid")
 
-	if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
+	if ok, err := verifyData(msg, "mid"); !ok {
 		return nil, err
 	}
 
@@ -353,6 +354,10 @@ func trickle(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	if msg["trickle"] == nil {
+		return emptyMap, nil
 	}
 
 	trickle := msg["trickle"].(map[string]interface{})

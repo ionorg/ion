@@ -51,14 +51,6 @@ class Conference extends React.Component {
     if (localScreen) await this._unpublish(localScreen);
   };
 
-  _notification = (message, description) => {
-    notification.info({
-      message: message,
-      description: description,
-      placement: "bottomRight"
-    });
-  };
-
   _unpublish = async stream => {
     const { client } = this.props;
     if (stream) {
@@ -103,7 +95,6 @@ class Conference extends React.Component {
       this.setState({ localStream });
     } catch (e) {
       console.log("handleLocalStream error => " + e);
-      _notification("publish/unpublish failed!", e);
     }
   };
 
