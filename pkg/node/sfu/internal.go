@@ -103,17 +103,19 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
+			codecType := ""
 			media := sdpObj.GetMedia(track.GetMedia())
 			codecs := media.GetCodecs()
 
 			for payload, codec := range codecs {
 				if track.GetMedia() == "audio" {
+					codecType = strings.ToUpper(codec.GetCodec())
 					if strings.ToUpper(codec.GetCodec()) == webrtc.Opus {
 						pt = payload
 						break
 					}
 				} else if track.GetMedia() == "video" {
-					codecType := strings.ToUpper(codec.GetCodec())
+					codecType = strings.ToUpper(codec.GetCodec())
 					if codecType == webrtc.H264 || codecType == webrtc.VP8 || codecType == webrtc.VP9 {
 						pt = payload
 						break
@@ -121,7 +123,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 				}
 			}
 			var infos []proto.TrackInfo
-			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id})
+			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
 			tracks[stream.GetID()+" "+id] = infos
 		}
 	}

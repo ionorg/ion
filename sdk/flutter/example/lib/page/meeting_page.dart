@@ -46,10 +46,9 @@ class _MeetingPageState extends State<MeetingPage> {
       this._showSnackBar(":::Peer [$id] leave:::");
     });
 
-    client.on('stream-add', (rid, mid, info) async {
+    client.on('stream-add', (rid, mid, info, tracks) async {
       var bandwidth = prefs.getString('bandwidth') ?? '512';
-      var codec = prefs.getString('codec') ?? 'vp8';
-      var stream = await client.subscribe(rid, mid, codec, bandwidth);
+      var stream = await client.subscribe(rid, mid, tracks, bandwidth);
       var adapter = VideoRendererAdapter(stream.mid, stream, false, mid);
       await adapter.setupSrcObject();
       this.setState(() {

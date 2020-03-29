@@ -145,6 +145,7 @@ func join(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}
 				mid := pub.(map[string]interface{})["mid"].(string)
 				uid := pub.(map[string]interface{})["uid"].(string)
 				rid := result["rid"].(string)
+				tracks := pub.(map[string]interface{})["tracks"].(map[string]interface{})
 
 				var infoObj map[string]interface{}
 				err := json.Unmarshal([]byte(info), &infoObj)
@@ -154,7 +155,7 @@ func join(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}
 				log.Infof("IslbGetPubs: mid=%v info=%v", mid, infoObj)
 				// peer <=  range pubs(mid)
 				if mid != "" {
-					peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoObj))
+					peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoObj, "tracks", tracks))
 				}
 			}
 		},
