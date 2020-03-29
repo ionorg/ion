@@ -18,10 +18,10 @@ require (
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/notedit/sdp v0.0.2
 	github.com/pion/rtcp v1.2.1
-	github.com/pion/rtp v1.3.2
+	github.com/pion/rtp v1.4.0
 	github.com/pion/stun v0.3.3
-	github.com/pion/transport v0.8.10
-	github.com/pion/webrtc/v2 v2.2.2
+	github.com/pion/transport v0.10.0
+	github.com/pion/webrtc/v2 v2.2.5-0.20200329193949-862d30743ef3
 	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/spf13/viper v1.6.2
@@ -31,6 +31,6 @@ require (
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
-	golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d
+	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

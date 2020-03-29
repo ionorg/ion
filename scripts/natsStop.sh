@@ -30,7 +30,7 @@ do
 done
 
 if [[ "$OS_TYPE" =~ "Darwin" ]];then
-    brew services start nats-server
+    brew services stop nats-server
 else
     echo "stop process..."
     PID=`cat $PID_FILE`
