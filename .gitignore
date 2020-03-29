@@ -1,3 +1,4 @@
+.*.sw[op]
 logs
 bin
 configs/cert.pem
