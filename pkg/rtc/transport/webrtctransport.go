@@ -3,7 +3,6 @@ package transport
 import (
 	"errors"
 	"io"
-	"time"
 
 	"sync"
 
@@ -15,6 +14,7 @@ import (
 
 const (
 	maxChanSize = 100
+	IOSH264Fmtp = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 )
 
 var (
@@ -107,17 +107,17 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 
 	if publish {
 		if codec == webrtc.H264 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		} else if codec == webrtc.VP8 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
 		} else if codec == webrtc.VP9 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
 		} else {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		}
 	} else {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb))
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
 	}
 
@@ -181,8 +181,6 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 			log.Infof("w.pc.OnICECandidate remoteSDP == nil c=%v", c)
 		} else {
 			log.Infof("w.pc.OnICECandidate remoteSDP != nil c=%v", c)
-			//fix pc ERROR: 2020/03/09 23:38:13 Incoming unhandled RTP ssrc(2693032141)
-			time.Sleep(time.Millisecond * 100)
 			w.candidateCh <- c
 		}
 	})

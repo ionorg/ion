@@ -139,7 +139,8 @@ func (sw *ServiceWatcher) WatchServiceNode(serviceName string, callback ServiceW
 	for {
 		nodes, err := sw.reg.GetServiceNodes(serviceName)
 		if err != nil {
-			log.Panicf("%v", err)
+			log.Warnf("sw.reg.GetServiceNodes err=%v", err)
+			continue
 		}
 		log.Debugf("Nodes: => %v", nodes)
 
