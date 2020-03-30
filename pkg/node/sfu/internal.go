@@ -110,7 +110,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			for payload, codec := range codecs {
 				if track.GetMedia() == "audio" {
 					codecType = strings.ToUpper(codec.GetCodec())
-					if strings.ToUpper(codec.GetCodec()) == webrtc.Opus {
+					if strings.ToUpper(codec.GetCodec()) == strings.ToUpper(webrtc.Opus) {
 						pt = payload
 						break
 					}
@@ -195,6 +195,8 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 				Type:    info["type"].(string),
 				Ssrc:    int(info["ssrc"].(float64)),
 				Payload: int(info["pt"].(float64)),
+				Codec:   info["codec"].(string),
+				Fmtp:    info["fmtp"].(string),
 			}
 			ssrcPT[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
 			tracks[msid] = trackInfo
@@ -208,7 +210,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		//                streamID                        trackID
 		streamID := strings.Split(msid, " ")[0]
 		trackID := track.ID
-		log.Infof("AddTrack: ssrc:%d, pt:%d, streamID %s, trackID %s", ssrc, pt, streamID, trackID)
+		log.Infof("AddTrack: codec:%s, ssrc:%d, pt:%d, streamID %s, trackID %s", track.Codec, ssrc, pt, streamID, trackID)
 		_, err := sub.AddTrack(ssrc, pt, streamID, track.ID)
 		if err != nil {
 			log.Errorf("err=%v", err)
