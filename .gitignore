@@ -1,4 +1,5 @@
 .*.sw[op]
+.DS_Store
 logs
 bin
 configs/cert.pem

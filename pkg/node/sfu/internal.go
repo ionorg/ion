@@ -149,8 +149,8 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("subscribe msg=%v", msg)
 
-	pubID := util.Val(msg, "mid")
-	router := rtc.GetOrNewRouter(pubID)
+	mid := util.Val(msg, "mid")
+	router := rtc.GetOrNewRouter(mid)
 	if router == nil {
 		return nil, util.NewNpError(404, "subscribe: Router not found!")
 	}
