@@ -1,22 +1,22 @@
 version: '3.7'
 
 services:
-  web:
-    # build:
-    #   dockerfile: ./docker/web.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-web
-    volumes:
-      - "./docker/Caddyfile:/etc/Caddyfile"
-    ports:
-      - 80:80
-      - 8080:8080
-      - 8443:8443
-    depends_on:
-      - biz
-    environment:
-    - WWW_URL
-    - ADMIN_EMAIL
+#   web:
+#     # build:
+#     #   dockerfile: ./docker/web.Dockerfile
+#     #   context: .
+#     image: pionwebrtc/ion-web
+#     volumes:
+#       - "./docker/Caddyfile:/etc/Caddyfile"
+#     ports:
+#       - 80:80
+#       - 8080:8080
+#       - 8443:8443
+#     depends_on:
+#       - biz
+#     environment:
+#     - WWW_URL
+#     - ADMIN_EMAIL
 
   sfu:
     # build:
