@@ -175,6 +175,7 @@ class _MeetingPageState extends State<MeetingPage> {
     List<Widget> views = new List<Widget>();
     if (_remoteVideos.length > 1)
       _remoteVideos.getRange(1, _remoteVideos.length).forEach((adapter) {
+        adapter.objectFit = RTCVideoViewObjectFit.RTCVideoViewObjectFitCover;
         views.add(_buildVideo(adapter));
       });
     return views;
