@@ -27,7 +27,8 @@ class App extends React.Component {
       localVideoEnabled: true,
       screenSharingEnabled: false,
       collapsed: true,
-      isFullScreen: false
+      isFullScreen: false,
+      loginInfo: {}
     };
 
     this._settings = {
@@ -100,7 +101,7 @@ class App extends React.Component {
     reactLocalStorage.clear("loginInfo");
     reactLocalStorage.setObject("loginInfo", values);
     await this.client.join(values.roomId, { name: values.displayName });
-    this.setState({ login: true, loading: false });
+    this.setState({ login: true, loading: false, loginInfo: values });
     this._notification(
       "Connected!",
       "Welcome to the ion room => " + values.roomId
