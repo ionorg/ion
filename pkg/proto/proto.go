@@ -142,6 +142,8 @@ type TrackInfo struct {
 	Ssrc    int    `json:"ssrc"`
 	Payload int    `json:"pt"`
 	Type    string `json:"type"`
+	Codec   string `json:"codec"`
+	Fmtp    string `json:"fmtp"`
 }
 
 func MarshalTrackField(id string, infos []TrackInfo) (string, string, error) {
