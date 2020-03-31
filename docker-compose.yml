@@ -19,11 +19,12 @@ services:
 #     - ADMIN_EMAIL
 
   sfu:
-    # build:
-    #   dockerfile: ./docker/sfu.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/sfu.Dockerfile
+      context: .
     command: "-c /configs/sfu.toml"
-    image: pionwebrtc/ion-sfu
+    restart: always
+    # image: pionwebrtc/ion-sfu
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -32,23 +33,38 @@ services:
       - nats
       - etcd
 
-  biz:
+  avp:
     # build:
-    #   dockerfile: ./docker/biz.Dockerfile
+    #   dockerfile: ./docker/avp.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-biz
+    # command: "-c /configs/avp.toml"
+    image: ion_avp:0.0.2
+    volumes:
+      - "./:/go/src/github.com/pion/ion"
+      - "./docker/avp.toml:/configs/avp.toml"
+    depends_on:
+      - nats
+      - etcd
+
+  biz:
+    build:
+      dockerfile: ./docker/biz.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-biz
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
+    ports:
+      - "8443:8443"
     depends_on:
       - nats
       - etcd
 
   islb:
-    # build:
-    #   dockerfile: ./docker/islb.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-islb
+    build:
+      dockerfile: ./docker/islb.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-islb
     command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
