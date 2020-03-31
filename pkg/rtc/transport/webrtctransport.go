@@ -229,6 +229,11 @@ func (w *WebRTCTransport) SetRemoteSDP(sdp webrtc.SessionDescription) error {
 	return w.pc.SetRemoteDescription(sdp)
 }
 
+// OnTrack handler
+func (w *WebRTCTransport) OnTrack(f func(*webrtc.Track, *webrtc.RTPReceiver)) {
+	w.pc.OnTrack(f)
+}
+
 // AddTrack add track to pc
 func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8, streamID string, trackID string) (*webrtc.Track, error) {
 	if w.pc == nil {
