@@ -21,3 +21,10 @@ addrs = ["etcd:2379"]
 
 [nats]
 url = "nats://nats:4222"
+
+[avp]
+[avp.processors.recorder]
+outpath = "./"
+[avp.processors.recorder.audio]
+sampling = 4000
+channels = 2

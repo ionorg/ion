@@ -135,6 +135,15 @@ func Recover(flag string) {
 	}
 }
 
+// strToMap make string value to map
+func StrToMap(msg map[string]interface{}, key string) {
+	val := Val(msg, key)
+	if val != "" {
+		m := Unmarshal(val)
+		msg[key] = m
+	}
+}
+
 // get value from map
 func Val(msg map[string]interface{}, key string) string {
 	if msg == nil {

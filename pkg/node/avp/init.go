@@ -4,6 +4,8 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
+	processor "github.com/pion/ion/pkg/node/avp/processors"
+	"github.com/pion/ion/pkg/node/avp/processors/recorder"
 )
 
 var (
@@ -13,16 +15,30 @@ var (
 	rpcs        map[string]*nprotoo.Requestor
 	services    map[string]discovery.Node
 	broadcaster *nprotoo.Broadcaster
+	processors  map[string](func(id string) *processor.Processor)
 )
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID, natsURL string) {
+func Init(dcID, nodeID, rpcID, eventID, natsURL string, processorsCfg map[string]interface{}) {
 	dc = dcID
 	nid = nodeID
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 	rpcs = make(map[string]*nprotoo.Requestor)
 	services = make(map[string]discovery.Node)
 	broadcaster = protoo.NewBroadcaster(eventID)
+	processors = buildProcessors(processorsCfg)
+}
+
+func buildProcessors(conf map[string]interface{}) map[string]func(id string) *processor.Processor {
+	processors := make(map[string]func(id string) *processor.Processor)
+	for k, v := range conf {
+		switch k {
+		case "recorder":
+			recorder.Init(v.(map[string]interface{}))
+			processors[k] = (func(id string) *processor.Processor)(recorder.NewRecorder)
+		}
+	}
+	return processors
 }
 
 // WatchServiceNodes .
@@ -46,7 +62,7 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 			log.Infof("Create islb requestor: rpcID => [%s]", rpcID)
 			rpcs[id] = protoo.NewRequestor(rpcID)
 
-			log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
+			log.Infof("Register islb hander: handleIslbBroadCast: eventID => [%s]", eventID)
 			protoo.OnBroadcast(eventID, handleIslbBroadCast)
 		}
 
@@ -54,12 +70,5 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 		if _, found := services[id]; found {
 			delete(services, id)
 		}
-	}
-}
-
-// Close func
-func Close() {
-	if protoo != nil {
-		protoo.Close()
 	}
 }

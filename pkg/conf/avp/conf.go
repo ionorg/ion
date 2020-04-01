@@ -16,6 +16,7 @@ var (
 	Log    = &cfg.Log
 	Etcd   = &cfg.Etcd
 	Nats   = &cfg.Nats
+	Avp    = &cfg.Avp
 )
 
 func init() {
@@ -53,6 +54,10 @@ type rtp struct {
 	Port int `mapstructure:"port"`
 }
 
+type avp struct {
+	Processors map[string]interface{} `mapstructure:"processors"`
+}
+
 type config struct {
 	Global  global `mapstructure:"global"`
 	WebRTC  webrtc `mapstructure:"webrtc"`
@@ -60,6 +65,7 @@ type config struct {
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
 	Nats    nats   `mapstructure:"nats"`
+	Avp     avp    `mapstructure:"avp"`
 	CfgFile string
 }
 
