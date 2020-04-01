@@ -194,6 +194,8 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	if mid == "" {
 		uid := util.Val(data, "uid")
 		mkey = proto.BuildMediaInfoKey(dc, rid, "*", uid)
+	} else if rid == "" {
+		mkey = proto.BuildMediaInfoKey(dc, "*", "*", mid)
 	} else {
 		mkey = proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	}
