@@ -162,10 +162,7 @@ body {
   overflow: hidden;
 }
 
-.ion-red {
-  color: #e13b3f;
-}
-
+/*------------------app--------------------*/
 .app-layout {
   height: 100%;
 }
@@ -266,6 +263,7 @@ body {
   bottom: 16px;
 }
 
+/*------------------login--------------------*/
 .login-form {
   min-width: 300px;
 }
@@ -278,6 +276,7 @@ body {
   width: 100%;
 }
 
+/*------------------conference--------------------*/
 .conference-layout {
   position: absolute;
   left: 0px;
@@ -312,6 +311,7 @@ body {
   right: 24px;
 }
 
+/*------------------local-video--------------------*/
 .local-video-name {
   position: absolute;
   left: 8px;
@@ -368,6 +368,7 @@ body {
   align-items: center;
 }
 
+/*------------------main-video--------------------*/
 .main-video-layout {
   position: absolute;
   top: 0px;
@@ -398,6 +399,7 @@ body {
   color: #dbdbdb;
 }
 
+/*------------------small-video--------------------*/
 .small-video-list-div{
   position: absolute;
   left: 100px;
@@ -452,14 +454,13 @@ body {
 
 
 /*------------------media-seetings--------------------*/
-.item{
+.settings-item{
   display:flex;
   flex-direction: row;
   margin-bottom: 20px;
 }
 
-/*Item left*/
-.itemleft{
+.settings-item-left{
   width:80px;
   text-align: right;
   color:rgba(0, 0, 0, 0.65);
@@ -467,15 +468,14 @@ body {
   font-size: 14px;
   font-weight: normal;
 }
-/*Item right*/
-.itemright{
+
+.settings-item-right{
   flex:1;
   padding-left: 20px;
   padding-right: 20px;
 }
 
-/*Video container*/
-.videobox{
+.settings-video-container{
   width:240px;
   height:180px;
   background-color: #000000;
