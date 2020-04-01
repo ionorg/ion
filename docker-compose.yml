@@ -1,22 +1,22 @@
 version: '3.7'
 
 services:
-  # web:
+  web:
     # build:
     #   dockerfile: ./docker/web.Dockerfile
     #   context: .
-    # image: pionwebrtc/ion-web
-    # volumes:
-    #   - "./docker/Caddyfile:/etc/Caddyfile"
-    # ports:
-    #   - 80:80
-    #   - 8080:8080
-    #   - 8443:8443
-    # depends_on:
-    #   - biz
-    # environment:
-    # - WWW_URL
-    # - ADMIN_EMAIL
+    image: pionwebrtc/ion-web
+    volumes:
+      - "./docker/Caddyfile:/etc/Caddyfile"
+    ports:
+      - 80:80
+      - 8080:8080
+      - 8443:8443
+    depends_on:
+      - biz
+    environment:
+    - WWW_URL
+    - ADMIN_EMAIL
 
   sfu:
     build:
@@ -37,8 +37,7 @@ services:
     build:
       dockerfile: ./docker/avp.Dockerfile
       context: .
-    # command: "-c /configs/avp.toml"
-    # image: ion_avp:0.0.2
+    command: "-c /configs/avp.toml"
     volumes:
       - "./:/go/src/github.com/pion/ion"
       - "./docker/avp.toml:/configs/avp.toml"
@@ -54,8 +53,6 @@ services:
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
-    ports:
-      - "8443:8443"
     depends_on:
       - nats
       - etcd
