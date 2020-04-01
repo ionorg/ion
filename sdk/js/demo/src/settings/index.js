@@ -229,9 +229,9 @@ export default class MediaSettings extends React.Component {
                     onCancel={this.handleCancel}
                     okText='Ok'
                     cancelText='Cancel'>
-                    <div className="item">
-                        <span className="itemleft">Micphone</span>
-                        <div className="itemright">
+                    <div className="settings-item">
+                        <span className="settings-item-left">Micphone</span>
+                        <div className="settings-item-right">
                             <Select value={this.state.selectedAudioDevice} style={{ width: 350 }} onChange={this.handleAudioDeviceChange}>
                                 {
                                     this.state.audioDevices.map((device, index) => {
@@ -248,9 +248,9 @@ export default class MediaSettings extends React.Component {
                             </div>
                         </div>
                     </div>
-                    <div className="item">
-                        <span className="itemleft">Camera</span>
-                        <div className="itemright">
+                    <div className="settings-item">
+                        <span className="settings-item-left">Camera</span>
+                        <div className="settings-item-right">
                             <Select value={this.state.selectedVideoDevice} style={{ width: 350 }} onChange={this.handleVideoDeviceChange}>
                                 {
                                     this.state.videoDevices.map((device, index) => {
@@ -258,15 +258,15 @@ export default class MediaSettings extends React.Component {
                                     })
                                 }
                             </Select>
-                            <div className="videobox">
+                            <div className="settings-video-container">
                                 <video id='previewVideo' ref='previewVideo' autoPlay playsInline muted={true} style={{ width: '100%', height: '100%', objectFit: 'contain' }}></video>
                             </div>
 
                         </div>
                     </div>
-                    <div className="item">
-                        <span className="itemleft">Quality</span>
-                        <div className="itemright">
+                    <div className="settings-item">
+                        <span className="settings-item-left">Quality</span>
+                        <div className="settings-item-right">
                             <Select style={{ width: 350 }} value={this.state.resolution} onChange={this.handleResolutionChange}>
                                 <Option value="qvga">QVGA(320x180)</Option>
                                 <Option value="vga">VGA(640x360)</Option>
@@ -275,9 +275,9 @@ export default class MediaSettings extends React.Component {
                             </Select>
                         </div>
                     </div>
-                    <div className="item">
-                        <span className="itemleft">VideoCode</span>
-                        <div className="itemright">
+                    <div className="settings-item">
+                        <span className="settings-item-left">VideoCode</span>
+                        <div className="settings-item-right">
                             <Select style={{ width: 350 }} value={this.state.codec} onChange={this.handleVideoCodeChange}>
                                 <Option value="h264">H264</Option>
                                 <Option value="vp8">VP8</Option>
@@ -285,9 +285,9 @@ export default class MediaSettings extends React.Component {
                             </Select>
                         </div>
                     </div>
-                    <div className="item">
-                        <span className="itemleft">Bandwidth</span>
-                        <div className="itemright">
+                    <div className="settings-item">
+                        <span className="settings-item-left">Bandwidth</span>
+                        <div className="settings-item-right">
                             <Select style={{ width: 350 }} value={this.state.bandwidth} onChange={this.handleBandWidthChange}>
                                 <Option value="256">Low(256kbps)</Option>
                                 <Option value="512">Medium(512kbps)</Option>

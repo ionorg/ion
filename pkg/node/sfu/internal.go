@@ -105,17 +105,19 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
+			codecType := ""
 			media := sdpObj.GetMedia(track.GetMedia())
 			codecs := media.GetCodecs()
 
 			for payload, codec := range codecs {
 				if track.GetMedia() == "audio" {
-					if strings.ToUpper(codec.GetCodec()) == webrtc.Opus {
+					codecType = strings.ToUpper(codec.GetCodec())
+					if strings.ToUpper(codec.GetCodec()) == strings.ToUpper(webrtc.Opus) {
 						pt = payload
 						break
 					}
 				} else if track.GetMedia() == "video" {
-					codecType := strings.ToUpper(codec.GetCodec())
+					codecType = strings.ToUpper(codec.GetCodec())
 					if codecType == webrtc.H264 || codecType == webrtc.VP8 || codecType == webrtc.VP9 {
 						pt = payload
 						break
@@ -123,7 +125,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 				}
 			}
 			var infos []proto.TrackInfo
-			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id})
+			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
 			tracks[stream.GetID()+" "+id] = infos
 		}
 	}
@@ -195,6 +197,8 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 				Type:    info["type"].(string),
 				Ssrc:    int(info["ssrc"].(float64)),
 				Payload: int(info["pt"].(float64)),
+				Codec:   info["codec"].(string),
+				Fmtp:    info["fmtp"].(string),
 			}
 			ssrcPT[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
 			tracks[msid] = trackInfo
@@ -208,7 +212,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		//                streamID                        trackID
 		streamID := strings.Split(msid, " ")[0]
 		trackID := track.ID
-		log.Infof("AddTrack: ssrc:%d, pt:%d, streamID %s, trackID %s", ssrc, pt, streamID, trackID)
+		log.Infof("AddTrack: codec:%s, ssrc:%d, pt:%d, streamID %s, trackID %s", track.Codec, ssrc, pt, streamID, trackID)
 		_, err := sub.AddTrack(ssrc, pt, streamID, track.ID)
 		if err != nil {
 			log.Errorf("err=%v", err)

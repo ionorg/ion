@@ -160,6 +160,8 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 				Type:    tmp["type"].(string),
 				Ssrc:    int(tmp["ssrc"].(float64)),
 				Payload: int(tmp["pt"].(float64)),
+				Codec:   tmp["codec"].(string),
+				Fmtp:    tmp["fmtp"].(string),
 			})
 		}
 		field, value, err := proto.MarshalTrackField(msid, infos)
@@ -176,7 +178,7 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
 	fields := redis.HGetAll(proto.BuildUserInfoKey(dc, rid, uid))
-	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", fields["info"])
+	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", fields["info"], "tracks", tracks)
 	log.Infof("Broadcast: [stream-add] => %v", msg)
 	broadcaster.Say(proto.IslbOnStreamAdd, msg)
 
@@ -192,6 +194,8 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	if mid == "" {
 		uid := util.Val(data, "uid")
 		mkey = proto.BuildMediaInfoKey(dc, rid, "*", uid)
+	} else if rid == "" {
+		mkey = proto.BuildMediaInfoKey(dc, "*", "*", mid)
 	} else {
 		mkey = proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	}
@@ -222,7 +226,20 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 			log.Errorf("%v", err)
 		}
 		fields := redis.HGetAll(proto.BuildUserInfoKey(info.DC, info.RID, info.UID))
-		pub := util.Map("rid", rid, "uid", uid, "mid", info.MID, "info", fields["info"])
+		trackFields := redis.HGetAll(path)
+
+		tracks := make(map[string][]proto.TrackInfo)
+		for key, value := range trackFields {
+			if strings.HasPrefix(key, "track/") {
+				msid, infos, err := proto.UnmarshalTrackField(key, value)
+				if err != nil {
+					log.Errorf("%v", err)
+				}
+				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
+				tracks[msid] = *infos
+			}
+		}
+		pub := util.Map("rid", rid, "uid", uid, "mid", info.MID, "info", fields["info"], "tracks", tracks)
 		pubs = append(pubs, pub)
 	}
 

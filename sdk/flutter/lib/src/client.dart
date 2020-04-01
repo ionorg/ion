@@ -177,9 +177,27 @@ class Client extends EventEmitter {
   }
 
   Future<Stream> subscribe(rid, mid,
-      [String codec = 'vp8', String bandwidth = '512']) async {
-    logger.debug('subscribe rid => $rid, mid => $mid');
+      tracks, [String bandwidth = '512']) async {
+    logger.debug('subscribe rid => $rid, mid => $mid,  tracks => ${tracks.toString()}');
     Completer completer = new Completer<Stream>();
+    var codec = "";
+    tracks.forEach((trackID,trackInfoArr) async {
+        logger.debug('trackInfoArr=$trackInfoArr');
+
+        for(var i=0; i<trackInfoArr.length; i++){
+          var trackInfo=trackInfoArr[i];
+          logger.debug('trackInfo=$trackInfo');
+          var type = trackInfo['type'];
+          logger.debug('type=$type');
+          if (type == "video") {
+            codec = trackInfo['codec'];
+            logger.debug('codec=$codec');
+          }
+        }
+      }
+    );
+
+     
     var options = {
       'codec': codec,
       'bandwidth': bandwidth,
@@ -225,7 +243,7 @@ class Client extends EventEmitter {
         },
         'optional': [],
       });
-      var desc = this._payloadModify(offer, options['codec'], false);
+      var desc = this._payloadModify(offer, codec, false);
       await pc.setLocalDescription(desc);
       this._pcs[mid] = pc;
     } catch (error) {
@@ -297,7 +315,7 @@ class Client extends EventEmitter {
         payload = DefaultPayloadTypeVP9;
         codeName = "VP9";
       } else if (codec.toLowerCase() == 'h264') {
-        payload = 96;
+        payload = 102;
         codeName = "H264";
       } else {
         return desc;
@@ -323,7 +341,7 @@ class Client extends EventEmitter {
         fmtp.add({
           "payload": payload,
           "config":
-              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
+              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
         });
       }
 
@@ -467,9 +485,10 @@ class Client extends EventEmitter {
           var rid = data['rid'];
           var mid = data['mid'];
           var info = data['info'];
+          var tracks = data['tracks'];
           logger.debug(
-              'stream-add peer rid => $mid, uid => $mid, info => ${info.toString()}');
-          this.emit('stream-add', rid, mid, info);
+              'stream-add peer rid => $rid, mid => $mid, info => ${info.toString()},  tracks => $tracks');
+          this.emit('stream-add', rid, mid, info, tracks);
           break;
         }
       case 'stream-remove':

@@ -32,6 +32,14 @@ class VideoRendererAdapter {
     _renderer.objectFit = _objectFit;
   }
 
+  set objectFit(RTCVideoViewObjectFit objectFit) {
+    _objectFit = objectFit;
+    if (this._renderer != null) {
+      _renderer.objectFit = _objectFit;
+    }
+  }
+
+
   dispose() async {
     if (_renderer != null) {
       print('dispose for texture id ' + _renderer.textureId.toString());
