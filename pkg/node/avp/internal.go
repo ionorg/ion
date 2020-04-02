@@ -1,15 +1,13 @@
 package avp
 
 import (
-	"time"
-
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
+	baseprocessor "github.com/pion/ion/pkg/node/avp/processors"
 	"github.com/pion/ion/pkg/proto"
 	transport "github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/ion/pkg/util"
-	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v2"
 )
 
@@ -80,8 +78,28 @@ func handleIslbBroadCast(msg map[string]interface{}, subj string) {
 	switch method {
 	case proto.IslbOnStreamAdd:
 		handleOnStreamAdd(data)
-		// case proto.IslbOnStreamRemove:
-		// 	TODO
+	case proto.IslbOnStreamRemove:
+		handleStreamRemove(data)
+	}
+}
+
+func handleStreamRemove(data map[string]interface{}) {
+	mid := util.Val(data, "mid")
+
+	log.Infof("IslbOnStreamRemove: mid=%s", mid)
+
+	midprocessors := processors[mid]
+	if midprocessors != nil {
+		for name, processor := range midprocessors {
+			if processor.AudioWriter != nil {
+				processor.AudioWriter.Close()
+			}
+			if processor.VideoWriter != nil {
+				processor.VideoWriter.Close()
+			}
+			midprocessors[name] = nil
+		}
+		processors[mid] = nil
 	}
 }
 
@@ -97,38 +115,39 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 
 	sub := transport.NewWebRTCTransport(mid, rtcOptions)
 	sub.OnTrack(func(track *webrtc.Track, receiver *webrtc.RTPReceiver) {
-		// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
-		go func() {
-			ticker := time.NewTicker(time.Second * 3)
-			for range ticker.C {
-				errSend := sub.WriteRTCP(&rtcp.PictureLossIndication{MediaSSRC: track.SSRC()})
-				if errSend != nil {
-					log.Warnf("Error sending RTCP")
-				}
-			}
-		}()
-		log.Infof("OnTrack called with processors: %v", processors)
-		for name, Processor := range processors {
-			processor := Processor(mid)
+		log.Infof("OnTrack called with processor factories: %v", factories)
+		for name, Factory := range factories {
+			processor := Factory(mid)
+			processors[mid] = make(map[string]*baseprocessor.Processor)
+			processors[mid][name] = processor
+
 			codec := track.Codec()
-			log.Infof("Codec %s", codec)
+			log.Infof("Got track with codec: %s", codec)
 			if codec.Name == webrtc.Opus {
-				for {
-					// Read RTP packets being sent to Pion
-					rtp, err := track.ReadRTP()
-					if err != nil {
-						log.Warnf("Error writing audio for processor %s", name)
+				if processor.AudioWriter != nil {
+					for {
+						// Read RTP packets being sent to Pion
+						rtp, err := track.ReadRTP()
+						if err != nil {
+							log.Warnf("Error writing audio for processor %s. Closing writer.", name)
+							processor.AudioWriter.Close()
+							break
+						}
+						processor.AudioWriter.WriteRTP(rtp)
 					}
-					processor.AudioWriter.WriteRTP(rtp)
 				}
 			} else if codec.Name == webrtc.VP8 {
-				for {
-					// Read RTP packets being sent to Pion
-					rtp, err := track.ReadRTP()
-					if err != nil {
-						log.Warnf("Error writing audio for processor %s", name)
+				if processor.VideoWriter != nil {
+					for {
+						// Read RTP packets being sent to Pion
+						rtp, err := track.ReadRTP()
+						if err != nil {
+							log.Warnf("Error writing video for processor %s. Closing writer.", name)
+							processor.VideoWriter.Close()
+							break
+						}
+						processor.VideoWriter.WriteRTP(rtp)
 					}
-					processor.VideoWriter.WriteRTP(rtp)
 				}
 			}
 		}

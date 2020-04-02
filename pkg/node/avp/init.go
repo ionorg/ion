@@ -15,7 +15,8 @@ var (
 	rpcs        map[string]*nprotoo.Requestor
 	services    map[string]discovery.Node
 	broadcaster *nprotoo.Broadcaster
-	processors  map[string](func(id string) *processor.Processor)
+	factories   map[string]func(id string) *processor.Processor
+	processors  map[string]map[string]*processor.Processor // mid.name.Processor
 )
 
 // Init func
@@ -26,19 +27,20 @@ func Init(dcID, nodeID, rpcID, eventID, natsURL string, processorsCfg map[string
 	rpcs = make(map[string]*nprotoo.Requestor)
 	services = make(map[string]discovery.Node)
 	broadcaster = protoo.NewBroadcaster(eventID)
-	processors = buildProcessors(processorsCfg)
+	factories = buildProcessorFactories(processorsCfg)
+	processors = make(map[string]map[string]*processor.Processor)
 }
 
-func buildProcessors(conf map[string]interface{}) map[string]func(id string) *processor.Processor {
-	processors := make(map[string]func(id string) *processor.Processor)
+func buildProcessorFactories(conf map[string]interface{}) map[string]func(id string) *processor.Processor {
+	factories := make(map[string]func(id string) *processor.Processor)
 	for k, v := range conf {
 		switch k {
 		case "recorder":
 			recorder.Init(v.(map[string]interface{}))
-			processors[k] = (func(id string) *processor.Processor)(recorder.NewRecorder)
+			factories[k] = (func(id string) *processor.Processor)(recorder.NewRecorder)
 		}
 	}
-	return processors
+	return factories
 }
 
 // WatchServiceNodes .
