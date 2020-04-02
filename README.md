@@ -1,6 +1,7 @@
 # ION
 
-ION is a distributed RTC system written by pure go and flutter
+ION is a distributed Real Time Collaboration (RTC) system written in pure go and dart using [flutter](https://flutter.dev/).
+
 
 [![Financial Contributors on Open Collective](https://opencollective.com/pion-ion/all/badge.svg?label=financial+contributors)](https://opencollective.com/pion-ion) [![Build Status](https://travis-ci.com/pion/ion.svg?branch=master)](https://travis-ci.com/pion/ion)
 ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -17,8 +18,8 @@ ION is a distributed RTC system written by pure go and flutter
 
   - [x] Standalone BIZ/ISLB and SFU node
   - [x] Message Queue by NATS
-  - [x] SFU by Pure GO
-  - [x] MCU (WIP)
+  - [x] Services for Unix (SFU) by Pure GO
+  - [x] Multipoint Control Unit (MCU) (WIP)
   - [x] SFU<-->SFU relay (WIP)
   - [x] High Performance (WIP)
 
