@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, Icon, Input, Button } from "antd";
+import { Form, Icon, Input, Button,Checkbox } from "antd";
 import { reactLocalStorage } from "reactjs-localstorage";
 
 class LoginForm extends React.Component {
@@ -13,12 +13,14 @@ class LoginForm extends React.Component {
 
     let roomId = 'room1';
     let displayName = 'Guest';
+    let audioOnly = false;
 
     let localStorage = reactLocalStorage.getObject("loginInfo");
 
     if(localStorage){
       roomId = localStorage.roomId;
       displayName = localStorage.displayName;
+      audioOnly = localStorage.audioOnly;
       console.log('localStorage:' + roomId + ' ' + displayName);
     }
 
@@ -29,6 +31,7 @@ class LoginForm extends React.Component {
     form.setFieldsValue({
       'roomId': roomId,
       'displayName': displayName,
+      'audioOnly': audioOnly,
     });
   }
 
@@ -81,6 +84,16 @@ class LoginForm extends React.Component {
               }
               placeholder="Display Name"
             />
+          )}
+        </Form.Item>
+        <Form.Item>
+          {getFieldDecorator('audioOnly', {
+            valuePropName: 'checked',
+            initialValue: true,
+          })(
+            <Checkbox>
+              Audio only
+            </Checkbox>
           )}
         </Form.Item>
         <Form.Item>

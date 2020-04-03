@@ -89,8 +89,9 @@ class Conference extends React.Component {
     }
   };
 
-  handleLocalStream = async enabled => {
+  handleLocalStream = async (enabled) => {
     let { localStream } = this.state;
+
     try {
       if (enabled) {
         localStream = await this._publish("video");
@@ -105,6 +106,10 @@ class Conference extends React.Component {
       console.log("handleLocalStream error => " + e);
       _notification("publish/unpublish failed!", e);
     }
+
+    //Check audio only conference
+    this.muteMediaTrack("video", this.props.localVideoEnabled);
+
   };
 
   handleScreenSharing = async enabled => {

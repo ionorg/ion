@@ -101,7 +101,13 @@ class App extends React.Component {
     reactLocalStorage.clear("loginInfo");
     reactLocalStorage.setObject("loginInfo", values);
     await this.client.join(values.roomId, { name: values.displayName });
-    this.setState({ login: true, loading: false, loginInfo: values });
+    this.setState({ 
+      login: true, 
+      loading: false, 
+      loginInfo: values,
+      localVideoEnabled: !values.audioOnly,
+    });
+
     this._notification(
       "Connected!",
       "Welcome to the ion room => " + values.roomId
@@ -321,6 +327,8 @@ class App extends React.Component {
                     collapsed={this.state.collapsed}
                     client={this.client}
                     settings={this._settings}
+                    localAudioEnabled={localAudioEnabled}
+                    localVideoEnabled={localVideoEnabled}
                     ref={ref => {
                       this.conference = ref;
                     }}
