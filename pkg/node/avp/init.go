@@ -6,6 +6,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 	processor "github.com/pion/ion/pkg/node/avp/processors"
 	"github.com/pion/ion/pkg/node/avp/processors/recorder"
+	"github.com/pion/ion/pkg/node/avp/processors/speech"
 )
 
 var (
@@ -38,6 +39,9 @@ func buildProcessorFactories(conf map[string]interface{}) map[string]func(id str
 		case "recorder":
 			recorder.Init(v.(map[string]interface{}))
 			factories[k] = (func(id string) *processor.Processor)(recorder.NewRecorder)
+		case "speech":
+			speech.Init(v.(map[string]interface{}))
+			factories[k] = (func(id string) *processor.Processor)(speech.NewSpeech)
 		}
 	}
 	return factories

@@ -117,9 +117,13 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 	sub.OnTrack(func(track *webrtc.Track, receiver *webrtc.RTPReceiver) {
 		log.Infof("OnTrack called with processor factories: %v", factories)
 		for name, Factory := range factories {
-			processor := Factory(mid)
-			processors[mid] = make(map[string]*baseprocessor.Processor)
-			processors[mid][name] = processor
+			processor := processors[mid][name]
+
+			if processor == nil {
+				processor = Factory(mid)
+				processors[mid] = make(map[string]*baseprocessor.Processor)
+				processors[mid][name] = processor
+			}
 
 			codec := track.Codec()
 			log.Infof("Got track with codec: %s", codec)
@@ -133,7 +137,10 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 							processor.AudioWriter.Close()
 							break
 						}
-						processor.AudioWriter.WriteRTP(rtp)
+						err = processor.AudioWriter.WriteRTP(rtp)
+						if err != nil {
+							log.Warnf("Error writing rtp to audio writer. %s", err)
+						}
 					}
 				}
 			} else if codec.Name == webrtc.VP8 {
@@ -146,7 +153,10 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 							processor.VideoWriter.Close()
 							break
 						}
-						processor.VideoWriter.WriteRTP(rtp)
+						err = processor.VideoWriter.WriteRTP(rtp)
+						if err != nil {
+							log.Warnf("Error writing rtp to video writer. %s", err)
+						}
 					}
 				}
 			}
