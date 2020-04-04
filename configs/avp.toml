@@ -24,3 +24,9 @@ addrs = ["127.0.0.1:2379"]
 [nats]
 url = "nats://127.0.0.1:4222"
 
+[avp]
+[avp.processors.recorder]
+outpath = "./"
+[avp.processors.recorder.audio]
+sampling = 4000
+channels = 2
