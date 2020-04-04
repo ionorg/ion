@@ -161,6 +161,15 @@ export default class Client extends EventEmitter {
         }
     }
 
+    async broadcast(rid, info) {
+        try {
+            let data = await this._protoo.request('broadcast', { 'rid': rid, 'uid': this._uid, info });
+            console.log('broadcast success: result => ' + JSON.stringify(data));
+        } catch (error) {
+            console.log('broadcast reject: error =>' + error);
+        }
+    }
+
     close() {
         this._protoo.close();
     }
@@ -329,6 +338,13 @@ export default class Client extends EventEmitter {
                     console.log('stream-remove peer rid => %s, mid => %s', rid, mid);
                     this.emit('stream-remove', rid, mid);
                     this._removePC(mid);
+                    break;
+                }
+            case 'broadcast':
+                {
+                    const { rid, mid, info } = data;
+                    console.log('broadcast peer rid => %s, mid => %s', rid, mid);
+                    this.emit('broadcast', rid, mid, info);
                     break;
                 }
         }

@@ -268,6 +268,18 @@ class Client extends EventEmitter {
     }
   }
 
+  Future<dynamic> broadcast(rid, info) async {
+    try {
+      var data = await this
+          ._protoo
+          .send('broadcast', {'rid': this._rid, 'uid': this._uid, 'info': info});
+      logger.debug('broadcast success: result => ' + _encoder.convert(data));
+      return data;
+    } catch (error) {
+      logger.debug('broadcast reject: error =>' + error);
+    }
+  }
+
   close() {
     this._protoo.close();
   }
@@ -498,6 +510,16 @@ class Client extends EventEmitter {
           logger.debug('stream-remove peer rid => $rid, mid => $mid');
           this.emit('stream-remove', rid, mid);
           this._removePC(mid);
+          break;
+        }
+     case 'broadcast':
+        {
+          var rid = data['rid'];
+          var uid = data['uid'];
+          var info = data['info'];
+          logger.debug(
+              'broadcast peer rid => $rid, uid => $uid, info => ${info.toString()}');
+          this.emit('broadcast', rid, uid, info);
           break;
         }
     }

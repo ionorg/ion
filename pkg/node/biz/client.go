@@ -330,7 +330,7 @@ func unsubscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]inte
 }
 
 func broadcast(peer *signal.Peer, msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
+	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
 	if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
 		return nil, err
