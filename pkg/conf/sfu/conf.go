@@ -44,9 +44,15 @@ type nats struct {
 	URL string `mapstructure:"url"`
 }
 
-type webrtc struct {
-	ICE          []string `mapstructure:"ice"`
+type ICE struct {
+	URLs         []string `mapstructure:"urls"`
+	Username     string   `mapstructure:"username"`
+	Credential   string   `mapstructure:"credential"`
 	ICEPortRange []uint16 `mapstructure:"ephemeral-udp-port-range"`
+}
+
+type webrtc struct {
+	Ice ICE `mapstructure:"ice"`
 }
 
 type rtp struct {

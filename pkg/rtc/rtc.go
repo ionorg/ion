@@ -9,6 +9,7 @@ import (
 	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/ion/pkg/rtc/rtpengine"
 	"github.com/pion/ion/pkg/rtc/transport"
+	"github.com/pion/webrtc/v2"
 )
 
 const (
@@ -27,10 +28,10 @@ var (
 )
 
 // Init port and ice urls
-func Init(port int, ices []string, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
+func Init(port int, ice webrtc.ICEServer, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
 
 	//init ice urls and ICE settings
-	if err := transport.InitWebRTC(ices, icePortStart, icePortEnd); err != nil {
+	if err := transport.InitWebRTC(ice, icePortStart, icePortEnd); err != nil {
 		return err
 	}
 
