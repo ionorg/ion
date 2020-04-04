@@ -8,15 +8,17 @@ dc = "dc1"
 addr = "127.0.0.1"
 
 [webrtc]
-
-# if ion behind nat, uncomment webrtc.ice configs
-[webrtc.ice]
-# urls = ["stun:stun.stunprotocol.org:3478"]
-# username = ""
-# credential = ""
-
 # Range of ports that ion accepts WebRTC traffic on
-ephemeral-udp-port-range = []
+# portrange = []
+
+# if sfu behind nat, set iceserver
+# [[webrtc.iceserver]]
+# urls = ["stun:stun.stunprotocol.org:3478"]
+
+# [[webrtc.iceserver]]
+# urls = ["turn:turn.awsome.org:3478"]
+# username = "awsome"
+# credential = "awsome"
 
 [rtp]
 # listen port

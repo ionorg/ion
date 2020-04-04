@@ -15,18 +15,22 @@ import (
 func init() {
 	var icePortStart, icePortEnd uint16
 
-	if len(conf.WebRTC.Ice.ICEPortRange) == 2 {
-		icePortStart = conf.WebRTC.Ice.ICEPortRange[0]
-		icePortEnd = conf.WebRTC.Ice.ICEPortRange[1]
+	if len(conf.WebRTC.ICEPortRange) == 2 {
+		icePortStart = conf.WebRTC.ICEPortRange[0]
+		icePortEnd = conf.WebRTC.ICEPortRange[1]
 	}
 
 	log.Init(conf.Log.Level)
-	ice := webrtc.ICEServer{
-		URLs:       conf.WebRTC.Ice.URLs,
-		Username:   conf.WebRTC.Ice.Username,
-		Credential: conf.WebRTC.Ice.Credential,
+	var iceServers []webrtc.ICEServer
+	for _, iceServer := range conf.WebRTC.ICEServers {
+		s := webrtc.ICEServer{
+			URLs:       iceServer.URLs,
+			Username:   iceServer.Username,
+			Credential: iceServer.Credential,
+		}
+		iceServers = append(iceServers, s)
 	}
-	if err := rtc.Init(conf.Rtp.Port, ice, icePortStart, icePortEnd, "", ""); err != nil {
+	if err := rtc.Init(conf.Rtp.Port, iceServers, icePortStart, icePortEnd, "", ""); err != nil {
 		panic(err)
 	}
 }

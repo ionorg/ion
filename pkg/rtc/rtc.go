@@ -28,10 +28,10 @@ var (
 )
 
 // Init port and ice urls
-func Init(port int, ice webrtc.ICEServer, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
+func Init(port int, iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
 
 	//init ice urls and ICE settings
-	if err := transport.InitWebRTC(ice, icePortStart, icePortEnd); err != nil {
+	if err := transport.InitWebRTC(iceServers, icePortStart, icePortEnd); err != nil {
 		return err
 	}
 
