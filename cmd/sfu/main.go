@@ -9,18 +9,24 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/sfu"
 	"github.com/pion/ion/pkg/rtc"
+	"github.com/pion/webrtc/v2"
 )
 
 func init() {
 	var icePortStart, icePortEnd uint16
 
-	if len(conf.WebRTC.ICEPortRange) == 2 {
-		icePortStart = conf.WebRTC.ICEPortRange[0]
-		icePortEnd = conf.WebRTC.ICEPortRange[1]
+	if len(conf.WebRTC.Ice.ICEPortRange) == 2 {
+		icePortStart = conf.WebRTC.Ice.ICEPortRange[0]
+		icePortEnd = conf.WebRTC.Ice.ICEPortRange[1]
 	}
 
 	log.Init(conf.Log.Level)
-	if err := rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE, icePortStart, icePortEnd, "", ""); err != nil {
+	ice := webrtc.ICEServer{
+		URLs:       conf.WebRTC.Ice.URLs,
+		Username:   conf.WebRTC.Ice.Username,
+		Credential: conf.WebRTC.Ice.Credential,
+	}
+	if err := rtc.Init(conf.Rtp.Port, ice, icePortStart, icePortEnd, "", ""); err != nil {
 		panic(err)
 	}
 }

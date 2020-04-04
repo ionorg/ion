@@ -33,17 +33,13 @@ var (
 )
 
 // InitWebRTC init WebRTCTransport setting
-func InitWebRTC(ices []string, icePortStart, icePortEnd uint16) error {
+func InitWebRTC(ice webrtc.ICEServer, icePortStart, icePortEnd uint16) error {
 	var err error
 	if icePortStart != 0 || icePortEnd != 0 {
 		err = setting.SetEphemeralUDPPortRange(icePortStart, icePortEnd)
 	}
 
-	cfg.ICEServers = []webrtc.ICEServer{
-		{
-			URLs: ices,
-		},
-	}
+	cfg.ICEServers = []webrtc.ICEServer{ice}
 	return err
 }
 

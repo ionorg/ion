@@ -81,6 +81,9 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		}
 	}
 	pub := transport.NewWebRTCTransport(mid, rtcOptions)
+	if pub == nil {
+		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
+	}
 
 	router := rtc.GetOrNewRouter(mid)
 	go handleTrickle(router, pub)
@@ -183,6 +186,10 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	ssrcPT := make(map[uint32]uint8)
 	rtcOptions["ssrcpt"] = ssrcPT
 	sub := transport.NewWebRTCTransport(subID, rtcOptions)
+
+	if sub == nil {
+		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
+	}
 
 	go handleTrickle(router, sub)
 
