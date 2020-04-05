@@ -181,7 +181,7 @@ class Client extends EventEmitter {
     logger.debug('subscribe rid => $rid, mid => $mid,  tracks => ${tracks.toString()}');
     Completer completer = new Completer<Stream>();
     var codec = "";
-    tracks.forEach((trackID,trackInfoArr) async {
+    tracks?.forEach((trackID,trackInfoArr) async {
         logger.debug('trackInfoArr=$trackInfoArr');
 
         for(var i=0; i<trackInfoArr.length; i++){
