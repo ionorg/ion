@@ -38,7 +38,7 @@ services:
       dockerfile: ./docker/avp.Dockerfile
       context: .
     # image: ion_avp
-    # command: "-c /configs/avp.toml"
+    command: "-c /configs/avp.toml"
     volumes:
       - "./:/go/src/github.com/pion/ion"
       - "./docker/avp.toml:/configs/avp.toml"

@@ -63,7 +63,6 @@ func setInterval(someFunc func(), milliseconds uint, async bool) chan bool {
 	// so that the for loop is none blocking
 	go func() {
 		for {
-
 			select {
 			case <-ticker.C:
 				if async {
@@ -139,6 +138,7 @@ func (sw *SpeechWriter) init() {
 func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
 	sw := &SpeechWriter{
 		broadcast: broadcast,
+		rid:       rid,
 	}
 	sw.pr, sw.pw = io.Pipe()
 
