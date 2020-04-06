@@ -9,6 +9,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/avp"
 	"github.com/pion/ion/pkg/rtc"
+	"github.com/pion/webrtc/v2"
 )
 
 func init() {
@@ -20,7 +21,16 @@ func init() {
 	}
 
 	log.Init(conf.Log.Level)
-	if err := rtc.Init(conf.Rtp.Port, conf.WebRTC.ICE, icePortStart, icePortEnd, "", ""); err != nil {
+	var iceServers []webrtc.ICEServer
+	for _, iceServer := range conf.WebRTC.ICEServers {
+		s := webrtc.ICEServer{
+			URLs:       iceServer.URLs,
+			Username:   iceServer.Username,
+			Credential: iceServer.Credential,
+		}
+		iceServers = append(iceServers, s)
+	}
+	if err := rtc.Init(conf.Rtp.Port, iceServers, icePortStart, icePortEnd, "", ""); err != nil {
 		panic(err)
 	}
 }
