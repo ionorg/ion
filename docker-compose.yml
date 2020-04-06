@@ -42,6 +42,9 @@ services:
     volumes:
       - "./:/go/src/github.com/pion/ion"
       - "./docker/avp.toml:/configs/avp.toml"
+      - "~/.gcloudkeys/insider-1a8d6-b2f0830393e0.json:/keys/gcloud.json"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/keys/gcloud.json
     depends_on:
       - nats
       - etcd
