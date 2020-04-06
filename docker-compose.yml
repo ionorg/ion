@@ -34,10 +34,10 @@ services:
       - etcd
 
   avp:
-    # build:
-    #   dockerfile: ./docker/avp.Dockerfile
-    #   context: .
-    image: ion_avp
+    build:
+      dockerfile: ./docker/avp.Dockerfile
+      context: .
+    # image: ion_avp
     # command: "-c /configs/avp.toml"
     volumes:
       - "./:/go/src/github.com/pion/ion"

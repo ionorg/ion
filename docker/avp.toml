@@ -5,7 +5,7 @@ pprof = ":6062"
 dc = "dc1"
 
 [webrtc]
-ice = ["stun:stun.l.google.com:19302"]
+# ice = ["stun:stun.l.google.com:19302"]
 
 [rtp]
 # listen port
@@ -23,12 +23,12 @@ addrs = ["etcd:2379"]
 url = "nats://nats:4222"
 
 [avp]
-[avp.processors.recorder]
-dest = "gcloud"
-bucket = "stream-storage-inside-iq"
-[avp.processors.recorder.audio]
-sampling = 48000
-channels = 2
+# [avp.processors.recorder]
+# dest = "gcloud"
+# bucket = "stream-storage-inside-iq"
+# [avp.processors.recorder.audio]
+# sampling = 48000
+# channels = 2
 
 [avp.processors.speech]
 [avp.processors.speech.audio]
