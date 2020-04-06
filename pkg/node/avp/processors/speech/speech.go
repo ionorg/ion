@@ -76,9 +76,11 @@ func NewSpeechWriter() *SpeechWriter {
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
-					Encoding:        speechpb.RecognitionConfig_OGG_OPUS,
-					SampleRateHertz: int32(cfg.Audio.Sampling),
-					LanguageCode:    "en-US",
+					Encoding:                   speechpb.RecognitionConfig_OGG_OPUS,
+					SampleRateHertz:            int32(cfg.Audio.Sampling),
+					LanguageCode:               "en-US",
+					MaxAlternatives:            3,
+					EnableAutomaticPunctuation: true,
 				},
 			},
 		},
