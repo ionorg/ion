@@ -31,6 +31,6 @@ sampling = 48000
 channels = 2
 
 [avp.processors.speech]
-[avp.processors.speech.audio]
 sampling = 48000
 channels = 1
+streaminglimit = 240000

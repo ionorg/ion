@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/mitchellh/mapstructure"
@@ -19,15 +20,11 @@ var (
 	cfg Options
 )
 
-// AudioOptions audio options
-type AudioOptions struct {
-	Sampling uint32
-	Channels uint16
-}
-
 // Options Speech options
 type Options struct {
-	Audio AudioOptions
+	Sampling       uint32
+	Channels       uint16
+	StreamingLimit uint
 }
 
 // Init initialize speech processor
@@ -51,26 +48,71 @@ func (e *writerError) Error() string {
 	return e.reason
 }
 
-type SpeechWriter struct {
-	stream speechpb.Speech_StreamingRecognizeClient
-	pw     *io.PipeWriter
-	pr     *io.PipeReader
+func setInterval(someFunc func(), milliseconds uint, async bool) chan bool {
+
+	// How often to fire the passed in function
+	// in milliseconds
+	interval := time.Duration(milliseconds) * time.Millisecond
+
+	// Setup the ticket and the channel to signal
+	// the ending of the interval
+	ticker := time.NewTicker(interval)
+	clear := make(chan bool)
+
+	// Put the selection in a go routine
+	// so that the for loop is none blocking
+	go func() {
+		for {
+
+			select {
+			case <-ticker.C:
+				if async {
+					// This won't block
+					go someFunc()
+				} else {
+					// This will block
+					someFunc()
+				}
+			case <-clear:
+				ticker.Stop()
+				return
+			}
+
+		}
+	}()
+
+	// We return the channel so we can pass in
+	// a value to it to clear the interval
+	return clear
+
 }
 
-func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
-	sw := &SpeechWriter{}
-	sw.pr, sw.pw = io.Pipe()
+type SpeechWriter struct {
+	start     time.Time
+	stream    speechpb.Speech_StreamingRecognizeClient
+	rid       string
+	broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error
+	pw        *io.PipeWriter
+	pr        *io.PipeReader
+}
+
+func (sw *SpeechWriter) init() {
+	if sw.stream != nil {
+		log.Infof("Closed speech writer")
+		sw.stream.CloseSend()
+	}
+	log.Infof("Creating speech writer")
 	ctx := context.Background()
 	client, err := speech.NewClient(ctx)
 	if err != nil {
 		log.Warnf("Error creating speech writer %s", err.Error())
-		return nil
+		return
 	}
 
 	stream, err := client.StreamingRecognize(ctx)
 	if err != nil {
 		log.Warnf(err.Error())
-		return nil
+		return
 	}
 
 	// Send the initial configuration message.
@@ -79,7 +121,7 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
 					Encoding:                   speechpb.RecognitionConfig_OGG_OPUS,
-					SampleRateHertz:            int32(cfg.Audio.Sampling),
+					SampleRateHertz:            int32(cfg.Sampling),
 					LanguageCode:               "en-US",
 					MaxAlternatives:            3,
 					EnableAutomaticPunctuation: true,
@@ -88,8 +130,22 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 		},
 	}); err != nil {
 		log.Infof(err.Error())
-		return nil
+		return
 	}
+
+	sw.stream = stream
+}
+
+func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
+	sw := &SpeechWriter{
+		broadcast: broadcast,
+	}
+	sw.pr, sw.pw = io.Pipe()
+
+	sw.init()
+	// setInterval(func() {
+	// 	sw.init()
+	// }, cfg.StreamingLimit, true)
 
 	go func() {
 		// Pipe stdin to the API.
@@ -97,7 +153,8 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 		for {
 			n, err := sw.pr.Read(buf)
 			if n > 0 {
-				if err := stream.Send(&speechpb.StreamingRecognizeRequest{
+
+				if err := sw.stream.Send(&speechpb.StreamingRecognizeRequest{
 					StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
 						AudioContent: buf[:n],
 					},
@@ -107,10 +164,10 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 			}
 			if err == io.EOF {
 				// Nothing else to pipe, close the stream.
-				if err := stream.CloseSend(); err != nil {
+				if err := sw.stream.CloseSend(); err != nil {
 					log.Warnf("Could not close stream: %v", err)
 				}
-				return
+				break
 			}
 			if err != nil {
 				log.Infof("Could not read from stdin: %v", err)
@@ -121,7 +178,7 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 
 	go func() {
 		for {
-			resp, err := stream.Recv()
+			resp, err := sw.stream.Recv()
 			if err == io.EOF {
 				break
 			}
@@ -130,16 +187,17 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 			}
 			if err := resp.Error; err != nil {
 				// Workaround while the API doesn't give a more informative error.
-				if err.Code == 3 || err.Code == 11 {
-					log.Infof("WARNING: Speech recognition request exceeded limit of 60 seconds.")
-				}
-				log.Warnf("Could not recognize: %v", err)
+				// if err.Code == 3 || err.Code == 11 {
+				// 	log.Infof("WARNING: Speech recognition request exceeded limit of 60 seconds.")
+				// }
+				log.Warnf("Speech error: %v", err)
+				break
 			}
 
 			var data map[string]interface{}
 			s, err := json.Marshal(resp)
 			json.Unmarshal(s, &data)
-			broadcast(rid, data)
+			sw.broadcast(sw.rid, data)
 		}
 	}()
 
@@ -168,7 +226,7 @@ func NewSpeech(rid string, mid string, broadcast func(rid string, msg map[string
 		return nil
 	}
 
-	oggWriter, err := oggwriterr.NewWith(sw, cfg.Audio.Sampling, cfg.Audio.Channels)
+	oggWriter, err := oggwriterr.NewWith(sw, cfg.Sampling, cfg.Channels)
 	if err != nil {
 		log.Warnf("init-disk-writers: error creating audio writer")
 		return nil
