@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"cloud.google.com/go/storage"
+	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pion/ion/pkg/log"
 	processor "github.com/pion/ion/pkg/node/avp/processors"
@@ -94,10 +95,10 @@ func initGCWriters(id string) (processor.RTPWriter, processor.RTPWriter, error) 
 }
 
 // NewRecorder Creates a Recorder
-func NewRecorder(id string) *processor.Processor {
+func NewRecorder(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor {
 	log.Infof("NewRecorder with config %v", cfg)
 	r := &processor.Processor{
-		ID: id,
+		ID: mid,
 	}
 
 	var oggWriter processor.RTPWriter
@@ -105,9 +106,9 @@ func NewRecorder(id string) *processor.Processor {
 	var err error
 
 	if cfg.Dest == "gcloud" {
-		oggWriter, ivfWriter, err = initGCWriters(id)
+		oggWriter, ivfWriter, err = initGCWriters(mid)
 	} else {
-		oggWriter, ivfWriter, err = intiDiskWriters(id)
+		oggWriter, ivfWriter, err = intiDiskWriters(mid)
 	}
 
 	if err != nil {

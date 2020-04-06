@@ -10,9 +10,6 @@ addr = "127.0.0.1"
 [webrtc]
 ice = ["stun:stun.l.google.com:19302"]
 
-# Range of ports that ion accepts WebRTC traffic on
-ephemeral-udp-port-range = [5000, 5200]
-
 [rtp]
 # listen port
 port = 6666

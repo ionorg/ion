@@ -2,8 +2,10 @@ package speech
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 
+	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pion/ion/pkg/log"
 	processor "github.com/pion/ion/pkg/node/avp/processors"
@@ -55,7 +57,7 @@ type SpeechWriter struct {
 	pr     *io.PipeReader
 }
 
-func NewSpeechWriter() *SpeechWriter {
+func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
 	sw := &SpeechWriter{}
 	sw.pr, sw.pw = io.Pipe()
 	ctx := context.Background()
@@ -133,9 +135,11 @@ func NewSpeechWriter() *SpeechWriter {
 				}
 				log.Warnf("Could not recognize: %v", err)
 			}
-			for _, result := range resp.Results {
-				log.Infof("Result: %+v\n", result)
-			}
+
+			var data map[string]interface{}
+			s, err := json.Marshal(resp)
+			json.Unmarshal(s, &data)
+			broadcast(rid, data)
 		}
 	}()
 
@@ -151,13 +155,13 @@ func (sw *SpeechWriter) Write(p []byte) (n int, err error) {
 }
 
 // NewSpeech Creates a Speech processor
-func NewSpeech(id string) *processor.Processor {
+func NewSpeech(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor {
 	log.Infof("NewSpeech with config %v", cfg)
 	p := &processor.Processor{
-		ID: id,
+		ID: mid,
 	}
 
-	sw := NewSpeechWriter()
+	sw := NewSpeechWriter(rid, broadcast)
 
 	if sw == nil {
 		log.Warnf("init-disk-writers: error creating speech writer")

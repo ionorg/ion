@@ -16,7 +16,7 @@ var (
 	rpcs        map[string]*nprotoo.Requestor
 	services    map[string]discovery.Node
 	broadcaster *nprotoo.Broadcaster
-	factories   map[string]func(id string) *processor.Processor
+	factories   map[string]func(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor
 	processors  map[string]map[string]*processor.Processor // mid.name.Processor
 )
 
@@ -32,16 +32,16 @@ func Init(dcID, nodeID, rpcID, eventID, natsURL string, processorsCfg map[string
 	processors = make(map[string]map[string]*processor.Processor)
 }
 
-func buildProcessorFactories(conf map[string]interface{}) map[string]func(id string) *processor.Processor {
-	factories := make(map[string]func(id string) *processor.Processor)
+func buildProcessorFactories(conf map[string]interface{}) map[string]func(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor {
+	factories := make(map[string]func(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor)
 	for k, v := range conf {
 		switch k {
 		case "recorder":
 			recorder.Init(v.(map[string]interface{}))
-			factories[k] = (func(id string) *processor.Processor)(recorder.NewRecorder)
+			factories[k] = (func(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor)(recorder.NewRecorder)
 		case "speech":
 			speech.Init(v.(map[string]interface{}))
-			factories[k] = (func(id string) *processor.Processor)(speech.NewSpeech)
+			factories[k] = (func(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor)(speech.NewSpeech)
 		}
 	}
 	return factories

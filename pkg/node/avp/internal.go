@@ -83,6 +83,15 @@ func handleIslbBroadCast(msg map[string]interface{}, subj string) {
 	}
 }
 
+func broadcast(rid string, msg map[string]interface{}) *nprotoo.Error {
+	islb, err := getRPCForIslb()
+	if err != nil {
+		return err
+	}
+	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "info", msg))
+	return nil
+}
+
 func handleStreamRemove(data map[string]interface{}) {
 	mid := util.Val(data, "mid")
 
@@ -113,25 +122,25 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 	rtcOptions := make(map[string]interface{})
 	rtcOptions["subscribe"] = "true"
 
+	for name, Factory := range factories {
+		processor := Factory(rid, mid, broadcast)
+		processors[mid] = make(map[string]*baseprocessor.Processor)
+		processors[mid][name] = processor
+	}
+
 	sub := transport.NewWebRTCTransport(mid, rtcOptions)
 	sub.OnTrack(func(track *webrtc.Track, receiver *webrtc.RTPReceiver) {
 		log.Infof("OnTrack called with processor factories: %v", factories)
-		for name, Factory := range factories {
-			processor := processors[mid][name]
 
-			if processor == nil {
-				processor = Factory(mid)
-				processors[mid] = make(map[string]*baseprocessor.Processor)
-				processors[mid][name] = processor
-			}
+		codec := track.Codec()
+		log.Infof("Got track with codec: %s", codec)
+		if codec.Name == webrtc.Opus {
+			for {
+				// Read RTP packets being sent to Pion
+				rtp, err := track.ReadRTP()
 
-			codec := track.Codec()
-			log.Infof("Got track with codec: %s", codec)
-			if codec.Name == webrtc.Opus {
-				if processor.AudioWriter != nil {
-					for {
-						// Read RTP packets being sent to Pion
-						rtp, err := track.ReadRTP()
+				for name, processor := range processors[mid] {
+					if processor.AudioWriter != nil {
 						if err != nil {
 							log.Warnf("Error writing audio for processor %s. Closing writer.", name)
 							processor.AudioWriter.Close()
@@ -143,11 +152,13 @@ func handleOnStreamAdd(data map[string]interface{}) *nprotoo.Error {
 						}
 					}
 				}
-			} else if codec.Name == webrtc.VP8 {
-				if processor.VideoWriter != nil {
-					for {
-						// Read RTP packets being sent to Pion
-						rtp, err := track.ReadRTP()
+			}
+		} else if codec.Name == webrtc.VP8 {
+			for {
+				// Read RTP packets being sent to Pion
+				rtp, err := track.ReadRTP()
+				for name, processor := range processors[mid] {
+					if processor.VideoWriter != nil {
 						if err != nil {
 							log.Warnf("Error writing video for processor %s. Closing writer.", name)
 							processor.VideoWriter.Close()
