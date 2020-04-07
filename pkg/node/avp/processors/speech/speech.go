@@ -160,6 +160,7 @@ func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]inter
 					},
 				}); err != nil {
 					log.Infof("Could not send audio: %v", err)
+					break
 				}
 			}
 			if err == io.EOF {
