@@ -9,7 +9,8 @@ configs/node.pid
 sdk/js/node_modules/
 sdk/js/nohup.out
 sdk/js/package-lock.json
-ion.tar.gz
+biz.tar.gz
+sfu.tar.gz
 islb.tar.gz
 cmd/ion/ion
 cmd/islb/islb
