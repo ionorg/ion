@@ -83,12 +83,12 @@ func handleIslbBroadCast(msg map[string]interface{}, subj string) {
 	}
 }
 
-func broadcast(rid string, msg map[string]interface{}) *nprotoo.Error {
+func broadcast(rid string, mid string, msg map[string]interface{}) *nprotoo.Error {
 	islb, err := getRPCForIslb()
 	if err != nil {
 		return err
 	}
-	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "info", msg))
+	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "mid", mid, "info", msg))
 	return nil
 }
 

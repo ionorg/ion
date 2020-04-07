@@ -90,7 +90,8 @@ type SpeechWriter struct {
 	start     time.Time
 	stream    speechpb.Speech_StreamingRecognizeClient
 	rid       string
-	broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error
+	mid       string
+	broadcast func(rid string, mid string, msg map[string]interface{}) *nprotoo.Error
 	pw        *io.PipeWriter
 	pr        *io.PipeReader
 }
@@ -124,7 +125,9 @@ func (sw *SpeechWriter) init() {
 					LanguageCode:               "en-US",
 					MaxAlternatives:            3,
 					EnableAutomaticPunctuation: true,
+					UseEnhanced:                true,
 				},
+				InterimResults: true,
 			},
 		},
 	}); err != nil {
@@ -135,10 +138,11 @@ func (sw *SpeechWriter) init() {
 	sw.stream = stream
 }
 
-func NewSpeechWriter(rid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
+func NewSpeechWriter(rid string, mid string, broadcast func(rid string, mid string, msg map[string]interface{}) *nprotoo.Error) *SpeechWriter {
 	sw := &SpeechWriter{
 		broadcast: broadcast,
 		rid:       rid,
+		mid:       mid,
 	}
 	sw.pr, sw.pw = io.Pipe()
 
@@ -214,7 +218,7 @@ func (sw *SpeechWriter) Write(p []byte) (n int, err error) {
 }
 
 // NewSpeech Creates a Speech processor
-func NewSpeech(rid string, mid string, broadcast func(rid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor {
+func NewSpeech(rid string, mid string, broadcast func(rid string, mid string, msg map[string]interface{}) *nprotoo.Error) *processor.Processor {
 	log.Infof("NewSpeech with config %v", cfg)
 	p := &processor.Processor{
 		ID: mid,
