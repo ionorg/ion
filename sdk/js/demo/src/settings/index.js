@@ -44,7 +44,7 @@ export default class MediaSettings extends React.Component {
 
     constructor(props) {
         super(props)
-        let settings = settings = props.settings;
+        let settings = props.settings;
         this.state = {
             visible: false,
             videoDevices: [],
