@@ -30,7 +30,11 @@ func init() {
 		}
 		iceServers = append(iceServers, s)
 	}
-	if err := rtc.Init(conf.Rtp.Port, iceServers, icePortStart, icePortEnd, "", ""); err != nil {
+	if err := rtc.InitIce(iceServers, icePortStart, icePortEnd); err != nil {
+		panic(err)
+	}
+
+	if err := rtc.InitRTP(conf.Rtp.Port, "", ""); err != nil {
 		panic(err)
 	}
 }
