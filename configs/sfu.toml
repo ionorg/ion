@@ -9,7 +9,8 @@ addr = "127.0.0.1"
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
-# portrange = []
+# Format: [min, max]   and max - min >= 100
+# portrange = [50000, 60000]
 
 # if sfu behind nat, set iceserver
 # [[webrtc.iceserver]]

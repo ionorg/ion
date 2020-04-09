@@ -224,6 +224,10 @@ func (r *Router) GetPub() transport.Transport {
 
 // AddSub add a pub to router
 func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
+	//fix panic: assignment to entry in nil map
+	if r.stop {
+		return nil
+	}
 	r.subLock.Lock()
 	defer r.subLock.Unlock()
 	r.subs[id] = t
