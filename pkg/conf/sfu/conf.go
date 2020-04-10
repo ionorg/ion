@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	portRangeLimit = 100
+)
+
 var (
 	cfg    = config{}
 	Global = &cfg.Global
@@ -94,6 +98,17 @@ func (c *config) load() bool {
 		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
 		return false
 	}
+
+	if len(c.WebRTC.ICEPortRange) > 2 {
+		fmt.Printf("config file %s loaded failed. range port must be [min,max]\n", c.CfgFile)
+		return false
+	}
+
+	if len(c.WebRTC.ICEPortRange) != 0 && c.WebRTC.ICEPortRange[1]-c.WebRTC.ICEPortRange[0] <= portRangeLimit {
+		fmt.Printf("config file %s loaded failed. range port must be [min, max] and max - min >= %d\n", c.CfgFile, portRangeLimit)
+		return false
+	}
+
 	fmt.Printf("config %s load ok!\n", c.CfgFile)
 	return true
 }
