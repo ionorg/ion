@@ -2,9 +2,9 @@ version: '3.7'
 
 services:
   web:
-    # build:
-    #   dockerfile: ./docker/web.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/web.Dockerfile
+      context: .
     image: pionwebrtc/ion-web:0.1.0
     volumes:
       - "./docker/Caddyfile:/etc/Caddyfile"
@@ -19,9 +19,9 @@ services:
     - ADMIN_EMAIL
 
   sfu:
-    # build:
-    #   dockerfile: ./docker/sfu.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/sfu.Dockerfile
+      context: .
     command: "-c /configs/sfu.toml"
     image: pionwebrtc/ion-sfu:0.1.0
     volumes:
@@ -33,9 +33,9 @@ services:
       - etcd
 
   biz:
-    # build:
-    #   dockerfile: ./docker/biz.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/biz.Dockerfile
+      context: .
     image: pionwebrtc/ion-biz:0.1.0
     command: "-c /configs/biz.toml"
     volumes:
@@ -45,9 +45,9 @@ services:
       - etcd
 
   islb:
-    # build:
-    #   dockerfile: ./docker/islb.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/islb.Dockerfile
+      context: .
     image: pionwebrtc/ion-islb:0.1.0
     command: "-c /configs/islb.toml"
     volumes:
