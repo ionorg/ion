@@ -74,6 +74,11 @@ git clone https://github.com/pion/ion
 ```
 
 #### 2. run
+Firstly pull images. Skip this command if you want build images locally
+```
+docker-compose pull
+```
+
 ```
 docker-compose up
 ```
