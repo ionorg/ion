@@ -21,7 +21,7 @@ require (
 	github.com/pion/rtp v1.4.0
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.10.0
-	github.com/pion/webrtc/v2 v2.2.5-0.20200329193949-862d30743ef3
+	github.com/pion/webrtc/v2 v2.2.5
 	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/spf13/viper v1.6.2
@@ -31,6 +31,6 @@ require (
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
