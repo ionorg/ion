@@ -238,16 +238,18 @@ export default class Client extends EventEmitter {
         ];
         session['media'][videoIdx]["rtcpFb"] = rtcpFB;
 
-        let ssrcGroup = session['media'][videoIdx].ssrcGroups[0];
-        let ssrcs = ssrcGroup.ssrcs;
-        let videoSsrc = ssrcs.split(" ")[0];
-        console.log('ssrcs => %s, video %s', ssrcs, videoSsrc);
+        if (session['media'][videoIdx]['ssrcGroups']) {
+            let ssrcGroup = session['media'][videoIdx].ssrcGroups[0];
+            let ssrcs = ssrcGroup.ssrcs;
+            let videoSsrc = ssrcs.split(" ")[0];
+            console.log('ssrcs => %s, video %s', ssrcs, videoSsrc);
 
-        let newSsrcs = session['media'][videoIdx].ssrcs;
-        newSsrcs = newSsrcs.filter(item => item.id == videoSsrc);
+            let newSsrcs = session['media'][videoIdx].ssrcs;
+            newSsrcs = newSsrcs.filter(item => item.id == videoSsrc);
 
-        session['media'][videoIdx].ssrcGroups = [];
-        session['media'][videoIdx].ssrcs = newSsrcs;
+            session['media'][videoIdx].ssrcGroups = [];
+            session['media'][videoIdx].ssrcs = newSsrcs;
+        }
 
         let tmp = desc;
         tmp.sdp = sdpTransform.write(session);
