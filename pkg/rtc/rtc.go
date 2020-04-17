@@ -27,14 +27,15 @@ var (
 	stop bool
 )
 
-// Init port and ice urls
-func Init(port int, iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16, kcpKey, kcpSalt string) error {
+// InitIce ice urls
+func InitIce(iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16) error {
 
 	//init ice urls and ICE settings
-	if err := transport.InitWebRTC(iceServers, icePortStart, icePortEnd); err != nil {
-		return err
-	}
+	return transport.InitWebRTC(iceServers, icePortStart, icePortEnd)
+}
 
+// Init rtp port
+func InitRTP(port int, kcpKey, kcpSalt string) error {
 	// show stat about all pipelines
 	go check()
 
@@ -47,7 +48,7 @@ func Init(port int, iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint
 		connCh, err = rtpengine.Serve(port)
 	}
 	if err != nil {
-		log.Errorf("rtc.Init err=%v", err)
+		log.Errorf("rtc.InitRPC err=%v", err)
 		return err
 	}
 	go func() {
