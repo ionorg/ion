@@ -482,3 +482,157 @@ body {
   background-color: #000000;
   margin-top: 20px;
 }
+
+/*---------------chat-styles--------------------*/
+
+.left-container{
+  width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.title-chat{
+  font-size: 16px;
+  color: #fff;
+  margin-left: 10px;
+}
+
+.chat-input{
+  display:flex;
+  flex-direction:row;
+  width:320px;
+  padding: 10px;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: #ddd;
+  padding-bottom:20px;
+}
+
+.bubble-left{
+  display:flex;
+  flex-direction:row;
+  justify-content:flex-start;
+  margin-bottom:16px;
+  margin-left:5px;
+}
+
+.bubble-right{
+  display:flex;
+  flex-direction:row;
+  justify-content: flex-end;
+  margin-bottom:16px;
+  margin-right:16px;
+}
+
+.bubble-middle{
+  display:flex;
+  flex-direction:row;
+  justify-content: center;
+  margin-bottom:16px;
+  margin-right:5px;
+}
+
+.bubble-head{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  background-color: #fff;
+}
+
+.bubble-head i{
+  font-size: 24px;
+  color: #909090;
+}
+
+.sender-name{
+  color: #fff;
+}
+
+.bubble-msg{
+  padding: 0px 10px;
+}
+
+.bubble-msgword{
+  background-color:#fff;
+  display: inline-block;
+  margin-top:6px;
+  padding-top:8px;
+  padding-bottom:8px;
+  padding-left:10px;
+  padding-right:10px;
+  border-radius:4px;
+}
+
+.bubble-msgword-middle{
+  background-color:#fafafa;
+  display: inline-block;
+  margin-top:6px;
+  padding-top:8px;
+  padding-bottom:8px;
+  padding-left:10px;
+  padding-right:10px;
+  border-radius:4px;
+}
+
+.pl{
+  color: #262626;
+  font-size: 14px;
+  font-weight: 300;
+  margin: 0px;
+  text-align:left;
+  word-break:break-all;
+}
+
+.pr{
+  color: #262626;
+  font-size: 14px;
+  font-weight: 300;
+  margin: 0px;
+  text-align:right;
+  word-break:break-all;
+}
+
+.pm{
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 300;
+  font-style: italic;
+  margin: 0px;
+  text-align: center;
+  word-break:break-all;
+}
+
+.chat-panel{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background-color:#4e4c4c;
+}
+
+.title-panel{
+  display: flex;
+  height: 36px;
+  background-color: #4e4c4c;
+  padding-top: 4px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: #ddd;
+}
+
+.chat-history{
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.chatbubble-wrapper{
+  margin-top: 10px;
+  margin-bottom: 10px;
+  overflow: auto;
+  position: relative;
+}

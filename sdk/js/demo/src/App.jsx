@@ -12,6 +12,8 @@ import VideoIcon from "mdi-react/VideoIcon";
 import VideocamOffIcon from "mdi-react/VideocamOffIcon";
 import MediaSettings from './settings';
 import ToolShare from './ToolShare';
+import ChatFeed from './chat/index';
+import Message from './chat/message';
 
 import LoginForm from "./LoginForm";
 import Conference from "./Conference";
@@ -28,7 +30,8 @@ class App extends React.Component {
       screenSharingEnabled: false,
       collapsed: true,
       isFullScreen: false,
-      loginInfo: {}
+      loginInfo: {},
+      messages: [],
     };
 
     this._settings = {
@@ -77,6 +80,11 @@ class App extends React.Component {
     client.on("stream-remove", (id, rid) => {
       console.log("stream-remove %s,%s!", id, rid);
       this._notification("Stream Remove", "id => " + id + ", rid => " + rid);
+    });
+
+    client.on("broadcast",(rid,mid,info) => {
+      console.log("broadcast %s,%s,%s!", rid, mid,info);
+      this._onMessageReceived(info);
     });
 
     client.init();
@@ -216,6 +224,27 @@ class App extends React.Component {
     reactLocalStorage.setObject("settings", this._settings);
   }
 
+  _onMessageReceived = (data) => {
+    console.log('Received message:' + data.senderName + ":" + data.msg);
+    let messages = this.state.messages;
+    let uid = 1;
+    messages.push(new Message({ id: uid, message: data.msg, senderName: data.senderName }));
+    this.setState({ messages });
+  }
+
+  _onSendMessage = (data) => {
+    console.log('Send message:' + data);
+    var info =  {
+      "senderName":this.state.loginInfo.displayName,
+      "msg": data,
+    };
+    this.client.broadcast(this.state.loginInfo.roomId,info);
+    let messages = this.state.messages;
+    let uid = 0;
+    messages.push(new Message({ id: uid, message: data, senderName: 'me' }));
+    this.setState({ messages });
+  }
+
   render() {
     const {
       login,
@@ -319,8 +348,11 @@ class App extends React.Component {
                 collapsedWidth={0}
                 trigger={null}
                 collapsible
-                collapsed={this.state.collapsed}
-              />
+                collapsed={this.state.collapsed}>
+                <div className="left-container">
+                  <ChatFeed messages={this.state.messages} onSendMessage={this._onSendMessage}/>
+                </div>
+              </Sider>
               <Layout className="app-right-layout">
                 <Content style={{ flex: 1 }}>
                   <Conference
