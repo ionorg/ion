@@ -10,6 +10,7 @@ import (
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
 )
 
@@ -351,6 +352,16 @@ func unRelay(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 func broadcast(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
+	mid := util.Val(data, "mid")
+	if uid == "" && mid != "" {
+		uid = proto.GetUIDFromMID(mid)
+	}
+	if rid == "" && uid != "" {
+		room := signal.GetRoomByPeer(uid)
+		if room != nil {
+			rid = room.ID()
+		}
+	}
 	info := util.Val(data, "info")
 	msg := util.Map("rid", rid, "uid", uid, "info", info)
 	log.Infof("broadcaster.Say msg=%v", msg)
