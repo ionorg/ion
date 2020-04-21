@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,6 +13,11 @@ import (
 	"github.com/pion/rtp/codecs"
 	"github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
+)
+
+var (
+	// ErrCodecNotSupported is returned when a rtp packed it pushed with an unsupported codec
+	ErrCodecNotSupported = errors.New("codec not supported")
 )
 
 type WebmSaver struct {
@@ -42,7 +48,7 @@ func (s *WebmSaver) PushRTP(pkt *rtp.Packet) error {
 	} else if pkt.PayloadType == webrtc.DefaultPayloadTypeOpus {
 		s.PushOpus(pkt)
 	}
-	return nil
+	return ErrCodecNotSupported
 }
 
 func (s *WebmSaver) PushRTCP(rtcp.Packet) error {
