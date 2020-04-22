@@ -213,8 +213,9 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 		return nil, util.NewNpError(codeRoomErr, codeStr(codeRoomErr))
 	}
 
+	rid := room.ID()
 	uid := peer.ID()
-	result, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "jsep", jsep, "options", options))
+	result, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "rid", rid, "jsep", jsep, "options", options))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -222,7 +223,6 @@ func publish(peer *signal.Peer, msg map[string]interface{}) (map[string]interfac
 
 	log.Infof("publish: result => %v", result)
 	mid := util.Val(result, "mid")
-	rid := room.ID()
 	tracks := result["tracks"]
 	islb, found := getRPCForIslb()
 	if !found {
@@ -246,7 +246,7 @@ func unpublish(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 		return nil, err
 	}
 
-	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid))
+	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid, "rid", rid))
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func subscribe(peer *signal.Peer, msg map[string]interface{}) (map[string]interf
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "mid", mid, "tracks", result["tracks"], "jsep", jsep))
+	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "rid", rid, "mid", mid, "tracks", result["tracks"], "jsep", jsep))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
