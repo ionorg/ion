@@ -64,6 +64,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
 	sdp := util.Val(jsep, "sdp")
+	rid := util.Val(msg, "rid")
 	uid := util.Val(msg, "uid")
 	mid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
@@ -85,7 +86,8 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
 	}
 
-	router := rtc.GetOrNewRouter(mid)
+	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	router := rtc.GetOrNewRouter(key)
 	go handleTrickle(router, pub)
 
 	answer, err := pub.Answer(offer, rtcOptions)
@@ -139,7 +141,9 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	log.Infof("unpublish msg=%v", msg)
 
 	mid := util.Val(msg, "mid")
-	router := rtc.GetOrNewRouter(mid)
+	rid := util.Val(msg, "rid")
+	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	router := rtc.GetOrNewRouter(key)
 	if router != nil {
 		router.Close()
 		rtc.DelRouter(mid)
@@ -152,8 +156,10 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("subscribe msg=%v", msg)
 
-	pubID := util.Val(msg, "mid")
-	router := rtc.GetOrNewRouter(pubID)
+	mid := util.Val(msg, "mid")
+	rid := util.Val(msg, "rid")
+	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	router := rtc.GetOrNewRouter(key)
 	if router == nil {
 		return nil, util.NewNpError(404, "subscribe: Router not found!")
 	}
