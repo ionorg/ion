@@ -2,9 +2,13 @@ version: '3.7'
 
 services:
   web:
-    build:
-      dockerfile: ./docker/web.Dockerfile
-      context: .
+    # These are commented out on purpose, when uncommented `docker-compose up` will
+    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
+    # and execute `docker-compose build && docker-compose push`
+    #
+    # build:
+    #   dockerfile: ./docker/web.Dockerfile
+    #   context: .
     image: pionwebrtc/ion-web:0.1.0
     volumes:
       - "./docker/Caddyfile:/etc/Caddyfile"
@@ -19,9 +23,13 @@ services:
     - ADMIN_EMAIL
 
   sfu:
-    build:
-      dockerfile: ./docker/sfu.Dockerfile
-      context: .
+    # These are commented out on purpose, when uncommented `docker-compose up` will
+    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
+    # and execute `docker-compose build && docker-compose push`
+    #
+    # build:
+    #   dockerfile: ./docker/sfu.Dockerfile
+    #   context: .
     command: "-c /configs/sfu.toml"
     image: pionwebrtc/ion-sfu:0.1.0
     volumes:
@@ -33,9 +41,13 @@ services:
       - etcd
 
   biz:
-    build:
-      dockerfile: ./docker/biz.Dockerfile
-      context: .
+    # These are commented out on purpose, when uncommented `docker-compose up` will
+    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
+    # and execute `docker-compose build && docker-compose push`
+    #
+    # build:
+    #   dockerfile: ./docker/biz.Dockerfile
+    #   context: .
     image: pionwebrtc/ion-biz:0.1.0
     command: "-c /configs/biz.toml"
     volumes:
@@ -45,9 +57,13 @@ services:
       - etcd
 
   islb:
-    build:
-      dockerfile: ./docker/islb.Dockerfile
-      context: .
+    # These are commented out on purpose, when uncommented `docker-compose up` will
+    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
+    # and execute `docker-compose build && docker-compose push`
+    #
+    # build:
+    #   dockerfile: ./docker/islb.Dockerfile
+    #   context: .
     image: pionwebrtc/ion-islb:0.1.0
     command: "-c /configs/islb.toml"
     volumes:
