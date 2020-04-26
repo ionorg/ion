@@ -11,7 +11,7 @@ class IonHelper extends EventEmitter {
 
   connect(host) async {
     if (_client == null) {
-      var url = 'https://$host:8443/ws';
+      var url = 'https://$host/ws';
       _client = Client(url);
 
       _client.on('transport-open', () {
