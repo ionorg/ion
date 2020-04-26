@@ -18,7 +18,9 @@ export default class Client extends EventEmitter {
 
     constructor() {
         super();
-        this._port = 8443;
+        this._port = process.env && process.env.WS_PORT ?
+            process.env.WS_PORT :
+            (parseInt(document.querySelector('meta[property=WS_PORT]').content) || 8443);
         this._uid = uuidv4();
         this._pcs = new Map();
         this._streams = new Map();

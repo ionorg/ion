@@ -6,21 +6,22 @@ services:
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/web.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/web.Dockerfile
+      context: .
     image: pionwebrtc/ion-web:0.1.0
     volumes:
       - "./docker/Caddyfile:/etc/Caddyfile"
     ports:
       - 80:80
-      - 8080:8080
-      - 8443:8443
+      - ${HTTP_PORT}:8080
+      - ${WS_PORT}:8443
     depends_on:
       - biz
     environment:
-    - WWW_URL
-    - ADMIN_EMAIL
+      - WWW_URL
+      - ADMIN_EMAIL
+      - WS_PORT
 
   sfu:
     # These are commented out on purpose, when uncommented `docker-compose up` will

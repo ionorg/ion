@@ -4,6 +4,7 @@
 
 {$WWW_URL}:8080 {
   root /app/demo/dist
+  templates / .html
 }
 
 {$WWW_URL}:8443 {

@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const copyWebpackPlugin = require('copy-webpack-plugin');
+require('dotenv').config({path: '../../../.env'});
 
 module.exports = {
   devtool: 'cheap-module-eval-source-map',
@@ -27,10 +28,18 @@ module.exports = {
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
+    new webpack.DefinePlugin({
+      'process.env.WS_PORT': process.env.WS_PORT
+    })
   ],
   devServer: {
     contentBase: './dist',
     hot: true,
     host: '0.0.0.0',
+    port: process.env.HTTP_PORT,
+    onListening: function(server) {
+      const port = server.listeningApp.address().port;
+      console.log('Listening on port:', port);
+    }
   }
 };

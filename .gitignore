@@ -8,7 +8,9 @@ configs/islb.pid
 configs/node.pid
 sdk/js/node_modules/
 sdk/js/nohup.out
+sdk/js/demo/nohup.out
 sdk/js/package-lock.json
+sdk/js/demo/package-lock.json
 biz.tar.gz
 sfu.tar.gz
 islb.tar.gz
@@ -19,3 +21,4 @@ other
 ./islb
 .idea
 node_modules/
+.env

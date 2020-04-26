@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+require('dotenv').config({path: '../../.env'});
 
 module.exports = {
   entry: './src/index.js',
@@ -25,11 +26,19 @@ module.exports = {
     filename: 'ion-sdk.js'
   },
   plugins: [
-    new webpack.HotModuleReplacementPlugin()
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.DefinePlugin({
+      'process.env.WS_PORT': process.env.WS_PORT
+    })
   ],
   devServer: {
     contentBase: './dist',
     hot: true,
     host: "0.0.0.0",
+    port: process.env.HTTP_PORT,
+    onListening: function(server) {
+      const port = server.listeningApp.address().port;
+      console.log('Listening on port:', port);
+    }
   }
 };

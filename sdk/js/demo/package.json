@@ -26,7 +26,8 @@
     "webpack": "^4.30.0",
     "webpack-cli": "^3.3.1",
     "webpack-dev-server": "^3.3.1",
-    "copy-webpack-plugin": "^5.0.5"
+    "copy-webpack-plugin": "^5.0.5",
+    "dotenv": "^8.2.0"
   },
   "dependencies": {
     "antd": "^3.25.2",

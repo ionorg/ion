@@ -19,7 +19,8 @@
     "babel-loader": "^8.0.5",
     "webpack": "^4.30.0",
     "webpack-cli": "^3.3.1",
-    "webpack-dev-server": "^3.3.1"
+    "webpack-dev-server": "^3.3.1",
+    "dotenv": "^8.2.0"
   },
   "dependencies": {
     "events": "^3.0.0",
