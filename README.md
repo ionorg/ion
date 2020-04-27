@@ -52,12 +52,12 @@ Welcome contributing to ion!
 ## How to use
 
 ### Local Deployment
-#### 1. clone
+#### 1. Clone
 ```
 git clone https://github.com/pion/ion
 ```
 
-#### 2. run
+#### 2. Run
 Firstly pull images. Skip this command if you want build images locally
 ```
 docker-compose pull
@@ -67,7 +67,7 @@ docker-compose pull
 docker-compose up
 ```
 
-#### 3. chat
+#### 3. Chat!
 Open this url with chrome
 
 ```
@@ -76,31 +76,45 @@ http://localhost:8080
 
 ### Online Deployment
 
-#### 1. clone
+#### 1. Clone
 
 ```
 git clone https://github.com/pion/ion
 ```
 
-#### 2. set env
+#### 2. Set Env
 
 ```
 export WWW_URL=yourdomain
 export ADMIN_EMAIL=yourname@yourdomain
 ```
 
-#### 3. run
+#### 3. Configure docker compose
+
+Enable production ports and Caddy file for web service in `docker-compose.yml`.
+
+#### 4. Expose Ports
+
+Ensure the following ports are exposed or forwarded.
+
+```
+80/tcp
+443/tcp
+5000-5200/udp
+```
+
+#### 5. Run
 
 ```
 docker-compose up
 ```
 
-#### 3. chat
+#### 6. Chat!
 
 Open this url with chrome
 
 ```
-https://yourdomain:8080
+https://yourdomain
 ```
 
 ### Docker Tips
