@@ -11,10 +11,16 @@ services:
     #   context: .
     image: pionwebrtc/ion-web:0.2.0
     volumes:
-      - "./docker/Caddyfile:/etc/Caddyfile"
+      # Uncomment for production
+      # - "./docker/Caddyfile:/etc/caddy/Caddyfile"
+      # Dev caddyfile
+      - "./docker/local.Caddyfile:/etc/caddy/Caddyfile"
+      - "caddy:/root/.caddy/"
     ports:
-      - 80:80
-      - 443:443
+      # Prod ports
+      # - 80:80
+      # - 443:443
+      - 8080:8080
     depends_on:
       - biz
     environment:
