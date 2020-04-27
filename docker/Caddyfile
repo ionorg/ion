@@ -1,10 +1,9 @@
 {$WWW_URL} {
-  root /app/demo/dist
+  root * /app/demo/dist
+  file_server
   tls {$ADMIN_EMAIL}
 
-  proxy /ws biz:8443 {
-    transparent
-    websocket
-    header_upstream Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+  reverse_proxy /ws biz:8443 {
+    header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
   }
 }
