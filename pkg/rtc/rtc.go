@@ -22,19 +22,30 @@ var (
 	routerLock sync.RWMutex
 
 	//CleanChannel return the dead pub's mid
-	CleanChannel = make(chan string, maxCleanSize)
+	CleanChannel  = make(chan string, maxCleanSize)
+	pluginsConfig plugins.Config
 
 	stop bool
 )
 
 // InitIce ice urls
 func InitIce(iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16) error {
-
 	//init ice urls and ICE settings
 	return transport.InitWebRTC(iceServers, icePortStart, icePortEnd)
 }
 
-// Init rtp port
+// InitPlugins plugins config
+func InitPlugins(config plugins.Config) {
+	pluginsConfig = config
+	log.Infof("InitPlugins pluginsConfig=%+v", pluginsConfig)
+}
+
+// CheckPlugins plugins config
+func CheckPlugins(config plugins.Config) error {
+	return plugins.CheckPlugins(config)
+}
+
+// InitRTP rtp port
 func InitRTP(port int, kcpKey, kcpSalt string) error {
 	// show stat about all pipelines
 	go check()
@@ -56,30 +67,27 @@ func InitRTP(port int, kcpKey, kcpSalt string) error {
 			if stop {
 				return
 			}
-			select {
-			case rtpTransport := <-connCh:
-				id := rtpTransport.ID()
-				cnt := 0
-				for id == "" && cnt < 100 {
-					id = rtpTransport.ID()
-					time.Sleep(time.Millisecond)
-					cnt++
-				}
-				if id == "" && cnt >= 100 {
-					log.Errorf("invalid id from incoming rtp transport")
-					return
-				}
-				log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
-				if router := AddRouter(id); router != nil {
-					router.AddPub(id, rtpTransport)
-				}
+			rtpTransport := <-connCh
+			id := rtpTransport.ID()
+			cnt := 0
+			for id == "" && cnt < 100 {
+				id = rtpTransport.ID()
+				time.Sleep(time.Millisecond)
+				cnt++
+			}
+			if id == "" && cnt >= 100 {
+				log.Errorf("invalid id from incoming rtp transport")
+				return
+			}
+			log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
+			if router := AddRouter(id); router != nil {
+				router.AddPub(id, rtpTransport)
 			}
 		}
 	}()
 	return nil
 }
 
-// GetOrNewRouter get router from map
 func GetOrNewRouter(id string) *Router {
 	log.Infof("rtc.GetOrNewRouter id=%s", id)
 	router := GetRouter(id)
@@ -103,6 +111,11 @@ func AddRouter(id string) *Router {
 	routerLock.Lock()
 	defer routerLock.Unlock()
 	routers[id] = NewRouter(id)
+	if err := routers[id].InitPlugins(pluginsConfig); err != nil {
+		log.Errorf("rtc.AddRouter InitPlugins err=%v", err)
+		return nil
+	}
+
 	return routers[id]
 }
 
@@ -156,7 +169,6 @@ func check() {
 					log.Infof("Stat delete %v", id)
 				}
 				info += "pub: " + id + "\n"
-				info += Router.GetPlugin(jbPlugin).(*plugins.JitterBuffer).Stat()
 				subs := Router.GetSubs()
 				if len(subs) < 6 {
 					for id := range subs {

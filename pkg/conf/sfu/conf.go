@@ -13,13 +13,14 @@ const (
 )
 
 var (
-	cfg    = config{}
-	Global = &cfg.Global
-	WebRTC = &cfg.WebRTC
-	Rtp    = &cfg.Rtp
-	Log    = &cfg.Log
-	Etcd   = &cfg.Etcd
-	Nats   = &cfg.Nats
+	cfg     = config{}
+	Global  = &cfg.Global
+	Plugins = &cfg.Plugins
+	WebRTC  = &cfg.WebRTC
+	Rtp     = &cfg.Rtp
+	Log     = &cfg.Log
+	Etcd    = &cfg.Etcd
+	Nats    = &cfg.Nats
 )
 
 func init() {
@@ -34,6 +35,19 @@ type global struct {
 	Pprof string `mapstructure:"pprof"`
 	Dc    string `mapstructure:"dc"`
 	// TestIP []string `mapstructure:"testip"`
+}
+
+type JitterBuffer struct {
+	On            bool `mapstructure:"on"`
+	REMBCycle     int  `mapstructure:"rembcycle"`
+	PLICycle      int  `mapstructure:"plicycle"`
+	MaxBandwidth  int  `mapstructure:"maxbandwidth"`
+	MaxBufferTime int  `mapstructure:"maxbuffertime"`
+}
+
+type plugins struct {
+	On           bool         `mapstructure:"on"`
+	JitterBuffer JitterBuffer `mapstructure:"jitterbuffer"`
 }
 
 type log struct {
@@ -60,16 +74,19 @@ type webrtc struct {
 }
 
 type rtp struct {
-	Port int `mapstructure:"port"`
+	Port    int    `mapstructure:"port"`
+	KcpKey  string `mapstructure:"kcpkey"`
+	KcpSalt string `mapstructure:"kcpsalt"`
 }
 
 type config struct {
-	Global  global `mapstructure:"global"`
-	WebRTC  webrtc `mapstructure:"webrtc"`
-	Rtp     rtp    `mapstructure:"rtp"`
-	Log     log    `mapstructure:"log"`
-	Etcd    etcd   `mapstructure:"etcd"`
-	Nats    nats   `mapstructure:"nats"`
+	Global  global  `mapstructure:"global"`
+	Plugins plugins `mapstructure:"plugins"`
+	WebRTC  webrtc  `mapstructure:"webrtc"`
+	Rtp     rtp     `mapstructure:"rtp"`
+	Log     log     `mapstructure:"log"`
+	Etcd    etcd    `mapstructure:"etcd"`
+	Nats    nats    `mapstructure:"nats"`
 	CfgFile string
 }
 
