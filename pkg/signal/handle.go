@@ -78,6 +78,13 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		log.Infof("signal.in handleClose => peer (%s) ", peer.ID())
 	}
 
+	handlePanic := func(a interface{}, b interface{}, err error) {
+		if err != nil {
+			log.Errorf("Websocket sent us for a panic: %s", err)
+		}
+	}
+
+	transport.RecoverWith(handlePanic)
 	peer.On("request", handleRequest)
 	peer.On("notification", handleNotification)
 	peer.On("close", handleClose)
