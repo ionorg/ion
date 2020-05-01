@@ -12,3 +12,4 @@ docs
 screenshots
 */*/node_modules
 sdk/*/*/dist/*.js
+npm-debug.log
