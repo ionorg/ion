@@ -1,39 +1,54 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/at-wat/ebml-go/webm"
 
+	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
+	"github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
 )
 
+var (
+	// ErrCodecNotSupported is returned when a rtp packed it pushed with an unsupported codec
+	ErrCodecNotSupported = errors.New("codec not supported")
+)
+
 type WebmSaver struct {
+	id                             string
 	audioWriter, videoWriter       webm.BlockWriteCloser
 	audioBuilder, videoBuilder     *samplebuilder.SampleBuilder
 	audioTimestamp, videoTimestamp uint32
 }
 
-func NewWebmSaver() *WebmSaver {
+func NewWebmSaver(id string) *WebmSaver {
 	return &WebmSaver{
+		id:           id,
 		audioBuilder: samplebuilder.New(10, &codecs.OpusPacket{}),
 		videoBuilder: samplebuilder.New(10, &codecs.VP8Packet{}),
 	}
 }
 
 func (s *WebmSaver) ID() string {
-	return "WebMSaver"
+	return s.id
 }
 
 func (s *WebmSaver) Init(...interface{}) {
-
 }
-func (s *WebmSaver) PushRTP(*rtp.Packet) error {
-	return nil
+
+func (s *WebmSaver) PushRTP(pkt *rtp.Packet) error {
+	if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
+		s.PushVP8(pkt)
+	} else if pkt.PayloadType == webrtc.DefaultPayloadTypeOpus {
+		s.PushOpus(pkt)
+	}
+	return ErrCodecNotSupported
 }
 
 func (s *WebmSaver) PushRTCP(rtcp.Packet) error {
@@ -139,7 +154,7 @@ func (s *WebmSaver) InitWriter(width, height int) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("WebM saver has started with video width=%d, height=%d\n", width, height)
+	log.Infof("WebM saver has started with video width=%d, height=%d\n", width, height)
 	s.audioWriter = ws[0]
 	s.videoWriter = ws[1]
 }

@@ -96,10 +96,6 @@ func (j *JitterBuffer) AttachPub(t transport.Transport) {
 				continue
 			}
 
-			// if !util.IsVideo(pkt.PayloadType) {
-			// continue
-			// }
-
 			err = j.WriteRTP(pkt)
 			if err != nil {
 				log.Errorf("AttachPub j.WriteRTP err=%+v", err)
@@ -134,18 +130,21 @@ func (j *JitterBuffer) WriteRTP(pkt *rtp.Packet) error {
 	ssrc := pkt.SSRC
 	pt := pkt.PayloadType
 
-	buffer := j.GetBuffer(ssrc)
-	if buffer == nil {
-		buffer = j.AddBuffer(ssrc)
-		log.Infof("JitterBuffer.WriteRTP buffer.SetSSRCPT(%d,%d)", ssrc, pt)
-		buffer.SetSSRCPT(ssrc, pt)
-	}
+	// only video, because opus doesn't need nack, use fec: `a=fmtp:111 minptime=10;useinbandfec=1`
+	if util.IsVideo(pt) {
+		buffer := j.GetBuffer(ssrc)
+		if buffer == nil {
+			buffer = j.AddBuffer(ssrc)
+			log.Infof("JitterBuffer.WriteRTP buffer.SetSSRCPT(%d,%d)", ssrc, pt)
+			buffer.SetSSRCPT(ssrc, pt)
+		}
 
-	if buffer == nil {
-		return errors.New("buffer is nil")
-	}
+		if buffer == nil {
+			return errors.New("buffer is nil")
+		}
 
-	buffer.Push(pkt)
+		buffer.Push(pkt)
+	}
 	j.outRTPChan <- pkt
 	return nil
 }

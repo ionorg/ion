@@ -38,15 +38,17 @@ func GetUpperString(m map[string]interface{}, k string) string {
 func GetInt(m map[string]interface{}, k string) (int, error) {
 	val, ok := m[k]
 	if ok {
-		switch val := val.(type) {
+		switch val.(type) {
+		case nil:
+			return 0, errors.New("value is nil")
 		case string:
-			i, err := strconv.ParseInt(val, 10, 64)
+			i, err := strconv.ParseInt(val.(string), 10, 64)
 			if err != nil {
 				return 0, err
 			}
 			return int(i), nil
 		case float64:
-			return int(val), nil
+			return int(val.(float64)), nil
 		default:
 			return int(reflect.ValueOf(val).Int()), nil
 		}
