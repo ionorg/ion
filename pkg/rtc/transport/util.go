@@ -39,6 +39,8 @@ func GetInt(m map[string]interface{}, k string) (int, error) {
 	val, ok := m[k]
 	if ok {
 		switch val.(type) {
+		case nil:
+			return 0, errors.New("value is nil")
 		case string:
 			i, err := strconv.ParseInt(val.(string), 10, 64)
 			if err != nil {
@@ -49,10 +51,6 @@ func GetInt(m map[string]interface{}, k string) (int, error) {
 			return int(val.(float64)), nil
 		default:
 			return int(reflect.ValueOf(val).Int()), nil
-		}
-		n, ok := val.(int)
-		if ok {
-			return n, nil
 		}
 	}
 	return 0, errors.New("inavlid key or value type")
