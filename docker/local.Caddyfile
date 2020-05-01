@@ -1,7 +1,6 @@
-{$WWW_URL} {
+http://localhost:8080 {
   root * /app/demo/dist
   file_server
-  tls {$ADMIN_EMAIL}
 
   reverse_proxy /ws biz:8443 {
     header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
