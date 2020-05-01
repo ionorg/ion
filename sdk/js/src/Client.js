@@ -18,6 +18,7 @@ export default class Client extends EventEmitter {
 
     constructor() {
         super();
+        this._port = 8443;
         this._uid = uuidv4();
         this._pcs = new Map();
         this._streams = new Map();
@@ -298,9 +299,9 @@ export default class Client extends EventEmitter {
     }
 
     _getProtooUrl(pid) {
-        const host = window.location.host;
+        const hostname = window.location.hostname;
         const websocketProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
-        let url = `${websocketProtocol}://${host}/ws?peer=${pid}`;
+        let url = `${websocketProtocol}://${hostname}:${this._port}/ws?peer=${pid}`;
         return url;
     }
 
