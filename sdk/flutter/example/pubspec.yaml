@@ -30,6 +30,7 @@ dependencies:
   shared_preferences:
   shared_preferences_macos:
   shared_preferences_web:
+  date_format: ^1.0.6
 
 dev_dependencies:
   flutter_test:

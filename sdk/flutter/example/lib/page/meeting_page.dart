@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widget/video_render_adapter.dart';
 import '../helper/ion_helper.dart';
+import './chat_page.dart';
 
 class MeetingPage extends StatefulWidget {
   final IonHelper _helper;
@@ -22,6 +23,9 @@ class _MeetingPageState extends State<MeetingPage> {
   bool _microphoneOff = false;
   bool _speakerOn = true;
   var _scaffoldkey = new GlobalKey<ScaffoldState>();
+  var _messages = [];
+  var name;
+  var room;
 
   final double LOCAL_VIDEO_WIDTH = 114.0;
   final double LOCAL_VIDEO_HEIGHT = 72.0;
@@ -68,8 +72,9 @@ class _MeetingPageState extends State<MeetingPage> {
       this._showSnackBar(":::stream-remove [$mid]:::");
     });
 
-    var name = prefs.getString('display_name') ?? 'Guest';
-    var room = prefs.getString('room') ?? 'room1';
+
+    name = prefs.getString('display_name') ?? 'Guest';
+    room = prefs.getString('room') ?? 'room1';
 
     helper.join(room, name);
     try {
@@ -527,6 +532,37 @@ class _MeetingPageState extends State<MeetingPage> {
                                 ),
                               ),
                             ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.people,
+                                    size: 28.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                //Chat message
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 28.0,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatPage(widget._helper.client,
+                                            this._messages, this.name,this.room),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+
                           ],
                         ),
                       ),
