@@ -21,7 +21,7 @@ require (
 	github.com/pion/rtp v1.4.0
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.10.0
-	github.com/pion/webrtc/v2 v2.2.6
+	github.com/pion/webrtc/v2 v2.2.7
 	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/spf13/viper v1.6.2

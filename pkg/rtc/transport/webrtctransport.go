@@ -270,7 +270,7 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 			w.receiveInTrackRTP(remoteTrack)
 		})
 	} else {
-		ssrcPT, _ := options["ssrcpt"]
+		ssrcPT := options["ssrcpt"]
 		if ssrcPT == nil {
 			return webrtc.SessionDescription{}, errInvalidOptions
 		}
@@ -283,10 +283,14 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 			if _, found := w.outTracks[ssrc]; !found {
 				track, _ := w.pc.NewTrack(pt, ssrc, "pion", "pion")
 				if track != nil {
-					w.pc.AddTrack(track)
-					w.outTrackLock.Lock()
-					w.outTracks[ssrc] = track
-					w.outTrackLock.Unlock()
+					_, err := w.pc.AddTrack(track)
+					if err == nil {
+						w.outTrackLock.Lock()
+						w.outTracks[ssrc] = track
+						w.outTrackLock.Unlock()
+					} else {
+						log.Errorf("w.pc.AddTrack err=%v", err)
+					}
 				}
 			}
 		}
@@ -428,6 +432,7 @@ func (w *WebRTCTransport) WriteRTCP(pkt rtcp.Packet) error {
 	if w.pc == nil {
 		return errInvalidPC
 	}
+	// log.Infof("WebRTCTransport.WriteRTCP pkt=%+v", pkt)
 	return w.pc.WriteRTCP([]rtcp.Packet{pkt})
 }
 

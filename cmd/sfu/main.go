@@ -9,6 +9,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/sfu"
 	"github.com/pion/ion/pkg/rtc"
+	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/webrtc/v2"
 )
 
@@ -34,9 +35,25 @@ func init() {
 		panic(err)
 	}
 
-	if err := rtc.InitRTP(conf.Rtp.Port, "", ""); err != nil {
+	if err := rtc.InitRTP(conf.Rtp.Port, conf.Rtp.KcpKey, conf.Rtp.KcpSalt); err != nil {
 		panic(err)
 	}
+
+	pluginConfig := plugins.Config{
+		On: conf.Plugins.On,
+		JitterBuffer: plugins.JitterBufferConfig{
+			On:            conf.Plugins.JitterBuffer.On,
+			REMBCycle:     conf.Plugins.JitterBuffer.REMBCycle,
+			PLICycle:      conf.Plugins.JitterBuffer.PLICycle,
+			MaxBandwidth:  conf.Plugins.JitterBuffer.MaxBandwidth,
+			MaxBufferTime: conf.Plugins.JitterBuffer.MaxBufferTime,
+		},
+	}
+
+	if err := rtc.CheckPlugins(pluginConfig); err != nil {
+		panic(err)
+	}
+	rtc.InitPlugins(pluginConfig)
 }
 
 func main() {
@@ -45,7 +62,10 @@ func main() {
 	if conf.Global.Pprof != "" {
 		go func() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			http.ListenAndServe(conf.Global.Pprof, nil)
+			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
 		}()
 	}
 

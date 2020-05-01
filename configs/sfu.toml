@@ -7,6 +7,22 @@ dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
 
+[plugins]
+on = true
+
+[plugins.jitterbuffer]
+on = true
+# the remb cycle sending to pub, this told the pub it's bandwidth
+rembcycle = 2
+# pli cycle sending to pub, and pub will send a key frame
+plicycle = 1
+# this limit the remb bandwidth
+maxbandwidth = 1000
+# max buffer time by ms
+maxbuffertime = 1000
+
+
+
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
 # Format: [min, max]   and max - min >= 100
@@ -24,6 +40,8 @@ addr = "127.0.0.1"
 [rtp]
 # listen port
 port = 6666
+# kcpkey = ""
+# kcpsalt = ""
 
 [log]
 level = "info"

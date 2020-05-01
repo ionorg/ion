@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
@@ -14,63 +15,64 @@ import (
 const (
 	// bandwidth range(kbps)
 	minBandwidth = 200
-	maxBandwidth = 2000
+	maxREMBCycle = 5
+	maxPLICycle  = 5
 )
 
 // JitterBufferConfig .
 type JitterBufferConfig struct {
-	RembCycle int
-	PliCycle  int
-	Bandwidth int
+	ID            string
+	On            bool
+	REMBCycle     int
+	PLICycle      int
+	MaxBandwidth  int
+	MaxBufferTime int
 }
 
 // JitterBuffer core buffer module
 type JitterBuffer struct {
-	id        string
 	buffers   map[uint32]*Buffer
-	rtcpCh    chan rtcp.Packet
 	stop      bool
 	bandwidth uint64
 	lostRate  float64
 
-	config JitterBufferConfig
+	config     JitterBufferConfig
+	Pub        transport.Transport
+	outRTPChan chan *rtp.Packet
+	prePlugin  Plugin
 }
 
 // NewJitterBuffer return new JitterBuffer
-func NewJitterBuffer(id string) *JitterBuffer {
+func NewJitterBuffer(config JitterBufferConfig) *JitterBuffer {
 	j := &JitterBuffer{
-		buffers: make(map[uint32]*Buffer),
-		id:      id,
-		rtcpCh:  make(chan rtcp.Packet, 100),
+		buffers:    make(map[uint32]*Buffer),
+		outRTPChan: make(chan *rtp.Packet, maxSize),
 	}
+	j.Init(config)
 	j.rembLoop()
 	j.pliLoop()
 	return j
 }
 
+// AttachPre ..
+func (j *JitterBuffer) AttachPre(plugin Plugin) {
+	j.prePlugin = plugin
+}
+
 // Init jitterbuffer config
-func (j *JitterBuffer) Init(ssrc uint32, pt uint8, config JitterBufferConfig) {
-	log.Infof("JitterBuffer.Init ssrc=%d pt=%d config=%v", ssrc, pt, config)
+func (j *JitterBuffer) Init(config JitterBufferConfig) {
 	j.config = config
-	if j.config.RembCycle > 5 {
-		j.config.RembCycle = 5
+	log.Infof("JitterBuffer.Init j.config=%+v", j.config)
+	if j.config.REMBCycle > maxREMBCycle {
+		j.config.REMBCycle = maxREMBCycle
 	}
 
-	if j.config.PliCycle > 5 {
-		j.config.PliCycle = 5
+	if j.config.PLICycle > maxPLICycle {
+		j.config.PLICycle = maxPLICycle
 	}
 
-	if j.config.Bandwidth > maxBandwidth {
-		j.config.Bandwidth = maxBandwidth
-	}
-
-	if j.config.Bandwidth < minBandwidth {
-		j.config.Bandwidth = minBandwidth
-	}
-
-	if j.GetBuffer(ssrc) == nil {
-		log.Infof("JitterBuffer.Init j.AddBuffer %d", ssrc)
-		j.AddBuffer(ssrc).SetSSRCPT(ssrc, pt)
+	if j.config.MaxBandwidth < minBandwidth {
+		j.config.MaxBandwidth = minBandwidth
 	}
 
 	log.Infof("JitterBuffer.Init ok  j.config=%v", j.config)
@@ -78,17 +80,36 @@ func (j *JitterBuffer) Init(ssrc uint32, pt uint8, config JitterBufferConfig) {
 
 // ID return id
 func (j *JitterBuffer) ID() string {
-	return j.id
+	return j.config.ID
 }
 
-// GetRTCPChan get response rtcp channel
-func (j *JitterBuffer) GetRTCPChan() chan rtcp.Packet {
-	return j.rtcpCh
+func (j *JitterBuffer) AttachPub(t transport.Transport) {
+	j.Pub = t
+	go func() {
+		for {
+			if j.stop {
+				return
+			}
+			pkt, err := j.Pub.ReadRTP()
+			if err != nil {
+				log.Errorf("AttachPub j.Pub.ReadRTP pkt=%+v", pkt)
+				continue
+			}
+
+			err = j.WriteRTP(pkt)
+			if err != nil {
+				log.Errorf("AttachPub j.WriteRTP err=%+v", err)
+				continue
+			}
+		}
+	}()
 }
 
 // AddBuffer add a buffer by ssrc
 func (j *JitterBuffer) AddBuffer(ssrc uint32) *Buffer {
+	log.Infof("JitterBuffer.AddBuffer ssrc=%d", ssrc)
 	b := NewBuffer()
+	b.InitBufferTime(j.config.MaxBufferTime)
 	j.buffers[ssrc] = b
 	j.nackLoop(b)
 	return b
@@ -104,26 +125,33 @@ func (j *JitterBuffer) GetBuffers() map[uint32]*Buffer {
 	return j.buffers
 }
 
-// PushRTP push rtp packet which from pub
-func (j *JitterBuffer) PushRTP(pkt *rtp.Packet) error {
+// WriteRTP push rtp packet which from pub
+func (j *JitterBuffer) WriteRTP(pkt *rtp.Packet) error {
 	ssrc := pkt.SSRC
+	pt := pkt.PayloadType
 
-	buffer := j.GetBuffer(ssrc)
-	if buffer == nil {
-		buffer = j.AddBuffer(ssrc)
-	}
-	if buffer == nil {
-		return errors.New("buffer is nil")
-	}
+	// only video, because opus doesn't need nack, use fec: `a=fmtp:111 minptime=10;useinbandfec=1`
+	if util.IsVideo(pt) {
+		buffer := j.GetBuffer(ssrc)
+		if buffer == nil {
+			buffer = j.AddBuffer(ssrc)
+			log.Infof("JitterBuffer.WriteRTP buffer.SetSSRCPT(%d,%d)", ssrc, pt)
+			buffer.SetSSRCPT(ssrc, pt)
+		}
 
-	buffer.Push(pkt)
+		if buffer == nil {
+			return errors.New("buffer is nil")
+		}
+
+		buffer.Push(pkt)
+	}
+	j.outRTPChan <- pkt
 	return nil
 }
 
-// PushRTCP push rtcp packet which from sub
-func (j *JitterBuffer) PushRTCP(pkt rtcp.Packet) error {
-	// log.Infof("JitterBuffer.PushRTCP %v", pkt)
-	return nil
+// ReadRTP return the last packet
+func (j *JitterBuffer) ReadRTP() <-chan *rtp.Packet {
+	return j.outRTPChan
 }
 
 func (j *JitterBuffer) nackLoop(b *Buffer) {
@@ -132,7 +160,13 @@ func (j *JitterBuffer) nackLoop(b *Buffer) {
 			if j.stop {
 				return
 			}
-			j.rtcpCh <- nack
+			if j.Pub == nil {
+				continue
+			}
+			err := j.Pub.WriteRTCP(nack)
+			if err != nil {
+				log.Errorf("JitterBuffer.nackLoop j.Pub.WriteRTCP err=%v", err)
+			}
 		}
 	}()
 }
@@ -144,17 +178,21 @@ func (j *JitterBuffer) rembLoop() {
 				return
 			}
 
-			if j.config.RembCycle <= 0 {
+			if j.config.REMBCycle <= 0 {
 				time.Sleep(time.Second)
 				continue
 			}
 
-			time.Sleep(time.Duration(j.config.RembCycle) * time.Second)
+			time.Sleep(time.Duration(j.config.REMBCycle) * time.Second)
 			for _, buffer := range j.GetBuffers() {
-				j.lostRate, j.bandwidth = buffer.GetLostRateBandwidth(uint64(j.config.RembCycle))
+				// only calc video recently
+				if !util.IsVideo(buffer.GetPayloadType()) {
+					continue
+				}
+				j.lostRate, j.bandwidth = buffer.GetLostRateBandwidth(uint64(j.config.REMBCycle))
 				var bw uint64
 				if j.lostRate == 0 && j.bandwidth == 0 {
-					bw = uint64(j.config.Bandwidth)
+					bw = uint64(j.config.MaxBandwidth)
 				} else if j.lostRate >= 0 && j.lostRate < 0.1 {
 					bw = uint64(j.bandwidth * 2)
 				} else {
@@ -165,8 +203,8 @@ func (j *JitterBuffer) rembLoop() {
 					bw = minBandwidth
 				}
 
-				if bw > uint64(j.config.Bandwidth) {
-					bw = uint64(j.config.Bandwidth)
+				if bw > uint64(j.config.MaxBandwidth) {
+					bw = uint64(j.config.MaxBandwidth)
 				}
 
 				remb := &rtcp.ReceiverEstimatedMaximumBitrate{
@@ -174,7 +212,14 @@ func (j *JitterBuffer) rembLoop() {
 					Bitrate:    bw * 1000,
 					SSRCs:      []uint32{buffer.GetSSRC()},
 				}
-				j.rtcpCh <- remb
+
+				if j.Pub == nil {
+					continue
+				}
+				err := j.Pub.WriteRTCP(remb)
+				if err != nil {
+					log.Errorf("JitterBuffer.rembLoop j.Pub.WriteRTCP err=%v", err)
+				}
 			}
 		}
 	}()
@@ -187,15 +232,22 @@ func (j *JitterBuffer) pliLoop() {
 				return
 			}
 
-			if j.config.PliCycle <= 0 {
+			if j.config.PLICycle <= 0 {
 				time.Sleep(time.Second)
 				continue
 			}
-			time.Sleep(time.Duration(j.config.PliCycle) * time.Second)
+			time.Sleep(time.Duration(j.config.PLICycle) * time.Second)
 			for _, buffer := range j.GetBuffers() {
 				if util.IsVideo(buffer.GetPayloadType()) {
 					pli := &rtcp.PictureLossIndication{SenderSSRC: buffer.GetSSRC(), MediaSSRC: buffer.GetSSRC()}
-					j.rtcpCh <- pli
+					if j.Pub == nil {
+						continue
+					}
+					// log.Infof("pliLoop send pli=%d", buffer.GetSSRC())
+					err := j.Pub.WriteRTCP(pli)
+					if err != nil {
+						log.Errorf("JitterBuffer.pliLoop j.Pub.WriteRTCP err=%v", err)
+					}
 				}
 			}
 		}
