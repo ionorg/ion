@@ -85,7 +85,7 @@ func (r *Router) start() {
 
 					// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
 					if err := t.WriteRTP(pkt); err != nil {
-						log.Errorf("wt.WriteRTP err=%v", err)
+						// log.Errorf("wt.WriteRTP err=%v", err)
 						// del sub when err is increasing
 						if t.WriteErrTotal() > maxWriteErr {
 							r.DelSub(t.ID())
