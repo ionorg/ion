@@ -22,13 +22,13 @@ const (
 )
 
 var (
-	bizCall  func(method string, peer *Peer, msg json.RawMessage, accept AcceptFunc, reject RejectFunc)
+	bizCall  func(method string, peer *Peer, msg json.RawMessage, accept RespondFunc, reject RejectFunc)
 	wsServer *server.WebSocketServer
 	rooms    = make(map[string]*Room)
 	roomLock sync.RWMutex
 )
 
-func Init(host string, port int, cert, key string, bizEntry interface{}) {
+func Init(host string, port int, cert, key string, bizEntry func(method string, peer *Peer, msg json.RawMessage, accept RespondFunc, reject RejectFunc)) {
 	wsServer = server.NewWebSocketServer(in)
 	config := server.DefaultConfig()
 	config.Host = host
@@ -36,7 +36,7 @@ func Init(host string, port int, cert, key string, bizEntry interface{}) {
 	config.CertFile = cert
 	config.KeyFile = key
 	config.HTMLRoot = "web"
-	bizCall = bizEntry.(func(method string, peer *Peer, msg json.RawMessage, accept AcceptFunc, reject RejectFunc))
+	bizCall = bizEntry
 	go wsServer.Bind(config)
 	go stat()
 }

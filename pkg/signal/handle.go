@@ -22,7 +22,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	log.Infof("signal.in, id => %s", id)
 	peer := newPeer(id, transport)
 
-	handleRequest := func(request pr.Request, accept AcceptFunc, reject RejectFunc) {
+	handleRequest := func(request pr.Request, accept RespondFunc, reject RejectFunc) {
 		defer util.Recover("signal.in handleRequest")
 		method := request.Method
 		if method == "" {
@@ -60,7 +60,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 
 		// msg := data.(map[string]interface{})
 		log.Infof("signal.in handleNotification id=%s method => %s", peer.ID(), method)
-		bizCall(method, peer, data, accept, reject)
+		bizCall(method, peer, data, emptyAccept, reject)
 	}
 
 	type CloseMsg struct {
@@ -75,7 +75,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 				if code > 1000 {
 					msg := CloseMsg{Rid: room.ID()}
 					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.ClientClose, peer, msgStr, accept, reject)
+					bizCall(proto.ClientClose, peer, msgStr, emptyAccept, reject)
 				}
 				room.RemovePeer(peer.ID())
 			}
