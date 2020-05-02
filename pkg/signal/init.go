@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 type AcceptFunc peer.AcceptFunc
 type RejectFunc peer.RejectFunc
+type RespondFunc peer.RespondFunc
 
 const (
 	errInvalidMethod = "method not found"
@@ -20,7 +22,7 @@ const (
 )
 
 var (
-	bizCall  func(method string, peer *Peer, msg map[string]interface{}, accept AcceptFunc, reject RejectFunc)
+	bizCall  func(method string, peer *Peer, msg json.RawMessage, accept AcceptFunc, reject RejectFunc)
 	wsServer *server.WebSocketServer
 	rooms    = make(map[string]*Room)
 	roomLock sync.RWMutex
@@ -34,7 +36,7 @@ func Init(host string, port int, cert, key string, bizEntry interface{}) {
 	config.CertFile = cert
 	config.KeyFile = key
 	config.HTMLRoot = "web"
-	bizCall = bizEntry.(func(method string, peer *Peer, msg map[string]interface{}, accept AcceptFunc, reject RejectFunc))
+	bizCall = bizEntry.(func(method string, peer *Peer, msg json.RawMessage, accept AcceptFunc, reject RejectFunc))
 	go wsServer.Bind(config)
 	go stat()
 }
