@@ -90,3 +90,6 @@ services:
 
   redis:
     image: redis:5.0.7
+
+volumes:
+  caddy:
