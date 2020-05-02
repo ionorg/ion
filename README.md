@@ -9,7 +9,8 @@ ION is a distributed RTC system written by pure go and flutter
 
 ## 
 
-![ion](docs/imgs/ion.jpg)
+<img src="docs/imgs/ion.jpg" width = "20%" />
+
 
 ## Wiki
 
