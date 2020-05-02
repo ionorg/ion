@@ -42,6 +42,10 @@ func accept(data json.RawMessage) {
 	log.Infof("peer accept data=%v", data)
 }
 
+func emptyAccept(data interface{}) {
+	log.Infof("peer accept data=%v", data)
+}
+
 func reject(errorCode int, errorReason string) {
 	log.Infof("reject errorCode=%v errorReason=%v", errorCode, errorReason)
 }

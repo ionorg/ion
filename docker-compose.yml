@@ -6,32 +6,45 @@ services:
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/web.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-web:0.2.0
+    build:
+      dockerfile: ./docker/web.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-web:0.2.0
     volumes:
+<<<<<<< Updated upstream
       - "./docker/Caddyfile:/etc/Caddyfile"
     ports:
       - 80:80
       - 8080:8080
       - 8443:8443
+=======
+      # Uncomment for production
+      - "./docker/Caddyfile:/etc/caddy/Caddyfile"
+      # Dev caddyfile
+      # - "./docker/local.Caddyfile:/etc/caddy/Caddyfile"
+      - "caddy:/root/.caddy/"
+    ports:
+      # Prod ports
+      - 80:80
+      - 443:443
+      # - 8080:8080
+>>>>>>> Stashed changes
     depends_on:
       - biz
     environment:
-    - WWW_URL
-    - ADMIN_EMAIL
+    - WWW_URL=demo1.chat.overcloud.org
+    - ADMIN_EMAIL=admin@demo1.chat.overcloud.org
 
   sfu:
     # These are commented out on purpose, when uncommented `docker-compose up` will
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/sfu.Dockerfile
-    #   context: .
+    build:
+      dockerfile: ./docker/sfu.Dockerfile
+      context: .
     command: "-c /configs/sfu.toml"
-    image: pionwebrtc/ion-sfu:0.2.0
+    #image: pionwebrtc/ion-sfu:0.2.0
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -45,10 +58,10 @@ services:
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/biz.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-biz:0.2.0
+    build:
+      dockerfile: ./docker/biz.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-biz:0.2.0
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
@@ -61,10 +74,10 @@ services:
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/islb.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-islb:0.2.0
+    build:
+      dockerfile: ./docker/islb.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-islb:0.2.0
     command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
