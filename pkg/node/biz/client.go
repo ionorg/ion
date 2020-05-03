@@ -13,6 +13,13 @@ import (
 	"github.com/pion/webrtc/v2"
 )
 
+var (
+	ridError  = util.NewNpError(codeRoomErr, codeStr(codeRoomErr))
+	jsepError = util.NewNpError(codeJsepErr, codeStr(codeJsepErr))
+	sdpError  = util.NewNpError(codeSDPErr, codeStr(codeSDPErr))
+	midError  = util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
+)
+
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
 	log.Infof("method => %s, data => %v", method, msg)
@@ -194,10 +201,11 @@ type JoinMsg struct {
 func join(peer *signal.Peer, msg JoinMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
 	rid := msg.Rid
-	// TODO Verify room ID
-	// if ok, err := verifyData(msg, "rid"); !ok {
-	// 	return nil, err
-	// }
+
+	// Validate
+	if msg.Rid == "" {
+		return nil, ridError
+	}
 
 	//already joined this room
 	if signal.HasPeer(rid, peer) {
@@ -257,10 +265,11 @@ func leave(peer *signal.Peer, msg LeaveMsg) (interface{}, *nprotoo.Error) {
 	defer util.Recover("biz.leave")
 
 	rid := msg.Rid
-	// TODO Verify room ID
-	// if ok, err := verifyData(msg, "rid"); !ok {
-	// 	return nil, err
-	// }
+
+	// Validate
+	if msg.Rid == "" {
+		return nil, ridError
+	}
 
 	uid := peer.ID()
 
@@ -381,13 +390,15 @@ type SubscribeMsg struct {
 
 func subscribe(peer *signal.Peer, msg SubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
-
-	// TODO veriy jsep, mid
-	// if ok, err := verifyData(msg, "jsep", "mid"); !ok {
-	// 	return nil, err
-	// }
-
 	mid := msg.Mid
+
+	// Validate
+	if mid == "" {
+		return nil, midError
+	} else if msg.Jsep.SDP == "" {
+		return nil, jsepError
+	}
+
 	nodeID, sfu, err := getRPCForSFU(mid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
@@ -431,13 +442,12 @@ type UnsubscribeMsg struct {
 
 func unsubscribe(peer *signal.Peer, msg UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-
-	//TODO verify mid
-	// if ok, err := verifyData(msg, "mid"); !ok {
-	// 	return nil, err
-	// }
-
 	mid := msg.Mid
+
+	// Validate
+	if mid == "" {
+		return nil, midError
+	}
 
 	_, sfu, err := getRPCForSFU(mid)
 	if err != nil {
@@ -463,16 +473,16 @@ type BroadcastMsg struct {
 func broadcast(peer *signal.Peer, msg BroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
-	//TODO verify rid, uid, info
-	// if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
-	// 	return nil, err
-	// }
+	// Validate
+	if msg.Rid == "" || msg.Uid == "" {
+		return nil, ridError
+	}
 
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	rid, uid, info := msg.RoomInfo.Rid, msg.RoomInfo.Uid, msg.Info
+	rid, uid, info := msg.Rid, msg.Uid, msg.Info
 	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info))
 	return emptyMap, nil
 }
@@ -486,13 +496,12 @@ type TrickleMsg struct {
 
 func trickle(peer *signal.Peer, msg TrickleMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.trickle peer.ID()=%s msg=%v", peer.ID(), msg)
-
 	mid := msg.Mid
 
-	//TODO verify rid, uid, info
-	// if ok, err := verifyData(msg, "rid", "uid", "info"); !ok {
-	// 	return nil, err
-	// }
+	// Validate
+	if msg.Rid == "" || msg.Uid == "" {
+		return nil, ridError
+	}
 
 	_, sfu, err := getRPCForSFU(mid)
 	if err != nil {
