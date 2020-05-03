@@ -17,73 +17,95 @@ import (
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
 	log.Infof("method => %s, data => %v", method, msg)
 	var result map[string]interface{}
-	err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+	topErr := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
 
+	parseErr := util.NewNpError(400, fmt.Sprintf("Error parsing request object"))
+	//TODO DRY this up
 	switch method {
 	case proto.ClientClose:
 		var msgData CloseMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = clientClose(peer, msgData)
+		result, topErr = clientClose(peer, msgData)
 	case proto.ClientLogin:
 		var msgData LoginMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = login(peer, msgData)
+		result, topErr = login(peer, msgData)
 	case proto.ClientJoin:
 		var msgData JoinMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = join(peer, msgData)
+		result, topErr = join(peer, msgData)
 	case proto.ClientLeave:
 		var msgData LeaveMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = leave(peer, msgData)
+		result, topErr = leave(peer, msgData)
 	case proto.ClientPublish:
 		var msgData PublishMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = publish(peer, msgData)
+		result, topErr = publish(peer, msgData)
 	case proto.ClientUnPublish:
 		var msgData UnpublishMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = unpublish(peer, msgData)
+		result, topErr = unpublish(peer, msgData)
 	case proto.ClientSubscribe:
 		var msgData SubscribeMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = subscribe(peer, msgData)
+		result, topErr = subscribe(peer, msgData)
 	case proto.ClientUnSubscribe:
 		var msgData UnsubscribeMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = unsubscribe(peer, msgData)
+		result, topErr = unsubscribe(peer, msgData)
 	case proto.ClientBroadcast:
 		var msgData BroadcastMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = broadcast(peer, msgData)
+		result, topErr = broadcast(peer, msgData)
 	case proto.ClientTrickleICE:
 		var msgData TrickleMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
+			topErr = parseErr
+			break
 		}
-		result, err = trickle(peer, msgData)
+		result, topErr = trickle(peer, msgData)
 	}
 
-	if err != nil {
-		reject(err.Code, err.Reason)
+	if topErr != nil {
+		reject(topErr.Code, topErr.Reason)
 	} else {
 		accept(result)
 	}
