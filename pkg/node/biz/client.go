@@ -10,7 +10,6 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
-	"github.com/pion/webrtc/v2"
 )
 
 var (
@@ -179,22 +178,10 @@ func getRPCForSFU(mid string) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	return nodeID, rpc, nil
 }
 
-type LoginMsg struct {
-}
-
 func login(peer *signal.Peer, msg LoginMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.login peer.ID()=%s msg=%v", peer.ID(), msg)
 	//TODO auth check, maybe jwt
 	return emptyMap, nil
-}
-
-type UserInfo struct {
-	Name string `json:"name"`
-}
-
-type JoinMsg struct {
-	RoomInfo
-	Info UserInfo `json:"info"`
 }
 
 // join room
@@ -255,11 +242,6 @@ func join(peer *signal.Peer, msg JoinMsg) (interface{}, *nprotoo.Error) {
 	return emptyMap, nil
 }
 
-type LeaveMsg struct {
-	RoomInfo
-	Info UserInfo `json:"info"`
-}
-
 func leave(peer *signal.Peer, msg LeaveMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.leave peer.ID()=%s msg=%v", peer.ID(), msg)
 	defer util.Recover("biz.leave")
@@ -284,33 +266,9 @@ func leave(peer *signal.Peer, msg LeaveMsg) (interface{}, *nprotoo.Error) {
 	return emptyMap, nil
 }
 
-type CloseMsg struct {
-	LeaveMsg
-}
-
 func clientClose(peer *signal.Peer, msg CloseMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
 	return leave(peer, msg.LeaveMsg)
-}
-
-type RoomInfo struct {
-	Rid string `json:"rid"`
-	Uid string `json:"uid"`
-}
-
-type PublishOptions struct {
-	Codec      string `json:"codec"`
-	Resolution string `json:"resolution"`
-	Bandwidth  int    `json:"bandwidth"`
-	Audio      bool   `json:"audio"`
-	Video      bool   `json:"video"`
-	Screen     bool   `json:"screen"`
-}
-
-type PublishMsg struct {
-	RoomInfo
-	Jsep    webrtc.SessionDescription `json:"jsep"`
-	Options PublishOptions            `json:"options"`
 }
 
 func publish(peer *signal.Peer, msg PublishMsg) (interface{}, *nprotoo.Error) {
@@ -348,12 +306,6 @@ func publish(peer *signal.Peer, msg PublishMsg) (interface{}, *nprotoo.Error) {
 	return result, nil
 }
 
-type UnpublishMsg struct {
-	RoomInfo
-	Options PublishOptions `json:"options"`
-	Mid     string         `json:"mid"`
-}
-
 // unpublish from app
 func unpublish(peer *signal.Peer, msg UnpublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
@@ -381,11 +333,6 @@ func unpublish(peer *signal.Peer, msg UnpublishMsg) (interface{}, *nprotoo.Error
 	// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb broadcast stream-remove
 	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", mid))
 	return emptyMap, nil
-}
-
-type SubscribeMsg struct {
-	Mid  string                    `json:"mid"`
-	Jsep webrtc.SessionDescription `json:"jsep"`
 }
 
 func subscribe(peer *signal.Peer, msg SubscribeMsg) (interface{}, *nprotoo.Error) {
@@ -436,10 +383,6 @@ func subscribe(peer *signal.Peer, msg SubscribeMsg) (interface{}, *nprotoo.Error
 	return result, nil
 }
 
-type UnsubscribeMsg struct {
-	Mid string `json:"mid"`
-}
-
 func unsubscribe(peer *signal.Peer, msg UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
 	mid := msg.Mid
@@ -465,11 +408,6 @@ func unsubscribe(peer *signal.Peer, msg UnsubscribeMsg) (interface{}, *nprotoo.E
 	return result, nil
 }
 
-type BroadcastMsg struct {
-	RoomInfo
-	Info json.RawMessage `json:"info"`
-}
-
 func broadcast(peer *signal.Peer, msg BroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
@@ -485,13 +423,6 @@ func broadcast(peer *signal.Peer, msg BroadcastMsg) (interface{}, *nprotoo.Error
 	rid, uid, info := msg.Rid, msg.Uid, msg.Info
 	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info))
 	return emptyMap, nil
-}
-
-type TrickleMsg struct {
-	RoomInfo
-	Mid     string          `json:"mid"`
-	Info    json.RawMessage `json:"info"`
-	Trickle json.RawMessage `json:"trickle"`
 }
 
 func trickle(peer *signal.Peer, msg TrickleMsg) (interface{}, *nprotoo.Error) {
