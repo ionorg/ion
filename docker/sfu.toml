@@ -21,7 +21,14 @@ maxbandwidth = 1000
 # max buffer time by ms
 maxbuffertime = 1000
 
-
+[plugins.rtpforwarder]
+on = false
+# remote address
+addr = ""
+# kcp key
+kcpkey = ""
+# kcp salt
+kcpsalt = ""
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on

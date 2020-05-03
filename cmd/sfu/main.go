@@ -48,6 +48,12 @@ func init() {
 			MaxBandwidth:  conf.Plugins.JitterBuffer.MaxBandwidth,
 			MaxBufferTime: conf.Plugins.JitterBuffer.MaxBufferTime,
 		},
+		RTPForwarder: plugins.RTPForwarderConfig{
+			On:      conf.Plugins.RTPForwarder.On,
+			Addr:    conf.Plugins.RTPForwarder.Addr,
+			KcpKey:  conf.Plugins.RTPForwarder.KcpKey,
+			KcpSalt: conf.Plugins.RTPForwarder.KcpSalt,
+		},
 	}
 
 	if err := rtc.CheckPlugins(pluginConfig); err != nil {
