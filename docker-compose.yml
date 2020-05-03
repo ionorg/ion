@@ -6,10 +6,10 @@ services:
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
     # and execute `docker-compose build && docker-compose push`
     #
-    # build:
-    #   dockerfile: ./docker/web.Dockerfile
-    #   context: .
-    image: pionwebrtc/ion-web:0.2.0
+    build:
+      dockerfile: ./docker/web.Dockerfile
+      context: .
+    # image: pionwebrtc/ion-web:0.2.0
     volumes:
       # Uncomment for production
       # - "./docker/Caddyfile:/etc/caddy/Caddyfile"
