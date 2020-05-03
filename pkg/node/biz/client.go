@@ -21,7 +21,6 @@ var (
 
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
-	log.Infof("method => %s, data => %v", method, msg)
 	var result interface{}
 	topErr := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
 
