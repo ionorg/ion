@@ -1,4 +1,0 @@
-
-
-addTransceiver(pc, type, options){
-}
