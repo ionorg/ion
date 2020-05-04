@@ -18,12 +18,12 @@ type Plugin interface {
 	ID() string
 	WriteRTP(*rtp.Packet) error
 	ReadRTP() <-chan *rtp.Packet
-	AttachPre(Plugin)
 	Stop()
 }
 
 const (
 	TypeJitterBuffer = "JitterBuffer"
+	TypeRTPForwarder = "RTPForwarder"
 
 	maxSize = 100
 )
@@ -31,6 +31,7 @@ const (
 type Config struct {
 	On           bool
 	JitterBuffer JitterBufferConfig
+	RTPForwarder RTPForwarderConfig
 }
 
 type PluginChain struct {
@@ -71,7 +72,10 @@ func CheckPlugins(config Config) error {
 	}
 
 	//check second plugin
-	//...
+	if config.RTPForwarder.On {
+		oneOn = true
+	}
+
 	if !oneOn {
 		return errInvalidPlugins
 	}
@@ -85,22 +89,28 @@ func (p *PluginChain) Init(config Config) error {
 	log.Infof("PluginChain.Init config=%+v", config)
 	// first, add JitterBuffer plugin
 	if config.JitterBuffer.On {
-		log.Infof("PluginChain.Init config.JitterBuffer.On=true config=%v", config)
+		log.Infof("PluginChain.Init config.JitterBuffer.On=true config=%v", config.JitterBuffer)
 		config.JitterBuffer.ID = TypeJitterBuffer
 		p.AddPlugin(TypeJitterBuffer, NewJitterBuffer(config.JitterBuffer))
 	}
 
 	// second, add others
-	// if config.XXXX.On {
-	// p.AddPlugin(TypeXXXXXX, NewXXXXX(config.XXXXX))
-	// }
+	if config.RTPForwarder.On {
+		log.Infof("PluginChain.Init config.RTPForwarder.On=true config=%v", config.RTPForwarder)
+		config.RTPForwarder.ID = TypeRTPForwarder
+		p.AddPlugin(TypeRTPForwarder, NewRTPForwarder(config.RTPForwarder))
+	}
 
-	// attach all plugins
+	// forward packets along plugin chain
 	for i, plugin := range p.plugins {
 		if i == 0 {
 			continue
 		}
-		plugin.AttachPre(p.plugins[i-1])
+		go func() {
+			for pkt := range p.plugins[i-1].ReadRTP() {
+				plugin.WriteRTP(pkt)
+			}
+		}()
 	}
 
 	if p.GetPluginsTotal() <= 0 {

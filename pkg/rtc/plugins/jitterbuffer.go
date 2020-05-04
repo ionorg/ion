@@ -39,7 +39,6 @@ type JitterBuffer struct {
 	config     JitterBufferConfig
 	Pub        transport.Transport
 	outRTPChan chan *rtp.Packet
-	prePlugin  Plugin
 }
 
 // NewJitterBuffer return new JitterBuffer
@@ -52,11 +51,6 @@ func NewJitterBuffer(config JitterBufferConfig) *JitterBuffer {
 	j.rembLoop()
 	j.pliLoop()
 	return j
-}
-
-// AttachPre ..
-func (j *JitterBuffer) AttachPre(plugin Plugin) {
-	j.prePlugin = plugin
 }
 
 // Init jitterbuffer config
@@ -83,6 +77,7 @@ func (j *JitterBuffer) ID() string {
 	return j.config.ID
 }
 
+// AttachPub Attach pub stream
 func (j *JitterBuffer) AttachPub(t transport.Transport) {
 	j.Pub = t
 	go func() {

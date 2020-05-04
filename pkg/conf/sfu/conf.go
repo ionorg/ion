@@ -45,9 +45,17 @@ type JitterBuffer struct {
 	MaxBufferTime int  `mapstructure:"maxbuffertime"`
 }
 
+type RTPForwarder struct {
+	On      bool   `mapstructure:"on"`
+	Addr    string `mapstructure:"addr"`
+	KcpKey  string `mapstructure:"kcpkey"`
+	KcpSalt string `mapstructure:"kcpsalt"`
+}
+
 type plugins struct {
 	On           bool         `mapstructure:"on"`
 	JitterBuffer JitterBuffer `mapstructure:"jitterbuffer"`
+	RTPForwarder RTPForwarder `mapstructure:"rtpforwarder"`
 }
 
 type log struct {

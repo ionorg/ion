@@ -1,9 +1,7 @@
 [global]
 pprof = ":6062"
-
 # data center id
 dc = "dc1"
-
 # internet ip
 addr = "127.0.0.1"
 
@@ -21,36 +19,40 @@ maxbandwidth = 1000
 # max buffer time by ms
 maxbuffertime = 1000
 
-
+[plugins.rtpforwarder]
+on = false
+# remote address
+addr = ""
+# kcp key
+kcpkey = ""
+# kcp salt
+kcpsalt = ""
 
 [webrtc]
+
 # Range of ports that ion accepts WebRTC traffic on
 # Format: [min, max]   and max - min >= 100
 # portrange = [50000, 60000]
-
 # if sfu behind nat, set iceserver
 # [[webrtc.iceserver]]
 # urls = ["stun:stun.stunprotocol.org:3478"]
-
 # [[webrtc.iceserver]]
 # urls = ["turn:turn.awsome.org:3478"]
 # username = "awsome"
 # credential = "awsome"
-
 [rtp]
 # listen port
 port = 6666
+
 # kcpkey = ""
 # kcpsalt = ""
-
 [log]
 level = "info"
-# level = "debug"
 
+# level = "debug"
 [etcd]
 # ["ip:port", "ip:port"]
 addrs = ["127.0.0.1:2379"]
 
 [nats]
 url = "nats://127.0.0.1:4222"
-
