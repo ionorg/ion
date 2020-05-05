@@ -7,7 +7,8 @@ WORKDIR $GOPATH/src/github.com/pion/ion
 COPY go.mod go.sum ./
 RUN cd $GOPATH/src/github.com/pion/ion && go mod download
 
-COPY . $GOPATH/src/github.com/pion/ion
+COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg
+COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
 
 WORKDIR $GOPATH/src/github.com/pion/ion/cmd/biz
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /biz .
