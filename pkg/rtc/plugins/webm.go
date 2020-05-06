@@ -76,13 +76,15 @@ func (s *WebmSaver) PushOpus(rtpPacket *rtp.Packet) {
 	s.audioBuilder.Push(rtpPacket)
 
 	for {
-		sample := s.audioBuilder.Pop()
+		sample, timestamp := s.audioBuilder.PopWithTimestamp()
 		if sample == nil {
 			return
 		}
 		if s.audioWriter != nil {
-			s.audioTimestamp += sample.Samples
-			t := s.audioTimestamp / 48
+			if s.audioTimestamp == 0 {
+				s.audioTimestamp = timestamp
+			}
+			t := (timestamp - s.audioTimestamp) / 48
 			if _, err := s.audioWriter.Write(true, int64(t), sample.Data); err != nil {
 				panic(err)
 			}
@@ -93,7 +95,7 @@ func (s *WebmSaver) PushVP8(rtpPacket *rtp.Packet) {
 	s.videoBuilder.Push(rtpPacket)
 
 	for {
-		sample := s.videoBuilder.Pop()
+		sample, timestamp := s.videoBuilder.PopWithTimestamp()
 		if sample == nil {
 			return
 		}
@@ -111,8 +113,10 @@ func (s *WebmSaver) PushVP8(rtpPacket *rtp.Packet) {
 			}
 		}
 		if s.videoWriter != nil {
-			s.videoTimestamp += sample.Samples
-			t := s.videoTimestamp / 90
+			if s.videoTimestamp == 0 {
+				s.videoTimestamp = timestamp
+			}
+			t := (timestamp - s.videoTimestamp) / 90
 			if _, err := s.videoWriter.Write(videoKeyframe, int64(t), sample.Data); err != nil {
 				panic(err)
 			}
