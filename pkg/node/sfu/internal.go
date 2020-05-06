@@ -128,6 +128,9 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 				}
 			}
 			var infos []proto.TrackInfo
+			if len(track.GetSSRCS()) == 0 {
+				return nil, util.NewNpError(415, "publish: ssrc not found.")
+			}
 			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
 			tracks[stream.GetID()+" "+id] = infos
 		}

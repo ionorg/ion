@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/at-wat/ebml-go v0.9.2
-	github.com/cloudwebrtc/go-protoo v0.0.0-20200324091126-61fe57ffd18f
+	github.com/cloudwebrtc/go-protoo v0.0.0-20200503150352-84211f461572
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200328144814-d3c1c848d442
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -21,7 +21,7 @@ require (
 	github.com/pion/rtp v1.4.0
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.10.0
-	github.com/pion/webrtc/v2 v2.2.6
+	github.com/pion/webrtc/v2 v2.2.7
 	github.com/rs/zerolog v1.17.2
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/spf13/viper v1.6.2

@@ -1,6 +1,8 @@
 package signal
 
 import (
+	"encoding/json"
+
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/pion/ion/pkg/log"
@@ -36,7 +38,11 @@ func (c *Peer) Close() {
 	c.Peer.Close()
 }
 
-func accept(data map[string]interface{}) {
+func accept(data json.RawMessage) {
+	log.Infof("peer accept data=%v", data)
+}
+
+func emptyAccept(data interface{}) {
 	log.Infof("peer accept data=%v", data)
 }
 

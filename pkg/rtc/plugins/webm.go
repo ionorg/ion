@@ -83,7 +83,7 @@ func (s *WebmSaver) PushOpus(rtpPacket *rtp.Packet) {
 		if s.audioWriter != nil {
 			s.audioTimestamp += sample.Samples
 			t := s.audioTimestamp / 48
-			if _, err := s.audioWriter.Write(true, int64(t), rtpPacket.Payload); err != nil {
+			if _, err := s.audioWriter.Write(true, int64(t), sample.Data); err != nil {
 				panic(err)
 			}
 		}

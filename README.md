@@ -7,43 +7,27 @@ ION is a distributed RTC system written by pure go and flutter
 [![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://pion.ly/slack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pion/ion)](https://goreportcard.com/report/github.com/pion/ion)
 
+## 
+
+<img src="docs/imgs/ion.jpg" width = "20%" />
+
+
+## Wiki
+
+https://github.com/pion/ion/wiki
+
 ## Architecture
 
-![ion](docs/imgs/cloud.png)
-
-## Features
-
-- [x] Distributed Node
-
-  - [x] Standalone BIZ/ISLB and SFU node
-  - [x] Message Queue by NATS
-  - [x] SFU by Pure GO
-  - [x] MCU (WIP)
-  - [x] SFU<-->SFU relay (WIP)
-  - [x] High Performance (WIP)
-
-  - [x] Media Streaming
-    - [x] WebRTC stack
-    - [x] SIP stack (WIP)
-    - [x] RTP/RTP over KCP
-    - [x] JitterBuffer
-      - [x] Nack
-      - [x] PLI
-      - [x] Lite-REMB
-      - [x] Transport-CC(WIP)
-      - [x] Anti-Loss-Package 30%+
-
-- [x] SDK
-  - [x] Flutter SDK
-  - [x] JS SDK
-- [x] Demo
+![arch](https://github.com/pion/ion/raw/master/docs/imgs/arch.png)
 
 ## Contributing
 
 - [adwpc](https://github.com/adwpc) - _Original Author - ion server_
 - [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
 - [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
-- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker_
+- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker file_ 
+- [sashaaro](https://github.com/sashaaro) - _docker file_
+- [tarrencev](https://github.com/tarrencev) - _audio video process_
 
 ## Roadmap
 

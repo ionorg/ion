@@ -19,11 +19,12 @@ const (
 
 	// vp8 vp9 h264 clock rate 90000Hz
 	videoClock = 90000
-	// buffer time 2s
-	maxBufferTSDelta = videoClock * 2
 
 	//1+16(FSN+BLP) https://tools.ietf.org/html/rfc2032#page-9
 	maxNackLostSize = 17
+
+	//default buffer time by ms
+	defaultBufferTime = 1000
 )
 
 func tsDelta(x, y uint32) uint32 {
@@ -55,7 +56,9 @@ type Buffer struct {
 
 	//calc bandwidth
 	totalByte uint64
-	byteRate  uint64
+
+	//buffer time
+	maxBufferTS uint32
 
 	stop bool
 }
@@ -68,9 +71,17 @@ func NewBuffer() *Buffer {
 	return b
 }
 
+// InitBufferTime init buffer time by ms
+func (b *Buffer) InitBufferTime(time int) {
+	if time <= 0 {
+		time = defaultBufferTime
+	}
+	b.maxBufferTS = uint32(time) * videoClock / 1000
+	log.Infof("Buffer.InitBufferTime time=%d b.maxBufferTS=%d", time, b.maxBufferTS)
+}
+
 // Push adds a RTP Packet, out of order, new packet may be arrived later
 func (b *Buffer) Push(p *rtp.Packet) {
-	// log.Infof("Buffer.Push pt=%v sn=%v ts=%v", p.PayloadType, p.SequenceNumber, p.Timestamp)
 	b.receivedPkt++
 	b.totalByte += uint64(p.MarshalSize())
 
@@ -95,7 +106,6 @@ func (b *Buffer) Push(p *rtp.Packet) {
 		b.lastNackSN = p.SequenceNumber
 	}
 
-	// log.Infof("p.SequenceNumber=%d", p.SequenceNumber)
 	b.pktBuffer[p.SequenceNumber] = p
 	b.lastPushSN = p.SequenceNumber
 
@@ -131,19 +141,29 @@ func (b *Buffer) Push(p *rtp.Packet) {
 func (b *Buffer) clearOldPkt(pushPktTS uint32, pushPktSN uint16) {
 	clearTS := b.lastClearTS
 	clearSN := b.lastClearSN
-	if tsDelta(pushPktTS, clearTS) >= maxBufferTSDelta {
+	// log.Infof("clearOldPkt pushPktTS=%d pushPktSN=%d     clearTS=%d  clearSN=%d ", pushPktTS, pushPktSN, clearTS, clearSN)
+	if tsDelta(pushPktTS, clearTS) >= b.maxBufferTS {
+		//pushPktSN will loop from 0 to 65535
+		if pushPktSN == 0 {
+			//make sure clear the old packet from 655xx to 65535
+			pushPktSN = maxSN - 1
+		}
 		for i := clearSN + 1; i <= pushPktSN; i++ {
 			if b.pktBuffer[i] == nil {
 				log.Infof("b.pktBuffer[i] == nil")
 				continue
 			}
-			if tsDelta(pushPktTS, b.pktBuffer[i].Timestamp) >= maxBufferTSDelta {
+			if tsDelta(pushPktTS, b.pktBuffer[i].Timestamp) >= b.maxBufferTS {
 				b.lastClearTS = b.pktBuffer[i].Timestamp
 				b.lastClearSN = i
 				b.pktBuffer[i] = nil
 			} else {
 				break
 			}
+		}
+		if pushPktSN == maxSN-1 {
+			b.lastClearSN = 0
+			b.lastNackSN = 0
 		}
 	}
 }
@@ -244,7 +264,10 @@ func (b *Buffer) GetPacket(sn uint16) *rtp.Packet {
 func IsVP8KeyFrame(pkt *rtp.Packet) bool {
 	if pkt != nil && pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
 		vp8 := &codecs.VP8Packet{}
-		vp8.Unmarshal(pkt.Payload)
+		_, err := vp8.Unmarshal(pkt.Payload)
+		if err != nil {
+			return false
+		}
 		// start of a frame, there is a payload header  when S == 1
 		if vp8.S == 1 && vp8.Payload[0]&0x01 == 0 {
 			//key frame

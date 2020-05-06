@@ -1,8 +1,10 @@
 package signal
 
 import (
+	"encoding/json"
 	"net/http"
 
+	pr "github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -20,46 +22,49 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	log.Infof("signal.in, id => %s", id)
 	peer := newPeer(id, transport)
 
-	handleRequest := func(request map[string]interface{}, accept AcceptFunc, reject RejectFunc) {
+	handleRequest := func(request pr.Request, accept RespondFunc, reject RejectFunc) {
 		defer util.Recover("signal.in handleRequest")
-		method := util.Val(request, "method")
+		method := request.Method
 		if method == "" {
 			log.Errorf("method => %v", method)
 			reject(-1, errInvalidMethod)
 			return
 		}
 
-		data := request["data"]
+		data := request.Data
 		if data == nil {
 			log.Errorf("data => %v", data)
 			reject(-1, errInvalidData)
 			return
 		}
 
-		msg := data.(map[string]interface{})
 		log.Infof("signal.in handleRequest id=%s method => %s", peer.ID(), method)
-		bizCall(method, peer, msg, accept, reject)
+		bizCall(method, peer, data, accept, reject)
 	}
 
-	handleNotification := func(notification map[string]interface{}) {
+	handleNotification := func(notification pr.Notification) {
 		defer util.Recover("signal.in handleNotification")
-		method := util.Val(notification, "method")
+		method := notification.Method
 		if method == "" {
 			log.Errorf("method => %v", method)
 			reject(-1, errInvalidMethod)
 			return
 		}
 
-		data := notification["data"]
+		data := notification.Data
 		if data == nil {
 			log.Errorf("data => %v", data)
 			reject(-1, errInvalidData)
 			return
 		}
 
-		msg := data.(map[string]interface{})
+		// msg := data.(map[string]interface{})
 		log.Infof("signal.in handleNotification id=%s method => %s", peer.ID(), method)
-		bizCall(method, peer, msg, accept, reject)
+		bizCall(method, peer, data, emptyAccept, reject)
+	}
+
+	type CloseMsg struct {
+		Rid string `json:"rid"`
 	}
 
 	handleClose := func(code int, err string) {
@@ -68,9 +73,9 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		for _, room := range rooms {
 			if room != nil {
 				if code > 1000 {
-					msg := make(map[string]interface{})
-					msg["rid"] = room.ID()
-					bizCall(proto.ClientClose, peer, msg, accept, reject)
+					msg := CloseMsg{Rid: room.ID()}
+					msgStr, _ := json.Marshal(msg)
+					bizCall(proto.ClientClose, peer, msgStr, emptyAccept, reject)
 				}
 				room.RemovePeer(peer.ID())
 			}

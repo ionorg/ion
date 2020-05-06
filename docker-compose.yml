@@ -9,7 +9,7 @@ services:
     # build:
     #   dockerfile: ./docker/web.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-web:0.1.0
+    image: pionwebrtc/ion-web:0.2.0
     volumes:
       - "./docker/Caddyfile:/etc/Caddyfile"
     ports:
@@ -31,7 +31,7 @@ services:
     #   dockerfile: ./docker/sfu.Dockerfile
     #   context: .
     command: "-c /configs/sfu.toml"
-    image: pionwebrtc/ion-sfu:0.1.0
+    image: pionwebrtc/ion-sfu:0.2.0
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -48,7 +48,7 @@ services:
     # build:
     #   dockerfile: ./docker/biz.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-biz:0.1.0
+    image: pionwebrtc/ion-biz:0.2.0
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
@@ -64,7 +64,7 @@ services:
     # build:
     #   dockerfile: ./docker/islb.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-islb:0.1.0
+    image: pionwebrtc/ion-islb:0.2.0
     command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
