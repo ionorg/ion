@@ -109,8 +109,11 @@ func (e *Etcd) close() error {
 	}
 	e.stop = true
 	e.liveKeyIDLock.Lock()
-	for k, _ := range e.liveKeyID {
-		e.client.Delete(context.TODO(), k)
+	for k := range e.liveKeyID {
+		_, err := e.client.Delete(context.TODO(), k)
+		if err != nil {
+			log.Errorf("e.client.Delete %v", err)
+		}
 	}
 	e.liveKeyIDLock.Unlock()
 	return e.client.Close()
@@ -159,13 +162,18 @@ func (e *Etcd) getByPrefix(key string) (map[string]string, error) {
 // GetResponseByPrefix .
 func (e *Etcd) GetResponseByPrefix(key string) (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)
+	defer cancel()
 	resp, err := e.client.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
-	if err != nil {
-		cancel()
-		return nil, err
+	// try again if time out
+	if err == context.DeadlineExceeded {
+		ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout*2)
+		defer cancel()
+		resp, err := e.client.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+		return resp, err
 	}
-	return resp, nil
+	return resp, err
 }
+
 func (e *Etcd) update(key, value string) error {
 	e.liveKeyIDLock.Lock()
 	id := e.liveKeyID[key]
