@@ -7,6 +7,8 @@ ION is a distributed RTC system written by pure go and flutter
 [![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://pion.ly/slack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pion/ion)](https://goreportcard.com/report/github.com/pion/ion)
 
+### Notice: Please use v0.3.0, master is not stable now
+
 
 ## Wiki
 
