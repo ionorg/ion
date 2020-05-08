@@ -1,32 +1,6 @@
 version: '3.7'
 
 services:
-  web:
-    # These are commented out on purpose, when uncommented `docker-compose up` will
-    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
-    # and execute `docker-compose build && docker-compose push`
-    #
-    build:
-      dockerfile: ./docker/web.Dockerfile
-      context: .
-    # image: pionwebrtc/ion-web:0.2.0
-    volumes:
-      # Uncomment for production
-      # - "./docker/Caddyfile:/etc/caddy/Caddyfile"
-      # Dev caddyfile
-      - "./docker/local.Caddyfile:/etc/caddy/Caddyfile"
-      - "caddy:/root/.caddy/"
-    ports:
-      # Prod ports
-      # - 80:80
-      # - 443:443
-      - 8080:8080
-    depends_on:
-      - biz
-    environment:
-    - WWW_URL
-    - ADMIN_EMAIL
-
   sfu:
     # These are commented out on purpose, when uncommented `docker-compose up` will
     # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
