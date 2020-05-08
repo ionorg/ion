@@ -7,20 +7,16 @@ ION is a distributed RTC system written by pure go and flutter
 [![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://pion.ly/slack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pion/ion)](https://goreportcard.com/report/github.com/pion/ion)
 
-## 
-
-<img src="docs/imgs/ion.jpg" width = "20%" />
-
 
 ## Wiki
 
-https://github.com/pion/ion/wiki
+<img src="docs/imgs/ion.jpg" width = "10%" />https://github.com/pion/ion/wiki
 
 ## Architecture
 
 ![arch](https://github.com/pion/ion/raw/master/docs/imgs/arch.png)
 
-## Contributing
+## Contributor
 
 - [adwpc](https://github.com/adwpc) - _Original Author - ion server_
 - [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
@@ -29,14 +25,17 @@ https://github.com/pion/ion/wiki
 - [sashaaro](https://github.com/sashaaro) - _docker file_
 - [tarrencev](https://github.com/tarrencev) - _audio video process_
 
-## Roadmap
+## SDK
 
-[Projects](https://github.com/pion/ion/projects/1)
-Welcome contributing to ion!
+[ion-sdk-js](https://github.com/pion/ion-sdk-js)
 
-## Stars
+[ion-sdk-flutter](https://github.com/pion/ion-sdk-flutter)
 
-[![Stargazers over time](https://starchart.cc/pion/ion.svg)](https://starchart.cc/pion/ion)
+## APP
+
+[ion-app-web](https://github.com/pion/ion-app-web)
+
+[ion-app-flutter](https://github.com/pion/ion-app-flutter)
 
 # Screenshots
 
@@ -129,3 +128,8 @@ It accepts the following enviroment variables.
 To run on `conference.pion.ly` you would run `WWW_URL=conference.pion.ly ADMIN_EMAIL=admin@pion.ly docker-compose up`
 
 If `WWW_URL` is set you will access via `https://yourip:8080` OR `http://yourip:8080` if not running with TLS enabled.
+
+## Roadmap
+
+[Projects](https://github.com/pion/ion/projects/1)
+Welcome contributing to ion!
