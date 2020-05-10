@@ -19,6 +19,19 @@ type MediaInfo struct {
 	Mid string `json:"mid"`
 }
 
+type RTCInfo struct {
+	Jsep webrtc.SessionDescription `json:"jsep"`
+}
+
+type TrackInfo struct {
+	Type  string `json:"type"`
+	Codec string `json:"codec"`
+	FMTP  string `json:"fmtp"`
+	ID    string `json:"id"`
+	PT    int    `json:"pt"`
+	SSRC  int64  `json:"ssrc"`
+}
+
 type PublishOptions struct {
 	Codec      string `json:"codec"`
 	Resolution string `json:"resolution"`
@@ -27,6 +40,8 @@ type PublishOptions struct {
 	Video      bool   `json:"video"`
 	Screen     bool   `json:"screen"`
 }
+
+type TrackMap map[string][]TrackInfo
 
 /// Messages ///
 
@@ -49,19 +64,30 @@ type CloseMsg struct {
 
 type PublishMsg struct {
 	RoomInfo
-	Jsep    webrtc.SessionDescription `json:"jsep"`
-	Options PublishOptions            `json:"options"`
+	RTCInfo
+	Options PublishOptions `json:"options"`
+}
+
+type PublishResponseMsg struct {
+	MediaInfo
+	RTCInfo
+	Tracks TrackMap `json:"tracks"`
 }
 
 type UnpublishMsg struct {
 	RoomInfo
 	MediaInfo
-	Options PublishOptions `json:"options"`
 }
 
 type SubscribeMsg struct {
+	RoomInfo
 	MediaInfo
-	Jsep webrtc.SessionDescription `json:"jsep"`
+	RTCInfo
+}
+
+type SubscribeResponseMsg struct {
+	MediaInfo
+	RTCInfo
 }
 
 type UnsubscribeMsg struct {
@@ -78,4 +104,16 @@ type TrickleMsg struct {
 	MediaInfo
 	Info    json.RawMessage `json:"info"`
 	Trickle json.RawMessage `json:"trickle"`
+}
+
+type StreamAddMsg struct {
+	RoomInfo
+	MediaInfo
+	Info   UserInfo `json:"info"`
+	Tracks TrackMap `json:"tracks"`
+}
+
+type StreamRemoveMsg struct {
+	RoomInfo
+	MediaInfo
 }
