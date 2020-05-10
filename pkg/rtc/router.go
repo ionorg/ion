@@ -80,7 +80,12 @@ func (r *Router) start() {
 
 			// Push to client send queues
 			for i, _ := range r.GetSubs() {
-				r.subChans[i] <- pkt
+				// Nonblock sending
+				select {
+				case r.subChans[i] <- pkt:
+				default:
+					log.Errorf("Sub consumer is backed up. Dropping packet")
+				}
 			}
 		}
 	}()
