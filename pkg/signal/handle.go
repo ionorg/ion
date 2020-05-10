@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/cloudwebrtc/go-protoo/logger"
 	pr "github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/pion/ion/pkg/log"
@@ -22,7 +23,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	log.Infof("signal.in, id => %s", id)
 	peer := newPeer(id, transport)
 
-	handleRequest := func(request pr.Request, accept RespondFunc, reject RejectFunc) {
+	handleRequest := func(request pr.Request, accept func(interface{}), reject func(errorCode int, errorReason string)) {
 		defer util.Recover("signal.in handleRequest")
 		method := request.Method
 		if method == "" {
@@ -68,6 +69,8 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	}
 
 	handleClose := func(code int, err string) {
+		roomLock.RLock()
+		defer roomLock.RUnlock()
 		rooms := GetRoomsByPeer(peer.ID())
 		log.Infof("signal.in handleClose [%d] %s rooms=%v", code, err, rooms)
 		for _, room := range rooms {
@@ -83,8 +86,17 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		log.Infof("signal.in handleClose => peer (%s) ", peer.ID())
 	}
 
-	peer.On("request", handleRequest)
-	peer.On("notification", handleNotification)
-	peer.On("close", handleClose)
-	peer.On("error", handleClose)
+	for {
+		select {
+		case msg := <-peer.OnNotification:
+			logger.Debugf("Handle Notification")
+			handleNotification(msg)
+		case msg := <-peer.OnRequest:
+			handleRequest(msg.Request, msg.Accept, msg.Reject)
+			logger.Debugf("Handle request")
+		case msg := <-peer.OnClose:
+			logger.Debugf("Handle Peer closing")
+			handleClose(msg.Code, msg.Text)
+		}
+	}
 }
