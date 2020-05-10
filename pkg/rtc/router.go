@@ -235,13 +235,15 @@ func (r *Router) DelSub(id string) {
 func (r *Router) DelSubs() {
 	log.Infof("Router.DelSubs")
 	r.subLock.Lock()
-	defer r.subLock.Unlock()
-	for _, sub := range r.subs {
-		if sub != nil {
-			sub.Close()
-		}
+	keys := make([]string, 0, len(r.subs))
+	for k := range r.subs {
+		keys = append(keys, k)
 	}
-	r.subs = nil
+	r.subLock.Unlock()
+
+	for _, id := range keys {
+		r.DelSub(id)
+	}
 }
 
 // Close release all
