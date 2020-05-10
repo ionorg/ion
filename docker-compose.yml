@@ -18,6 +18,8 @@ services:
     depends_on:
       - nats
       - etcd
+    networks:
+      - ionnet
 
   biz:
     # These are commented out on purpose, when uncommented `docker-compose up` will
@@ -33,6 +35,8 @@ services:
       - "./docker/biz.toml:/configs/biz.toml"
     ports:
       - 8443:8443
+    networks:
+      - ionnet
     depends_on:
       - nats
       - etcd
@@ -53,17 +57,28 @@ services:
       - nats
       - etcd
       - redis
+    networks:
+      - ionnet
 
   nats:
     image: nats
+    networks:
+      - ionnet
 
   etcd:
     image: gcr.io/etcd-development/etcd:v3.3.18
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
+    networks:
+      - ionnet
 
   redis:
     image: redis:5.0.7
+    networks:
+      - ionnet
 
-volumes:
-  caddy:
+networks:
+  ionnet:
+    external: true
+    name: ionnet
+    driver: bridge
