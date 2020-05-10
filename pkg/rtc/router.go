@@ -30,6 +30,7 @@ type Router struct {
 	stop        bool
 	liveTime    time.Time
 	pluginChain *plugins.PluginChain
+	subChans    map[string]chan *rtp.Packet
 }
 
 // NewRouter return a new Router
@@ -39,6 +40,7 @@ func NewRouter(id string) *Router {
 		subs:        make(map[string]transport.Transport),
 		liveTime:    time.Now().Add(liveCycle),
 		pluginChain: plugins.NewPluginChain(),
+		subChans:    make(map[string]chan *rtp.Packet),
 	}
 }
 
@@ -75,25 +77,11 @@ func (r *Router) start() {
 				continue
 			}
 			r.liveTime = time.Now().Add(liveCycle)
-			// nonblock sending
-			go func() {
-				for _, t := range r.GetSubs() {
-					if t == nil {
-						log.Errorf("Transport is nil")
-						continue
-					}
 
-					// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
-					if err := t.WriteRTP(pkt); err != nil {
-						// log.Errorf("wt.WriteRTP err=%v", err)
-						// del sub when err is increasing
-						if t.WriteErrTotal() > maxWriteErr {
-							r.DelSub(t.ID())
-						}
-					}
-					t.WriteErrReset()
-				}
-			}()
+			// Push to client send queues
+			for i, _ := range r.GetSubs() {
+				r.subChans[i] <- pkt
+			}
 		}
 	}()
 }
@@ -142,7 +130,25 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	r.subLock.Lock()
 	defer r.subLock.Unlock()
 	r.subs[id] = t
+	r.subChans[id] = make(chan *rtp.Packet, 1000)
 	log.Infof("Router.AddSub id=%s t=%p", id, t)
+	// Sub writer
+	go func() {
+		for {
+			pkt := <-r.subChans[id]
+			// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
+			if err := t.WriteRTP(pkt); err != nil {
+				// log.Errorf("wt.WriteRTP err=%v", err)
+				// del sub when err is increasing
+				if t.WriteErrTotal() > maxWriteErr {
+					r.DelSub(t.ID())
+				}
+			}
+			t.WriteErrReset()
+		}
+	}()
+
+	// Sub reader
 	go func() {
 		for {
 			pkt := <-t.GetRTCPChan()
