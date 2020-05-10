@@ -86,7 +86,7 @@ Ensure the following ports are exposed or forwarded.
 5000-5200/udp
 ```
 
-#### 4. Chat
+#### 5. Chat
 
 Head over to [Ion Web App](https://github.com/pion/ion-app-web) to bring up the front end.
 
