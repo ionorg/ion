@@ -139,8 +139,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	log.Infof("Router.AddSub id=%s t=%p", id, t)
 	// Sub writer
 	go func() {
-		for {
-			pkt := <-r.subChans[id]
+		for pkt := range r.subChans[id] {
 			// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
 			if err := t.WriteRTP(pkt); err != nil {
 				// log.Errorf("wt.WriteRTP err=%v", err)
@@ -151,6 +150,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 			}
 			t.WriteErrReset()
 		}
+		log.Infof("Closing sub writer")
 	}()
 
 	// Sub reader
@@ -224,7 +224,11 @@ func (r *Router) DelSub(id string) {
 	if r.subs[id] != nil {
 		r.subs[id].Close()
 	}
+	if r.subChans[id] != nil {
+		close(r.subChans[id])
+	}
 	delete(r.subs, id)
+	delete(r.subChans, id)
 }
 
 // DelSubs del all sub
