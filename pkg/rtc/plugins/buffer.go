@@ -173,10 +173,17 @@ func (b *Buffer) FindPacket(sn uint16) *rtp.Packet {
 	return b.pktBuffer[sn]
 }
 
-// Stop stop buffer
+// Stop buffer
 func (b *Buffer) Stop() {
 	b.stop = true
 	close(b.rtcpCh)
+	b.clear()
+}
+
+func (b *Buffer) clear() {
+	for i := range b.pktBuffer {
+		b.pktBuffer[i] = nil
+	}
 }
 
 // GetPayloadType get payloadtype

@@ -267,6 +267,7 @@ func (j *JitterBuffer) Stop() {
 	for _, buffer := range j.buffers {
 		buffer.Stop()
 	}
+	j.buffers = nil
 }
 
 // Stat get stat from buffers
