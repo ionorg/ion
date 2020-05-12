@@ -77,7 +77,7 @@ func (r *Router) start() {
 				continue
 			}
 			r.liveTime = time.Now().Add(liveCycle)
-
+			r.subLock.RLock()
 			// Push to client send queues
 			for i, _ := range r.GetSubs() {
 				// Nonblock sending
@@ -87,6 +87,7 @@ func (r *Router) start() {
 					log.Errorf("Sub consumer is backed up. Dropping packet")
 				}
 			}
+			r.subLock.RUnlock()
 		}
 	}()
 }
@@ -193,8 +194,8 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 
 // GetSub get a sub by id
 func (r *Router) GetSub(id string) transport.Transport {
-	r.subLock.Lock()
-	defer r.subLock.Unlock()
+	r.subLock.RLock()
+	defer r.subLock.RUnlock()
 	// log.Infof("Router.GetSub id=%s sub=%v", id, r.subs[id])
 	return r.subs[id]
 }
@@ -234,12 +235,12 @@ func (r *Router) DelSub(id string) {
 // DelSubs del all sub
 func (r *Router) DelSubs() {
 	log.Infof("Router.DelSubs")
-	r.subLock.Lock()
+	r.subLock.RLock()
 	keys := make([]string, 0, len(r.subs))
 	for k := range r.subs {
 		keys = append(keys, k)
 	}
-	r.subLock.Unlock()
+	r.subLock.RUnlock()
 
 	for _, id := range keys {
 		r.DelSub(id)
