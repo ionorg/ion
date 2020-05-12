@@ -26,9 +26,15 @@ type RTPForwarder struct {
 // NewRTPForwarder Create new RTP Forwarder
 func NewRTPForwarder(config RTPForwarderConfig) *RTPForwarder {
 	log.Infof("New RTPForwarder Plugin with id %s address %s", config.ID, config.Addr)
+	var rtpTransport *transport.RTPTransport
+	if config.KcpKey != "" && config.KcpSalt != "" {
+		rtpTransport = transport.NewOutRTPTransportWithKCP(config.ID, config.Addr, config.KcpKey, config.KcpSalt)
+	} else {
+		rtpTransport = transport.NewOutRTPTransport(config.ID, config.Addr)
+	}
 	return &RTPForwarder{
 		id:         config.ID,
-		Transport:  transport.NewOutRTPTransportWithKCP(config.ID, config.Addr, config.KcpKey, config.KcpSalt),
+		Transport:  rtpTransport,
 		outRTPChan: make(chan *rtp.Packet, maxSize),
 	}
 }
