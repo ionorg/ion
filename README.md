@@ -1,54 +1,52 @@
-# ION
+<h1 align="center">
+  <img src="docs/imgs/ion.jpg" alt="Ion" height="250px">
+  <br>
+  Ion
+  <br>
+</h1>
+<h4 align="center">A distributed RTC platform written in pure Go</h4>
+<p align="center">
+  <a href="https://opencollective.com/pion-ion"><img src="https://opencollective.com/pion-ion/all/badge.svg?label=financial+contributors" alt="Ion Open Collective"></a>
+  <a href="https://pion.ly/slack"><img src="https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen" alt="Slack Widget"></a>
+  <a href="https://travis-ci.org/pion/webrtc"><img src="https://travis-ci.org/pion/webrtc.svg?branch=master" alt="Build Status"></a>
+  <a href="https://goreportcard.com/badge/github.com/pion/ion"><img src="https://goreportcard.com/badge/github.com/pion/ion" alt="Go Report Card"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
+<br>
 
-ION is a distributed RTC system written by pure go and flutter
+<img src="docs/imgs/ion.jpg" width = "10%" />
 
 [![Financial Contributors on Open Collective](https://opencollective.com/pion-ion/all/badge.svg?label=financial+contributors)](https://opencollective.com/pion-ion) [![Build Status](https://travis-ci.com/pion/ion.svg?branch=master)](https://travis-ci.com/pion/ion)
 ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 [![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://pion.ly/slack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pion/ion)](https://goreportcard.com/report/github.com/pion/ion)
 
+Ion is a pure Go implementation of a distributed real-time communication platform, built atop of [Pion](https://github.com/pion/webrtc).
+
 
 ## Wiki
 
-<img src="docs/imgs/ion.jpg" width = "10%" />https://github.com/pion/ion/wiki
+https://github.com/pion/ion/wiki
 
 ## Architecture
 
 ![arch](https://github.com/pion/ion/raw/master/docs/imgs/arch.png)
 
-## Contributor
+## SDKs
 
-- [adwpc](https://github.com/adwpc) - _Original Author - ion server_
-- [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
-- [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
-- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker file_
-- [sashaaro](https://github.com/sashaaro) - _docker file_
-- [tarrencev](https://github.com/tarrencev) - _audio video process_
+[ion-sdk-js](https://github.com/pion/ion-sdk-js) contains a frontend typescript sdk.
 
-## SDK
+[ion-sdk-flutter](https://github.com/pion/ion-sdk-flutter) contains a frontend flutter sdk.
 
-[ion-sdk-js](https://github.com/pion/ion-sdk-js)
+[ion.py](https://github.com/pion/ion.py) contains a service discovery library for creating python services.
 
-[ion-sdk-flutter](https://github.com/pion/ion-sdk-flutter)
+## Applications
 
-## APP
+[ion-app-web](https://github.com/pion/ion-app-web) contains a frontend web application written in javascript.
 
-[ion-app-web](https://github.com/pion/ion-app-web)
+[ion-app-flutter](https://github.com/pion/ion-app-flutter) contains a frontend web/iOS/Android application written in flutter.
 
-[ion-app-flutter](https://github.com/pion/ion-app-flutter)
-
-# Screenshots
-
-## iOS/Android
-
-<img width="180" height="370" src="screenshots/flutter/flutter-01.jpg"/> <img width="180" height="370" src="screenshots/flutter/flutter-02.jpg"/> <img width="180" height="370" src="screenshots/flutter/flutter-03.jpg"/>
-
-## PC/HTML5
-
-<img width="360" height="265" src="screenshots/web/ion-01.jpg"/> <img width="360" height="265" src="screenshots/web/ion-02.jpg"/>
-<img width="360" height="265" src="screenshots/web/ion-04.jpg"/> <img width="360" height="265" src="screenshots/web/ion-05.jpg"/>
-
-## How to use
+## Usage
 
 Docker commands require the ionnet docker network
 
@@ -84,7 +82,7 @@ Ensure the following ports are exposed or forwarded.
 5000-5200/udp
 ```
 
-#### 5. Chat
+#### 5. Frontend
 
 Head over to [Ion Web App](https://github.com/pion/ion-app-web) to bring up the front end.
 
@@ -93,4 +91,15 @@ The web app repo also contains examples of exposing the ion biz websocket via re
 ## Roadmap
 
 [Projects](https://github.com/pion/ion/projects/1)
-Welcome contributing to ion!
+
+
+## Contributing
+We welcome contributions to Ion!
+
+- [adwpc](https://github.com/adwpc) - _Original Author - ion server_
+- [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
+- [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
+- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker file_
+- [sashaaro](https://github.com/sashaaro) - _docker file_
+- [tarrencev](https://github.com/tarrencev) - _audio video process_
+- [jbrady42](https://github.com/jbrady42) - _load testing, performance improvements, bug fixes_
