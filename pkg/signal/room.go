@@ -36,14 +36,14 @@ func getRoom(id string) *Room {
 	return r
 }
 
-func delRoom(id string) {
-	roomLock.Lock()
-	if rooms[id] != nil {
-		rooms[id].Close()
-	}
-	delete(rooms, id)
-	roomLock.Unlock()
-}
+// func delRoom(id string) {
+// 	roomLock.Lock()
+// 	if rooms[id] != nil {
+// 		rooms[id].Close()
+// 	}
+// 	delete(rooms, id)
+// 	roomLock.Unlock()
+// }
 
 // one peer in one room
 func GetRoomByPeer(id string) *Room {

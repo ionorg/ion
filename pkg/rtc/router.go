@@ -79,7 +79,7 @@ func (r *Router) start() {
 			r.liveTime = time.Now().Add(liveCycle)
 			r.subLock.RLock()
 			// Push to client send queues
-			for i, _ := range r.GetSubs() {
+			for i := range r.GetSubs() {
 				// Nonblock sending
 				select {
 				case r.subChans[i] <- pkt:
@@ -161,16 +161,19 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 			if r.stop {
 				return
 			}
-			switch pkt.(type) {
+			switch pkt := pkt.(type) {
 			case *rtcp.PictureLossIndication:
 				if r.GetPub() != nil {
 					// Request a Key Frame
 					log.Infof("Router.AddSub got pli: %+v", pkt)
-					r.GetPub().WriteRTCP(pkt)
+					err := r.GetPub().WriteRTCP(pkt)
+					if err != nil {
+						log.Errorf("Router.AddSub pli err => %+v", err)
+					}
 				}
 			case *rtcp.TransportLayerNack:
 				// log.Infof("Router.AddSub got nack: %+v", pkt)
-				nack := pkt.(*rtcp.TransportLayerNack)
+				nack := pkt
 				for _, nackPair := range nack.Nacks {
 					if !r.ReSendRTP(id, nack.MediaSSRC, nackPair.PacketID) {
 						n := &rtcp.TransportLayerNack{
@@ -180,7 +183,10 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 							Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
 						}
 						if r.pub != nil {
-							r.GetPub().WriteRTCP(n)
+							err := r.GetPub().WriteRTCP(n)
+							if err != nil {
+								log.Errorf("Router.AddSub nack WriteRTCP err => %+v", err)
+							}
 						}
 					}
 				}

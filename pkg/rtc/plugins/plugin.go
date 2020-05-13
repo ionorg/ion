@@ -35,7 +35,6 @@ type Config struct {
 }
 
 type PluginChain struct {
-	pub        transport.Transport
 	plugins    []Plugin
 	pluginLock sync.RWMutex
 	stop       bool
@@ -106,11 +105,14 @@ func (p *PluginChain) Init(config Config) error {
 		if i == 0 {
 			continue
 		}
-		go func() {
+		go func(i int, plugin Plugin) {
 			for pkt := range p.plugins[i-1].ReadRTP() {
-				plugin.WriteRTP(pkt)
+				err := plugin.WriteRTP(pkt)
+				if err != nil {
+					log.Errorf("Plugin Forward Packet error => %+v", err)
+				}
 			}
-		}()
+		}(i, plugin)
 	}
 
 	if p.GetPluginsTotal() <= 0 {

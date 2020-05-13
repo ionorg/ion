@@ -14,13 +14,13 @@ func newPeer(id string, t *transport.WebSocketTransport) *Peer {
 	}
 }
 
-func getPeer(rid, id string) *peer.Peer {
-	room := getRoom(rid)
-	if room != nil {
-		return room.GetPeer(id)
-	}
-	return nil
-}
+// func getPeer(rid, id string) *peer.Peer {
+// 	room := getRoom(rid)
+// 	if room != nil {
+// 		return room.GetPeer(id)
+// 	}
+// 	return nil
+// }
 
 type Peer struct {
 	peer.Peer

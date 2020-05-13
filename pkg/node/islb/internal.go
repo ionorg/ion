@@ -290,7 +290,8 @@ func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	mkey := proto.BuildMediaInfoKey(dc, rid, "*", mid)
 	log.Infof("getMediaInfo key=%s", mkey)
 
-	for _, key := range redis.Keys(mkey + "*") {
+	if keys := redis.Keys(mkey + "*"); len(keys) > 0 {
+		key := keys[0]
 		log.Infof("Got: key => %s", key)
 		fields := redis.HGetAll(key)
 		tracks := make(map[string][]proto.TrackInfo)

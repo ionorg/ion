@@ -46,7 +46,10 @@ func TestRedisStorage(t *testing.T) {
 		t.Error(err)
 	}
 	t.Logf("HSet Track %s, %s => %s\n", mkey, field, value)
-	db.HSet(mkey, field, value)
+	err = db.HSet(mkey, field, value)
+	if err != nil {
+		t.Error(err)
+	}
 
 	tracks = []proto.TrackInfo{track1, track2}
 	field, value, err = proto.MarshalTrackField(msid1, tracks)
@@ -54,24 +57,36 @@ func TestRedisStorage(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Printf("HSet Track %s, %s => %s\n", mkey, field, value)
-	db.HSet(mkey, field, value)
+	err = db.HSet(mkey, field, value)
+	if err != nil {
+		t.Error(err)
+	}
 
 	field, value, err = proto.MarshalNodeField(node0)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Printf("HSet Node %s, %s => %s\n", mkey, field, value)
-	db.HSet(mkey, field, value)
+	err = db.HSet(mkey, field, value)
+	if err != nil {
+		t.Error(err)
+	}
 
 	field, value, err = proto.MarshalNodeField(node1)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Printf("HSet Node %s, %s => %s\n", mkey, field, value)
-	db.HSet(mkey, field, value)
+	err = db.HSet(mkey, field, value)
+	if err != nil {
+		t.Error(err)
+	}
 
 	fmt.Printf("HSet UserInfo %s, %s => %s\n", ukey, uikey, uinfo)
-	db.HSet(ukey, uikey, uinfo)
+	err = db.HSet(ukey, uikey, uinfo)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestRedisRead(t *testing.T) {

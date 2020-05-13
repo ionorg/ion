@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	redisKeyTTL     = 1500 * time.Millisecond
 	redisLongKeyTTL = 24 * time.Hour
 )
 
 var (
-	dc          = "default"
+	dc = "default"
+	//nolint:unused
 	nid         = "islb-unkown-node-id"
 	protoo      *nprotoo.NatsProtoo
 	redis       *db.Redis

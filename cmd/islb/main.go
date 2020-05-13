@@ -21,7 +21,10 @@ func main() {
 	if conf.Global.Pprof != "" {
 		go func() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			http.ListenAndServe(conf.Global.Pprof, nil)
+			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			if err != nil {
+				panic(err)
+			}
 		}()
 	}
 

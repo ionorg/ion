@@ -1,7 +1,5 @@
 package biz
 
-type code int
-
 const (
 	// OK is returned on success.
 	codeOK int = -iota

@@ -7,7 +7,9 @@ import (
 )
 
 var (
-	dc       = "default"
+	//nolint:unused
+	dc = "default"
+	//nolint:unused
 	nid      = "biz-unkown-node-id"
 	protoo   *nprotoo.NatsProtoo
 	rpcs     map[string]*nprotoo.Requestor
@@ -50,13 +52,8 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 		}
 
 	} else if state == discovery.DOWN {
-		if _, found := rpcs[id]; found {
-			delete(rpcs, id)
-		}
-
-		if _, found := services[id]; found {
-			delete(services, id)
-		}
+		delete(rpcs, id)
+		delete(services, id)
 	}
 }
 

@@ -5,6 +5,6 @@ import (
 )
 
 func TestWebMSaver(t *testing.T) {
-	saver := NewWebmSaver()
+	saver := NewWebmSaver("id")
 	saver.Close()
 }

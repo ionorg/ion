@@ -103,21 +103,21 @@ func (e *Etcd) watch(key string, watchFunc WatchCallback, prefix bool) error {
 	return nil
 }
 
-func (e *Etcd) close() error {
-	if e.stop {
-		return errors.New("Etcd already close")
-	}
-	e.stop = true
-	e.liveKeyIDLock.Lock()
-	for k := range e.liveKeyID {
-		_, err := e.client.Delete(context.TODO(), k)
-		if err != nil {
-			log.Errorf("e.client.Delete %v", err)
-		}
-	}
-	e.liveKeyIDLock.Unlock()
-	return e.client.Close()
-}
+// func (e *Etcd) close() error {
+// 	if e.stop {
+// 		return errors.New("Etcd already close")
+// 	}
+// 	e.stop = true
+// 	e.liveKeyIDLock.Lock()
+// 	for k := range e.liveKeyID {
+// 		_, err := e.client.Delete(context.TODO(), k)
+// 		if err != nil {
+// 			log.Errorf("e.client.Delete %v", err)
+// 		}
+// 	}
+// 	e.liveKeyIDLock.Unlock()
+// 	return e.client.Close()
+// }
 
 // func (e *Etcd) put(key, value string) error {
 // ctx, cancel := context.WithTimeout(context.Background(), defaultOperationTimeout)

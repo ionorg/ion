@@ -90,9 +90,13 @@ func encode(m map[string]string) string {
 }
 
 func decode(ds []byte) map[string]string {
-	if ds != nil && len(ds) > 0 {
+	if len(ds) > 0 {
 		var s map[string]string
-		json.Unmarshal(ds, &s)
+		err := json.Unmarshal(ds, &s)
+		if err != nil {
+			log.Errorf("service.decode err => %+v", err)
+			return nil
+		}
 		return s
 	}
 	return nil

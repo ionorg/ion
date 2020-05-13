@@ -87,9 +87,19 @@ The web app repo also contains examples of exposing the ion biz websocket via re
 We welcome contributions to Ion!
 
 - [adwpc](https://github.com/adwpc) - _Original Author - ion server_
-- [cloudwebrtc](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
-- [kangshaojun](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
-- [Sean-Der](https://github.com/Sean-Der) - _ion server and docker file_
-- [sashaaro](https://github.com/sashaaro) - _docker file_
-- [tarrencev](https://github.com/tarrencev) - _audio video process_
-- [jbrady42](https://github.com/jbrady42) - _load testing, performance improvements, bug fixes_
+- [CloudWebRTC](https://github.com/cloudwebrtc) - _Original Author - ion server and client sdk_
+- [亢少军](https://github.com/kangshaojun) - _Contributor UI - flutter and react.js_
+- [Sean DuBois](https://github.com/Sean-Der) - _ion server and docker file_
+- [Aleksandr Arofikin](https://github.com/sashaaro) - _docker file_
+- [Tarrence van As](https://github.com/tarrencev) - _audio video process_
+- [Jason](https://github.com/jbrady42) - _load testing, performance improvements, bug fixes_
+- [cgojin](https://github.com/cgojin)
+- [Jeffrey Barron](https://github.com/barronbud)
+- [Yukinari Toyota](https://github.com/t-yuki)
+- [jonah zheng](https://github.com/jonahzheng)
+- [frank](https://github.com/feixiao)
+- [Toby DiPasquale](https://github.com/codeslinger)
+- [Travis James](https://github.com/GQAdonis)
+- [0x11](https://github.com/0x11-dev)
+- [Atsushi Watanabe](https://github.com/at-wat)
+- [Levin Du](https://github.com/levindu)
