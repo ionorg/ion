@@ -13,8 +13,8 @@ import (
 var (
 	ridError  = util.NewNpError(codeRoomErr, codeStr(codeRoomErr))
 	jsepError = util.NewNpError(codeJsepErr, codeStr(codeJsepErr))
-	sdpError  = util.NewNpError(codeSDPErr, codeStr(codeSDPErr))
-	midError  = util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
+	// sdpError  = util.NewNpError(codeSDPErr, codeStr(codeSDPErr))
+	midError = util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
 )
 
 func login(peer *signal.Peer, msg LoginMsg) (interface{}, *nprotoo.Error) {

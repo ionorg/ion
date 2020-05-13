@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -22,6 +23,10 @@ import (
 var (
 	localIPPrefix = [...]string{"192.168", "10.0", "169.254", "172.16"}
 )
+
+func GetMID(uid string) string {
+	return fmt.Sprintf("%s#%s", uid, RandStr(6))
+}
 
 func IsLocalIP(ip string) bool {
 	for i := 0; i < len(localIPPrefix); i++ {
@@ -144,11 +149,11 @@ func Val(msg map[string]interface{}, key string) string {
 	if val == nil {
 		return ""
 	}
-	switch val.(type) {
+	switch val := val.(type) {
 	case string:
-		return val.(string)
+		return val
 	case map[string]interface{}:
-		return Marshal(val.(map[string]interface{}))
+		return Marshal(val)
 	default:
 		log.Errorf("util.Val val=%v", val)
 		return ""

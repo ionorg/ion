@@ -151,37 +151,34 @@ func Close() {
 // check show all Routers' stat
 func check() {
 	t := time.NewTicker(statCycle)
-	for {
-		select {
-		case <-t.C:
-			info := "\n----------------rtc-----------------\n"
-			print := false
-			routerLock.Lock()
-			if len(routers) > 0 {
-				print = true
-			}
+	for range t.C {
+		info := "\n----------------rtc-----------------\n"
+		print := false
+		routerLock.Lock()
+		if len(routers) > 0 {
+			print = true
+		}
 
-			for id, Router := range routers {
-				if !Router.Alive() {
-					Router.Close()
-					delete(routers, id)
-					CleanChannel <- id
-					log.Infof("Stat delete %v", id)
-				}
-				info += "pub: " + id + "\n"
-				subs := Router.GetSubs()
-				if len(subs) < 6 {
-					for id := range subs {
-						info += fmt.Sprintf("sub: %s\n\n", id)
-					}
-				} else {
-					info += fmt.Sprintf("subs: %d\n\n", len(subs))
-				}
+		for id, Router := range routers {
+			if !Router.Alive() {
+				Router.Close()
+				delete(routers, id)
+				CleanChannel <- id
+				log.Infof("Stat delete %v", id)
 			}
-			routerLock.Unlock()
-			if print {
-				log.Infof(info)
+			info += "pub: " + id + "\n"
+			subs := Router.GetSubs()
+			if len(subs) < 6 {
+				for id := range subs {
+					info += fmt.Sprintf("sub: %s\n\n", id)
+				}
+			} else {
+				info += fmt.Sprintf("subs: %d\n\n", len(subs))
 			}
+		}
+		routerLock.Unlock()
+		if print {
+			log.Infof(info)
 		}
 	}
 }

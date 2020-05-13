@@ -14,8 +14,7 @@ const (
 )
 
 var (
-	wg    *sync.WaitGroup
-	nodes []Node
+	wg *sync.WaitGroup
 )
 
 func init() {

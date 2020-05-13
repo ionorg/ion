@@ -11,7 +11,6 @@ import (
 // ServiceNode .
 type ServiceNode struct {
 	reg  *ServiceRegistry
-	name string
 	node Node
 }
 
@@ -99,7 +98,7 @@ func (sw *ServiceWatcher) GetNodesByID(ID string) (*Node, bool) {
 
 func (sw *ServiceWatcher) DeleteNodesByID(ID string) bool {
 	for service, nodes := range sw.nodesMap {
-		for id, _ := range nodes {
+		for id := range nodes {
 			if id == ID {
 				delete(sw.nodesMap[service], id)
 				return true

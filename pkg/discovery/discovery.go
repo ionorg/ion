@@ -13,8 +13,6 @@ var (
 	nodeIP   string
 	nodePort int
 	etcdBase string
-	etcdRoom string
-	etcdRtp  string
 	etcdNode string
 	etcd     *Etcd
 	quit     chan struct{}
@@ -36,18 +34,22 @@ func UpdateLoad(ip string, port int) {
 	nodeIP = ip
 	nodePort = port
 	etcdBase = "ion://"
-	etcdRoom = etcdBase + "room"
-	etcdRtp = etcdBase + "rtp"
 	etcdNode = etcdBase + "node/" + nodeIP + ":" + strconv.Itoa(nodePort)
 
 	go func() {
-		etcd.keep(etcdNode, "")
+		err := etcd.keep(etcdNode, "")
+		if err != nil {
+			log.Errorf("discovery.UpdateLoad keep err => %v", err)
+		}
 		for {
 			select {
 			case <-quit:
 				return
 			case <-time.After(time.Second):
-				etcd.update(etcdNode, getScore())
+				err = etcd.update(etcdNode, getScore())
+				if err != nil {
+					log.Errorf("discovery.UpdateLoad update err => %v", err)
+				}
 			}
 		}
 	}()
@@ -97,19 +99,28 @@ func Close() {
 func Keep(key, val string) {
 	log.Infof("discovery.Keep etcd=%v", etcd)
 	if etcd != nil {
-		etcd.keep(key, val)
+		err := etcd.keep(key, val)
+		if err != nil {
+			log.Errorf("discovery.Keep err => %v", err)
+		}
 	}
 }
 
 func Watch(key string, watchFunc WatchCallback, prefix bool) {
 	if etcd != nil {
-		etcd.watch(key, watchFunc, prefix)
+		err := etcd.watch(key, watchFunc, prefix)
+		if err != nil {
+			log.Errorf("discovery.Watch err => %v", err)
+		}
 	}
 }
 
 func Del(key string, prefix bool) {
 	if etcd != nil {
-		etcd.del(key, prefix)
+		err := etcd.del(key, prefix)
+		if err != nil {
+			log.Errorf("discovery.Del err => %v", err)
+		}
 	}
 }
 

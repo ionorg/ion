@@ -66,7 +66,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	sdp := util.Val(jsep, "sdp")
 	rid := util.Val(msg, "rid")
 	uid := util.Val(msg, "uid")
-	mid := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
+	mid := util.GetMID(uid)
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
 	rtcOptions := make(map[string]interface{})
@@ -115,7 +115,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			for payload, codec := range codecs {
 				if track.GetMedia() == "audio" {
 					codecType = strings.ToUpper(codec.GetCodec())
-					if strings.ToUpper(codec.GetCodec()) == strings.ToUpper(webrtc.Opus) {
+					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
 						pt = payload
 						break
 					}
@@ -188,7 +188,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
-	subID := fmt.Sprintf("%s#%s", uid, util.RandStr(6))
+	subID := util.GetMID(uid)
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)
@@ -252,7 +252,7 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	found := false
 	rtc.MapRouter(func(id string, r *rtc.Router) {
 		subs := r.GetSubs()
-		for sid, _ := range subs {
+		for sid := range subs {
 			if sid == mid {
 				r.DelSub(mid)
 				found = true
@@ -266,16 +266,16 @@ func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	return nil, util.NewNpError(404, fmt.Sprintf("unsubscribe: Sub [%s] not found!", mid))
 }
 
-func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	log.Infof("trickle msg=%v", msg)
-	router := util.Val(msg, "router")
-	mid := util.Val(msg, "mid")
-	//cand := msg["trickle"]
-	r := rtc.GetOrNewRouter(router)
-	t := r.GetSub(mid)
-	if t != nil {
-		//t.(*transport.WebRTCTransport).AddCandidate(cand)
-	}
+// func trickle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+// 	log.Infof("trickle msg=%v", msg)
+// 	router := util.Val(msg, "router")
+// 	mid := util.Val(msg, "mid")
+// 	//cand := msg["trickle"]
+// 	r := rtc.GetOrNewRouter(router)
+// 	t := r.GetSub(mid)
+// 	if t != nil {
+// 		//t.(*transport.WebRTCTransport).AddCandidate(cand)
+// 	}
 
-	return nil, util.NewNpError(404, "trickle: WebRTCTransport not found!")
-}
+// 	return nil, util.NewNpError(404, "trickle: WebRTCTransport not found!")
+// }
