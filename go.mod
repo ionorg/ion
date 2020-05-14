@@ -14,7 +14,6 @@ require (
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/rtcp v1.2.1
@@ -24,7 +23,7 @@ require (
 	github.com/pion/webrtc/v2 v2.2.7
 	github.com/rs/zerolog v1.18.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
-	github.com/spf13/viper v1.6.2
+	github.com/spf13/viper v1.7.0
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/tjfoc/gmsm v1.3.0 // indirect
