@@ -29,8 +29,13 @@ func Init(dcID, nodeID, rpcID, eventID, natsURL string) {
 func checkRTC() {
 	log.Infof("SFU.checkRTC start")
 	go func() {
-		for mid := range rtc.CleanChannel {
-			broadcaster.Say(proto.SFUStreamRemove, util.Map("mid", mid))
+		for mInfo := range rtc.CleanChannel {
+			mediaInfo, err := proto.ParseMediaInfo(mInfo)
+			if err != nil {
+				log.Errorf("Error parsing media info %v", mInfo)
+				continue
+			}
+			broadcaster.Say(proto.SFUStreamRemove, util.Map("mid", mediaInfo.MID))
 		}
 	}()
 }
