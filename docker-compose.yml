@@ -73,7 +73,7 @@ services:
       - ionnet
 
   redis:
-    image: redis:5.0.7
+    image: redis:5.0.9
     networks:
       - ionnet
 
