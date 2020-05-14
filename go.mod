@@ -18,7 +18,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/notedit/sdp v0.0.2
 	github.com/pion/rtcp v1.2.1
-	github.com/pion/rtp v1.4.0
+	github.com/pion/rtp v1.5.1
 	github.com/pion/stun v0.3.3
 	github.com/pion/transport v0.10.0
 	github.com/pion/webrtc/v2 v2.2.7
