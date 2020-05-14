@@ -27,7 +27,6 @@ _lint_job: &lint_job
       curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
         | bash -s - -b $GOPATH/bin v${GOLANGCI_LINT_VERSION}
   script:
-    - bash .github/assert-contributors.sh
     - bash .github/lint-commit-message.sh
     - bash .github/lint-filename.sh
     - golangci-lint run ./...
@@ -38,16 +37,18 @@ _build_job: &build_job
     - go build ./cmd/biz
     - go build ./cmd/islb
     - go build ./cmd/sfu
+
 _test_job: &test_job
   env: CACHE_NAME=test
   before_install:
     - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
-    - if ${SKIP_TEST:-false}; then exit 0; fi
     - go mod download
   install:
     - go build ./...
+  before_script:
+    - docker-compose -f docker-compose.test.yml up -d
   script:
-    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd)}
+    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf)}
     - coverpkgs=$(echo "${testpkgs}" | paste -s -d ',')
     - |
       go test \
@@ -62,9 +63,10 @@ _test_i386_job: &test_i386_job
   services: docker
   before_install:
     - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
-    - if ${SKIP_TEST:-false}; then exit 0; fi
+  before_script:
+    - docker-compose -f docker-compose.test.yml up -d
   script:
-    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd)}
+    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf)}
     - |
       docker run \
         -u $(id -u):$(id -g) \
@@ -74,6 +76,7 @@ _test_i386_job: &test_i386_job
         -v ${HOME}/gopath/pkg/mod:/go/pkg/mod \
         -v ${HOME}/.cache/go-build:/.cache/go-build \
         -w /go/src/github.com/pion/$(basename ${PWD}) \
+        --network ion_default \
         -it i386/golang:${GO_VERSION}-alpine \
         /usr/local/go/bin/go test \
           ${TEST_EXTRA_ARGS:-} \
@@ -96,14 +99,14 @@ jobs:
     - <<: *test_job
       name: Test 1.14
       go: 1.14
-    - <<: *test_i386_job
-      name: Test i386 1.13
-      env: GO_VERSION=1.13
-      go: 1.14 # version for host environment used to go list
-    - <<: *test_i386_job
-      name: Test i386 1.14
-      env: GO_VERSION=1.14
-      go: 1.14 # version for host environment used to go list
+    # - <<: *test_i386_job
+    #   name: Test i386 1.13
+    #   env: GO_VERSION=1.13
+    #   go: 1.14 # version for host environment used to go list
+    # - <<: *test_i386_job
+    #   name: Test i386 1.14
+    #   env: GO_VERSION=1.14
+    #   go: 1.14 # version for host environment used to go list
 
 notifications:
   email: false
