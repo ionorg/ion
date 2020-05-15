@@ -38,20 +38,44 @@ _build_job: &build_job
     - go build ./cmd/islb
     - go build ./cmd/sfu
 
-_build_docker_job: &build_docker_job
-  env: CACHE_NAME=build_docker
+_build_biz_docker_job: &build_biz_docker_job
+  env: CACHE_NAME=build_biz_docker
   script:
+    - docker build --tag pionwebrtc/ion-biz:latest -f ./docker/biz.Dockerfile .
+  before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - docker build -t ion-biz:${TRAVIS_TAG} -f ./docker/biz.Dockerfile .
-    - docker build -t ion-islb:${TRAVIS_TAG} -f ./docker/islb.Dockerfile .
-    - docker build -t ion-sfu:${TRAVIS_TAG} -f ./docker/sfu.Dockerfile .
-    - docker images
-    - docker tag ion-biz:${TRAVIS_TAG} $DOCKER_USERNAME/ion-biz:${TRAVIS_TAG}
-    - docker push $DOCKER_USERNAME/ion-biz:${TRAVIS_TAG}
-    - docker tag ion-islb:${TRAVIS_TAG} $DOCKER_USERNAME/ion-islb:${TRAVIS_TAG}
-    - docker push $DOCKER_USERNAME/ion-islb:${TRAVIS_TAG}
-    - docker tag ion-sfu:${TRAVIS_TAG} $DOCKER_USERNAME/ion-sfu:${TRAVIS_TAG}
-    - docker push $DOCKER_USERNAME/ion-sfu:${TRAVIS_TAG}
+  deploy:
+    provider: script
+    script: docker push pionwebrtc/ion-biz:latest
+    on:
+      branch: master
+      # tags: true
+
+_build_islb_docker_job: &build_islb_docker_job
+  env: CACHE_NAME=build_islb_docker
+  script:
+    - docker build --tag pionwebrtc/ion-islb:latest -f ./docker/islb.Dockerfile .
+  before_deploy:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  deploy:
+    provider: script
+    script: docker push pionwebrtc/ion-islb:latest
+    on:
+      branch: master
+      # tags: true
+
+_build_sfu_docker_job: &build_sfu_docker_job
+  env: CACHE_NAME=build_sfu_docker
+  script:
+    - docker build --tag pionwebrtc/ion-sfu:latest -f ./docker/sfu.Dockerfile .
+  before_deploy:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  deploy:
+    provider: script
+    script: docker push pionwebrtc/ion-sfu:latest
+    on:
+      branch: master
+      # tags: true
 
 _test_job: &test_job
   env: CACHE_NAME=test
@@ -105,9 +129,6 @@ jobs:
     - <<: *build_job
       name: Build 1.13
       go: 1.13
-    - <<: *build_docker_job
-      name: Build Docker images
-      if: tag IS present
     - <<: *build_job
       name: Build 1.14
       go: 1.14
@@ -117,6 +138,12 @@ jobs:
     - <<: *test_job
       name: Test 1.14
       go: 1.14
+    - <<: *build_biz_docker_job
+      name: Build biz docker
+    - <<: *build_islb_docker_job
+      name: Build islb docker
+    - <<: *build_sfu_docker_job
+      name: Build sfu docker
     # - <<: *test_i386_job
     #   name: Test i386 1.13
     #   env: GO_VERSION=1.13
