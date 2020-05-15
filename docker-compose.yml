@@ -10,7 +10,7 @@ services:
     #   dockerfile: ./docker/sfu.Dockerfile
     #   context: .
     command: "-c /configs/sfu.toml"
-    image: pionwebrtc/ion-sfu:0.2.0
+    image: pionwebrtc/ion-sfu:latest
     volumes:
       - "./docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -29,7 +29,7 @@ services:
     # build:
     #   dockerfile: ./docker/biz.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-biz:0.2.0
+    image: pionwebrtc/ion-biz:latest
     command: "-c /configs/biz.toml"
     volumes:
       - "./docker/biz.toml:/configs/biz.toml"
@@ -49,7 +49,7 @@ services:
     # build:
     #   dockerfile: ./docker/islb.Dockerfile
     #   context: .
-    image: pionwebrtc/ion-islb:0.2.0
+    image: pionwebrtc/ion-islb:latest
     command: "-c /configs/islb.toml"
     volumes:
       - "./docker/islb.toml:/configs/islb.toml"
