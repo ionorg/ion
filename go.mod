@@ -24,7 +24,7 @@ require (
 	github.com/pion/webrtc/v2 v2.2.11
 	github.com/rs/zerolog v1.18.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
-	github.com/spf13/viper v1.6.2
+	github.com/spf13/viper v1.7.0
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/tjfoc/gmsm v1.3.0 // indirect
