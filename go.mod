@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/at-wat/ebml-go v0.11.0
 	github.com/cloudwebrtc/go-protoo v0.0.0-20200510140124-cf4744e87257
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200328144814-d3c1c848d442
@@ -24,10 +25,12 @@ require (
 	github.com/pion/webrtc/v2 v2.2.11
 	github.com/rs/zerolog v1.18.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
-	github.com/spf13/viper v1.6.2
+	github.com/spf13/viper v1.7.0
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
-	github.com/tjfoc/gmsm v1.3.0 // indirect
+	github.com/tjfoc/gmsm v1.3.1 // indirect
+	github.com/ugorji/go v1.1.4 // indirect
+	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
