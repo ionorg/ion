@@ -31,7 +31,7 @@ require (
 	github.com/tjfoc/gmsm v1.3.1 // indirect
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
-	github.com/xtaci/kcp-go v5.4.20+incompatible
+	github.com/xtaci/kcp-go v5.5.12+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
