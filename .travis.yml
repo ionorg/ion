@@ -37,6 +37,19 @@ _build_job: &build_job
     - go build ./cmd/islb
     - go build ./cmd/sfu
 
+
+_build_avp_docker_job: &build_avp_docker_job
+  env: CACHE_NAME=build_avp_docker
+  script:
+    - docker build --tag pionwebrtc/ion-avp:latest -f ./docker/avp.Dockerfile .
+  before_deploy:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  deploy:
+    provider: script
+    script: docker push pionwebrtc/ion-avp:latest
+    on:
+      branch: master
+
 _build_biz_docker_job: &build_biz_docker_job
   env: CACHE_NAME=build_biz_docker
   script:
@@ -137,6 +150,8 @@ jobs:
     - <<: *test_job
       name: Test 1.14
       go: 1.14
+    - <<: *build_avp_docker_job
+      name: Build avp docker
     - <<: *build_biz_docker_job
       name: Build biz docker
     - <<: *build_islb_docker_job

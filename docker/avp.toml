@@ -1,0 +1,33 @@
+[global]
+pprof = ":6062"
+
+# data center id
+dc = "dc1"
+
+# internet ip
+addr = "127.0.0.1"
+
+[plugins]
+on = true
+
+[plugins.webmsaver]
+on = true
+# webm output path
+path = "./"
+
+[rtp]
+# listen port
+port = 6668
+kcpkey = "secret42"
+kcpsalt = "salt"
+
+[log]
+level = "info"
+# level = "debug"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["etcd:2379"]
+
+[nats]
+url = "nats://nats:4222"

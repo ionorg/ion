@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"github.com/google/uuid"
 	"github.com/pion/rtp"
 
 	"github.com/pion/ion/pkg/log"
@@ -10,6 +11,7 @@ import (
 // RTPForwarderConfig .
 type RTPForwarderConfig struct {
 	ID      string
+	MID     string
 	On      bool
 	Addr    string
 	KcpKey  string
@@ -19,6 +21,7 @@ type RTPForwarderConfig struct {
 // RTPForwarder core
 type RTPForwarder struct {
 	id         string
+	mid        string
 	Transport  *transport.RTPTransport
 	outRTPChan chan *rtp.Packet
 }
@@ -27,10 +30,11 @@ type RTPForwarder struct {
 func NewRTPForwarder(config RTPForwarderConfig) *RTPForwarder {
 	log.Infof("New RTPForwarder Plugin with id %s address %s", config.ID, config.Addr)
 	var rtpTransport *transport.RTPTransport
+	uuid.Parse(config.MID)
 	if config.KcpKey != "" && config.KcpSalt != "" {
-		rtpTransport = transport.NewOutRTPTransportWithKCP(config.ID, config.Addr, config.KcpKey, config.KcpSalt)
+		rtpTransport = transport.NewOutRTPTransportWithKCP(config.MID, config.Addr, config.KcpKey, config.KcpSalt)
 	} else {
-		rtpTransport = transport.NewOutRTPTransport(config.ID, config.Addr)
+		rtpTransport = transport.NewOutRTPTransport(config.MID, config.Addr)
 	}
 	return &RTPForwarder{
 		id:         config.ID,

@@ -13,7 +13,6 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/rtp"
 	"github.com/pion/stun"
 	"github.com/pion/webrtc/v2"
 )
@@ -164,29 +163,6 @@ func Map(args ...interface{}) map[string]interface{} {
 		msg[args[2*i].(string)] = args[2*i+1]
 	}
 	return msg
-}
-
-func GetIDFromRTP(pkt *rtp.Packet) string {
-	if !pkt.Header.Extension || len(pkt.Header.Extensions) == 0 {
-		log.Warnf("pkt invalid extension")
-		return ""
-	}
-
-	ext := pkt.GetExtension(1)
-
-	if ext == nil {
-		return ""
-	}
-
-	return string(ext)
-}
-
-func SetIDToRTP(pkt *rtp.Packet, id string) *rtp.Packet {
-	err := pkt.SetExtension(1, []byte(id))
-	if err != nil {
-		log.Errorf("error setting id to rtp extension %+v", err)
-	}
-	return pkt
 }
 
 func GetIP(addr string) string {

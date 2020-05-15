@@ -40,7 +40,7 @@ func NewRouter(id string) *Router {
 	return &Router{
 		subs:          make(map[string]transport.Transport),
 		liveTime:      time.Now().Add(liveCycle),
-		pluginChain:   plugins.NewPluginChain(),
+		pluginChain:   plugins.NewPluginChain(id),
 		subChans:      make(map[string]chan *rtp.Packet),
 		subShutdownCh: make(chan string, 1),
 	}

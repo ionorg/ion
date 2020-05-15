@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/rtpengine/muxrtp"
 	"github.com/pion/ion/pkg/rtc/rtpengine/muxrtp/mux"
-	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/xtaci/kcp-go"
@@ -194,7 +194,17 @@ func (r *RTPTransport) receiveRTP() {
 					log.Debugf("RTPTransport.receiveRTP pkt=%v", pkt)
 					r.idLock.Lock()
 					if r.id == "" {
-						r.id = util.GetIDFromRTP(pkt)
+						ext := pkt.GetExtension(1)
+						if ext == nil {
+							log.Warnf("pkt id extension header not set")
+						} else {
+							uuid, err := uuid.FromBytes(ext)
+							if err != nil {
+								log.Errorf("RTPTransport.receiveRTP error parsing header extension: %+v", err)
+							} else {
+								r.id = uuid.String()
+							}
+						}
 					}
 					r.idLock.Unlock()
 
@@ -251,6 +261,23 @@ func (r *RTPTransport) receiveRTCP() {
 	}()
 }
 
+func (r *RTPTransport) setIDHeaderExtension(rtp *rtp.Packet) error {
+	uuid, err := uuid.Parse(r.id)
+	if err != nil {
+		return err
+	}
+	bin, err := uuid.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	err = rtp.SetExtension(1, bin)
+	rtp.ExtensionProfile = 0xBEDE // temp fix
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // WriteRTP send rtp packet
 func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 	log.Debugf("RTPTransport.WriteRTP rtp=%v", rtp)
@@ -262,7 +289,10 @@ func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 
 	if r.extSent > 0 {
 		r.idLock.Lock()
-		util.SetIDToRTP(rtp, r.id)
+		err := r.setIDHeaderExtension(rtp)
+		if err != nil {
+			log.Errorf("error setting id to rtp extension %+v", err)
+		}
 		r.idLock.Unlock()
 	}
 

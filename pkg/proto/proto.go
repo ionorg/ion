@@ -192,16 +192,3 @@ func GetPubMediaPath(rid, mid string, ssrc uint32) string {
 func GetPubMediaPathKey(rid string) string {
 	return rid + "/media/pub/"
 }
-
-func GetRIDMIDUIDFromMediaKey(key string) (string, string, string) {
-	//room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ/11111
-	strs := strings.Split(key, "/")
-	if len(strs) < 2 {
-		return "", "", ""
-	}
-	strss := strings.Split(strs[3], "#")
-	if len(strss) < 2 {
-		return "", "", ""
-	}
-	return strs[0], strs[3], strss[0]
-}

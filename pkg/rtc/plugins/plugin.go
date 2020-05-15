@@ -24,6 +24,7 @@ type Plugin interface {
 const (
 	TypeJitterBuffer = "JitterBuffer"
 	TypeRTPForwarder = "RTPForwarder"
+	TypeWebmSaver    = "WebmSaver"
 
 	maxSize = 100
 )
@@ -32,17 +33,21 @@ type Config struct {
 	On           bool
 	JitterBuffer JitterBufferConfig
 	RTPForwarder RTPForwarderConfig
+	WebmSaver    WebmSaverConfig
 }
 
 type PluginChain struct {
+	mid        string
 	plugins    []Plugin
 	pluginLock sync.RWMutex
 	stop       bool
 	config     Config
 }
 
-func NewPluginChain() *PluginChain {
-	return &PluginChain{}
+func NewPluginChain(mid string) *PluginChain {
+	return &PluginChain{
+		mid: mid,
+	}
 }
 
 func (p *PluginChain) ReadRTP() *rtp.Packet {
@@ -75,6 +80,10 @@ func CheckPlugins(config Config) error {
 		oneOn = true
 	}
 
+	if config.WebmSaver.On {
+		oneOn = true
+	}
+
 	if !oneOn {
 		return errInvalidPlugins
 	}
@@ -97,7 +106,14 @@ func (p *PluginChain) Init(config Config) error {
 	if config.RTPForwarder.On {
 		log.Infof("PluginChain.Init config.RTPForwarder.On=true config=%v", config.RTPForwarder)
 		config.RTPForwarder.ID = TypeRTPForwarder
+		config.RTPForwarder.MID = p.mid
 		p.AddPlugin(TypeRTPForwarder, NewRTPForwarder(config.RTPForwarder))
+	}
+
+	if config.WebmSaver.On {
+		log.Infof("PluginChain.Init config.WebmSaver.On=true config=%v", config.WebmSaver)
+		config.WebmSaver.ID = TypeWebmSaver
+		p.AddPlugin(TypeWebmSaver, NewWebmSaver(config.WebmSaver))
 	}
 
 	// forward packets along plugin chain
