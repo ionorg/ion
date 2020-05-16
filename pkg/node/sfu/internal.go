@@ -81,6 +81,9 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			rtcOptions["bandwidth"] = options["bandwidth"]
 		}
 	}
+
+	videoCodec := strings.ToUpper(rtcOptions["codec"].(string))
+
 	pub := transport.NewWebRTCTransport(mid, rtcOptions)
 	if pub == nil {
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
@@ -121,7 +124,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 					}
 				} else if track.GetMedia() == "video" {
 					codecType = strings.ToUpper(codec.GetCodec())
-					if codecType == webrtc.H264 || codecType == webrtc.VP8 || codecType == webrtc.VP9 {
+					if codecType == videoCodec {
 						pt = payload
 						break
 					}
