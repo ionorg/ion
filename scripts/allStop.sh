@@ -44,8 +44,6 @@ $APP_DIR/scripts/bizStop.sh
 echo "------------sfu--------------"
 $APP_DIR/scripts/sfuStop.sh
 
-echo "------------web--------------"
-$APP_DIR/scripts/webStop.sh
 echo "--------------------------"
 
 

@@ -44,8 +44,6 @@ $APP_DIR/scripts/bizStart.sh
 echo "------------sfu--------------"
 $APP_DIR/scripts/sfuStart.sh
 
-echo "------------web--------------"
-$APP_DIR/scripts/webStart.sh
 echo "--------------------------"
 
 
