@@ -69,6 +69,8 @@ type WebRTCTransport struct {
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
 	w.mediaEngine = webrtc.MediaEngine{}
 	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+	// Firfox
+	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(109, 48000))
 
 	rtcpfb := []webrtc.RTCPFeedback{
 		webrtc.RTCPFeedback{
@@ -106,8 +108,12 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		} else if codec == webrtc.VP8 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
+			// Firefox vp8
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
 		} else if codec == webrtc.VP9 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+			// Firefox vp9
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
 		} else {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		}
@@ -115,6 +121,9 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+		// Firefox
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
 	}
 
 	if !dc {
