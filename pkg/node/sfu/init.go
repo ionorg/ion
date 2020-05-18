@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	dc          = "default"
+	//nolint:unused
+	dc = "default"
+	//nolint:unused
 	nid         = "sfu-unkown-node-id"
 	protoo      *nprotoo.NatsProtoo
 	broadcaster *nprotoo.Broadcaster
