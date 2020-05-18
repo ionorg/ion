@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	portRangeLimit = 100
-)
-
 var (
 	cfg     = config{}
 	Global  = &cfg.Global
@@ -35,15 +31,21 @@ type global struct {
 	Dc    string `mapstructure:"dc"`
 }
 
+type samplebuilder struct {
+	On           bool   `mapstructure:"on"`
+	AudioMaxLate uint16 `mapstructure:"audiomaxlate"`
+	VideoMaxLate uint16 `mapstructure:"videomaxlate"`
+}
+
 type webmsaver struct {
 	On   bool   `mapstructure:"on"`
-	Addr string `mapstructure:"addr"`
 	Path string `mapstructure:"path"`
 }
 
 type plugins struct {
-	On        bool      `mapstructure:"on"`
-	WebmSaver webmsaver `mapstructure:"webmsaver"`
+	On            bool          `mapstructure:"on"`
+	SampleBuilder samplebuilder `mapstructure:"samplebuilder"`
+	WebmSaver     webmsaver     `mapstructure:"webmsaver"`
 }
 
 type log struct {

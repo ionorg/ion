@@ -5,6 +5,10 @@ import (
 )
 
 func TestWebMSaver(t *testing.T) {
-	saver := NewWebmSaver("id")
+	saver := NewWebmSaver(WebmSaverConfig{
+		ID:   "id",
+		Path: "./",
+		On:   true,
+	})
 	saver.Stop()
 }

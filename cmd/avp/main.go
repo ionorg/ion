@@ -20,6 +20,11 @@ func init() {
 
 	pluginConfig := plugins.Config{
 		On: conf.Plugins.On,
+		SampleBuilder: plugins.SampleBuilderConfig{
+			On:           conf.Plugins.SampleBuilder.On,
+			AudioMaxLate: conf.Plugins.SampleBuilder.AudioMaxLate,
+			VideoMaxLate: conf.Plugins.SampleBuilder.VideoMaxLate,
+		},
 		WebmSaver: plugins.WebmSaverConfig{
 			On:   conf.Plugins.WebmSaver.On,
 			Path: conf.Plugins.WebmSaver.Path,

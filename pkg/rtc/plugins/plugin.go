@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"errors"
+	"io"
 	"sync"
 
 	"github.com/pion/ion/pkg/log"
@@ -22,18 +23,20 @@ type Plugin interface {
 }
 
 const (
-	TypeJitterBuffer = "JitterBuffer"
-	TypeRTPForwarder = "RTPForwarder"
-	TypeWebmSaver    = "WebmSaver"
+	TypeJitterBuffer  = "JitterBuffer"
+	TypeRTPForwarder  = "RTPForwarder"
+	TypeSampleBuilder = "SampleBuilder"
+	TypeWebmSaver     = "WebmSaver"
 
 	maxSize = 100
 )
 
 type Config struct {
-	On           bool
-	JitterBuffer JitterBufferConfig
-	RTPForwarder RTPForwarderConfig
-	WebmSaver    WebmSaverConfig
+	On            bool
+	JitterBuffer  JitterBufferConfig
+	RTPForwarder  RTPForwarderConfig
+	SampleBuilder SampleBuilderConfig
+	WebmSaver     WebmSaverConfig
 }
 
 type PluginChain struct {
@@ -80,6 +83,10 @@ func CheckPlugins(config Config) error {
 		oneOn = true
 	}
 
+	if config.SampleBuilder.On {
+		oneOn = true
+	}
+
 	if config.WebmSaver.On {
 		oneOn = true
 	}
@@ -110,6 +117,12 @@ func (p *PluginChain) Init(config Config) error {
 		p.AddPlugin(TypeRTPForwarder, NewRTPForwarder(config.RTPForwarder))
 	}
 
+	if config.SampleBuilder.On {
+		log.Infof("PluginChain.Init config.SampleBuilder.On=true config=%v", config.SampleBuilder)
+		config.SampleBuilder.ID = TypeSampleBuilder
+		p.AddPlugin(TypeSampleBuilder, NewSampleBuilder(config.SampleBuilder))
+	}
+
 	if config.WebmSaver.On {
 		log.Infof("PluginChain.Init config.WebmSaver.On=true config=%v", config.WebmSaver)
 		config.WebmSaver.ID = TypeWebmSaver
@@ -124,6 +137,11 @@ func (p *PluginChain) Init(config Config) error {
 		go func(i int, plugin Plugin) {
 			for pkt := range p.plugins[i-1].ReadRTP() {
 				err := plugin.WriteRTP(pkt)
+
+				if err == io.ErrClosedPipe {
+					return
+				}
+
 				if err != nil {
 					log.Errorf("Plugin Forward Packet error => %+v", err)
 				}
@@ -146,6 +164,12 @@ func (p *PluginChain) AttachPub(pub transport.Transport) {
 	if jitterBuffer != nil {
 		log.Infof("PluginChain.AttachPub pub=%+v", pub)
 		jitterBuffer.(*JitterBuffer).AttachPub(pub)
+	}
+
+	sampleBuilder := p.GetPlugin(TypeSampleBuilder)
+	if sampleBuilder != nil {
+		log.Infof("PluginChain.AttachPub pub=%+v", pub)
+		sampleBuilder.(*SampleBuilder).AttachPub(pub)
 	}
 }
 
