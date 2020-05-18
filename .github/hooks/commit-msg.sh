@@ -2,4 +2,3 @@
 
 set -e
 
-.github/lint-commit-message.sh $1
