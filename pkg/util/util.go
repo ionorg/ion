@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -22,10 +21,6 @@ import (
 var (
 	localIPPrefix = [...]string{"192.168", "10.0", "169.254", "172.16"}
 )
-
-func GetMID(uid string) string {
-	return fmt.Sprintf("%s#%s", uid, RandStr(6))
-}
 
 func IsLocalIP(ip string) bool {
 	for i := 0; i < len(localIPPrefix); i++ {

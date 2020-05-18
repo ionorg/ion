@@ -6,9 +6,9 @@ import (
 )
 
 func TestKeyBuildAndParse(t *testing.T) {
-	key := BuildMediaInfoKey("dc1", "room1", "sfu1", "mid1")
+	key := BuildMediaInfoKey("dc1", "sfu1", "room1", "uid1", "mid1")
 
-	if key != "dc1/room1/sfu1/media/pub/mid1" {
+	if key != "dc1/sfu1/room1/uid1/media/pub/mid1" {
 		t.Error("MediaInfo key not match")
 	}
 	fmt.Println(key)

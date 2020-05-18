@@ -159,7 +159,7 @@ func unpublish(peer *signal.Peer, msg UnpublishMsg) (interface{}, *nprotoo.Error
 		return nil, err
 	}
 
-	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid, "rid", rid))
+	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid, "uid", uid, "rid", rid))
 	if err != nil {
 		return nil, err
 	}

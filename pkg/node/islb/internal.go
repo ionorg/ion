@@ -38,7 +38,7 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 
 func removeStreamsByNode(nodeID string) {
 	log.Infof("removeStreamsByNode: node => %s", nodeID)
-	mkey := proto.BuildMediaInfoKey(dc, "*", nodeID, "*")
+	mkey := proto.BuildMediaInfoKey(dc, nodeID, "*", "*", "*")
 	for _, key := range redis.Keys(mkey + "*") {
 		log.Infof("streamRemove: key => %s", key)
 		minfo, err := proto.ParseMediaInfo(key)
@@ -54,7 +54,7 @@ func removeStreamsByNode(nodeID string) {
 
 // WatchAllStreams .
 func WatchAllStreams() {
-	mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*")
+	mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*", "*")
 	log.Infof("Watch all streams, mkey = %s", mkey)
 	for _, key := range redis.Keys(mkey) {
 		log.Infof("Watch stream, key = %s", key)
@@ -91,7 +91,7 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 		mid = util.Val(data, "mid")
 	}
 	if mid != "" {
-		mkey := proto.BuildMediaInfoKey(dc, "*", "*", mid)
+		mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*", mid)
 		log.Infof("Find mids by mkey %s", mkey)
 		for _, key := range redis.Keys(mkey + "*") {
 			log.Infof("Got: key => %s", key)
@@ -135,7 +135,8 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	nid := util.Val(data, "nid")
 	mid := util.Val(data, "mid")
 
-	mkey := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	ukey := proto.BuildUserInfoKey(dc, rid, uid)
+	mkey := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
 
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
 		Name: nid,
@@ -177,7 +178,7 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	}
 
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
-	fields := redis.HGetAll(proto.BuildUserInfoKey(dc, rid, uid))
+	fields := redis.HGetAll(ukey)
 	msg := util.Map("rid", rid, "uid", uid, "mid", mid, "info", fields["info"], "tracks", tracks)
 	log.Infof("Broadcast: [stream-add] => %v", msg)
 	broadcaster.Say(proto.IslbOnStreamAdd, msg)
@@ -188,17 +189,22 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 
 func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
+	uid := util.Val(data, "uid")
 	mid := util.Val(data, "mid")
 
-	mkey := ""
-	if mid == "" {
-		uid := util.Val(data, "uid")
-		mkey = proto.BuildMediaInfoKey(dc, rid, "*", uid)
-	} else if rid == "" {
-		mkey = proto.BuildMediaInfoKey(dc, "*", "*", mid)
-	} else {
-		mkey = proto.BuildMediaInfoKey(dc, rid, "*", mid)
+	if rid == "" {
+		rid = "*"
 	}
+
+	if uid == "" {
+		uid = "*"
+	}
+
+	if mid == "" {
+		mid = "*"
+	}
+
+	mkey := proto.BuildMediaInfoKey(dc, "*", rid, uid, mid)
 
 	log.Infof("streamRemove: key => %s", mkey)
 	for _, key := range redis.Keys(mkey + "*") {
@@ -215,7 +221,7 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 
-	key := proto.BuildMediaInfoKey(dc, rid, "*", "*")
+	key := proto.BuildMediaInfoKey(dc, "*", rid, "*", "*")
 	log.Infof("getPubs: root key=%s", key)
 
 	var pubs []map[string]interface{}
@@ -287,7 +293,7 @@ func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
 
-	mkey := proto.BuildMediaInfoKey(dc, rid, "*", mid)
+	mkey := proto.BuildMediaInfoKey(dc, "*", rid, "*", mid)
 	log.Infof("getMediaInfo key=%s", mkey)
 
 	if keys := redis.Keys(mkey + "*"); len(keys) > 0 {
@@ -319,11 +325,10 @@ func relay(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error)
 	mid := util.Val(data, "mid")
 	from := util.Val(data, "from")
 
-	uid := proto.GetUIDFromMID(mid)
-	key := proto.GetPubNodePath(rid, uid)
+	key := proto.GetPubNodePath(rid, mid)
 	info := redis.HGetAll(key)
 	for ip := range info {
-		method := util.Map("method", proto.IslbRelay, "uid", uid, "sid", from, "mid", mid)
+		method := util.Map("method", proto.IslbRelay, "sid", from, "mid", mid)
 		log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
 		//amqp.RpcCall(ip, method, "")
 	}
@@ -331,7 +336,6 @@ func relay(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error)
 }
 
 func unRelay(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
 	from := util.Val(data, "from")
