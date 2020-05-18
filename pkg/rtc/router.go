@@ -127,6 +127,63 @@ func (r *Router) GetPub() transport.Transport {
 	return r.pub
 }
 
+func (r *Router) subWriteLoop(subID string, trans transport.Transport) {
+	for pkt := range r.subChans[subID] {
+		// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
+
+		if err := trans.WriteRTP(pkt); err != nil {
+			// log.Errorf("wt.WriteRTP err=%v", err)
+			// del sub when err is increasing
+			if trans.WriteErrTotal() > maxWriteErr {
+				r.DelSub(trans.ID())
+			}
+		}
+		trans.WriteErrReset()
+	}
+	log.Infof("Closing sub writer")
+}
+
+func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
+	for {
+		pkt := <-trans.GetRTCPChan()
+		if r.stop {
+			return
+		}
+		switch pkt := pkt.(type) {
+		case *rtcp.PictureLossIndication:
+			if r.GetPub() != nil {
+				// Request a Key Frame
+				log.Infof("Router.AddSub got pli: %+v", pkt)
+				err := r.GetPub().WriteRTCP(pkt)
+				if err != nil {
+					log.Errorf("Router.AddSub pli err => %+v", err)
+				}
+			}
+		case *rtcp.TransportLayerNack:
+			// log.Infof("Router.AddSub got nack: %+v", pkt)
+			nack := pkt
+			for _, nackPair := range nack.Nacks {
+				if !r.ReSendRTP(subID, nack.MediaSSRC, nackPair.PacketID) {
+					n := &rtcp.TransportLayerNack{
+						//origin ssrc
+						SenderSSRC: nack.SenderSSRC,
+						MediaSSRC:  nack.MediaSSRC,
+						Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
+					}
+					if r.pub != nil {
+						err := r.GetPub().WriteRTCP(n)
+						if err != nil {
+							log.Errorf("Router.AddSub nack WriteRTCP err => %+v", err)
+						}
+					}
+				}
+			}
+
+		default:
+		}
+	}
+}
+
 // AddSub add a pub to router
 func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	//fix panic: assignment to entry in nil map
@@ -138,63 +195,10 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	r.subs[id] = t
 	r.subChans[id] = make(chan *rtp.Packet, 1000)
 	log.Infof("Router.AddSub id=%s t=%p", id, t)
-	// Sub writer
-	go func() {
-		for pkt := range r.subChans[id] {
-			// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
-			if err := t.WriteRTP(pkt); err != nil {
-				// log.Errorf("wt.WriteRTP err=%v", err)
-				// del sub when err is increasing
-				if t.WriteErrTotal() > maxWriteErr {
-					r.DelSub(t.ID())
-				}
-			}
-			t.WriteErrReset()
-		}
-		log.Infof("Closing sub writer")
-	}()
 
-	// Sub reader
-	go func() {
-		for {
-			pkt := <-t.GetRTCPChan()
-			if r.stop {
-				return
-			}
-			switch pkt := pkt.(type) {
-			case *rtcp.PictureLossIndication:
-				if r.GetPub() != nil {
-					// Request a Key Frame
-					log.Infof("Router.AddSub got pli: %+v", pkt)
-					err := r.GetPub().WriteRTCP(pkt)
-					if err != nil {
-						log.Errorf("Router.AddSub pli err => %+v", err)
-					}
-				}
-			case *rtcp.TransportLayerNack:
-				// log.Infof("Router.AddSub got nack: %+v", pkt)
-				nack := pkt
-				for _, nackPair := range nack.Nacks {
-					if !r.ReSendRTP(id, nack.MediaSSRC, nackPair.PacketID) {
-						n := &rtcp.TransportLayerNack{
-							//origin ssrc
-							SenderSSRC: nack.SenderSSRC,
-							MediaSSRC:  nack.MediaSSRC,
-							Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
-						}
-						if r.pub != nil {
-							err := r.GetPub().WriteRTCP(n)
-							if err != nil {
-								log.Errorf("Router.AddSub nack WriteRTCP err => %+v", err)
-							}
-						}
-					}
-				}
-
-			default:
-			}
-		}
-	}()
+	// Sub loops
+	go r.subWriteLoop(id, t)
+	go r.subFeedbackLoop(id, t)
 	return t
 }
 
