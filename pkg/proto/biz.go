@@ -1,4 +1,4 @@
-package biz
+package proto
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"github.com/pion/webrtc/v2"
 )
 
-type UserInfo struct {
+type ClientUserInfo struct {
 	Name string `json:"name"`
 }
 
@@ -15,21 +15,8 @@ type RoomInfo struct {
 	Uid string `json:"uid"`
 }
 
-type MediaInfo struct {
-	Mid string `json:"mid"`
-}
-
 type RTCInfo struct {
 	Jsep webrtc.SessionDescription `json:"jsep"`
-}
-
-type TrackInfo struct {
-	Type  string `json:"type"`
-	Codec string `json:"codec"`
-	FMTP  string `json:"fmtp"`
-	ID    string `json:"id"`
-	PT    int    `json:"pt"`
-	SSRC  int64  `json:"ssrc"`
 }
 
 type PublishOptions struct {
@@ -47,7 +34,7 @@ type TrackMap map[string][]TrackInfo
 
 type JoinMsg struct {
 	RoomInfo
-	Info UserInfo `json:"info"`
+	Info ClientUserInfo `json:"info"`
 }
 
 type LoginMsg struct {
@@ -55,7 +42,7 @@ type LoginMsg struct {
 
 type LeaveMsg struct {
 	RoomInfo
-	Info UserInfo `json:"info"`
+	Info ClientUserInfo `json:"info"`
 }
 
 type CloseMsg struct {
@@ -75,12 +62,10 @@ type PublishResponseMsg struct {
 }
 
 type UnpublishMsg struct {
-	RoomInfo
 	MediaInfo
 }
 
 type SubscribeMsg struct {
-	RoomInfo
 	MediaInfo
 	RTCInfo
 }
@@ -100,20 +85,17 @@ type BroadcastMsg struct {
 }
 
 type TrickleMsg struct {
-	RoomInfo
 	MediaInfo
 	Info    json.RawMessage `json:"info"`
 	Trickle json.RawMessage `json:"trickle"`
 }
 
 type StreamAddMsg struct {
-	RoomInfo
 	MediaInfo
-	Info   UserInfo `json:"info"`
-	Tracks TrackMap `json:"tracks"`
+	Info   ClientUserInfo `json:"info"`
+	Tracks TrackMap       `json:"tracks"`
 }
 
 type StreamRemoveMsg struct {
-	RoomInfo
 	MediaInfo
 }
