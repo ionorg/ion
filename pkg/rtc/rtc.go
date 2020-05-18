@@ -159,15 +159,15 @@ func check() {
 			print = true
 		}
 
-		for id, Router := range routers {
-			if !Router.Alive() {
-				Router.Close()
+		for id, router := range routers {
+			if !router.Alive() {
+				router.Close()
 				delete(routers, id)
 				CleanChannel <- id
 				log.Infof("Stat delete %v", id)
 			}
 			info += "pub: " + id + "\n"
-			subs := Router.GetSubs()
+			subs := router.GetSubs()
 			if len(subs) < 6 {
 				for id := range subs {
 					info += fmt.Sprintf("sub: %s\n\n", id)

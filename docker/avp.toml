@@ -1,14 +1,19 @@
 [global]
 pprof = ":6062"
-
 # data center id
 dc = "dc1"
-
 # internet ip
 addr = "127.0.0.1"
 
 [plugins]
 on = true
+
+[plugins.samplebuilder]
+on = true
+# max late for audio rtp packets
+audiomaxlate = 100
+# max late for video rtp packets
+videomaxlate = 200
 
 [plugins.webmsaver]
 on = true
@@ -23,8 +28,8 @@ kcpsalt = "salt"
 
 [log]
 level = "info"
-# level = "debug"
 
+# level = "debug"
 [etcd]
 # ["ip:port", "ip:port"]
 addrs = ["etcd:2379"]
