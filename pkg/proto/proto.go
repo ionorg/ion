@@ -55,11 +55,6 @@ msid  [{ssrc: 1234, pt: 111, type:audio}]
 msid  [{ssrc: 5678, pt: 96, type:video}]
 */
 
-func BuildMediaInfoKey(dc string, nid string, rid string, uid string, mid string) string {
-	strs := []string{dc, nid, rid, uid, "media", "pub", mid}
-	return strings.Join(strs, "/")
-}
-
 type MediaInfo struct {
 	DC  string //Data Center ID
 	NID string //Node ID
@@ -68,7 +63,27 @@ type MediaInfo struct {
 	MID string //Media ID
 }
 
-// ParseMediaInfo dc1/sfu-tU2GInE5Lfuc/7485294b-9815-4888-83a5-631e77445b67/room1/media/pub/7e97c1e8-c80a-4c69-81b0-27efc83e6120
+func (m MediaInfo) BuildKey() string {
+	if m.DC == "" {
+		m.DC = "*"
+	}
+	if m.NID == "" {
+		m.NID = "*"
+	}
+	if m.RID == "" {
+		m.RID = "*"
+	}
+	if m.UID == "" {
+		m.UID = "*"
+	}
+	if m.MID == "" {
+		m.MID = "*"
+	}
+	strs := []string{m.DC, m.NID, m.RID, m.UID, "media", "pub", m.MID}
+	return strings.Join(strs, "/")
+}
+
+// Parse dc1/sfu-tU2GInE5Lfuc/7485294b-9815-4888-83a5-631e77445b67/room1/media/pub/7e97c1e8-c80a-4c69-81b0-27efc83e6120
 func ParseMediaInfo(key string) (*MediaInfo, error) {
 	var info MediaInfo
 	arr := strings.Split(key, "/")
@@ -89,15 +104,15 @@ user
 info {name: "Guest"}
 */
 
-func BuildUserInfoKey(dc string, rid string, uid string) string {
-	strs := []string{dc, rid, "user", "info", uid}
-	return strings.Join(strs, "/")
-}
-
 type UserInfo struct {
 	DC  string
 	RID string
 	UID string
+}
+
+func (u UserInfo) BuildKey() string {
+	strs := []string{u.DC, u.RID, "user", "info", u.UID}
+	return strings.Join(strs, "/")
 }
 
 func ParseUserInfo(key string) (*UserInfo, error) {

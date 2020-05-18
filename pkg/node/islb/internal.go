@@ -38,7 +38,10 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 
 func removeStreamsByNode(nodeID string) {
 	log.Infof("removeStreamsByNode: node => %s", nodeID)
-	mkey := proto.BuildMediaInfoKey(dc, nodeID, "*", "*", "*")
+	mkey := proto.MediaInfo{
+		DC:  dc,
+		NID: nodeID,
+	}.BuildKey()
 	for _, key := range redis.Keys(mkey + "*") {
 		log.Infof("streamRemove: key => %s", key)
 		minfo, err := proto.ParseMediaInfo(key)
@@ -54,7 +57,9 @@ func removeStreamsByNode(nodeID string) {
 
 // WatchAllStreams .
 func WatchAllStreams() {
-	mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*", "*")
+	mkey := proto.MediaInfo{
+		DC: dc,
+	}.BuildKey()
 	log.Infof("Watch all streams, mkey = %s", mkey)
 	for _, key := range redis.Keys(mkey) {
 		log.Infof("Watch stream, key = %s", key)
@@ -91,7 +96,10 @@ func findServiceNode(data map[string]interface{}) (map[string]interface{}, *npro
 		mid = util.Val(data, "mid")
 	}
 	if mid != "" {
-		mkey := proto.BuildMediaInfoKey(dc, "*", "*", "*", mid)
+		mkey := proto.MediaInfo{
+			DC:  dc,
+			MID: mid,
+		}.BuildKey()
 		log.Infof("Find mids by mkey %s", mkey)
 		for _, key := range redis.Keys(mkey + "*") {
 			log.Infof("Got: key => %s", key)
@@ -135,8 +143,18 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	nid := util.Val(data, "nid")
 	mid := util.Val(data, "mid")
 
-	ukey := proto.BuildUserInfoKey(dc, rid, uid)
-	mkey := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
+	ukey := proto.UserInfo{
+		DC:  dc,
+		RID: rid,
+		UID: uid,
+	}.BuildKey()
+	mkey := proto.MediaInfo{
+		DC:  dc,
+		NID: nid,
+		RID: rid,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
 
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
 		Name: nid,
@@ -192,19 +210,12 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	uid := util.Val(data, "uid")
 	mid := util.Val(data, "mid")
 
-	if rid == "" {
-		rid = "*"
-	}
-
-	if uid == "" {
-		uid = "*"
-	}
-
-	if mid == "" {
-		mid = "*"
-	}
-
-	mkey := proto.BuildMediaInfoKey(dc, "*", rid, uid, mid)
+	mkey := proto.MediaInfo{
+		DC:  dc,
+		RID: rid,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
 
 	log.Infof("streamRemove: key => %s", mkey)
 	for _, key := range redis.Keys(mkey + "*") {
@@ -221,7 +232,10 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 
-	key := proto.BuildMediaInfoKey(dc, "*", rid, "*", "*")
+	key := proto.MediaInfo{
+		DC:  dc,
+		RID: rid,
+	}.BuildKey()
 	log.Infof("getPubs: root key=%s", key)
 
 	var pubs []map[string]interface{}
@@ -231,7 +245,11 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 		if err != nil {
 			log.Errorf("%v", err)
 		}
-		fields := redis.HGetAll(proto.BuildUserInfoKey(info.DC, info.RID, info.UID))
+		fields := redis.HGetAll(proto.UserInfo{
+			DC:  info.DC,
+			RID: info.RID,
+			UID: info.UID,
+		}.BuildKey())
 		trackFields := redis.HGetAll(path)
 
 		tracks := make(map[string][]proto.TrackInfo)
@@ -260,7 +278,11 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	uid := util.Val(data, "uid")
 	info := util.Val(data, "info")
 
-	ukey := proto.BuildUserInfoKey(dc, rid, uid)
+	ukey := proto.UserInfo{
+		DC:  dc,
+		RID: rid,
+		UID: uid,
+	}.BuildKey()
 	log.Infof("clientJoin: set %s => %v", ukey, info)
 	err := redis.HSetTTL(ukey, "info", info, redisLongKeyTTL)
 	if err != nil {
@@ -275,7 +297,11 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
-	ukey := proto.BuildUserInfoKey(dc, rid, uid)
+	ukey := proto.UserInfo{
+		DC:  dc,
+		RID: rid,
+		UID: uid,
+	}.BuildKey()
 	log.Infof("clientLeave: remove key => %s", ukey)
 	err := redis.Del(ukey)
 	if err != nil {
@@ -293,7 +319,11 @@ func getMediaInfo(data map[string]interface{}) (map[string]interface{}, *nprotoo
 	rid := util.Val(data, "rid")
 	mid := util.Val(data, "mid")
 
-	mkey := proto.BuildMediaInfoKey(dc, "*", rid, "*", mid)
+	mkey := proto.MediaInfo{
+		DC:  dc,
+		RID: rid,
+		MID: mid,
+	}.BuildKey()
 	log.Infof("getMediaInfo key=%s", mkey)
 
 	if keys := redis.Keys(mkey + "*"); len(keys) > 0 {

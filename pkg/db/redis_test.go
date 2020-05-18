@@ -26,8 +26,18 @@ var (
 	uikey = "info"
 	uinfo = `{"name": "Guest"}`
 
-	mkey = proto.BuildMediaInfoKey(dc, node, room, uid, mid)
-	ukey = proto.BuildUserInfoKey(dc, room, uid)
+	mkey = proto.MediaInfo{
+		DC:  dc,
+		NID: node,
+		RID: room,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
+	ukey = proto.UserInfo{
+		DC:  dc,
+		RID: room,
+		UID: room,
+	}.BuildKey()
 )
 
 func init() {
