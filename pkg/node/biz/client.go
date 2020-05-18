@@ -17,14 +17,14 @@ var (
 	midError = util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
 )
 
-func login(peer *signal.Peer, msg LoginMsg) (interface{}, *nprotoo.Error) {
+func login(peer *signal.Peer, msg proto.LoginMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.login peer.ID()=%s msg=%v", peer.ID(), msg)
 	//TODO auth check, maybe jwt
 	return emptyMap, nil
 }
 
 // join room
-func join(peer *signal.Peer, msg JoinMsg) (interface{}, *nprotoo.Error) {
+func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
 	rid := msg.Rid
 
@@ -81,7 +81,7 @@ func join(peer *signal.Peer, msg JoinMsg) (interface{}, *nprotoo.Error) {
 	return emptyMap, nil
 }
 
-func leave(peer *signal.Peer, msg LeaveMsg) (interface{}, *nprotoo.Error) {
+func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.leave peer.ID()=%s msg=%v", peer.ID(), msg)
 	defer util.Recover("biz.leave")
 
@@ -105,12 +105,12 @@ func leave(peer *signal.Peer, msg LeaveMsg) (interface{}, *nprotoo.Error) {
 	return emptyMap, nil
 }
 
-func clientClose(peer *signal.Peer, msg CloseMsg) (interface{}, *nprotoo.Error) {
+func clientClose(peer *signal.Peer, msg proto.CloseMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
 	return leave(peer, msg.LeaveMsg)
 }
 
-func publish(peer *signal.Peer, msg PublishMsg) (interface{}, *nprotoo.Error) {
+func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.publish peer.ID()=%s", peer.ID())
 
 	nid, sfu, err := getRPCForSFU("")
@@ -146,11 +146,11 @@ func publish(peer *signal.Peer, msg PublishMsg) (interface{}, *nprotoo.Error) {
 }
 
 // unpublish from app
-func unpublish(peer *signal.Peer, msg UnpublishMsg) (interface{}, *nprotoo.Error) {
+func unpublish(peer *signal.Peer, msg proto.UnpublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
 
-	mid := msg.Mid
-	rid := msg.Rid
+	mid := msg.MID
+	rid := msg.RID
 	uid := peer.ID()
 
 	_, sfu, err := getRPCForSFU(mid)
@@ -174,9 +174,9 @@ func unpublish(peer *signal.Peer, msg UnpublishMsg) (interface{}, *nprotoo.Error
 	return emptyMap, nil
 }
 
-func subscribe(peer *signal.Peer, msg SubscribeMsg) (interface{}, *nprotoo.Error) {
+func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
-	mid := msg.Mid
+	mid := msg.MID
 
 	// Validate
 	if mid == "" {
@@ -222,9 +222,9 @@ func subscribe(peer *signal.Peer, msg SubscribeMsg) (interface{}, *nprotoo.Error
 	return result, nil
 }
 
-func unsubscribe(peer *signal.Peer, msg UnsubscribeMsg) (interface{}, *nprotoo.Error) {
+func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	mid := msg.Mid
+	mid := msg.MID
 
 	// Validate
 	if mid == "" {
@@ -247,7 +247,7 @@ func unsubscribe(peer *signal.Peer, msg UnsubscribeMsg) (interface{}, *nprotoo.E
 	return result, nil
 }
 
-func broadcast(peer *signal.Peer, msg BroadcastMsg) (interface{}, *nprotoo.Error) {
+func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
 	// Validate
@@ -264,12 +264,12 @@ func broadcast(peer *signal.Peer, msg BroadcastMsg) (interface{}, *nprotoo.Error
 	return emptyMap, nil
 }
 
-func trickle(peer *signal.Peer, msg TrickleMsg) (interface{}, *nprotoo.Error) {
+func trickle(peer *signal.Peer, msg proto.TrickleMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.trickle peer.ID()=%s msg=%v", peer.ID(), msg)
-	mid := msg.Mid
+	mid := msg.MID
 
 	// Validate
-	if msg.Rid == "" || msg.Uid == "" {
+	if msg.RID == "" || msg.UID == "" {
 		return nil, ridError
 	}
 

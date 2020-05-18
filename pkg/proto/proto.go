@@ -56,11 +56,11 @@ msid  [{ssrc: 5678, pt: 96, type:video}]
 */
 
 type MediaInfo struct {
-	DC  string //Data Center ID
-	NID string //Node ID
-	RID string //Room ID
-	UID string //User ID
-	MID string //Media ID
+	DC  string `json:"dc,omitempty"`  //Data Center ID
+	NID string `json:"nid,omitempty"` //Node ID
+	RID string `json:"rid,omitempty"` //Room ID
+	UID string `json:"uid,omitempty"` //User ID
+	MID string `json:"mid,omitempty"` //Media ID
 }
 
 func (m MediaInfo) BuildKey() string {

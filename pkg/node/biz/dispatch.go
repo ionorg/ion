@@ -21,7 +21,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 	//TODO DRY this up
 	switch method {
 	case proto.ClientClose:
-		var msgData CloseMsg
+		var msgData proto.CloseMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -29,7 +29,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = clientClose(peer, msgData)
 	case proto.ClientLogin:
-		var msgData LoginMsg
+		var msgData proto.LoginMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -37,7 +37,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = login(peer, msgData)
 	case proto.ClientJoin:
-		var msgData JoinMsg
+		var msgData proto.JoinMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -45,7 +45,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = join(peer, msgData)
 	case proto.ClientLeave:
-		var msgData LeaveMsg
+		var msgData proto.LeaveMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -53,7 +53,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = leave(peer, msgData)
 	case proto.ClientPublish:
-		var msgData PublishMsg
+		var msgData proto.PublishMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -61,7 +61,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = publish(peer, msgData)
 	case proto.ClientUnPublish:
-		var msgData UnpublishMsg
+		var msgData proto.UnpublishMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -69,7 +69,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = unpublish(peer, msgData)
 	case proto.ClientSubscribe:
-		var msgData SubscribeMsg
+		var msgData proto.SubscribeMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -77,7 +77,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = subscribe(peer, msgData)
 	case proto.ClientUnSubscribe:
-		var msgData UnsubscribeMsg
+		var msgData proto.UnsubscribeMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -85,7 +85,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = unsubscribe(peer, msgData)
 	case proto.ClientBroadcast:
-		var msgData BroadcastMsg
+		var msgData proto.BroadcastMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
@@ -93,7 +93,7 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		}
 		result, topErr = broadcast(peer, msgData)
 	case proto.ClientTrickleICE:
-		var msgData TrickleMsg
+		var msgData proto.TrickleMsg
 		if err := json.Unmarshal(msg, &msgData); err != nil {
 			log.Infof("Marshal error")
 			topErr = parseErr
