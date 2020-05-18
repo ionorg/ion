@@ -104,9 +104,7 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 	}
 
 	if publish {
-		if codec == webrtc.H264 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-		} else if codec == webrtc.VP8 {
+		if codec == webrtc.VP8 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
 			// Firefox vp8
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
@@ -115,7 +113,11 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 			// Firefox vp9
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
 		} else {
+			// Default webrtc.H264
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
+			// Firefox
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
 		}
 	} else {
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
@@ -124,6 +126,8 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 		// Firefox
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
 	}
 
 	if !dc {
