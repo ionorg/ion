@@ -14,7 +14,7 @@ var (
 	node   = "sfu1"
 	room   = "room1"
 	uid    = "uuid-xxxxx-xxxxx-xxxxx-xxxxx"
-	mid    = uid + "#" + "ABCDEF"
+	mid    = "mid-xxxxx-xxxxx-xxxxx-xxxxx"
 	msid0  = "pion audio"
 	msid1  = "pion video"
 	track0 = proto.TrackInfo{Ssrc: 3694449886, Payload: 111, Type: "audio", ID: "aid0"}
@@ -26,7 +26,7 @@ var (
 	uikey = "info"
 	uinfo = `{"name": "Guest"}`
 
-	mkey = proto.BuildMediaInfoKey(dc, room, node, mid)
+	mkey = proto.BuildMediaInfoKey(dc, node, room, uid, mid)
 	ukey = proto.BuildUserInfoKey(dc, room, uid)
 )
 

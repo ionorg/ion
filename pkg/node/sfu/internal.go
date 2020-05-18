@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/google/uuid"
 	sdptransform "github.com/notedit/sdp"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -66,7 +67,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	sdp := util.Val(jsep, "sdp")
 	rid := util.Val(msg, "rid")
 	uid := util.Val(msg, "uid")
-	mid := util.GetMID(uid)
+	mid := uuid.New().String()
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
 	rtcOptions := make(map[string]interface{})
@@ -89,7 +90,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
 	}
 
-	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
 	router := rtc.GetOrNewRouter(key)
 	go handleTrickle(router, pub)
 
@@ -147,8 +148,9 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	log.Infof("unpublish msg=%v", msg)
 
 	mid := util.Val(msg, "mid")
+	uid := util.Val(msg, "uid")
 	rid := util.Val(msg, "rid")
-	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
 	router := rtc.GetOrNewRouter(key)
 	if router != nil {
 		router.Close()
@@ -163,8 +165,9 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	log.Infof("subscribe msg=%v", msg)
 
 	mid := util.Val(msg, "mid")
+	uid := util.Val(msg, "uid")
 	rid := util.Val(msg, "rid")
-	key := proto.BuildMediaInfoKey(dc, rid, nid, mid)
+	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
 	router := rtc.GetOrNewRouter(key)
 	if router == nil {
 		return nil, util.NewNpError(404, "subscribe: Router not found!")
@@ -176,7 +179,6 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	}
 
 	sdp := util.Val(jsep, "sdp")
-	uid := util.Val(msg, "uid")
 
 	rtcOptions := make(map[string]interface{})
 	rtcOptions["transport-cc"] = "false"
@@ -191,7 +193,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
-	subID := util.GetMID(uid)
+	subID := uuid.New().String()
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)

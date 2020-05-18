@@ -47,7 +47,7 @@ const (
 
 /*
 media
-dc/room1/media/pub/${mid}
+dc/${nid}/${rid}/${uid}/media/pub/${mid}
 
 node1 origin
 node2 shadow
@@ -55,34 +55,31 @@ msid  [{ssrc: 1234, pt: 111, type:audio}]
 msid  [{ssrc: 5678, pt: 96, type:video}]
 */
 
-func BuildMediaInfoKey(dc string, rid string, nid string, mid string) string {
-	strs := []string{dc, rid, nid, "media", "pub", mid}
+func BuildMediaInfoKey(dc string, nid string, rid string, uid string, mid string) string {
+	strs := []string{dc, nid, rid, uid, "media", "pub", mid}
 	return strings.Join(strs, "/")
 }
 
 type MediaInfo struct {
 	DC  string //Data Center ID
-	RID string //Room ID
 	NID string //Node ID
-	MID string //Media ID
+	RID string //Room ID
 	UID string //User ID
+	MID string //Media ID
 }
 
-// dc1/room1/sfu-tU2GInE5Lfuc/media/pub/7e97c1e8-c80a-4c69-81b0-27efc83e6120#NYYQLV
+// ParseMediaInfo dc1/sfu-tU2GInE5Lfuc/7485294b-9815-4888-83a5-631e77445b67/room1/media/pub/7e97c1e8-c80a-4c69-81b0-27efc83e6120
 func ParseMediaInfo(key string) (*MediaInfo, error) {
 	var info MediaInfo
 	arr := strings.Split(key, "/")
-	if len(arr) != 6 {
+	if len(arr) != 7 {
 		return nil, fmt.Errorf("Can‘t parse mediainfo; [%s]", key)
 	}
 	info.DC = arr[0]
-	info.RID = arr[1]
-	info.NID = arr[2]
-	info.MID = arr[5]
-	arr = strings.Split(info.MID, "#")
-	if len(arr) == 2 {
-		info.UID = arr[0]
-	}
+	info.NID = arr[1]
+	info.RID = arr[2]
+	info.UID = arr[3]
+	info.MID = arr[6]
 	return &info, nil
 }
 
@@ -164,10 +161,6 @@ func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error)
 	}
 	msid := strings.Split(key, "/")[1]
 	return msid, &tracks, nil
-}
-
-func GetUIDFromMID(mid string) string {
-	return strings.Split(mid, "#")[0]
 }
 
 func GetPubNodePath(rid, uid string) string {
