@@ -66,7 +66,7 @@ services:
       - ionnet
 
   etcd:
-    image: gcr.io/etcd-development/etcd:v3.4.7
+    image: gcr.io/etcd-development/etcd:v3.4.8
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
     networks:
