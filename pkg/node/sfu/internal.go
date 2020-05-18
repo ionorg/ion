@@ -230,7 +230,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		streamID := strings.Split(msid, " ")[0]
 		trackID := track.ID
 		log.Infof("AddTrack: codec:%s, ssrc:%d, pt:%d, streamID %s, trackID %s", track.Codec, ssrc, pt, streamID, trackID)
-		_, err := sub.AddTrack(ssrc, pt, streamID, track.ID)
+		_, err := sub.AddSendTrack(ssrc, pt, streamID, track.ID)
 		if err != nil {
 			log.Errorf("err=%v", err)
 		}

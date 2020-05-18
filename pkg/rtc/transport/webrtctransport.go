@@ -226,7 +226,7 @@ func (w *WebRTCTransport) SetRemoteSDP(sdp webrtc.SessionDescription) error {
 }
 
 // AddTrack add track to pc
-func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8, streamID string, trackID string) (*webrtc.Track, error) {
+func (w *WebRTCTransport) AddSendTrack(ssrc uint32, pt uint8, streamID string, trackID string) (*webrtc.Track, error) {
 	if w.pc == nil {
 		return nil, errInvalidPC
 	}
@@ -234,7 +234,9 @@ func (w *WebRTCTransport) AddTrack(ssrc uint32, pt uint8, streamID string, track
 	if err != nil {
 		return nil, err
 	}
-	if _, err = w.pc.AddTrack(track); err != nil {
+
+	_, err = w.pc.AddTransceiverFromTrack(track, webrtc.RtpTransceiverInit{Direction: webrtc.RTPTransceiverDirectionSendonly})
+	if err != nil {
 		return nil, err
 	}
 
