@@ -90,7 +90,13 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
 	}
 
-	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
+	key := proto.MediaInfo{
+		DC:  dc,
+		NID: nid,
+		RID: rid,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
 	router := rtc.GetOrNewRouter(key)
 	go handleTrickle(router, pub)
 
@@ -150,7 +156,13 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	mid := util.Val(msg, "mid")
 	uid := util.Val(msg, "uid")
 	rid := util.Val(msg, "rid")
-	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
+	key := proto.MediaInfo{
+		DC:  dc,
+		NID: nid,
+		RID: rid,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
 	router := rtc.GetOrNewRouter(key)
 	if router != nil {
 		router.Close()
@@ -167,7 +179,13 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	mid := util.Val(msg, "mid")
 	uid := util.Val(msg, "uid")
 	rid := util.Val(msg, "rid")
-	key := proto.BuildMediaInfoKey(dc, nid, rid, uid, mid)
+	key := proto.MediaInfo{
+		DC:  dc,
+		NID: nid,
+		RID: rid,
+		UID: uid,
+		MID: mid,
+	}.BuildKey()
 	router := rtc.GetOrNewRouter(key)
 	if router == nil {
 		return nil, util.NewNpError(404, "subscribe: Router not found!")
