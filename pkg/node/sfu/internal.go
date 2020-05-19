@@ -109,7 +109,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	tracks := make(map[string][]proto.TrackInfo)
-	pts := make(map[uint8]string)
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
@@ -123,14 +122,12 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 					codecType = strings.ToUpper(codec.GetCodec())
 					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
 						pt = payload
-						pts[uint8(pt)] = "audio"
 						break
 					}
 				} else if track.GetMedia() == "video" {
 					codecType = strings.ToUpper(codec.GetCodec())
 					if codecType == videoCodec {
 						pt = payload
-						pts[uint8(pt)] = "video"
 						break
 					}
 				}
@@ -139,13 +136,11 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			if len(track.GetSSRCS()) == 0 {
 				return nil, util.NewNpError(415, "publish: ssrc not found.")
 			}
-			ssrc := uint32(track.GetSSRCS()[0])
-			infos = append(infos, proto.TrackInfo{Ssrc: int(ssrc), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
+			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
 			tracks[stream.GetID()+" "+id] = infos
 		}
 	}
 
-	router.SetPtMap(pts)
 	log.Infof("publish tracks %v, answer = %v", tracks, answer)
 	return util.Map("jsep", answer, "mid", mid, "tracks", tracks), nil
 }
@@ -273,18 +268,15 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
-	log.Infof("Subscribe pts %v, router map %v", ptsAvMap, router.GetPtMap())
+	log.Infof("Subscribe pts %v", ptsAvMap)
 
 	for msid, track := range tracks {
 		ssrc := uint32(track.Ssrc)
 		// Get payload type from request track
 		pt := uint8(track.Payload)
-		// Get av type from router of that pt
-		if av, ok := router.GetPtMap()[pt]; ok {
-			if newPt, ok := ptsAvMap[av]; ok {
-				// Override with "negotiated" PT
-				pt = uint8(newPt)
-			}
+		if newPt, ok := ptsAvMap[track.Type]; ok {
+			// Override with "negotiated" PT
+			pt = uint8(newPt)
 		}
 
 		// I2AacsRLsZZriGapnvPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435
