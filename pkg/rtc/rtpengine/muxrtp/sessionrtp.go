@@ -89,6 +89,7 @@ func (s *SessionRTP) writeRTP(header *rtp.Header, payload []byte) (int, error) {
 	if _, ok := <-s.session.started; ok {
 		return 0, fmt.Errorf("started channel used incorrectly, should only be closed")
 	}
+
 	p := rtp.Packet{Header: *header, Payload: payload}
 	bin, err := p.Marshal()
 	if err != nil {

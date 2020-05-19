@@ -379,7 +379,7 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 	log.Debugf("WebRTCTransport.WriteRTP pkt=%v", pkt)
 	err := track.WriteRTP(pkt)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("WebRTCTransport.WriteRTP => %s", err.Error())
 		w.writeErrCnt++
 		return err
 	}

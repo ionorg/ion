@@ -82,7 +82,7 @@ func (r *Router) start() {
 					continue
 				}
 			}
-			log.Debugf("pkt := <-r.subCh %v", pkt)
+			// log.Debugf("pkt := <-r.subCh %v", pkt)
 			if pkt == nil {
 				continue
 			}

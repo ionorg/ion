@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"github.com/google/uuid"
 	"github.com/pion/rtp"
 
 	"github.com/pion/ion/pkg/log"
@@ -21,16 +20,15 @@ type RTPForwarderConfig struct {
 // RTPForwarder core
 type RTPForwarder struct {
 	id         string
-	mid        string
 	Transport  *transport.RTPTransport
 	outRTPChan chan *rtp.Packet
 }
 
 // NewRTPForwarder Create new RTP Forwarder
 func NewRTPForwarder(config RTPForwarderConfig) *RTPForwarder {
-	log.Infof("New RTPForwarder Plugin with id %s address %s", config.ID, config.Addr)
+	log.Infof("New RTPForwarder Plugin with id %s address %s for mid %s", config.ID, config.Addr, config.MID)
 	var rtpTransport *transport.RTPTransport
-	uuid.Parse(config.MID)
+
 	if config.KcpKey != "" && config.KcpSalt != "" {
 		rtpTransport = transport.NewOutRTPTransportWithKCP(config.MID, config.Addr, config.KcpKey, config.KcpSalt)
 	} else {
@@ -51,7 +49,10 @@ func (r *RTPForwarder) ID() string {
 // WriteRTP Forward rtp packet which from pub
 func (r *RTPForwarder) WriteRTP(pkt *rtp.Packet) error {
 	r.outRTPChan <- pkt
-	return r.Transport.WriteRTP(pkt)
+	go func() {
+		r.Transport.WriteRTP(pkt)
+	}()
+	return nil
 }
 
 // ReadRTP Forward rtp packet which from pub
@@ -61,5 +62,5 @@ func (r *RTPForwarder) ReadRTP() <-chan *rtp.Packet {
 
 // Stop Stop plugin
 func (r *RTPForwarder) Stop() {
-	r.Transport.Close()
+	// r.Transport.Close()
 }

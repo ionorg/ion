@@ -89,6 +89,8 @@ func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
 		height := int((raw >> 16) & 0x3FFF)
 
 		if s.videoWriter == nil || s.audioWriter == nil {
+			log.Infof("%+v", pkt)
+			log.Infof("%x", pkt.Payload)
 			// Initialize WebM saver using received frame size.
 			s.initWriter(width, height)
 		}

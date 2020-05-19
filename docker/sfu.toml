@@ -43,8 +43,8 @@ port = 6666
 # kcpsalt = ""
 
 [log]
-# level = "info"
-level = "debug"
+level = "info"
+# level = "debug"
 
 [etcd]
 # ["ip:port", "ip:port"]
