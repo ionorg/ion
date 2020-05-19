@@ -30,6 +30,14 @@ var (
 	errInvalidPacket  = errors.New("packet is nil")
 	errInvalidPC      = errors.New("pc is nil")
 	errInvalidOptions = errors.New("invalid options")
+
+	ptTransformMap = map[uint8][]uint8{
+		webrtc.DefaultPayloadTypeVP9:  []uint8{121, 120},
+		webrtc.DefaultPayloadTypeOpus: []uint8{109},
+
+		// reverse
+		// 109: []uint8{webrtc.DefaultPayloadTypeOpus},
+	}
 )
 
 // InitWebRTC init WebRTCTransport setting
@@ -215,11 +223,6 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 	return w
 }
 
-// TransformPayload return true
-func (w *WebRTCTransport) GetPayloadMap() map[uint32]uint8 {
-	return w.ptMap
-}
-
 // ID return id
 func (w *WebRTCTransport) ID() string {
 	return w.id
@@ -395,6 +398,28 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 	if pkt == nil {
 		return errInvalidPacket
 	}
+
+	// Handle PT rewrites
+	// If pub packet is not of paylod sub wants
+	srcType := pkt.Header.PayloadType
+	destType := w.ptMap[pkt.Header.SSRC]
+	if srcType != destType {
+		// And we can "transform it"
+		if candid, ok := ptTransformMap[srcType]; ok {
+			// sub pt is listed in transform map[paylod] array
+			for _, k := range candid {
+				if destType == k {
+					// Do the transform
+					newPkt := *pkt
+					log.Infof("Transforming %v => %v", srcType, destType)
+					newPkt.Header.PayloadType = destType
+					pkt = &newPkt
+					break
+				}
+			}
+		}
+	}
+
 	w.outTrackLock.RLock()
 	track := w.outTracks[pkt.SSRC]
 	w.outTrackLock.RUnlock()
