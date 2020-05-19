@@ -234,6 +234,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		return nil, util.NewNpError(415, "publish: sdp parse failed.")
 	}
 
+	// Extract know payload type ids
 	ptsAvMap := make(map[string]int)
 	for _, stream := range sdpObj.GetStreams() {
 		for _, track := range stream.GetTracks() {
@@ -272,12 +273,11 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	for msid, track := range tracks {
 		ssrc := uint32(track.Ssrc)
 		// Get payload type from request track
-		// Get av type from router of that pt
-		// Transform into new pt if available
 		pt := uint8(track.Payload)
-		// TODO Override with "negotiated" PT
+		// Get av type from router of that pt
 		if av, ok := router.GetPtMap()[pt]; ok {
 			if newPt, ok := ptsAvMap[av]; ok {
+				// Override with "negotiated" PT
 				pt = uint8(newPt)
 			}
 		}
@@ -299,8 +299,6 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
-
-	// Extract know payload type ids
 
 	router.AddSub(subID, sub)
 

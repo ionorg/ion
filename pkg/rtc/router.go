@@ -175,11 +175,7 @@ func (r *Router) subWriteLoop(subID string, trans transport.Transport) {
 	for pkt := range r.subChans[subID] {
 		// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
 
-		// Transform into browser specific payloadType
-		// For all tracks
-		// If sub transport PT != pck.PT and sub is allowed from src PT
-		// JUST UPDATE THE PT ID
-
+		// Maybe belongs in transport
 		// If pub packet is not of paylod sub wants
 		srcType := pkt.Header.PayloadType
 		if srcType == 111 {
