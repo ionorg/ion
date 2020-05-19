@@ -195,13 +195,6 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	log.Infof("subscribe tracks=%v", tracksMap)
 	ssrcPT := make(map[uint32]uint8)
 	rtcOptions["ssrcpt"] = ssrcPT
-	sub := transport.NewWebRTCTransport(subID, rtcOptions)
-
-	if sub == nil {
-		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
-	}
-
-	go handleTrickle(router, sub)
 
 	tracks := make(map[string]proto.TrackInfo)
 	for msid, track := range tracksMap {
@@ -220,7 +213,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
-	videoCodec := strings.ToUpper(router.GetCodec())
+	// videoCodec := strings.ToUpper(router.GetCodec())
 
 	// HACK HACK
 	sdpObj, err := sdptransform.Parse(sdp)
@@ -231,42 +224,67 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	// TODO parse chrome SDP
 	// Currently does not set SSRC so no tracks
-	ptsAvMap := map[string]int{
-		"audio": webrtc.DefaultPayloadTypeOpus,
-		"video": webrtc.DefaultPayloadTypeVP9,
+	ssrcPTMap := make(map[int]uint8)
+	ptsAvMap := make(map[string]int)
+	// ptsAvMap := map[string]int{
+	// 	"audio": webrtc.DefaultPayloadTypeOpus,
+	// 	"video": webrtc.DefaultPayloadTypeVP9,
+	// }
+
+	allowedCodecs := make([]uint8, 0, len(tracks))
+	for _, track := range tracks {
+		ssrcPTMap[track.Ssrc] = getSubPTForTrack(track, sdpObj)
+		allowedCodecs = append(allowedCodecs, ssrcPTMap[track.Ssrc])
+		// Find pt for track given track.Payload and sdp
 	}
 
-	for _, stream := range sdpObj.GetStreams() {
-		for _, track := range stream.GetTracks() {
-			pt := int(0)
-			codecType := ""
-			media := sdpObj.GetMedia(track.GetMedia())
-			codecs := media.GetCodecs()
+	log.Infof("Allowed codecs %v", allowedCodecs)
+	rtcOptions["codecs"] = allowedCodecs
+	// Set media engine codecs based on found pts
 
-			for payload, codec := range codecs {
-				log.Infof("Codec type %v", codec.GetType())
-				if track.GetMedia() == "audio" {
-					codecType = strings.ToUpper(codec.GetCodec())
-					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
-						pt = payload
-						ptsAvMap["audio"] = pt
-						break
-					}
-				} else if track.GetMedia() == "video" {
-					codecType = strings.ToUpper(codec.GetCodec())
-					if codecType == videoCodec {
-						pt = payload
-						ptsAvMap["video"] = pt
-						// ptsAvMap[pt] = "video"
-						break
-					}
-				}
-			}
-			if len(track.GetSSRCS()) == 0 {
-				return nil, util.NewNpError(415, "publish: ssrc not found.")
-			}
-		}
+	// New api
+
+	sub := transport.NewWebRTCTransport(subID, rtcOptions)
+
+	if sub == nil {
+		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
 	}
+
+	go handleTrickle(router, sub)
+
+	// Build answer
+
+	// for _, stream := range sdpObj.GetStreams() {
+	// 	for _, track := range stream.GetTracks() {
+	// 		pt := int(0)
+	// 		codecType := ""
+	// 		media := sdpObj.GetMedia(track.GetMedia())
+	// 		codecs := media.GetCodecs()
+
+	// 		for payload, codec := range codecs {
+	// 			log.Infof("Codec type %v", codec.GetType())
+	// 			if track.GetMedia() == "audio" {
+	// 				codecType = strings.ToUpper(codec.GetCodec())
+	// 				if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
+	// 					pt = payload
+	// 					ptsAvMap["audio"] = pt
+	// 					break
+	// 				}
+	// 			} else if track.GetMedia() == "video" {
+	// 				codecType = strings.ToUpper(codec.GetCodec())
+	// 				if codecType == videoCodec {
+	// 					pt = payload
+	// 					ptsAvMap["video"] = pt
+	// 					// ptsAvMap[pt] = "video"
+	// 					break
+	// 				}
+	// 			}
+	// 		}
+	// 		if len(track.GetSSRCS()) == 0 {
+	// 			return nil, util.NewNpError(415, "publish: ssrc not found.")
+	// 		}
+	// 	}
+	// }
 
 	log.Infof("Subscribe pts %v", ptsAvMap)
 
@@ -274,9 +292,9 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		ssrc := uint32(track.Ssrc)
 		// Get payload type from request track
 		pt := uint8(track.Payload)
-		if newPt, ok := ptsAvMap[track.Type]; ok {
+		if newPt, ok := ssrcPTMap[track.Ssrc]; ok {
 			// Override with "negotiated" PT
-			pt = uint8(newPt)
+			pt = newPt
 		}
 
 		// I2AacsRLsZZriGapnvPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435
