@@ -36,12 +36,17 @@ type SampleBuilder struct {
 
 // NewSampleBuilder Initialize a new webm saver
 func NewSampleBuilder(config SampleBuilderConfig) *SampleBuilder {
-	return &SampleBuilder{
+	s := &SampleBuilder{
 		id:           config.ID,
 		audioBuilder: samplebuilder.New(config.AudioMaxLate, &codecs.OpusPacket{}),
 		videoBuilder: samplebuilder.New(config.VideoMaxLate, &codecs.VP8Packet{}),
 		outRTPChan:   make(chan *rtp.Packet, maxSize),
 	}
+
+	samplebuilder.WithPartitionHeadChecker(&codecs.OpusPartitionHeadChecker{})(s.audioBuilder)
+	samplebuilder.WithPartitionHeadChecker(&codecs.VP8PartitionHeadChecker{})(s.videoBuilder)
+
+	return s
 }
 
 // ID SampleBuilder id
@@ -89,6 +94,7 @@ func (s *SampleBuilder) ReadRTP() <-chan *rtp.Packet {
 
 // Stop stop all buffer
 func (s *SampleBuilder) Stop() {
+	log.Infof("stop sample builder")
 	if s.stop {
 		return
 	}
