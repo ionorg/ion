@@ -337,6 +337,11 @@ func (r *RTPTransport) WriteRTCP(pkt rtcp.Packet) error {
 	return err
 }
 
+// TransformPayload return false
+func (r *RTPTransport) GetPayloadMap() map[uint32]uint8 {
+	return make(map[uint32]uint8)
+}
+
 // WriteErrTotal return write error
 func (r *RTPTransport) WriteErrTotal() int {
 	return r.writeErrCnt

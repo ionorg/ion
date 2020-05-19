@@ -10,6 +10,7 @@ import (
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
+	"github.com/pion/webrtc/v2"
 )
 
 const (
@@ -32,6 +33,8 @@ type Router struct {
 	pluginChain   *plugins.PluginChain
 	subChans      map[string]chan *rtp.Packet
 	subShutdownCh chan string
+	codec         string
+	ptMap         map[uint8]string
 }
 
 // NewRouter return a new Router
@@ -137,9 +140,71 @@ func (r *Router) GetPub() transport.Transport {
 	return r.pub
 }
 
+func (r *Router) SetPtMap(ptmap map[uint8]string) {
+	r.ptMap = ptmap
+}
+
+func (r *Router) GetPtMap() map[uint8]string {
+	return r.ptMap
+}
+
+func (r *Router) SetCodec(codec string) {
+	r.codec = codec
+}
+
+func (r *Router) GetCodec() string {
+	return r.codec
+}
+
 func (r *Router) subWriteLoop(subID string, trans transport.Transport) {
+	ptTransformMap := map[uint8][]uint8{
+		webrtc.DefaultPayloadTypeVP9:  []uint8{121, 120},
+		webrtc.DefaultPayloadTypeOpus: []uint8{109},
+
+		// reverse
+		// 109: []uint8{webrtc.DefaultPayloadTypeOpus},
+	}
+
+	ptTransformKeys := make([]uint8, 0, len(ptTransformMap))
+	for k := range ptTransformMap {
+		ptTransformKeys = append(ptTransformKeys, k)
+	}
+
+	ptMap := trans.GetPayloadMap()
+
 	for pkt := range r.subChans[subID] {
 		// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
+
+		// Transform into browser specific payloadType
+		// For all tracks
+		// If sub transport PT != pck.PT and sub is allowed from src PT
+		// JUST UPDATE THE PT ID
+
+		// If pub packet is not of paylod sub wants
+		srcType := pkt.Header.PayloadType
+		if srcType == 111 {
+			log.Infof("Default opus")
+		}
+		destType := ptMap[pkt.Header.SSRC]
+		if srcType != destType {
+			// And we can "transform it"
+			if candid, ok := ptTransformMap[srcType]; ok {
+				// sub pt is listed in transform map[paylod] array
+				for _, k := range candid {
+					if destType == k {
+						// Do the transform
+						newPkt := *pkt
+						log.Infof("Transforming %v => %v", srcType, destType)
+						newPkt.Header.PayloadType = destType
+						pkt = &newPkt
+						break
+					}
+				}
+			}
+		}
+
+		// 	webrtc.DefaultPayloadTypeVP9 => 121
+		//  webrtc.DefaultPayloadTypeOpus => 109
 
 		if err := trans.WriteRTP(pkt); err != nil {
 			// log.Errorf("wt.WriteRTP err=%v", err)

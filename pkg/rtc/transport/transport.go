@@ -26,4 +26,5 @@ type Transport interface {
 	WriteErrReset()
 	GetBandwidth() int
 	SetShutdownChan(chan string)
+	GetPayloadMap() map[uint32]uint8
 }

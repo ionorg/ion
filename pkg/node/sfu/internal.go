@@ -90,6 +90,8 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	router := rtc.GetOrNewRouter(mid)
+	router.SetCodec(videoCodec)
+
 	go handleTrickle(router, pub)
 
 	answer, err := pub.Answer(offer, rtcOptions)
@@ -107,6 +109,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	tracks := make(map[string][]proto.TrackInfo)
+	pts := make(map[uint8]string)
 	for _, stream := range sdpObj.GetStreams() {
 		for id, track := range stream.GetTracks() {
 			pt := int(0)
@@ -115,16 +118,19 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			codecs := media.GetCodecs()
 
 			for payload, codec := range codecs {
+				log.Infof("Codec type %v", codec.GetType())
 				if track.GetMedia() == "audio" {
 					codecType = strings.ToUpper(codec.GetCodec())
 					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
 						pt = payload
+						pts[uint8(pt)] = "audio"
 						break
 					}
 				} else if track.GetMedia() == "video" {
 					codecType = strings.ToUpper(codec.GetCodec())
 					if codecType == videoCodec {
 						pt = payload
+						pts[uint8(pt)] = "video"
 						break
 					}
 				}
@@ -133,10 +139,13 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			if len(track.GetSSRCS()) == 0 {
 				return nil, util.NewNpError(415, "publish: ssrc not found.")
 			}
-			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
+			ssrc := uint32(track.GetSSRCS()[0])
+			infos = append(infos, proto.TrackInfo{Ssrc: int(ssrc), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
 			tracks[stream.GetID()+" "+id] = infos
 		}
 	}
+
+	router.SetPtMap(pts)
 	log.Infof("publish tracks %v, answer = %v", tracks, answer)
 	return util.Map("jsep", answer, "mid", mid, "tracks", tracks), nil
 }
@@ -216,9 +225,63 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
+	videoCodec := strings.ToUpper(router.GetCodec())
+
+	// HACK HACK
+	sdpObj, err := sdptransform.Parse(sdp)
+	if err != nil {
+		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
+		return nil, util.NewNpError(415, "publish: sdp parse failed.")
+	}
+
+	ptsAvMap := make(map[string]int)
+	for _, stream := range sdpObj.GetStreams() {
+		for _, track := range stream.GetTracks() {
+			pt := int(0)
+			codecType := ""
+			media := sdpObj.GetMedia(track.GetMedia())
+			codecs := media.GetCodecs()
+
+			for payload, codec := range codecs {
+				log.Infof("Codec type %v", codec.GetType())
+				if track.GetMedia() == "audio" {
+					codecType = strings.ToUpper(codec.GetCodec())
+					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
+						pt = payload
+						ptsAvMap["audio"] = pt
+						break
+					}
+				} else if track.GetMedia() == "video" {
+					codecType = strings.ToUpper(codec.GetCodec())
+					if codecType == videoCodec {
+						pt = payload
+						ptsAvMap["video"] = pt
+						// ptsAvMap[pt] = "video"
+						break
+					}
+				}
+			}
+			if len(track.GetSSRCS()) == 0 {
+				return nil, util.NewNpError(415, "publish: ssrc not found.")
+			}
+		}
+	}
+
+	log.Infof("Subscribe pts %v, router map %v", ptsAvMap, router.GetPtMap())
+
 	for msid, track := range tracks {
 		ssrc := uint32(track.Ssrc)
+		// Get payload type from request track
+		// Get av type from router of that pt
+		// Transform into new pt if available
 		pt := uint8(track.Payload)
+		// TODO Override with "negotiated" PT
+		if av, ok := router.GetPtMap()[pt]; ok {
+			if newPt, ok := ptsAvMap[av]; ok {
+				pt = uint8(newPt)
+			}
+		}
+
 		// I2AacsRLsZZriGapnvPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435
 		//                streamID                        trackID
 		streamID := strings.Split(msid, " ")[0]
@@ -236,6 +299,9 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
+
+	// Extract know payload type ids
+
 	router.AddSub(subID, sub)
 
 	log.Infof("subscribe mid %s, answer = %v", subID, answer)

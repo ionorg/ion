@@ -65,6 +65,7 @@ type WebRTCTransport struct {
 	bandwidth         int
 	isPub             bool
 	shutdownChan      chan string
+	ptMap             map[uint32]uint8
 }
 
 func (w *WebRTCTransport) SetShutdownChan(ch chan string) {
@@ -74,6 +75,8 @@ func (w *WebRTCTransport) SetShutdownChan(ch chan string) {
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
 	w.mediaEngine = webrtc.MediaEngine{}
 	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+	// Firfox
+	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(109, 48000))
 
 	rtcpfb := []webrtc.RTCPFeedback{
 		webrtc.RTCPFeedback{
@@ -107,19 +110,30 @@ func (w *WebRTCTransport) init(options map[string]interface{}) error {
 	}
 
 	if publish {
-		if codec == webrtc.H264 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-		} else if codec == webrtc.VP8 {
+		if codec == webrtc.VP8 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
+			// Firefox vp8
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
 		} else if codec == webrtc.VP9 {
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+			// Firefox vp9
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
 		} else {
+			// Default webrtc.H264
 			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
+			// Firefox
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
+			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
 		}
 	} else {
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
 		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+		// Firefox
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
+		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
 	}
 
 	if !dc {
@@ -144,6 +158,7 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 		rtcpCh:      make(chan rtcp.Packet, maxChanSize),
 		candidateCh: make(chan *webrtc.ICECandidate, maxChanSize),
 		alive:       true,
+		ptMap:       make(map[uint32]uint8),
 	}
 	err := w.init(options)
 	if err != nil {
@@ -200,6 +215,11 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 	return w
 }
 
+// TransformPayload return true
+func (w *WebRTCTransport) GetPayloadMap() map[uint32]uint8 {
+	return w.ptMap
+}
+
 // ID return id
 func (w *WebRTCTransport) ID() string {
 	return w.id
@@ -244,10 +264,17 @@ func (w *WebRTCTransport) AddSendTrack(ssrc uint32, pt uint8, streamID string, t
 		return nil, err
 	}
 
-	_, err = w.pc.AddTransceiverFromTrack(track, webrtc.RtpTransceiverInit{Direction: webrtc.RTPTransceiverDirectionSendonly})
+	_, err = w.pc.AddTransceiverFromTrack(track, webrtc.RtpTransceiverInit{
+		Direction: webrtc.RTPTransceiverDirectionSendonly,
+		SendEncodings: []webrtc.RTPEncodingParameters{webrtc.RTPEncodingParameters{
+			RTPCodingParameters: webrtc.RTPCodingParameters{SSRC: ssrc, PayloadType: pt}},
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	w.ptMap[ssrc] = pt
 
 	w.outTrackLock.Lock()
 	w.outTracks[ssrc] = track
