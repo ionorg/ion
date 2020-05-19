@@ -32,16 +32,27 @@ var (
 	errInvalidOptions = errors.New("invalid options")
 
 	ptTransformMap = map[uint8][]uint8{
-		webrtc.DefaultPayloadTypeVP9:  []uint8{121, 120},
+		webrtc.DefaultPayloadTypeVP8:  []uint8{120},
+		webrtc.DefaultPayloadTypeVP9:  []uint8{121},
 		webrtc.DefaultPayloadTypeOpus: []uint8{109},
 
 		// reverse
 		// 109: []uint8{webrtc.DefaultPayloadTypeOpus},
 	}
+	// TODO build one from the other
+	codecTransformMap = map[string][]uint8{
+		webrtc.VP8:  []uint8{webrtc.DefaultPayloadTypeVP8, 120},
+		webrtc.VP9:  []uint8{webrtc.DefaultPayloadTypeVP9, 121},
+		webrtc.Opus: []uint8{webrtc.DefaultPayloadTypeOpus, 109},
+	}
 )
 
 func PaylaodTransformMap() map[uint8][]uint8 {
 	return ptTransformMap
+}
+
+func CodecTransformMap() map[string][]uint8 {
+	return codecTransformMap
 }
 
 // InitWebRTC init WebRTCTransport setting
