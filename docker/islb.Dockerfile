@@ -1,4 +1,4 @@
-FROM golang:1.14.2-stretch
+FROM golang:1.14.3-stretch
 
 ENV GO111MODULE=on
 
