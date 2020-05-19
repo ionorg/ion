@@ -234,8 +234,13 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		return nil, util.NewNpError(415, "publish: sdp parse failed.")
 	}
 
-	// Extract know payload type ids
-	ptsAvMap := make(map[string]int)
+	// TODO parse chrome SDP
+	// Currently does not set SSRC so no tracks
+	ptsAvMap := map[string]int{
+		"audio": webrtc.DefaultPayloadTypeOpus,
+		"video": webrtc.DefaultPayloadTypeVP9,
+	}
+
 	for _, stream := range sdpObj.GetStreams() {
 		for _, track := range stream.GetTracks() {
 			pt := int(0)
