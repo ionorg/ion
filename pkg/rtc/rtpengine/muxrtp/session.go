@@ -94,7 +94,7 @@ func (s *session) start(child streamSession) error {
 			i, err := s.nextConn.Read(b)
 			if err != nil {
 				if err != io.EOF {
-					log.Errorf(err.Error())
+					log.Errorf("s.nextConn.Read => %s", err.Error())
 				}
 				return
 			}

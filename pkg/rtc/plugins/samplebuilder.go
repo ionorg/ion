@@ -61,7 +61,6 @@ func (s *SampleBuilder) AttachPub(t transport.Transport) {
 				log.Errorf("AttachPub t.ReadRTP pkt=%+v", pkt)
 				continue
 			}
-
 			err = s.WriteRTP(pkt)
 			if err != nil {
 				log.Errorf("AttachPub t.WriteRTP err=%+v", err)
@@ -93,6 +92,7 @@ func (s *SampleBuilder) Stop() {
 	if s.stop {
 		return
 	}
+	log.Infof("stop sample builder")
 	s.stop = true
 }
 
@@ -123,7 +123,6 @@ func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
 
 func (s *SampleBuilder) pushVP8(pkt *rtp.Packet) {
 	s.videoBuilder.Push(pkt)
-
 	for {
 		sample, timestamp := s.videoBuilder.PopWithTimestamp()
 		if sample == nil {
