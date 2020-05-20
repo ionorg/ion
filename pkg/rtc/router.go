@@ -32,7 +32,6 @@ type Router struct {
 	pluginChain   *plugins.PluginChain
 	subChans      map[string]chan *rtp.Packet
 	subShutdownCh chan string
-	codec         string
 }
 
 // NewRouter return a new Router
@@ -136,14 +135,6 @@ func MapRouter(fn func(id string, r *Router)) {
 func (r *Router) GetPub() transport.Transport {
 	// log.Infof("Router.GetPub %v", r.pub)
 	return r.pub
-}
-
-func (r *Router) SetCodec(codec string) {
-	r.codec = codec
-}
-
-func (r *Router) GetCodec() string {
-	return r.codec
 }
 
 func (r *Router) subWriteLoop(subID string, trans transport.Transport) {

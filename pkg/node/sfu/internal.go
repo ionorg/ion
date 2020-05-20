@@ -113,7 +113,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	}
 
 	router := rtc.GetOrNewRouter(mid)
-	router.SetCodec(videoCodec)
 
 	go handleTrickle(router, pub)
 
@@ -200,35 +199,23 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	sdpObj, err := sdptransform.Parse(sdp)
 	if err != nil {
 		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
-		return nil, util.NewNpError(415, "publish: sdp parse failed.")
+		return nil, util.NewNpError(415, "subscribe: sdp parse failed.")
 	}
 
 	ssrcPTMap := make(map[int]uint8)
 	allowedCodecs := make([]uint8, 0, len(tracks))
 
-	var foundAudio bool
 	for _, track := range tracks {
 		// Find pt for track given track.Payload and sdp
 		ssrcPTMap[track.Ssrc] = getSubPTForTrack(track, sdpObj)
 		allowedCodecs = append(allowedCodecs, ssrcPTMap[track.Ssrc])
-		foundAudio = foundAudio || strings.EqualFold(track.Codec, webrtc.Opus)
-	}
-	if !foundAudio {
-		dummyAudio := proto.TrackInfo{Payload: webrtc.DefaultPayloadTypeOpus, Type: "audio",
-			Codec: "opus", Ssrc: 12345, ID: "c84ded42-d2b0-4351-88d2-b7d240c33435",
-		}
-		dummyPt := getSubPTForTrack(dummyAudio, sdpObj)
-		ssrcPTMap[12345] = dummyPt
-		allowedCodecs = append(allowedCodecs, dummyPt)
-		tracks["I2AacsRLsZZriDUMMYPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435"] = dummyAudio
 	}
 
-	log.Infof("Allowed codecs %v", allowedCodecs)
 	// Set media engine codecs based on found pts
+	log.Infof("Allowed codecs %v", allowedCodecs)
 	rtcOptions["codecs"] = allowedCodecs
 
 	// New api
-
 	sub := transport.NewWebRTCTransport(subID, rtcOptions)
 
 	if sub == nil {

@@ -118,7 +118,6 @@ func (w *WebRTCTransport) init(options map[string]interface{}, codecs []uint8) e
 	publish := KvOK(options, "publish", "true")
 	tcc := KvOK(options, "transport-cc", "true")
 	dc := KvOK(options, "data-channel", "true")
-	codec := GetUpperString(options, "codec")
 	bandwidth, err := GetInt(options, "bandwidth")
 	if err == nil {
 		if publish {
@@ -150,36 +149,8 @@ func (w *WebRTCTransport) init(options map[string]interface{}, codecs []uint8) e
 
 	if len(codecs) == 0 {
 		// Default add everything?
-
-		w.mediaEngine.RegisterCodec(codecMap[webrtc.DefaultPayloadTypeOpus])
-		// Firfox
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(109, 48000))
-
-		if publish {
-			if codec == webrtc.VP8 {
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
-				// Firefox vp8
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
-			} else if codec == webrtc.VP9 {
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
-				// Firefox vp9
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
-			} else {
-				// Default webrtc.H264
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-				// Firefox
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
-				w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
-			}
-		} else {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
-			// Firefox
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""))
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(121, 90000))
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"))
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"))
+		for _, v := range codecMap {
+			w.mediaEngine.RegisterCodec(v)
 		}
 	} else {
 		for _, c := range codecs {
@@ -202,7 +173,7 @@ func (w *WebRTCTransport) init(options map[string]interface{}, codecs []uint8) e
 //   "audio" 		= webrtc.Opus[default] webrtc.PCMA webrtc.PCMU webrtc.G722
 //   "transport-cc" = "true" or "false"[default]
 //   "data-channel" = "true" or "false"[default]
-//	 "codecs"       = []uint8 of payload types (empty == all codecs)
+//   "codecs"       = []uint8 of payload types (empty == all codecs)
 func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransport {
 	w := &WebRTCTransport{
 		id:          id,
@@ -461,7 +432,7 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 				if destType == k {
 					// Do the transform
 					newPkt := *pkt
-					log.Infof("Transforming %v => %v", srcType, destType)
+					log.Debugf("Transforming %v => %v", srcType, destType)
 					newPkt.Header.PayloadType = destType
 					pkt = &newPkt
 					break
