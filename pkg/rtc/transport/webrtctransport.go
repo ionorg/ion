@@ -37,7 +37,9 @@ var (
 		webrtc.DefaultPayloadTypeOpus: []uint8{109},
 
 		// reverse
-		// 109: []uint8{webrtc.DefaultPayloadTypeOpus},
+		121: []uint8{webrtc.DefaultPayloadTypeVP9},
+		120: []uint8{webrtc.DefaultPayloadTypeVP8},
+		109: []uint8{webrtc.DefaultPayloadTypeOpus},
 	}
 	// TODO build one from the other
 	codecTransformMap = map[string][]uint8{
@@ -473,7 +475,7 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 	w.outTrackLock.RUnlock()
 
 	if track == nil {
-		log.Errorf("WebRTCTransport.WriteRTP track==nil pkt.SSRC=%d", pkt.SSRC)
+		log.Errorf("WebRTCTransport.WriteRTP track==nil pkt.SSRC=%d PT=%d", pkt.SSRC, pkt.Header.PayloadType)
 		return errInvalidTrack
 	}
 
