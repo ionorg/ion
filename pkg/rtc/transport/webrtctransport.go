@@ -64,6 +64,11 @@ type WebRTCTransport struct {
 	alive             bool
 	bandwidth         int
 	isPub             bool
+	shutdownChan      chan string
+}
+
+func (w *WebRTCTransport) SetShutdownChan(ch chan string) {
+	w.shutdownChan = ch
 }
 
 func (w *WebRTCTransport) init(options map[string]interface{}) error {
@@ -185,6 +190,9 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 		if connectionState == webrtc.ICEConnectionStateDisconnected {
 			log.Errorf("webrtc ice disconnected")
 			w.alive = false
+
+			// Trigger cleanup
+			w.shutdownChan <- id
 		}
 	})
 
