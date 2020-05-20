@@ -24,23 +24,25 @@ const (
 //                                      +--->sub
 // Router is rtp router
 type Router struct {
-	pub         transport.Transport
-	subs        map[string]transport.Transport
-	subLock     sync.RWMutex
-	stop        bool
-	liveTime    time.Time
-	pluginChain *plugins.PluginChain
-	subChans    map[string]chan *rtp.Packet
+	pub           transport.Transport
+	subs          map[string]transport.Transport
+	subLock       sync.RWMutex
+	stop          bool
+	liveTime      time.Time
+	pluginChain   *plugins.PluginChain
+	subChans      map[string]chan *rtp.Packet
+	subShutdownCh chan string
 }
 
 // NewRouter return a new Router
 func NewRouter(id string) *Router {
 	log.Infof("NewRouter id=%s", id)
 	return &Router{
-		subs:        make(map[string]transport.Transport),
-		liveTime:    time.Now().Add(liveCycle),
-		pluginChain: plugins.NewPluginChain(),
-		subChans:    make(map[string]chan *rtp.Packet),
+		subs:          make(map[string]transport.Transport),
+		liveTime:      time.Now().Add(liveCycle),
+		pluginChain:   plugins.NewPluginChain(),
+		subChans:      make(map[string]chan *rtp.Packet),
+		subShutdownCh: make(chan string, 1),
 	}
 }
 
@@ -58,6 +60,14 @@ func (r *Router) start() {
 		for {
 			if r.stop {
 				return
+			}
+
+			// Check sub cleanup
+			select {
+			case subID := <-r.subShutdownCh:
+				log.Infof("Got transport shutdown %v", subID)
+				r.DelSub(subID)
+			default:
 			}
 
 			var pkt *rtp.Packet
@@ -144,10 +154,9 @@ func (r *Router) subWriteLoop(subID string, trans transport.Transport) {
 }
 
 func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
-	for {
-		pkt := <-trans.GetRTCPChan()
+	for pkt := range trans.GetRTCPChan() {
 		if r.stop {
-			return
+			break
 		}
 		switch pkt := pkt.(type) {
 		case *rtcp.PictureLossIndication:
@@ -182,9 +191,10 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 		default:
 		}
 	}
+	log.Infof("Closing sub feedback")
 }
 
-// AddSub add a pub to router
+// AddSub add a sub to router
 func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	//fix panic: assignment to entry in nil map
 	if r.stop {
@@ -194,6 +204,7 @@ func (r *Router) AddSub(id string, t transport.Transport) transport.Transport {
 	defer r.subLock.Unlock()
 	r.subs[id] = t
 	r.subChans[id] = make(chan *rtp.Packet, 1000)
+	t.SetShutdownChan(r.subShutdownCh)
 	log.Infof("Router.AddSub id=%s t=%p", id, t)
 
 	// Sub loops

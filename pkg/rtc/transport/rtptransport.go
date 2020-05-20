@@ -47,6 +47,11 @@ type RTPTransport struct {
 	writeErrCnt  int
 	rtcpCh       chan rtcp.Packet
 	bandwidth    int
+	shutdownChan chan string
+}
+
+func (r *RTPTransport) SetShutdownChan(ch chan string) {
+	r.shutdownChan = ch
 }
 
 // NewRTPTransport create a RTPTransport by net.Conn
