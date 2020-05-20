@@ -169,6 +169,9 @@ func (r *RTPTransport) newEndpoint(f mux.MatchFunc) *mux.Endpoint {
 func (r *RTPTransport) receiveRTP() {
 	go func() {
 		for {
+			if r.stop {
+				break
+			}
 			readStream, ssrc, err := r.rtpSession.AcceptStream()
 			if err != nil {
 				log.Warnf("Failed to accept stream %v ", err)
@@ -228,6 +231,9 @@ func (r *RTPTransport) ReadRTP() (*rtp.Packet, error) {
 func (r *RTPTransport) receiveRTCP() {
 	go func() {
 		for {
+			if r.stop {
+				break
+			}
 			readStream, ssrc, err := r.rtcpSession.AcceptStream()
 			if err != nil {
 				log.Warnf("Failed to accept RTCP %v ", err)

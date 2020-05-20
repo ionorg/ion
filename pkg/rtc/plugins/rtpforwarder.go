@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"github.com/pion/rtp"
+	"github.com/pion/webrtc/v2"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/transport"
@@ -20,6 +21,7 @@ type RTPForwarderConfig struct {
 // RTPForwarder core
 type RTPForwarder struct {
 	id         string
+	stop       bool
 	Transport  *transport.RTPTransport
 	outRTPChan chan *rtp.Packet
 }
@@ -34,6 +36,7 @@ func NewRTPForwarder(config RTPForwarderConfig) *RTPForwarder {
 	} else {
 		rtpTransport = transport.NewOutRTPTransport(config.MID, config.Addr)
 	}
+
 	return &RTPForwarder{
 		id:         config.ID,
 		Transport:  rtpTransport,
@@ -48,9 +51,15 @@ func (r *RTPForwarder) ID() string {
 
 // WriteRTP Forward rtp packet which from pub
 func (r *RTPForwarder) WriteRTP(pkt *rtp.Packet) error {
+	if r.stop {
+		return nil
+	}
+
 	r.outRTPChan <- pkt
 	go func() {
-		r.Transport.WriteRTP(pkt)
+		if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
+			r.Transport.WriteRTP(pkt)
+		}
 	}()
 	return nil
 }
@@ -62,5 +71,6 @@ func (r *RTPForwarder) ReadRTP() <-chan *rtp.Packet {
 
 // Stop Stop plugin
 func (r *RTPForwarder) Stop() {
-	// r.Transport.Close()
+	r.stop = true
+	r.Transport.Close()
 }

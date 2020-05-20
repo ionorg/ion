@@ -31,11 +31,13 @@ type SampleBuilder struct {
 	audioBuilder, videoBuilder     *samplebuilder.SampleBuilder
 	audioSequence, videoSequence   uint16
 	audioTimestamp, videoTimestamp uint32
+	pub                            transport.Transport
 	outRTPChan                     chan *rtp.Packet
 }
 
 // NewSampleBuilder Initialize a new webm saver
 func NewSampleBuilder(config SampleBuilderConfig) *SampleBuilder {
+	log.Infof("NewSampleBuilder with config %+v", config)
 	s := &SampleBuilder{
 		id:           config.ID,
 		audioBuilder: samplebuilder.New(config.AudioMaxLate, &codecs.OpusPacket{}),
@@ -56,15 +58,15 @@ func (s *SampleBuilder) ID() string {
 
 // AttachPub Attach pub stream
 func (s *SampleBuilder) AttachPub(t transport.Transport) {
-	go func(t transport.Transport) {
+	go func() {
 		for {
-			if s.stop {
-				return
-			}
 			pkt, err := t.ReadRTP()
 			if err != nil {
 				log.Errorf("AttachPub t.ReadRTP pkt=%+v", pkt)
 				continue
+			}
+			if s.stop {
+				break
 			}
 			err = s.WriteRTP(pkt)
 			if err != nil {
@@ -72,7 +74,7 @@ func (s *SampleBuilder) AttachPub(t transport.Transport) {
 				continue
 			}
 		}
-	}(t)
+	}()
 }
 
 // WriteRTP Write RTP packet to SampleBuilder
@@ -94,11 +96,9 @@ func (s *SampleBuilder) ReadRTP() <-chan *rtp.Packet {
 
 // Stop stop all buffer
 func (s *SampleBuilder) Stop() {
-	log.Infof("stop sample builder")
 	if s.stop {
 		return
 	}
-	log.Infof("stop sample builder")
 	s.stop = true
 }
 

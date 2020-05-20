@@ -24,11 +24,11 @@ maxbuffertime = 1000
 [plugins.rtpforwarder]
 on = true
 # remote address
-addr = "avp:6668"
+addr = "172.18.0.8:6668"
 # kcp key
-kcpkey = "secret42"
+kcpkey = ""
 # kcp salt
-kcpsalt = "salt"
+kcpsalt = ""
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
