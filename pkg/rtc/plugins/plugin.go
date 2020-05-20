@@ -141,11 +141,6 @@ func (p *PluginChain) Init(config Config) error {
 			for pkt := range p.plugins[i-1].ReadRTP() {
 				err := plugin.WriteRTP(pkt)
 
-				// if err == io.ErrClosedPipe {
-				// 	p.Close()
-				// 	return
-				// }
-
 				if err != nil {
 					log.Errorf("Plugin Forward Packet error => %+v", err)
 				}
