@@ -23,7 +23,6 @@ const (
 
 var (
 	errInvalidConn = errors.New("invalid conn")
-	errInvalidAddr = errors.New("invalid addr")
 )
 
 // RTPTransport ..
