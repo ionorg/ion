@@ -7,7 +7,7 @@ services:
       - 4222:4222
 
   etcd:
-    image: gcr.io/etcd-development/etcd:v3.4.8
+    image: gcr.io/etcd-development/etcd:v3.4.9
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
     ports:
