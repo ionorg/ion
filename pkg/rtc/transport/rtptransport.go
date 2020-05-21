@@ -19,9 +19,8 @@ import (
 )
 
 const (
-	extSentInit = 30
-	receiveMTU  = 1500
-	maxPktSize  = 1024
+	receiveMTU = 1500
+	maxPktSize = 1024
 )
 
 var (
@@ -41,13 +40,13 @@ type RTPTransport struct {
 	ssrcPT       map[uint32]uint8
 	ssrcPTLock   sync.RWMutex
 	stop         bool
-	extSent      int
 	id           string
 	idLock       sync.RWMutex
 	writeErrCnt  int
 	rtcpCh       chan rtcp.Packet
 	bandwidth    int
 	shutdownChan chan string
+	IDChan       chan string
 }
 
 func (r *RTPTransport) SetShutdownChan(ch chan string) {
@@ -61,11 +60,11 @@ func NewRTPTransport(conn net.Conn) *RTPTransport {
 		return nil
 	}
 	t := &RTPTransport{
-		conn:    conn,
-		rtpCh:   make(chan *rtp.Packet, maxPktSize),
-		ssrcPT:  make(map[uint32]uint8),
-		extSent: extSentInit,
-		rtcpCh:  make(chan rtcp.Packet, maxPktSize),
+		conn:   conn,
+		rtpCh:  make(chan *rtp.Packet, maxPktSize),
+		ssrcPT: make(map[uint32]uint8),
+		rtcpCh: make(chan rtcp.Packet, maxPktSize),
+		IDChan: make(chan string),
 	}
 	config := mux.Config{
 		Conn:       conn,
@@ -199,12 +198,15 @@ func (r *RTPTransport) receiveRTP() {
 					r.idLock.Lock()
 					if r.id == "" {
 						ext := pkt.GetExtension(1)
+						log.Infof("%+v", pkt)
+						log.Infof("%+v", pkt.Extensions)
 						if ext != nil {
 							uuid, err := uuid.FromBytes(ext)
 							if err != nil {
 								log.Errorf("RTPTransport.receiveRTP error parsing header extension: %+v", err)
 							} else {
 								r.id = uuid.String()
+								r.IDChan <- r.id
 							}
 						}
 					}

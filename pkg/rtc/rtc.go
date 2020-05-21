@@ -67,21 +67,20 @@ func InitRTP(port int, kcpKey, kcpSalt string) error {
 			if stop {
 				return
 			}
-			rtpTransport := <-connCh
-			id := rtpTransport.ID()
-			cnt := 0
-			for id == "" && cnt < 100 {
-				id = rtpTransport.ID()
-				time.Sleep(time.Millisecond)
-				cnt++
-			}
-			if id == "" && cnt >= 100 {
-				log.Errorf("invalid id from incoming rtp transport")
-				return
-			}
-			log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
-			if router := AddRouter(id); router != nil {
-				router.AddPub(id, rtpTransport)
+			for rtpTransport := range connCh {
+				go func(rtpTransport *transport.RTPTransport) {
+					id := <-rtpTransport.IDChan
+
+					if id == "" {
+						log.Errorf("invalid id from incoming rtp transport")
+						return
+					}
+
+					log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
+					if router := AddRouter(id); router != nil {
+						router.AddPub(id, rtpTransport)
+					}
+				}(rtpTransport)
 			}
 		}
 	}()
