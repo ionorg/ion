@@ -125,6 +125,7 @@ func (p *PluginChain) Init(config Config) error {
 	if config.WebmSaver.On {
 		log.Infof("PluginChain.Init config.WebmSaver.On=true config=%v", config.WebmSaver)
 		config.WebmSaver.ID = TypeWebmSaver
+		config.WebmSaver.MID = p.mid
 		p.AddPlugin(TypeWebmSaver, NewWebmSaver(config.WebmSaver))
 	}
 

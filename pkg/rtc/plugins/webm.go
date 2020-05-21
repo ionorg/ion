@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/at-wat/ebml-go/webm"
 
@@ -14,6 +15,7 @@ import (
 // WebmSaverConfig .
 type WebmSaverConfig struct {
 	ID   string
+	MID  string
 	On   bool
 	Path string
 }
@@ -21,6 +23,7 @@ type WebmSaverConfig struct {
 // WebmSaver Module for saving rtp streams to webm
 type WebmSaver struct {
 	id                             string
+	mid                            string
 	path                           string
 	audioWriter, videoWriter       webm.BlockWriteCloser
 	audioTimestamp, videoTimestamp uint32
@@ -31,6 +34,7 @@ type WebmSaver struct {
 func NewWebmSaver(config WebmSaverConfig) *WebmSaver {
 	return &WebmSaver{
 		id:         config.ID,
+		mid:        config.MID,
 		path:       config.Path,
 		outRTPChan: make(chan *rtp.Packet, maxSize),
 	}
@@ -112,7 +116,7 @@ func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
 }
 
 func (s *WebmSaver) initWriter(width, height int) {
-	w, err := os.OpenFile("test.webm", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	w, err := os.OpenFile(path.Join(s.path, fmt.Sprintf("%s.webm", s.mid)), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		panic(err)
 	}
