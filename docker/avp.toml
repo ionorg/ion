@@ -23,8 +23,8 @@ path = "./"
 [rtp]
 # listen port
 port = 6668
-kcpkey = "secret42"
-kcpsalt = "salt"
+kcpkey = ""
+kcpsalt = ""
 
 [log]
 level = "info"
