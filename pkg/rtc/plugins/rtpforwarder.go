@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"github.com/pion/rtp"
-	"github.com/pion/webrtc/v2"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/rtc/transport"
@@ -57,8 +56,9 @@ func (r *RTPForwarder) WriteRTP(pkt *rtp.Packet) error {
 
 	r.outRTPChan <- pkt
 	go func() {
-		if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
-			r.Transport.WriteRTP(pkt)
+		err := r.Transport.WriteRTP(pkt)
+		if err != nil {
+			log.Errorf("r.Transport.WriteRTP => %s", err)
 		}
 	}()
 	return nil

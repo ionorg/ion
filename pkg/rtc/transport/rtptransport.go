@@ -20,7 +20,7 @@ import (
 
 const (
 	extSentInit = 30
-	receiveMTU  = 8192
+	receiveMTU  = 1500
 	maxPktSize  = 1024
 )
 
@@ -180,11 +180,12 @@ func (r *RTPTransport) receiveRTP() {
 				continue
 			}
 			go func() {
-				rtpBuf := make([]byte, receiveMTU)
+
 				for {
 					if r.stop {
 						return
 					}
+					rtpBuf := make([]byte, receiveMTU)
 					_, pkt, err := readStream.ReadRTP(rtpBuf)
 					if err != nil {
 						log.Warnf("Failed to read rtp %v %d ", err, ssrc)
@@ -198,9 +199,7 @@ func (r *RTPTransport) receiveRTP() {
 					r.idLock.Lock()
 					if r.id == "" {
 						ext := pkt.GetExtension(1)
-						if ext == nil {
-							log.Warnf("pkt id extension header not set")
-						} else {
+						if ext != nil {
 							uuid, err := uuid.FromBytes(ext)
 							if err != nil {
 								log.Errorf("RTPTransport.receiveRTP error parsing header extension: %+v", err)
@@ -277,7 +276,6 @@ func (r *RTPTransport) setIDHeaderExtension(rtp *rtp.Packet) error {
 		return err
 	}
 	err = rtp.SetExtension(1, bin)
-	rtp.ExtensionProfile = 0xBEDE // temp fix
 	if err != nil {
 		return err
 	}
@@ -294,7 +292,7 @@ func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 		return err
 	}
 
-	if r.extSent > 0 {
+	if rtp.SequenceNumber%10 == 0 {
 		r.idLock.Lock()
 		err := r.setIDHeaderExtension(rtp)
 		if err != nil {
@@ -304,9 +302,7 @@ func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 	}
 
 	_, err = writeStream.WriteRTP(&rtp.Header, rtp.Payload)
-	if err == nil && r.extSent > 0 {
-		r.extSent--
-	}
+
 	if err != nil {
 		log.Errorf("writeStream.WriteRTP => %s", err.Error())
 		r.writeErrCnt++
