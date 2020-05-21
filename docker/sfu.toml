@@ -26,9 +26,9 @@ on = true
 # remote address
 addr = "172.18.0.8:6668"
 # kcp key
-kcpkey = ""
+kcpkey = "secret42"
 # kcp salt
-kcpsalt = ""
+kcpsalt = "salt"
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on

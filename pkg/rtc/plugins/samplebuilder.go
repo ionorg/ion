@@ -26,13 +26,11 @@ type SampleBuilderConfig struct {
 
 // SampleBuilder Module for building video/audio samples from rtp streams
 type SampleBuilder struct {
-	id                             string
-	stop                           bool
-	audioBuilder, videoBuilder     *samplebuilder.SampleBuilder
-	audioSequence, videoSequence   uint16
-	audioTimestamp, videoTimestamp uint32
-	pub                            transport.Transport
-	outRTPChan                     chan *rtp.Packet
+	id                           string
+	stop                         bool
+	audioBuilder, videoBuilder   *samplebuilder.SampleBuilder
+	audioSequence, videoSequence uint16
+	outRTPChan                   chan *rtp.Packet
 }
 
 // NewSampleBuilder Initialize a new webm saver
@@ -110,16 +108,12 @@ func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
 		if sample == nil {
 			return
 		}
-		if s.audioTimestamp == 0 {
-			s.audioTimestamp = timestamp
-		}
-		t := (timestamp - s.audioTimestamp) / 48
 		s.outRTPChan <- &rtp.Packet{
 			Header: rtp.Header{
 				Version:        pkt.Version,
 				PayloadType:    webrtc.DefaultPayloadTypeOpus,
 				SequenceNumber: s.audioSequence,
-				Timestamp:      t,
+				Timestamp:      timestamp,
 			},
 			Payload: sample.Data,
 		}
@@ -134,16 +128,13 @@ func (s *SampleBuilder) pushVP8(pkt *rtp.Packet) {
 		if sample == nil {
 			return
 		}
-		if s.videoTimestamp == 0 {
-			s.videoTimestamp = timestamp
-		}
-		t := (timestamp - s.videoTimestamp) / 90
+
 		s.outRTPChan <- &rtp.Packet{
 			Header: rtp.Header{
 				Version:        pkt.Version,
 				PayloadType:    webrtc.DefaultPayloadTypeVP8,
 				SequenceNumber: s.videoSequence,
-				Timestamp:      t,
+				Timestamp:      timestamp,
 			},
 			Payload: sample.Data,
 		}

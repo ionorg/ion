@@ -126,7 +126,7 @@ func DelRouter(id string) {
 	if router == nil {
 		return
 	}
-	// router.Close()
+	router.Close()
 	routerLock.Lock()
 	defer routerLock.Unlock()
 	delete(routers, id)
@@ -137,7 +137,6 @@ func Close() {
 	if stop {
 		return
 	}
-	log.Infof("Close all routers")
 	stop = true
 	routerLock.Lock()
 	defer routerLock.Unlock()

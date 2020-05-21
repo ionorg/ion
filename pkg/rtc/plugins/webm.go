@@ -20,10 +20,11 @@ type WebmSaverConfig struct {
 
 // WebmSaver Module for saving rtp streams to webm
 type WebmSaver struct {
-	id                       string
-	path                     string
-	audioWriter, videoWriter webm.BlockWriteCloser
-	outRTPChan               chan *rtp.Packet
+	id                             string
+	path                           string
+	audioWriter, videoWriter       webm.BlockWriteCloser
+	audioTimestamp, videoTimestamp uint32
+	outRTPChan                     chan *rtp.Packet
 }
 
 // NewWebmSaver Initialize a new webm saver
@@ -73,7 +74,11 @@ func (s *WebmSaver) Stop() {
 
 func (s *WebmSaver) pushOpus(pkt *rtp.Packet) {
 	if s.audioWriter != nil {
-		if _, err := s.audioWriter.Write(true, int64(pkt.Timestamp), pkt.Payload); err != nil {
+		if s.audioTimestamp == 0 {
+			s.audioTimestamp = pkt.Timestamp
+		}
+		t := (pkt.Timestamp - s.audioTimestamp) / 48
+		if _, err := s.audioWriter.Write(true, int64(t), pkt.Payload); err != nil {
 			panic(err)
 		}
 	}
@@ -82,6 +87,7 @@ func (s *WebmSaver) pushOpus(pkt *rtp.Packet) {
 func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
 	// Read VP8 header.
 	videoKeyframe := (pkt.Payload[0]&0x1 == 0)
+
 	if videoKeyframe {
 		// Keyframe has frame information.
 		raw := uint(pkt.Payload[6]) | uint(pkt.Payload[7])<<8 | uint(pkt.Payload[8])<<16 | uint(pkt.Payload[9])<<24
@@ -89,18 +95,22 @@ func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
 		height := int((raw >> 16) & 0x3FFF)
 
 		if s.videoWriter == nil || s.audioWriter == nil {
-			log.Infof("%+v", pkt)
-			log.Infof("%x", pkt.Payload)
 			// Initialize WebM saver using received frame size.
 			s.initWriter(width, height)
 		}
 	}
+
 	if s.videoWriter != nil {
-		if _, err := s.videoWriter.Write(videoKeyframe, int64(pkt.Timestamp), pkt.Payload); err != nil {
+		if s.videoTimestamp == 0 {
+			s.videoTimestamp = pkt.Timestamp
+		}
+		t := (pkt.Timestamp - s.videoTimestamp) / 90
+		if _, err := s.videoWriter.Write(videoKeyframe, int64(t), pkt.Payload); err != nil {
 			panic(err)
 		}
 	}
 }
+
 func (s *WebmSaver) initWriter(width, height int) {
 	w, err := os.OpenFile("test.webm", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
