@@ -4,8 +4,6 @@ import (
 	"crypto/sha1"
 	"errors"
 	"net"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -90,16 +88,12 @@ func NewRTPTransport(conn net.Conn) *RTPTransport {
 
 // NewOutRTPTransport new a outgoing RTPTransport
 func NewOutRTPTransport(id, addr string) *RTPTransport {
-	n := strings.Index(addr, ":")
-	if n == 0 {
-		log.Errorf("NewOutRTPTransport err=%v", errInvalidAddr)
+	srcAddr := &net.UDPAddr{IP: net.IPv4zero, Port: 0}
+	dstAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		log.Errorf("net.ResolveUDPAddr => %s", err.Error())
 		return nil
 	}
-	ip := addr[:n]
-	port, _ := strconv.Atoi(addr[n+1:])
-
-	srcAddr := &net.UDPAddr{IP: net.IPv4zero, Port: 0}
-	dstAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: port}
 	conn, err := net.DialUDP("udp", srcAddr, dstAddr)
 	if err != nil {
 		log.Errorf("net.DialUDP => %s", err.Error())
@@ -198,8 +192,6 @@ func (r *RTPTransport) receiveRTP() {
 					r.idLock.Lock()
 					if r.id == "" {
 						ext := pkt.GetExtension(1)
-						log.Infof("%+v", pkt)
-						log.Infof("%+v", pkt.Extensions)
 						if ext != nil {
 							uuid, err := uuid.FromBytes(ext)
 							if err != nil {
