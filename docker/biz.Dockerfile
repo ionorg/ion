@@ -19,3 +19,4 @@ RUN apk --no-cache add ca-certificates
 COPY --from=0 /biz /usr/local/bin/biz
 
 ENTRYPOINT ["/usr/local/bin/biz"]
+CMD ["-c", "/configs/biz.toml"]

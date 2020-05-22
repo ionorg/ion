@@ -9,10 +9,9 @@ services:
     # build:
     #   dockerfile: ./docker/sfu.Dockerfile
     #   context: .
-    command: "-c /configs/sfu.toml"
     image: pionwebrtc/ion-sfu:0.2.0
     volumes:
-      - "./docker/sfu.toml:/configs/sfu.toml"
+      - "./configs/docker/sfu.toml:/configs/sfu.toml"
     ports:
       - "5000-5200:5000-5200/udp"
     depends_on:
@@ -30,9 +29,8 @@ services:
     #   dockerfile: ./docker/biz.Dockerfile
     #   context: .
     image: pionwebrtc/ion-biz:0.2.0
-    command: "-c /configs/biz.toml"
     volumes:
-      - "./docker/biz.toml:/configs/biz.toml"
+      - "./configs/docker/biz.toml:/configs/biz.toml"
     ports:
       - 8443:8443
     networks:
@@ -50,9 +48,8 @@ services:
     #   dockerfile: ./docker/islb.Dockerfile
     #   context: .
     image: pionwebrtc/ion-islb:0.2.0
-    command: "-c /configs/islb.toml"
     volumes:
-      - "./docker/islb.toml:/configs/islb.toml"
+      - "./configs/docker/islb.toml:/configs/islb.toml"
     depends_on:
       - nats
       - etcd
@@ -68,10 +65,9 @@ services:
     # build:
     #   dockerfile: ./docker/avp.Dockerfile
     #   context: .
-    command: "-c /configs/avp.toml"
     image: pionwebrtc/ion-avp:0.2.0
     volumes:
-      - "./docker/avp.toml:/configs/avp.toml"
+      - "./configs/docker/avp.toml:/configs/avp.toml"
       - "./:/out/"
     depends_on:
       - nats
@@ -81,6 +77,8 @@ services:
 
   nats:
     image: nats
+    ports:
+      - 4223:4222
     networks:
       - ionnet
 
@@ -88,11 +86,15 @@ services:
     image: gcr.io/etcd-development/etcd:v3.4.9
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
+    ports:
+      - 2389:2379
     networks:
       - ionnet
 
   redis:
     image: redis:5.0.9
+    ports:
+      - 6380:6379
     networks:
       - ionnet
 
