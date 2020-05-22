@@ -148,9 +148,10 @@ func (b *Buffer) clearOldPkt(pushPktTS uint32, pushPktSN uint16) {
 			//make sure clear the old packet from 655xx to 65535
 			pushPktSN = maxSN - 1
 		}
+		var skipCount int
 		for i := clearSN + 1; i <= pushPktSN; i++ {
 			if b.pktBuffer[i] == nil {
-				log.Infof("b.pktBuffer[i] == nil")
+				skipCount++
 				continue
 			}
 			if tsDelta(pushPktTS, b.pktBuffer[i].Timestamp) >= b.maxBufferTS {
@@ -160,6 +161,9 @@ func (b *Buffer) clearOldPkt(pushPktTS uint32, pushPktSN uint16) {
 			} else {
 				break
 			}
+		}
+		if skipCount > 0 {
+			log.Infof("b.pktBuffer nil count : %d", skipCount)
 		}
 		if pushPktSN == maxSN-1 {
 			b.lastClearSN = 0
