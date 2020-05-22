@@ -86,7 +86,7 @@ _test_job: &test_job
   before_script:
     - docker-compose -f docker-compose.test.yml up -d
   script:
-    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf)}
+    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf | grep -v node)}
     - coverpkgs=$(echo "${testpkgs}" | paste -s -d ',')
     - |
       go test \
