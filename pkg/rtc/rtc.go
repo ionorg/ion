@@ -160,7 +160,6 @@ func check() {
 
 		for id, router := range routers {
 			if !router.Alive() {
-				log.Infof("Router died")
 				router.Close()
 				delete(routers, id)
 				CleanChannel <- id

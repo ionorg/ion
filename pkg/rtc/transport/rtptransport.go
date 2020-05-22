@@ -165,7 +165,10 @@ func (r *RTPTransport) receiveRTP() {
 				break
 			}
 			readStream, ssrc, err := r.rtpSession.AcceptStream()
-			if err != nil {
+			if err == muxrtp.ErrSessionRTPClosed {
+				r.Close()
+				return
+			} else if err != nil {
 				log.Warnf("Failed to accept stream %v ", err)
 				//for non-blocking ReadRTP()
 				r.rtpCh <- nil
@@ -227,7 +230,9 @@ func (r *RTPTransport) receiveRTCP() {
 				break
 			}
 			readStream, ssrc, err := r.rtcpSession.AcceptStream()
-			if err != nil {
+			if err == muxrtp.ErrSessionRTCPClosed {
+				return
+			} else if err != nil {
 				log.Warnf("Failed to accept RTCP %v ", err)
 				return
 			}
