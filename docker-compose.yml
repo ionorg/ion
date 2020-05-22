@@ -72,6 +72,7 @@ services:
     image: pionwebrtc/ion-avp:0.2.0
     volumes:
       - "./docker/avp.toml:/configs/avp.toml"
+      - "./:/out/"
     depends_on:
       - nats
       - etcd

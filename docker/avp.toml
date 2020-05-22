@@ -18,7 +18,7 @@ videomaxlate = 200
 [plugins.webmsaver]
 on = true
 # webm output path
-path = "./"
+path = "./out/"
 
 [rtp]
 # listen port
