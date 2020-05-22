@@ -22,7 +22,7 @@ maxbandwidth = 1000
 maxbuffertime = 1000
 
 [plugins.rtpforwarder]
-on = true
+on = false
 # remote address
 addr = "avp:6668"
 # kcp key
