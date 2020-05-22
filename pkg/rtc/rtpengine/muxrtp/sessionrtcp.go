@@ -1,10 +1,16 @@
 package muxrtp
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
 	"github.com/pion/rtcp"
+)
+
+var (
+	// ErrSessionRTCPClosed is returned when a RTCP session has been closed
+	ErrSessionRTCPClosed = errors.New("SessionRTCP has been closed")
 )
 
 type SessionRTCP struct {
@@ -52,7 +58,7 @@ func (s *SessionRTCP) OpenReadStream(SSRC uint32) (*ReadStreamRTCP, error) {
 func (s *SessionRTCP) AcceptStream() (*ReadStreamRTCP, uint32, error) {
 	stream, ok := <-s.newStream
 	if !ok {
-		return nil, 0, fmt.Errorf("SessionRTCP has been closed")
+		return nil, 0, ErrSessionRTCPClosed
 	}
 
 	readStream, ok := stream.(*ReadStreamRTCP)
