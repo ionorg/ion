@@ -263,7 +263,7 @@ func getPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Erro
 				tracks[msid] = *infos
 			}
 		}
-		pub := util.Map("rid", rid, "uid", uid, "mid", info.MID, "info", fields["info"], "tracks", tracks)
+		pub := util.Map("rid", rid, "uid", info.UID, "mid", info.MID, "info", fields["info"], "tracks", tracks)
 		pubs = append(pubs, pub)
 	}
 
