@@ -30,62 +30,52 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 	switch method {
 	case proto.ClientClose:
 		var msgData proto.CloseMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = clientClose(peer, msgData)
 		}
 	case proto.ClientLogin:
 		var msgData proto.LoginMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = login(peer, msgData)
 		}
 	case proto.ClientJoin:
 		var msgData proto.JoinMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = join(peer, msgData)
 		}
 	case proto.ClientLeave:
 		var msgData proto.LeaveMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = leave(peer, msgData)
 		}
 	case proto.ClientPublish:
 		var msgData proto.PublishMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = publish(peer, msgData)
 		}
 	case proto.ClientUnPublish:
 		var msgData proto.UnpublishMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = unpublish(peer, msgData)
 		}
 	case proto.ClientSubscribe:
 		var msgData proto.SubscribeMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = subscribe(peer, msgData)
 		}
 	case proto.ClientUnSubscribe:
 		var msgData proto.UnsubscribeMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = unsubscribe(peer, msgData)
 		}
 	case proto.ClientBroadcast:
 		var msgData proto.BroadcastMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = broadcast(peer, msgData)
 		}
 	case proto.ClientTrickleICE:
 		var msgData proto.TrickleMsg
-		topErr = ParseProtoo(msg, &msgData)
-		if topErr == nil {
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = trickle(peer, msgData)
 		}
 	}
