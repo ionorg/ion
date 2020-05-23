@@ -26,14 +26,16 @@ do
 done
 
 # run command
-echo "------------etcd--------------"
-$APP_DIR/scripts/etcdStart.sh
+# echo "------------etcd--------------"
+# $APP_DIR/scripts/etcdStart.sh
 
-echo "------------nats-server--------------"
-$APP_DIR/scripts/natsStart.sh
+# echo "------------nats-server--------------"
+# $APP_DIR/scripts/natsStart.sh
 
-echo "------------redis--------------"
-$APP_DIR/scripts/redisStart.sh
+# echo "------------redis--------------"
+# $APP_DIR/scripts/redisStart.sh
+
+docker-compose up -d nats redis etcd
 
 echo "------------islb--------------"
 $APP_DIR/scripts/islbStart.sh
