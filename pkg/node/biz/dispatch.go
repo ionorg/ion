@@ -3,6 +3,7 @@ package biz
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
@@ -16,7 +17,7 @@ import (
 func ParseProtoo(msg json.RawMessage, msgType interface{}) *nprotoo.Error {
 	if err := json.Unmarshal(msg, &msgType); err != nil {
 		log.Errorf("Biz.Entry parse error %v", err.Error())
-		return util.NewNpError(400, fmt.Sprintf("Error parsing request object %v", err.Error()))
+		return util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
 	}
 	return nil
 }
@@ -24,7 +25,7 @@ func ParseProtoo(msg json.RawMessage, msgType interface{}) *nprotoo.Error {
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
 	var result interface{}
-	topErr := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+	topErr := util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Unkown method [%s]", method))
 
 	//TODO DRY this up
 	switch method {
