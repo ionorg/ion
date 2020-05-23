@@ -3,6 +3,7 @@ package biz
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
@@ -12,94 +13,72 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+// ParseProtoo Unmarshals a protoo payload.
+func ParseProtoo(msg json.RawMessage, msgType interface{}) *nprotoo.Error {
+	if err := json.Unmarshal(msg, &msgType); err != nil {
+		log.Errorf("Biz.Entry parse error %v", err.Error())
+		return util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
+	}
+	return nil
+}
+
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
 	var result interface{}
-	topErr := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+	topErr := util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Unkown method [%s]", method))
 
-	parseErr := util.NewNpError(400, fmt.Sprintf("Error parsing request object"))
 	//TODO DRY this up
 	switch method {
 	case proto.ClientClose:
 		var msgData proto.CloseMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = clientClose(peer, msgData)
 		}
-		result, topErr = clientClose(peer, msgData)
 	case proto.ClientLogin:
 		var msgData proto.LoginMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = login(peer, msgData)
 		}
-		result, topErr = login(peer, msgData)
 	case proto.ClientJoin:
 		var msgData proto.JoinMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = join(peer, msgData)
 		}
-		result, topErr = join(peer, msgData)
 	case proto.ClientLeave:
 		var msgData proto.LeaveMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = leave(peer, msgData)
 		}
-		result, topErr = leave(peer, msgData)
 	case proto.ClientPublish:
 		var msgData proto.PublishMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = publish(peer, msgData)
 		}
-		result, topErr = publish(peer, msgData)
 	case proto.ClientUnPublish:
 		var msgData proto.UnpublishMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = unpublish(peer, msgData)
 		}
-		result, topErr = unpublish(peer, msgData)
 	case proto.ClientSubscribe:
 		var msgData proto.SubscribeMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = subscribe(peer, msgData)
 		}
-		result, topErr = subscribe(peer, msgData)
 	case proto.ClientUnSubscribe:
 		var msgData proto.UnsubscribeMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = unsubscribe(peer, msgData)
 		}
-		result, topErr = unsubscribe(peer, msgData)
 	case proto.ClientBroadcast:
 		var msgData proto.BroadcastMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = broadcast(peer, msgData)
 		}
-		result, topErr = broadcast(peer, msgData)
 	case proto.ClientTrickleICE:
 		var msgData proto.TrickleMsg
-		if err := json.Unmarshal(msg, &msgData); err != nil {
-			log.Infof("Marshal error")
-			topErr = parseErr
-			break
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = trickle(peer, msgData)
 		}
-		result, topErr = trickle(peer, msgData)
 	}
 
 	if topErr != nil {
