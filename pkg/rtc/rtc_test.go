@@ -89,8 +89,7 @@ func TestRTPEngineAcceptKCPAndRead(t *testing.T) {
 }
 
 func TestWebRTCTransportP2P(t *testing.T) {
-	options := make(map[string]interface{})
-	options["codec"] = "vp8"
+	options := transport.RTCOptions{Codec: "VP8"}
 
 	// new pub
 	pub := transport.NewWebRTCTransport("pub", options)
@@ -114,8 +113,7 @@ func TestWebRTCTransportP2P(t *testing.T) {
 	sub := transport.NewWebRTCTransport("sub", options)
 
 	// sub answer offer
-	options = make(map[string]interface{})
-	options["publish"] = "true"
+	options = transport.RTCOptions{Publish: true}
 	answer, err := sub.Answer(offer, options)
 	if err != nil {
 		t.Fatalf("err=%v answer=%v", err, answer)

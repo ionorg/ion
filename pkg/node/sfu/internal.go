@@ -69,20 +69,22 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	mid := uuid.New().String()
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
-	rtcOptions := make(map[string]interface{})
-	rtcOptions["transport-cc"] = "false"
-	rtcOptions["publish"] = "true"
+	rtcOptions := transport.RTCOptions{
+		TransportCC: false,
+		Publish:     true,
+	}
 
 	options := msg["options"]
 	if options != nil {
 		options, ok := msg["options"].(map[string]interface{})
 		if ok {
-			rtcOptions["codec"] = options["codec"]
-			rtcOptions["bandwidth"] = options["bandwidth"]
+			rtcOptions.Codec = options["codec"].(string)
+			// TODO parse int
+			rtcOptions.Bandwidth = int(options["bandwidth"].(float64))
 		}
 	}
 
-	videoCodec := strings.ToUpper(rtcOptions["codec"].(string))
+	videoCodec := strings.ToUpper(rtcOptions.Codec)
 
 	sdpObj, err := sdptransform.Parse(offer.SDP)
 	if err != nil {
@@ -106,7 +108,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		}
 	}
 
-	rtcOptions["codecs"] = allowedCodecs
+	rtcOptions.Codecs = allowedCodecs
 	pub := transport.NewWebRTCTransport(mid, rtcOptions)
 	if pub == nil {
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
@@ -159,16 +161,17 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	sdp := util.Val(jsep, "sdp")
 
-	rtcOptions := make(map[string]interface{})
-	rtcOptions["transport-cc"] = "false"
-	rtcOptions["subscribe"] = "true"
+	rtcOptions := transport.RTCOptions{
+		TransportCC: false,
+		Subscribe:   true,
+	}
 
 	options := msg["options"]
 	if options != nil {
 		options, ok := msg["options"].(map[string]interface{})
 		if ok {
-			rtcOptions["codec"] = options["codec"]
-			rtcOptions["bandwidth"] = options["bandwidth"]
+			rtcOptions.Codec = options["codec"].(string)
+			rtcOptions.Bandwidth = int(options["bandwidth"].(float64)) // TODO parse
 		}
 	}
 
@@ -176,8 +179,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)
-	ssrcPT := make(map[uint32]uint8)
-	rtcOptions["ssrcpt"] = ssrcPT
+	rtcOptions.Ssrcpt = make(map[uint32]uint8)
 
 	tracks := make(map[string]proto.TrackInfo)
 	for msid, track := range tracksMap {
@@ -191,7 +193,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 				Codec:   info["codec"].(string),
 				Fmtp:    info["fmtp"].(string),
 			}
-			ssrcPT[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
+			rtcOptions.Ssrcpt[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
 			tracks[msid] = trackInfo
 		}
 	}
@@ -213,7 +215,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	// Set media engine codecs based on found pts
 	log.Infof("Allowed codecs %v", allowedCodecs)
-	rtcOptions["codecs"] = allowedCodecs
+	rtcOptions.Codecs = allowedCodecs
 
 	// New api
 	sub := transport.NewWebRTCTransport(subID, rtcOptions)

@@ -93,39 +93,26 @@ type WebRTCTransport struct {
 	ptMap             map[uint32]uint8
 }
 
+// SetShutdownChan sets notify channel on transport shutdown
 func (w *WebRTCTransport) SetShutdownChan(ch chan string) {
 	w.shutdownChan = ch
 }
 
-func (w *WebRTCTransport) init(options map[string]interface{}, codecs []uint8) error {
+func (w *WebRTCTransport) init(options RTCOptions) error {
 	w.mediaEngine = webrtc.MediaEngine{}
 
 	rtcpfb := []webrtc.RTCPFeedback{
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBGoogREMB,
-		},
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBCCM,
-		},
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBNACK,
-		},
-		webrtc.RTCPFeedback{
-			Type: "nack pli",
-		},
+		{Type: webrtc.TypeRTCPFBGoogREMB},
+		{Type: webrtc.TypeRTCPFBCCM},
+		{Type: webrtc.TypeRTCPFBNACK},
+		{Type: "nack pli"},
 	}
 
-	publish := KvOK(options, "publish", "true")
-	tcc := KvOK(options, "transport-cc", "true")
-	dc := KvOK(options, "data-channel", "true")
-	bandwidth, err := GetInt(options, "bandwidth")
-	if err == nil {
-		if publish {
-			w.bandwidth = bandwidth
-		}
+	if options.Publish && options.Bandwidth > 0 {
+		w.bandwidth = options.Bandwidth
 	}
 
-	if tcc {
+	if options.TransportCC {
 		rtcpfb = append(rtcpfb, webrtc.RTCPFeedback{
 			Type: webrtc.TypeRTCPFBTransportCC,
 		})
@@ -147,34 +134,40 @@ func (w *WebRTCTransport) init(options map[string]interface{}, codecs []uint8) e
 		126:                           webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"),
 	}
 
-	if len(codecs) == 0 {
+	if len(options.Codecs) == 0 {
 		// Default add everything?
 		for _, v := range codecMap {
 			w.mediaEngine.RegisterCodec(v)
 		}
 	} else {
-		for _, c := range codecs {
+		for _, c := range options.Codecs {
 			if codec, ok := codecMap[c]; ok {
 				w.mediaEngine.RegisterCodec(codec)
 			}
 		}
 	}
 
-	if !dc {
+	if !options.DataChannel {
 		setting.DetachDataChannels()
 	}
 	w.api = webrtc.NewAPI(webrtc.WithMediaEngine(w.mediaEngine), webrtc.WithSettingEngine(setting))
 	return nil
 }
 
+// RTCOptions options to open new transport
+type RTCOptions struct {
+	Publish     bool
+	Subscribe   bool
+	DataChannel bool
+	TransportCC bool
+	Codec       string
+	Codecs      []uint8
+	Bandwidth   int
+	Ssrcpt      map[uint32]uint8
+}
+
 // NewWebRTCTransport create a WebRTCTransport
-// options:
-//   "video" 		= webrtc.H264[default] webrtc.VP8  webrtc.VP9
-//   "audio" 		= webrtc.Opus[default] webrtc.PCMA webrtc.PCMU webrtc.G722
-//   "transport-cc" = "true" or "false"[default]
-//   "data-channel" = "true" or "false"[default]
-//   "codecs"       = []uint8 of payload types (empty == all codecs)
-func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransport {
+func NewWebRTCTransport(id string, options RTCOptions) *WebRTCTransport {
 	w := &WebRTCTransport{
 		id:          id,
 		outTracks:   make(map[uint32]*webrtc.Track),
@@ -185,11 +178,7 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 		alive:       true,
 		ptMap:       make(map[uint32]uint8),
 	}
-	codecs := []uint8{}
-	if cd, ok := options["codecs"]; ok {
-		codecs = cd.([]uint8)
-	}
-	err := w.init(options, codecs)
+	err := w.init(options)
 	if err != nil {
 		log.Errorf("NewWebRTCTransport init %v", err)
 		return nil
@@ -320,8 +309,8 @@ func (w *WebRTCTransport) AddCandidate(candidate string) error {
 }
 
 // Answer answer to pub or sub
-func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[string]interface{}) (webrtc.SessionDescription, error) {
-	w.isPub = KvOK(options, "publish", "true")
+func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options RTCOptions) (webrtc.SessionDescription, error) {
+	w.isPub = options.Publish
 	if w.isPub {
 		w.pc.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
 			w.inTrackLock.Lock()
@@ -332,11 +321,10 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 			w.receiveInTrackRTP(remoteTrack)
 		})
 	} else {
-		ssrcPT := options["ssrcpt"]
-		if ssrcPT == nil {
+		if options.Ssrcpt == nil {
 			return webrtc.SessionDescription{}, errInvalidOptions
 		}
-		ssrcPTMap, _ := ssrcPT.(map[uint32]uint8)
+		ssrcPTMap := options.Ssrcpt
 		if len(ssrcPTMap) == 0 {
 			return webrtc.SessionDescription{}, errInvalidOptions
 		}

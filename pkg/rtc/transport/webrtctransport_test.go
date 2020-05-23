@@ -7,9 +7,10 @@ import (
 )
 
 func TestWebRTCTransportOffer(t *testing.T) {
-	options := make(map[string]interface{})
-	options["codec"] = "h264"
-	options["transport-cc"] = ""
+	options := RTCOptions{
+		Codec:       "h264",
+		TransportCC: true,
+	}
 	pub := NewWebRTCTransport("pub", options)
 	_, err := pub.Offer()
 	if err != nil {
@@ -18,9 +19,10 @@ func TestWebRTCTransportOffer(t *testing.T) {
 }
 
 func TestWebRTCTransportAnswer(t *testing.T) {
-	options := make(map[string]interface{})
-	options["codec"] = "h264"
-	options["transport-cc"] = ""
+	options := RTCOptions{
+		Codec:       "h264",
+		TransportCC: true,
+	}
 	pub := NewWebRTCTransport("pub", options)
 	offer, err := pub.Offer()
 	if err != nil {
@@ -33,10 +35,10 @@ func TestWebRTCTransportAnswer(t *testing.T) {
 	}
 
 	sub := NewWebRTCTransport("sub", options)
-	options["subscribe"] = ""
-	options["ssrcpt"] = make(map[uint32]uint8)
+	options.Subscribe = true
+	options.Ssrcpt = make(map[uint32]uint8)
 	for ssrc, track := range pub.GetOutTracks() {
-		options["ssrcpt"].(map[uint32]uint8)[ssrc] = track.PayloadType()
+		options.Ssrcpt[ssrc] = track.PayloadType()
 	}
 	answer, err := sub.Answer(offer, options)
 	if err != nil {
