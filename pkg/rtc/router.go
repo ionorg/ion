@@ -177,7 +177,7 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 						//origin ssrc
 						SenderSSRC: nack.SenderSSRC,
 						MediaSSRC:  nack.MediaSSRC,
-						Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
+						Nacks:      []rtcp.NackPair{{PacketID: nackPair.PacketID}},
 					}
 					if r.pub != nil {
 						err := r.GetPub().WriteRTCP(n)

@@ -32,20 +32,20 @@ var (
 	errInvalidOptions = errors.New("invalid options")
 
 	ptTransformMap = map[uint8][]uint8{
-		webrtc.DefaultPayloadTypeVP8:  []uint8{120},
-		webrtc.DefaultPayloadTypeVP9:  []uint8{121},
-		webrtc.DefaultPayloadTypeOpus: []uint8{109},
+		webrtc.DefaultPayloadTypeVP8:  {120},
+		webrtc.DefaultPayloadTypeVP9:  {121},
+		webrtc.DefaultPayloadTypeOpus: {109},
 
 		// reverse
-		121: []uint8{webrtc.DefaultPayloadTypeVP9},
-		120: []uint8{webrtc.DefaultPayloadTypeVP8},
-		109: []uint8{webrtc.DefaultPayloadTypeOpus},
+		121: {webrtc.DefaultPayloadTypeVP9},
+		120: {webrtc.DefaultPayloadTypeVP8},
+		109: {webrtc.DefaultPayloadTypeOpus},
 	}
 	// TODO build one from the other
 	codecTransformMap = map[string][]uint8{
-		webrtc.VP8:  []uint8{webrtc.DefaultPayloadTypeVP8, 120},
-		webrtc.VP9:  []uint8{webrtc.DefaultPayloadTypeVP9, 121},
-		webrtc.Opus: []uint8{webrtc.DefaultPayloadTypeOpus, 109},
+		webrtc.VP8:  {webrtc.DefaultPayloadTypeVP8, 120},
+		webrtc.VP9:  {webrtc.DefaultPayloadTypeVP9, 121},
+		webrtc.Opus: {webrtc.DefaultPayloadTypeOpus, 109},
 	}
 )
 
