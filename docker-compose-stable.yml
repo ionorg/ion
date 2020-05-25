@@ -2,9 +2,7 @@ version: "3.7"
 
 services:
   sfu:
-    build:
-      dockerfile: ./docker/sfu.Dockerfile
-      context: .
+    image: pionwebrtc/ion-sfu:0.2.0
     volumes:
       - "./configs/docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -16,9 +14,7 @@ services:
       - ionnet
 
   biz:
-    build:
-      dockerfile: ./docker/biz.Dockerfile
-      context: .
+    image: pionwebrtc/ion-biz:0.2.0
     volumes:
       - "./configs/docker/biz.toml:/configs/biz.toml"
     ports:
@@ -30,28 +26,13 @@ services:
       - etcd
 
   islb:
-    build:
-      dockerfile: ./docker/islb.Dockerfile
-      context: .
+    image: pionwebrtc/ion-islb:0.2.0
     volumes:
       - "./configs/docker/islb.toml:/configs/islb.toml"
     depends_on:
       - nats
       - etcd
       - redis
-    networks:
-      - ionnet
-
-  avp:
-    build:
-      dockerfile: ./docker/avp.Dockerfile
-      context: .
-    volumes:
-      - "./configs/docker/avp.toml:/configs/avp.toml"
-      - "./:/out/"
-    depends_on:
-      - nats
-      - etcd
     networks:
       - ionnet
 
