@@ -2,6 +2,7 @@ version: "3.7"
 
 services:
   sfu:
+    image: pionwebrtc/ion-sfu:latest
     build:
       dockerfile: ./docker/sfu.Dockerfile
       context: .
@@ -16,6 +17,7 @@ services:
       - ionnet
 
   biz:
+    image: pionwebrtc/ion-biz:latest
     build:
       dockerfile: ./docker/biz.Dockerfile
       context: .
@@ -30,6 +32,7 @@ services:
       - etcd
 
   islb:
+    image: pionwebrtc/ion-islb:latest
     build:
       dockerfile: ./docker/islb.Dockerfile
       context: .
@@ -43,6 +46,7 @@ services:
       - ionnet
 
   avp:
+    image: pionwebrtc/ion-avp:latest
     build:
       dockerfile: ./docker/avp.Dockerfile
       context: .
