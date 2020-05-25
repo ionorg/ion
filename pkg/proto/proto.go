@@ -39,8 +39,14 @@ const (
 	IslbOnStreamRemove = ClientOnStreamRemove
 	IslbOnBroadcast    = ClientBroadcast
 
+	// SFU Endpoints
 	SFUTrickleICE   = ClientTrickleICE
 	SFUStreamRemove = ClientOnStreamRemove
+
+	// AVPProcess enables an audio/video processor
+	AVPProcess = "process"
+	// AVPUnprocess disables an audio/video processor
+	AVPUnprocess = "unprocess"
 
 	IslbID = "islb"
 )

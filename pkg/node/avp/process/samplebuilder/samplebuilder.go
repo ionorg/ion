@@ -1,14 +1,17 @@
-package plugins
+package samplebuilder
 
 import (
 	"errors"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
 	"github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
+)
+
+const (
+	maxSize = 100
 )
 
 var (
@@ -16,8 +19,16 @@ var (
 	ErrCodecNotSupported = errors.New("codec not supported")
 )
 
-// SampleBuilderConfig .
-type SampleBuilderConfig struct {
+// Sample constructed from rtp packets
+type Sample struct {
+	Type           int
+	Payload        []byte
+	Timestamp      uint32
+	SequenceNumber uint16
+}
+
+// Config .
+type Config struct {
 	ID           string
 	On           bool
 	AudioMaxLate uint16
@@ -30,17 +41,17 @@ type SampleBuilder struct {
 	stop                         bool
 	audioBuilder, videoBuilder   *samplebuilder.SampleBuilder
 	audioSequence, videoSequence uint16
-	outRTPChan                   chan *rtp.Packet
+	outChan                      chan *Sample
 }
 
-// NewSampleBuilder Initialize a new webm saver
-func NewSampleBuilder(config SampleBuilderConfig) *SampleBuilder {
+// NewSampleBuilder Initialize a new sample builder
+func NewSampleBuilder(config Config) *SampleBuilder {
 	log.Infof("NewSampleBuilder with config %+v", config)
 	s := &SampleBuilder{
 		id:           config.ID,
 		audioBuilder: samplebuilder.New(config.AudioMaxLate, &codecs.OpusPacket{}),
 		videoBuilder: samplebuilder.New(config.VideoMaxLate, &codecs.VP8Packet{}),
-		outRTPChan:   make(chan *rtp.Packet, maxSize),
+		outChan:      make(chan *Sample, maxSize),
 	}
 
 	samplebuilder.WithPartitionHeadChecker(&codecs.OpusPartitionHeadChecker{})(s.audioBuilder)
@@ -52,27 +63,6 @@ func NewSampleBuilder(config SampleBuilderConfig) *SampleBuilder {
 // ID SampleBuilder id
 func (s *SampleBuilder) ID() string {
 	return s.id
-}
-
-// AttachPub Attach pub stream
-func (s *SampleBuilder) AttachPub(t transport.Transport) {
-	go func() {
-		for {
-			pkt, err := t.ReadRTP()
-			if err != nil {
-				log.Errorf("AttachPub t.ReadRTP pkt=%+v", pkt)
-				continue
-			}
-			if s.stop {
-				break
-			}
-			err = s.WriteRTP(pkt)
-			if err != nil {
-				log.Errorf("AttachPub t.WriteRTP err=%+v", err)
-				continue
-			}
-		}
-	}()
 }
 
 // WriteRTP Write RTP packet to SampleBuilder
@@ -87,9 +77,9 @@ func (s *SampleBuilder) WriteRTP(pkt *rtp.Packet) error {
 	return ErrCodecNotSupported
 }
 
-// ReadRTP Forward rtp packet which from pub
-func (s *SampleBuilder) ReadRTP() <-chan *rtp.Packet {
-	return s.outRTPChan
+// Read sample
+func (s *SampleBuilder) Read() *Sample {
+	return <-s.outChan
 }
 
 // Stop stop all buffer
@@ -108,14 +98,11 @@ func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
 		if sample == nil {
 			return
 		}
-		s.outRTPChan <- &rtp.Packet{
-			Header: rtp.Header{
-				Version:        pkt.Version,
-				PayloadType:    webrtc.DefaultPayloadTypeOpus,
-				SequenceNumber: s.audioSequence,
-				Timestamp:      timestamp,
-			},
-			Payload: sample.Data,
+		s.outChan <- &Sample{
+			Type:           webrtc.DefaultPayloadTypeOpus,
+			SequenceNumber: s.audioSequence,
+			Timestamp:      timestamp,
+			Payload:        sample.Data,
 		}
 		s.audioSequence++
 	}
@@ -129,14 +116,11 @@ func (s *SampleBuilder) pushVP8(pkt *rtp.Packet) {
 			return
 		}
 
-		s.outRTPChan <- &rtp.Packet{
-			Header: rtp.Header{
-				Version:        pkt.Version,
-				PayloadType:    webrtc.DefaultPayloadTypeVP8,
-				SequenceNumber: s.videoSequence,
-				Timestamp:      timestamp,
-			},
-			Payload: sample.Data,
+		s.outChan <- &Sample{
+			Type:           webrtc.DefaultPayloadTypeVP8,
+			SequenceNumber: s.videoSequence,
+			Timestamp:      timestamp,
+			Payload:        sample.Data,
 		}
 		s.videoSequence++
 	}
