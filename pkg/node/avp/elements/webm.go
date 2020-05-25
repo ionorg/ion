@@ -1,4 +1,4 @@
-package plugins
+package elements
 
 import (
 	"fmt"
@@ -8,62 +8,59 @@ import (
 	"github.com/at-wat/ebml-go/webm"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/rtp"
+	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
 	"github.com/pion/webrtc/v2"
+)
+
+var (
+	config WebmSaverConfig
 )
 
 // WebmSaverConfig .
 type WebmSaverConfig struct {
-	ID   string
-	MID  string
-	On   bool
-	Path string
+	Togglable bool
+	DefaultOn bool
+	Path      string
 }
 
 // WebmSaver Module for saving rtp streams to webm
 type WebmSaver struct {
 	id                             string
-	mid                            string
 	path                           string
 	audioWriter, videoWriter       webm.BlockWriteCloser
 	audioTimestamp, videoTimestamp uint32
-	outRTPChan                     chan *rtp.Packet
+}
+
+// InitWebmSaver sets initial config
+func InitWebmSaver(c WebmSaverConfig) {
+	config = c
 }
 
 // NewWebmSaver Initialize a new webm saver
-func NewWebmSaver(config WebmSaverConfig) *WebmSaver {
+func NewWebmSaver(id string) *WebmSaver {
 	return &WebmSaver{
-		id:         config.ID,
-		mid:        config.MID,
-		path:       config.Path,
-		outRTPChan: make(chan *rtp.Packet, maxSize),
+		id:   id,
+		path: config.Path,
 	}
 }
 
-// ID WebmSaver id
-func (s *WebmSaver) ID() string {
-	return s.id
-}
-
-// WriteRTP Write RTP packet to webmsaver
-func (s *WebmSaver) WriteRTP(pkt *rtp.Packet) error {
-	if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
-		s.pushVP8(pkt)
-	} else if pkt.PayloadType == webrtc.DefaultPayloadTypeOpus {
-		s.pushOpus(pkt)
+// Write sample to webmsaver
+func (s *WebmSaver) Write(sample *samplebuilder.Sample) error {
+	if sample.Type == webrtc.DefaultPayloadTypeVP8 {
+		s.pushVP8(sample)
+	} else if sample.Type == webrtc.DefaultPayloadTypeOpus {
+		s.pushOpus(sample)
 	}
-	s.outRTPChan <- pkt
 	return nil
 }
 
-// ReadRTP Forward rtp packet which from pub
-func (s *WebmSaver) ReadRTP() <-chan *rtp.Packet {
-	return s.outRTPChan
+func (s *WebmSaver) Read() <-chan *samplebuilder.Sample {
+	return nil
 }
 
-// Stop Close the WebmSaver
-func (s *WebmSaver) Stop() {
-	fmt.Printf("Finalizing webm...\n")
+// Close Close the WebmSaver
+func (s *WebmSaver) Close() {
+	log.Infof("WebmSaver.Close() => %s", s.id)
 	if s.audioWriter != nil {
 		if err := s.audioWriter.Close(); err != nil {
 			panic(err)
@@ -76,25 +73,25 @@ func (s *WebmSaver) Stop() {
 	}
 }
 
-func (s *WebmSaver) pushOpus(pkt *rtp.Packet) {
+func (s *WebmSaver) pushOpus(sample *samplebuilder.Sample) {
 	if s.audioWriter != nil {
 		if s.audioTimestamp == 0 {
-			s.audioTimestamp = pkt.Timestamp
+			s.audioTimestamp = sample.Timestamp
 		}
-		t := (pkt.Timestamp - s.audioTimestamp) / 48
-		if _, err := s.audioWriter.Write(true, int64(t), pkt.Payload); err != nil {
+		t := (sample.Timestamp - s.audioTimestamp) / 48
+		if _, err := s.audioWriter.Write(true, int64(t), sample.Payload); err != nil {
 			panic(err)
 		}
 	}
 }
 
-func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
+func (s *WebmSaver) pushVP8(sample *samplebuilder.Sample) {
 	// Read VP8 header.
-	videoKeyframe := (pkt.Payload[0]&0x1 == 0)
+	videoKeyframe := (sample.Payload[0]&0x1 == 0)
 
 	if videoKeyframe {
 		// Keyframe has frame information.
-		raw := uint(pkt.Payload[6]) | uint(pkt.Payload[7])<<8 | uint(pkt.Payload[8])<<16 | uint(pkt.Payload[9])<<24
+		raw := uint(sample.Payload[6]) | uint(sample.Payload[7])<<8 | uint(sample.Payload[8])<<16 | uint(sample.Payload[9])<<24
 		width := int(raw & 0x3FFF)
 		height := int((raw >> 16) & 0x3FFF)
 
@@ -106,17 +103,17 @@ func (s *WebmSaver) pushVP8(pkt *rtp.Packet) {
 
 	if s.videoWriter != nil {
 		if s.videoTimestamp == 0 {
-			s.videoTimestamp = pkt.Timestamp
+			s.videoTimestamp = sample.Timestamp
 		}
-		t := (pkt.Timestamp - s.videoTimestamp) / 90
-		if _, err := s.videoWriter.Write(videoKeyframe, int64(t), pkt.Payload); err != nil {
+		t := (sample.Timestamp - s.videoTimestamp) / 90
+		if _, err := s.videoWriter.Write(videoKeyframe, int64(t), sample.Payload); err != nil {
 			panic(err)
 		}
 	}
 }
 
 func (s *WebmSaver) initWriter(width, height int) {
-	w, err := os.OpenFile(path.Join(s.path, fmt.Sprintf("%s.webm", s.mid)), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	w, err := os.OpenFile(path.Join(s.path, fmt.Sprintf("%s.webm", s.id)), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		panic(err)
 	}

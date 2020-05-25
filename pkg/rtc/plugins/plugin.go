@@ -22,20 +22,16 @@ type Plugin interface {
 }
 
 const (
-	TypeJitterBuffer  = "JitterBuffer"
-	TypeRTPForwarder  = "RTPForwarder"
-	TypeSampleBuilder = "SampleBuilder"
-	TypeWebmSaver     = "WebmSaver"
+	TypeJitterBuffer = "JitterBuffer"
+	TypeRTPForwarder = "RTPForwarder"
 
 	maxSize = 100
 )
 
 type Config struct {
-	On            bool
-	JitterBuffer  JitterBufferConfig
-	RTPForwarder  RTPForwarderConfig
-	SampleBuilder SampleBuilderConfig
-	WebmSaver     WebmSaverConfig
+	On           bool
+	JitterBuffer JitterBufferConfig
+	RTPForwarder RTPForwarderConfig
 }
 
 type PluginChain struct {
@@ -82,14 +78,6 @@ func CheckPlugins(config Config) error {
 		oneOn = true
 	}
 
-	if config.SampleBuilder.On {
-		oneOn = true
-	}
-
-	if config.WebmSaver.On {
-		oneOn = true
-	}
-
 	if !oneOn {
 		return errInvalidPlugins
 	}
@@ -114,19 +102,6 @@ func (p *PluginChain) Init(config Config) error {
 		config.RTPForwarder.ID = TypeRTPForwarder
 		config.RTPForwarder.MID = p.mid
 		p.AddPlugin(TypeRTPForwarder, NewRTPForwarder(config.RTPForwarder))
-	}
-
-	if config.SampleBuilder.On {
-		log.Infof("PluginChain.Init config.SampleBuilder.On=true config=%v", config.SampleBuilder)
-		config.SampleBuilder.ID = TypeSampleBuilder
-		p.AddPlugin(TypeSampleBuilder, NewSampleBuilder(config.SampleBuilder))
-	}
-
-	if config.WebmSaver.On {
-		log.Infof("PluginChain.Init config.WebmSaver.On=true config=%v", config.WebmSaver)
-		config.WebmSaver.ID = TypeWebmSaver
-		config.WebmSaver.MID = p.mid
-		p.AddPlugin(TypeWebmSaver, NewWebmSaver(config.WebmSaver))
 	}
 
 	// forward packets along plugin chain
@@ -164,12 +139,6 @@ func (p *PluginChain) AttachPub(pub transport.Transport) {
 	if jitterBuffer != nil {
 		log.Infof("PluginChain.AttachPub pub=%+v", pub)
 		jitterBuffer.(*JitterBuffer).AttachPub(pub)
-	}
-
-	sampleBuilder := p.GetPlugin(TypeSampleBuilder)
-	if sampleBuilder != nil {
-		log.Infof("PluginChain.AttachPub pub=%+v", pub)
-		sampleBuilder.(*SampleBuilder).AttachPub(pub)
 	}
 }
 

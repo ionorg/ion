@@ -137,7 +137,6 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	mid := util.Val(msg, "mid")
 	router := rtc.GetOrNewRouter(mid)
 	if router != nil {
-		router.Close()
 		rtc.DelRouter(mid)
 		return emptyMap, nil
 	}

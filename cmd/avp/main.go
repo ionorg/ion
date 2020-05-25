@@ -8,33 +8,30 @@ import (
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/avp"
-	"github.com/pion/ion/pkg/rtc"
-	"github.com/pion/ion/pkg/rtc/plugins"
+	"github.com/pion/ion/pkg/node/avp/elements"
+	"github.com/pion/ion/pkg/node/avp/process"
+	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
 )
 
 func init() {
 	log.Init(conf.Log.Level)
-	if err := rtc.InitRTP(conf.Rtp.Port, conf.Rtp.KcpKey, conf.Rtp.KcpSalt); err != nil {
+	if err := process.InitRTP(conf.Rtp.Port, conf.Rtp.KcpKey, conf.Rtp.KcpSalt); err != nil {
 		panic(err)
 	}
 
-	pluginConfig := plugins.Config{
-		On: conf.Plugins.On,
-		SampleBuilder: plugins.SampleBuilderConfig{
-			On:           conf.Plugins.SampleBuilder.On,
-			AudioMaxLate: conf.Plugins.SampleBuilder.AudioMaxLate,
-			VideoMaxLate: conf.Plugins.SampleBuilder.VideoMaxLate,
+	pipelineConfig := process.Config{
+		SampleBuilder: samplebuilder.Config{
+			AudioMaxLate: conf.Pipeline.SampleBuilder.AudioMaxLate,
+			VideoMaxLate: conf.Pipeline.SampleBuilder.VideoMaxLate,
 		},
-		WebmSaver: plugins.WebmSaverConfig{
-			On:   conf.Plugins.WebmSaver.On,
-			Path: conf.Plugins.WebmSaver.Path,
+		WebmSaver: elements.WebmSaverConfig{
+			Togglable: conf.Pipeline.WebmSaver.Togglable,
+			DefaultOn: conf.Pipeline.WebmSaver.DefaultOn,
+			Path:      conf.Pipeline.WebmSaver.Path,
 		},
 	}
 
-	if err := rtc.CheckPlugins(pluginConfig); err != nil {
-		panic(err)
-	}
-	rtc.InitPlugins(pluginConfig)
+	process.InitPipeline(pipelineConfig)
 }
 
 func main() {

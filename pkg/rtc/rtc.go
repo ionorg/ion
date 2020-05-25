@@ -47,7 +47,7 @@ func CheckPlugins(config plugins.Config) error {
 
 // InitRTP rtp port
 func InitRTP(port int, kcpKey, kcpSalt string) error {
-	// show stat about all pipelines
+	// show stat about all routers
 	go check()
 
 	var connCh chan *transport.RTPTransport

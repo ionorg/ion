@@ -143,6 +143,7 @@ func (r *RTPTransport) Close() {
 	if r.stop {
 		return
 	}
+	log.Infof("RTPTransport.Close()")
 	r.stop = true
 	r.rtpSession.Close()
 	r.rtcpSession.Close()
