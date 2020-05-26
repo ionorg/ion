@@ -9,6 +9,7 @@ env:
   global:
     - GO111MODULE=on
     - GOLANGCI_LINT_VERSION=1.19.1
+    - VERSION=`if [[ -z "$TRAVIS_TAG" ]]; then echo latest; else echo $TRAVIS_TAG; fi`
 
 cache:
   directories:
@@ -41,48 +42,48 @@ _build_job: &build_job
 _build_avp_docker_job: &build_avp_docker_job
   env: CACHE_NAME=build_avp_docker
   script:
-    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-avp:"$TRAVIS_TAG" -f ./docker/avp.Dockerfile .; else docker build --tag pionwebrtc/ion-avp:latest -f ./docker/avp.Dockerfile .; fi
+    - docker build --tag pionwebrtc/ion-avp:"$VERSION" -f ./docker/avp.Dockerfile .
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-avp:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-avp:latest; fi
+    script: docker push pionwebrtc/ion-avp:"$VERSION"
     on:
       branch: master
 
 _build_biz_docker_job: &build_biz_docker_job
   env: CACHE_NAME=build_biz_docker
   script:
-    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-biz:"$TRAVIS_TAG" -f ./docker/biz.Dockerfile .; else docker build --tag pionwebrtc/ion-biz:latest -f ./docker/biz.Dockerfile .; fi
+    - docker build --tag pionwebrtc/ion-biz:"$VERSION" -f ./docker/biz.Dockerfile .
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-biz:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-biz:latest; fi
+    script: docker push pionwebrtc/ion-biz:"$VERSION"
     on:
       branch: master
 
 _build_islb_docker_job: &build_islb_docker_job
   env: CACHE_NAME=build_islb_docker
   script:
-    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-islb:"$TRAVIS_TAG" -f ./docker/islb.Dockerfile .; else docker build --tag pionwebrtc/ion-islb:latest -f ./docker/islb.Dockerfile .; fi
+    - docker build --tag pionwebrtc/ion-islb:"$VERSION" -f ./docker/islb.Dockerfile .
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-islb:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-islb:latest; fi
+    script: docker push pionwebrtc/ion-islb:"$VERSION"
     on:
       branch: master
 
 _build_sfu_docker_job: &build_sfu_docker_job
   env: CACHE_NAME=build_sfu_docker
   script:
-    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-sfu:"$TRAVIS_TAG" -f ./docker/sfu.Dockerfile .; else docker build --tag pionwebrtc/ion-sfu:latest -f ./docker/sfu.Dockerfile .; fi
+    - docker build --tag pionwebrtc/ion-sfu:"$VERSION" -f ./docker/sfu.Dockerfile .
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-sfu:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-sfu:latest; fi
+    script: docker push pionwebrtc/ion-sfu:"$VERSION"
     on:
       branch: master
 
