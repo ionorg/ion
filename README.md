@@ -42,7 +42,7 @@ docker network create ionnet
 
 ### Run
 ```
-docker-compose -f docker-compose-stable.yml up
+docker-compose -f docker-compose.stable.yml up
 ```
 
 For dev and more options see the wiki
