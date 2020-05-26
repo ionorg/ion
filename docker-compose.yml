@@ -60,25 +60,6 @@ services:
     networks:
       - ionnet
 
-  avp:
-    # These are commented out on purpose, when uncommented `docker-compose up` will
-    # execute build instead of pulling from Dockerhub. When ready to build new images uncomment
-    # and execute `docker-compose build && docker-compose push`
-    #
-    # build:
-    #   dockerfile: ./docker/avp.Dockerfile
-    #   context: .
-    command: "-c /configs/avp.toml"
-    image: pionwebrtc/ion-avp:0.2.0
-    volumes:
-      - "./docker/avp.toml:/configs/avp.toml"
-      - "./:/out/"
-    depends_on:
-      - nats
-      - etcd
-    networks:
-      - ionnet
-
   nats:
     image: nats
     networks:
