@@ -41,7 +41,7 @@ _build_job: &build_job
 _build_avp_docker_job: &build_avp_docker_job
   env: CACHE_NAME=build_avp_docker
   script:
-    - docker build --tag pionwebrtc/ion-avp:latest -f ./docker/avp.Dockerfile .
+    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-avp:"$TRAVIS_TAG" -f ./docker/avp.Dockerfile .; else docker build --tag pionwebrtc/ion-avp:latest -f ./docker/avp.Dockerfile .; fi
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
@@ -53,7 +53,7 @@ _build_avp_docker_job: &build_avp_docker_job
 _build_biz_docker_job: &build_biz_docker_job
   env: CACHE_NAME=build_biz_docker
   script:
-    - docker build --tag pionwebrtc/ion-biz:latest -f ./docker/biz.Dockerfile .
+    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-biz:"$TRAVIS_TAG" -f ./docker/biz.Dockerfile .; else docker build --tag pionwebrtc/ion-biz:latest -f ./docker/biz.Dockerfile .; fi
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
@@ -65,7 +65,7 @@ _build_biz_docker_job: &build_biz_docker_job
 _build_islb_docker_job: &build_islb_docker_job
   env: CACHE_NAME=build_islb_docker
   script:
-    - docker build --tag pionwebrtc/ion-islb:latest -f ./docker/islb.Dockerfile .
+    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-islb:"$TRAVIS_TAG" -f ./docker/islb.Dockerfile .; else docker build --tag pionwebrtc/ion-islb:latest -f ./docker/islb.Dockerfile .; fi
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
@@ -77,7 +77,7 @@ _build_islb_docker_job: &build_islb_docker_job
 _build_sfu_docker_job: &build_sfu_docker_job
   env: CACHE_NAME=build_sfu_docker
   script:
-    - docker build --tag pionwebrtc/ion-sfu:latest -f ./docker/sfu.Dockerfile .
+    - if [ -n "$TRAVIS_TAG" ]; then docker build --tag pionwebrtc/ion-sfu:"$TRAVIS_TAG" -f ./docker/sfu.Dockerfile .; else docker build --tag pionwebrtc/ion-sfu:latest -f ./docker/sfu.Dockerfile .; fi
   before_deploy:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
