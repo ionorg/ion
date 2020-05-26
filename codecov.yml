@@ -16,5 +16,7 @@ coverage:
         only_pulls: true
 
 ignore:
-  - "examples/*"
-  - "examples/**/*"
+  - "cmd/*"
+  - "cmd/**/*"
+  - "pkg/node/*"
+  - "pkg/node/**/*"
