@@ -3,6 +3,7 @@ version: "3.7"
 services:
   sfu:
     image: pionwebrtc/ion-sfu:0.2.0
+    command: "-c /configs/sfu.toml"
     volumes:
       - "./configs/docker/sfu.toml:/configs/sfu.toml"
     ports:
@@ -15,6 +16,7 @@ services:
 
   biz:
     image: pionwebrtc/ion-biz:0.2.0
+    command: "-c /configs/biz.toml"
     volumes:
       - "./configs/docker/biz.toml:/configs/biz.toml"
     ports:
@@ -27,6 +29,7 @@ services:
 
   islb:
     image: pionwebrtc/ion-islb:0.2.0
+    command: "-c /configs/islb.toml"
     volumes:
       - "./configs/docker/islb.toml:/configs/islb.toml"
     depends_on:
