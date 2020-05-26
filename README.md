@@ -29,9 +29,26 @@
 
 ## Documentation
 
-* [1. QuickStart](https://github.com/pion/ion/wiki/1.-Quick-Start)
-* [2. Server-Side-Features](https://github.com/pion/ion/wiki/2.-Server-Side-Features)
-* [3. Client-Side-Features](https://github.com/pion/ion/wiki/3.-Client-Side-Features)
+### Deps
+
+This project uses docker
+
+https://docs.docker.com/get-docker/
+
+### Setup
+```
+docker network create ionnet
+```
+
+### Run
+```
+docker-compose -f docker-compose.stable.yml up
+```
+
+For dev and more options see the wiki
+
+* [Development](https://github.com/pion/ion/wiki/DockerDev)
+
 
 ## Roadmap
 

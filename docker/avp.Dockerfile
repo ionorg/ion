@@ -19,3 +19,4 @@ RUN apk --no-cache add ca-certificates
 COPY --from=0 /avp /usr/local/bin/avp
 
 ENTRYPOINT ["/usr/local/bin/avp"]
+CMD ["-c", "/configs/avp.toml"]

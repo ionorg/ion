@@ -18,3 +18,4 @@ RUN apk --no-cache add ca-certificates
 COPY --from=0 /islb /usr/local/bin/islb
 
 ENTRYPOINT ["/usr/local/bin/islb"]
+CMD ["-c", "/configs/islb.toml"]
