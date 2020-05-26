@@ -46,7 +46,7 @@ _build_avp_docker_job: &build_avp_docker_job
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: docker push pionwebrtc/ion-avp:latest
+    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-avp:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-avp:latest; fi
     on:
       branch: master
 
@@ -58,10 +58,9 @@ _build_biz_docker_job: &build_biz_docker_job
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: docker push pionwebrtc/ion-biz:latest
+    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-biz:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-biz:latest; fi
     on:
       branch: master
-      # tags: true
 
 _build_islb_docker_job: &build_islb_docker_job
   env: CACHE_NAME=build_islb_docker
@@ -71,10 +70,9 @@ _build_islb_docker_job: &build_islb_docker_job
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: docker push pionwebrtc/ion-islb:latest
+    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-islb:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-islb:latest; fi
     on:
       branch: master
-      # tags: true
 
 _build_sfu_docker_job: &build_sfu_docker_job
   env: CACHE_NAME=build_sfu_docker
@@ -84,10 +82,9 @@ _build_sfu_docker_job: &build_sfu_docker_job
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   deploy:
     provider: script
-    script: docker push pionwebrtc/ion-sfu:latest
+    script: if [ -n "$TRAVIS_TAG" ]; then docker push pionwebrtc/ion-sfu:"$TRAVIS_TAG"; else docker push pionwebrtc/ion-sfu:latest; fi
     on:
       branch: master
-      # tags: true
 
 _test_job: &test_job
   env: CACHE_NAME=test
