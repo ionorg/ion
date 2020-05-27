@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   sfu:
-    image: pionwebrtc/ion-sfu:0.2.0
+    image: pionwebrtc/ion-sfu:v0.4.0
     command: "-c /configs/sfu.toml"
     volumes:
       - "./configs/docker/sfu.toml:/configs/sfu.toml"
