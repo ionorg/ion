@@ -8,7 +8,7 @@ import (
 	"github.com/at-wat/ebml-go/webm"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/samplebuilder"
 	"github.com/pion/webrtc/v2"
 )
 

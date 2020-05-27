@@ -6,8 +6,8 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node/avp/elements"
-	"github.com/pion/ion/pkg/node/avp/process"
+	"github.com/pion/ion/pkg/process"
+	"github.com/pion/ion/pkg/process/elements"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )

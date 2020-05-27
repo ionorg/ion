@@ -8,9 +8,9 @@ import (
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/avp"
-	"github.com/pion/ion/pkg/node/avp/elements"
-	"github.com/pion/ion/pkg/node/avp/process"
-	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
+	"github.com/pion/ion/pkg/process"
+	"github.com/pion/ion/pkg/process/elements"
+	"github.com/pion/ion/pkg/process/samplebuilder"
 )
 
 func init() {

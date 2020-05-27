@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node/avp/elements"
-	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/elements"
+	"github.com/pion/ion/pkg/process/samplebuilder"
 	"github.com/pion/ion/pkg/rtc/transport"
 )
 
