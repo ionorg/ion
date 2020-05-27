@@ -136,26 +136,35 @@ jobs:
     - <<: *lint_job
       name: Lint 1.14
       go: 1.14
+      if: branch = master OR tag IS present
     - <<: *build_job
       name: Build 1.13
       go: 1.13
+      if: branch = master OR tag IS present
     - <<: *build_job
       name: Build 1.14
       go: 1.14
+      if: branch = master OR tag IS present
     - <<: *test_job
       name: Test 1.13
       go: 1.13
+      if: branch = master OR tag IS present
     - <<: *test_job
       name: Test 1.14
       go: 1.14
+      if: branch = master OR tag IS present
     - <<: *build_avp_docker_job
       name: Build avp docker
+      if: branch = master OR tag IS present
     - <<: *build_biz_docker_job
       name: Build biz docker
+      if: branch = master OR tag IS present
     - <<: *build_islb_docker_job
       name: Build islb docker
+      if: branch = master OR tag IS present
     - <<: *build_sfu_docker_job
       name: Build sfu docker
+      if: branch = master OR tag IS present
     # - <<: *test_i386_job
     #   name: Test i386 1.13
     #   env: GO_VERSION=1.13
