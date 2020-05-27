@@ -18,6 +18,7 @@ var (
 
 // WebmSaverConfig .
 type WebmSaverConfig struct {
+	Enabled   bool
 	Togglable bool
 	DefaultOn bool
 	Path      string

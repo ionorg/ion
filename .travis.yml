@@ -5,7 +5,6 @@ env:
   global:
     - GO111MODULE=on
     - GOLANGCI_LINT_VERSION=1.19.1
-    - VERSION=`if ! [[ $TRAVIS_TAG ]]; then echo latest; else echo $TRAVIS_TAG; fi`
 
 cache:
   directories:

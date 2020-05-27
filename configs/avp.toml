@@ -5,13 +5,18 @@ dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
 
-[plugins]
-on = true
+[pipeline.samplebuilder]
+# max late for audio rtp packets
+audiomaxlate = 100
+# max late for video rtp packets
+videomaxlate = 200
 
-[plugins.webmsaver]
-on = false
+[pipeline.webmsaver]
+enabled = true
+togglable = true
+defaulton = true
 # webm output path
-path = "./"
+path = "./out/"
 
 [rtp]
 # listen port
