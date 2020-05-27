@@ -1,4 +1,4 @@
-package samplebuilder
+package samples
 
 import (
 	"errors"
@@ -19,24 +19,16 @@ var (
 	ErrCodecNotSupported = errors.New("codec not supported")
 )
 
-// Sample constructed from rtp packets
-type Sample struct {
-	Type           int
-	Payload        []byte
-	Timestamp      uint32
-	SequenceNumber uint16
-}
-
-// Config .
-type Config struct {
+// BuilderConfig .
+type BuilderConfig struct {
 	ID           string
 	On           bool
 	AudioMaxLate uint16
 	VideoMaxLate uint16
 }
 
-// SampleBuilder Module for building video/audio samples from rtp streams
-type SampleBuilder struct {
+// Builder Module for building video/audio samples from rtp streams
+type Builder struct {
 	id                           string
 	stop                         bool
 	audioBuilder, videoBuilder   *samplebuilder.SampleBuilder
@@ -44,10 +36,10 @@ type SampleBuilder struct {
 	outChan                      chan *Sample
 }
 
-// NewSampleBuilder Initialize a new sample builder
-func NewSampleBuilder(config Config) *SampleBuilder {
-	log.Infof("NewSampleBuilder with config %+v", config)
-	s := &SampleBuilder{
+// NewBuilder Initialize a new sample builder
+func NewBuilder(config BuilderConfig) *Builder {
+	log.Infof("NewBuilder with config %+v", config)
+	s := &Builder{
 		id:           config.ID,
 		audioBuilder: samplebuilder.New(config.AudioMaxLate, &codecs.OpusPacket{}),
 		videoBuilder: samplebuilder.New(config.VideoMaxLate, &codecs.VP8Packet{}),
@@ -60,13 +52,13 @@ func NewSampleBuilder(config Config) *SampleBuilder {
 	return s
 }
 
-// ID SampleBuilder id
-func (s *SampleBuilder) ID() string {
+// ID Builder id
+func (s *Builder) ID() string {
 	return s.id
 }
 
-// WriteRTP Write RTP packet to SampleBuilder
-func (s *SampleBuilder) WriteRTP(pkt *rtp.Packet) error {
+// WriteRTP Write RTP packet to Builder
+func (s *Builder) WriteRTP(pkt *rtp.Packet) error {
 	if pkt.PayloadType == webrtc.DefaultPayloadTypeVP8 {
 		s.pushVP8(pkt)
 		return nil
@@ -78,19 +70,19 @@ func (s *SampleBuilder) WriteRTP(pkt *rtp.Packet) error {
 }
 
 // Read sample
-func (s *SampleBuilder) Read() *Sample {
+func (s *Builder) Read() *Sample {
 	return <-s.outChan
 }
 
 // Stop stop all buffer
-func (s *SampleBuilder) Stop() {
+func (s *Builder) Stop() {
 	if s.stop {
 		return
 	}
 	s.stop = true
 }
 
-func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
+func (s *Builder) pushOpus(pkt *rtp.Packet) {
 	s.audioBuilder.Push(pkt)
 
 	for {
@@ -99,7 +91,7 @@ func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
 			return
 		}
 		s.outChan <- &Sample{
-			Type:           webrtc.DefaultPayloadTypeOpus,
+			Type:           TypeOpus,
 			SequenceNumber: s.audioSequence,
 			Timestamp:      timestamp,
 			Payload:        sample.Data,
@@ -108,7 +100,7 @@ func (s *SampleBuilder) pushOpus(pkt *rtp.Packet) {
 	}
 }
 
-func (s *SampleBuilder) pushVP8(pkt *rtp.Packet) {
+func (s *Builder) pushVP8(pkt *rtp.Packet) {
 	s.videoBuilder.Push(pkt)
 	for {
 		sample, timestamp := s.videoBuilder.PopWithTimestamp()
@@ -117,7 +109,7 @@ func (s *SampleBuilder) pushVP8(pkt *rtp.Packet) {
 		}
 
 		s.outChan <- &Sample{
-			Type:           webrtc.DefaultPayloadTypeVP8,
+			Type:           TypeVP8,
 			SequenceNumber: s.videoSequence,
 			Timestamp:      timestamp,
 			Payload:        sample.Data,

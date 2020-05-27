@@ -10,7 +10,7 @@ import (
 	"github.com/pion/ion/pkg/node/avp"
 	"github.com/pion/ion/pkg/process"
 	"github.com/pion/ion/pkg/process/elements"
-	"github.com/pion/ion/pkg/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/samples"
 )
 
 func init() {
@@ -20,7 +20,7 @@ func init() {
 	}
 
 	pipelineConfig := process.Config{
-		SampleBuilder: samplebuilder.Config{
+		SampleBuilder: samples.BuilderConfig{
 			AudioMaxLate: conf.Pipeline.SampleBuilder.AudioMaxLate,
 			VideoMaxLate: conf.Pipeline.SampleBuilder.VideoMaxLate,
 		},
