@@ -11,6 +11,11 @@ import (
 	"github.com/pion/ion/pkg/process/samples"
 )
 
+const (
+	// TypeWebmSaver .
+	TypeWebmSaver = "WebmSaver"
+)
+
 var (
 	config WebmSaverConfig
 )
