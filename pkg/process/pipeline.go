@@ -7,6 +7,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/process/elements"
 	"github.com/pion/ion/pkg/process/samples"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc/transport"
 )
 
@@ -18,10 +19,14 @@ var (
 	config Config
 )
 
+type getDefaultElementsFn func(id string) map[string]elements.Element
+type getTogglableElementFn func(msg proto.ElementInfo) (elements.Element, error)
+
 // Config for pipeline
 type Config struct {
-	SampleBuilder samples.BuilderConfig
-	WebmSaver     elements.WebmSaverConfig
+	SampleBuilder       samples.BuilderConfig
+	GetDefaultElements  getDefaultElementsFn
+	GetTogglableElement getTogglableElementFn
 }
 
 // Pipeline constructs a processing graph
@@ -44,8 +49,6 @@ type Pipeline struct {
 // InitPipeline .
 func InitPipeline(c Config) {
 	config = c
-
-	elements.InitWebmSaver(c.WebmSaver)
 }
 
 // NewPipeline return a new Pipeline
@@ -53,15 +56,10 @@ func NewPipeline(id string, pub transport.Transport) *Pipeline {
 	log.Infof("NewPipeline id=%s", id)
 	p := &Pipeline{
 		pub:           pub,
-		elements:      make(map[string]elements.Element),
+		elements:      config.GetDefaultElements(id),
 		elementChans:  make(map[string]chan *samples.Sample),
 		sampleBuilder: samples.NewBuilder(config.SampleBuilder),
 		liveTime:      time.Now().Add(liveCycle),
-	}
-
-	if config.WebmSaver.DefaultOn {
-		webm := elements.NewWebmSaver(id)
-		p.AddElement(elements.TypeWebmSaver, webm)
 	}
 
 	p.start()
@@ -113,16 +111,21 @@ func (p *Pipeline) start() {
 }
 
 // AddElement add a element to pipeline
-func (p *Pipeline) AddElement(name string, e elements.Element) {
-	if p.elements[name] != nil {
-		log.Errorf("Pipeline.AddElement element %s already exists.", name)
+func (p *Pipeline) AddElement(einfo proto.ElementInfo) {
+	if p.elements[einfo.Type] != nil {
+		log.Errorf("Pipeline.AddElement element %s already exists.", einfo.Type)
+		return
+	}
+	element, err := config.GetTogglableElement(einfo)
+	if err != nil {
+		log.Errorf("GetTogglableElement error => %s", err)
 		return
 	}
 	p.elementLock.Lock()
 	defer p.elementLock.Unlock()
-	p.elements[name] = e
-	p.elementChans[name] = make(chan *samples.Sample, 100)
-	log.Infof("Pipeline.AddElement name=%s", name)
+	p.elements[einfo.Type] = element
+	p.elementChans[einfo.Type] = make(chan *samples.Sample, 100)
+	log.Infof("Pipeline.AddElement type=%s", einfo.Type)
 }
 
 // GetElement get a node by id

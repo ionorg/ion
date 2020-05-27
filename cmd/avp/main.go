@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -11,7 +12,26 @@ import (
 	"github.com/pion/ion/pkg/process"
 	"github.com/pion/ion/pkg/process/elements"
 	"github.com/pion/ion/pkg/process/samples"
+	"github.com/pion/ion/pkg/proto"
 )
+
+func getDefaultElements(id string) map[string]elements.Element {
+	de := make(map[string]elements.Element)
+	if conf.Pipeline.WebmSaver.Enabled && conf.Pipeline.WebmSaver.DefaultOn {
+		webm := elements.NewWebmSaver(id)
+		de[elements.TypeWebmSaver] = webm
+	}
+	return de
+}
+
+func getTogglableElement(msg proto.ElementInfo) (elements.Element, error) {
+	switch msg.Type {
+	case elements.TypeWebmSaver:
+		return elements.NewWebmSaver(msg.MID), nil
+	}
+
+	return nil, errors.New("element not found")
+}
 
 func init() {
 	log.Init(conf.Log.Level)
@@ -19,19 +39,14 @@ func init() {
 		panic(err)
 	}
 
-	pipelineConfig := process.Config{
+	process.InitPipeline(process.Config{
 		SampleBuilder: samples.BuilderConfig{
 			AudioMaxLate: conf.Pipeline.SampleBuilder.AudioMaxLate,
 			VideoMaxLate: conf.Pipeline.SampleBuilder.VideoMaxLate,
 		},
-		WebmSaver: elements.WebmSaverConfig{
-			Togglable: conf.Pipeline.WebmSaver.Togglable,
-			DefaultOn: conf.Pipeline.WebmSaver.DefaultOn,
-			Path:      conf.Pipeline.WebmSaver.Path,
-		},
-	}
-
-	process.InitPipeline(pipelineConfig)
+		GetDefaultElements:  getDefaultElements,
+		GetTogglableElement: getTogglableElement,
+	})
 }
 
 func main() {

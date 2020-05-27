@@ -7,7 +7,6 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/process"
-	"github.com/pion/ion/pkg/process/elements"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )
@@ -43,17 +42,13 @@ func handleRequest(rpcID string) {
 	})
 }
 
-func startProcess(msg proto.ElementInfo) (map[string]interface{}, *nprotoo.Error) {
-	log.Infof("process msg=%v", msg)
-	pipeline := process.GetPipeline(msg.MID)
+func startProcess(einfo proto.ElementInfo) (map[string]interface{}, *nprotoo.Error) {
+	log.Infof("process einfo=%v", einfo)
+	pipeline := process.GetPipeline(einfo.MID)
 	if pipeline == nil {
 		return nil, util.NewNpError(404, "process: pipeline not found")
 	}
-	element, err := elements.GetElement(msg)
-	if err != nil {
-		return nil, util.NewNpError(404, "process: element not found")
-	}
-	pipeline.AddElement(msg.Type, element)
+	pipeline.AddElement(einfo)
 	return util.Map(), nil
 }
 
