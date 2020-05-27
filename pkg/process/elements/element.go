@@ -3,7 +3,7 @@ package elements
 import (
 	"errors"
 
-	"github.com/pion/ion/pkg/node/avp/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/samplebuilder"
 	"github.com/pion/ion/pkg/proto"
 )
 
