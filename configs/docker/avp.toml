@@ -12,6 +12,7 @@ audiomaxlate = 100
 videomaxlate = 200
 
 [pipeline.webmsaver]
+enabled = true
 togglable = true
 defaulton = true
 # webm output path

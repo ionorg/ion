@@ -42,6 +42,7 @@ type pipeline struct {
 }
 
 type webmsaver struct {
+	Enabled   bool   `mapstructure:"enabled"`
 	Togglable bool   `mapstructure:"togglable"`
 	DefaultOn bool   `mapstructure:"defaulton"`
 	Path      string `mapstructure:"path"`
