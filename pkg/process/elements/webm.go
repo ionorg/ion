@@ -8,8 +8,7 @@ import (
 	"github.com/at-wat/ebml-go/webm"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/process/samplebuilder"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/ion/pkg/process/samples"
 )
 
 var (
@@ -46,16 +45,16 @@ func NewWebmSaver(id string) *WebmSaver {
 }
 
 // Write sample to webmsaver
-func (s *WebmSaver) Write(sample *samplebuilder.Sample) error {
-	if sample.Type == webrtc.DefaultPayloadTypeVP8 {
+func (s *WebmSaver) Write(sample *samples.Sample) error {
+	if sample.Type == samples.TypeVP8 {
 		s.pushVP8(sample)
-	} else if sample.Type == webrtc.DefaultPayloadTypeOpus {
+	} else if sample.Type == samples.TypeOpus {
 		s.pushOpus(sample)
 	}
 	return nil
 }
 
-func (s *WebmSaver) Read() <-chan *samplebuilder.Sample {
+func (s *WebmSaver) Read() <-chan *samples.Sample {
 	return nil
 }
 
@@ -74,7 +73,7 @@ func (s *WebmSaver) Close() {
 	}
 }
 
-func (s *WebmSaver) pushOpus(sample *samplebuilder.Sample) {
+func (s *WebmSaver) pushOpus(sample *samples.Sample) {
 	if s.audioWriter != nil {
 		if s.audioTimestamp == 0 {
 			s.audioTimestamp = sample.Timestamp
@@ -86,7 +85,7 @@ func (s *WebmSaver) pushOpus(sample *samplebuilder.Sample) {
 	}
 }
 
-func (s *WebmSaver) pushVP8(sample *samplebuilder.Sample) {
+func (s *WebmSaver) pushVP8(sample *samples.Sample) {
 	// Read VP8 header.
 	videoKeyframe := (sample.Payload[0]&0x1 == 0)
 

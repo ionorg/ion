@@ -3,7 +3,7 @@ package elements
 import (
 	"errors"
 
-	"github.com/pion/ion/pkg/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/samples"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -14,8 +14,8 @@ const (
 
 // Element interface
 type Element interface {
-	Write(*samplebuilder.Sample) error
-	Read() <-chan *samplebuilder.Sample
+	Write(*samples.Sample) error
+	Read() <-chan *samples.Sample
 	Close()
 }
 

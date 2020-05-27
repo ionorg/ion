@@ -6,7 +6,7 @@ import (
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/process/elements"
-	"github.com/pion/ion/pkg/process/samplebuilder"
+	"github.com/pion/ion/pkg/process/samples"
 	"github.com/pion/ion/pkg/rtc/transport"
 )
 
@@ -20,7 +20,7 @@ var (
 
 // Config for pipeline
 type Config struct {
-	SampleBuilder samplebuilder.Config
+	SampleBuilder samples.BuilderConfig
 	WebmSaver     elements.WebmSaverConfig
 }
 
@@ -35,8 +35,8 @@ type Pipeline struct {
 	pub           transport.Transport
 	elements      map[string]elements.Element
 	elementLock   sync.RWMutex
-	elementChans  map[string]chan *samplebuilder.Sample
-	sampleBuilder *samplebuilder.SampleBuilder
+	elementChans  map[string]chan *samples.Sample
+	sampleBuilder *samples.Builder
 	stop          bool
 	liveTime      time.Time
 }
@@ -54,8 +54,8 @@ func NewPipeline(id string, pub transport.Transport) *Pipeline {
 	p := &Pipeline{
 		pub:           pub,
 		elements:      make(map[string]elements.Element),
-		elementChans:  make(map[string]chan *samplebuilder.Sample),
-		sampleBuilder: samplebuilder.NewSampleBuilder(config.SampleBuilder),
+		elementChans:  make(map[string]chan *samples.Sample),
+		sampleBuilder: samples.NewBuilder(config.SampleBuilder),
 		liveTime:      time.Now().Add(liveCycle),
 	}
 
@@ -121,7 +121,7 @@ func (p *Pipeline) AddElement(name string, e elements.Element) {
 	p.elementLock.Lock()
 	defer p.elementLock.Unlock()
 	p.elements[name] = e
-	p.elementChans[name] = make(chan *samplebuilder.Sample, 100)
+	p.elementChans[name] = make(chan *samples.Sample, 100)
 	log.Infof("Pipeline.AddElement name=%s", name)
 }
 
