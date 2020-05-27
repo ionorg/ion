@@ -9,13 +9,14 @@ import (
 )
 
 var (
-	cfg      = config{}
+	cfg      = Config{}
 	Global   = &cfg.Global
 	Pipeline = &cfg.Pipeline
 	Rtp      = &cfg.Rtp
 	Log      = &cfg.Log
 	Etcd     = &cfg.Etcd
 	Nats     = &cfg.Nats
+	CfgFile  = &cfg.CfgFile
 )
 
 func init() {
@@ -66,7 +67,8 @@ type rtp struct {
 	KcpSalt string `mapstructure:"kcpsalt"`
 }
 
-type config struct {
+// Config for base AVP
+type Config struct {
 	Global   global   `mapstructure:"global"`
 	Pipeline pipeline `mapstructure:"pipeline"`
 	Rtp      rtp      `mapstructure:"rtp"`
@@ -82,7 +84,7 @@ func showHelp() {
 	fmt.Println("      -h (show help info)")
 }
 
-func (c *config) load() bool {
+func (c *Config) load() bool {
 	_, err := os.Stat(c.CfgFile)
 	if err != nil {
 		return false
@@ -106,7 +108,8 @@ func (c *config) load() bool {
 	return true
 }
 
-func (c *config) parse() bool {
+func (c *Config) parse() bool {
+
 	flag.StringVar(&c.CfgFile, "c", "conf/conf.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
