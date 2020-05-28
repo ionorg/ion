@@ -28,7 +28,7 @@ services:
       - etcd
 
   islb:
-    image: pionwebrtc/ion-islb:v0.4.0
+    image: pionwebrtc/ion-islb:v0.4.1
     command: "-c /configs/islb.toml"
     volumes:
       - "./configs/docker/islb.toml:/configs/islb.toml"
