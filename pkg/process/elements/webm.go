@@ -1,6 +1,7 @@
 package elements
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -61,6 +62,11 @@ func (s *WebmSaver) Write(sample *samples.Sample) error {
 
 func (s *WebmSaver) Read() <-chan *samples.Sample {
 	return nil
+}
+
+// Attach attach a child element
+func (s *WebmSaver) Attach() error {
+	return errors.New("attach not supported")
 }
 
 // Close Close the WebmSaver
