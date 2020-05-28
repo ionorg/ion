@@ -30,7 +30,32 @@ var (
 	errInvalidPacket  = errors.New("packet is nil")
 	errInvalidPC      = errors.New("pc is nil")
 	errInvalidOptions = errors.New("invalid options")
+
+	ptTransformMap = map[uint8][]uint8{
+		webrtc.DefaultPayloadTypeVP8:  {120},
+		webrtc.DefaultPayloadTypeVP9:  {121},
+		webrtc.DefaultPayloadTypeOpus: {109},
+
+		// reverse
+		121: {webrtc.DefaultPayloadTypeVP9},
+		120: {webrtc.DefaultPayloadTypeVP8},
+		109: {webrtc.DefaultPayloadTypeOpus},
+	}
+	// TODO build one from the other
+	codecTransformMap = map[string][]uint8{
+		webrtc.VP8:  {webrtc.DefaultPayloadTypeVP8, 120},
+		webrtc.VP9:  {webrtc.DefaultPayloadTypeVP9, 121},
+		webrtc.Opus: {webrtc.DefaultPayloadTypeOpus, 109},
+	}
 )
+
+func PaylaodTransformMap() map[uint8][]uint8 {
+	return ptTransformMap
+}
+
+func CodecTransformMap() map[string][]uint8 {
+	return codecTransformMap
+}
 
 // InitWebRTC init WebRTCTransport setting
 func InitWebRTC(iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16) error {
@@ -65,77 +90,84 @@ type WebRTCTransport struct {
 	bandwidth         int
 	isPub             bool
 	shutdownChan      chan string
+	ptMap             map[uint32]uint8
 }
 
+// SetShutdownChan sets notify channel on transport shutdown
 func (w *WebRTCTransport) SetShutdownChan(ch chan string) {
 	w.shutdownChan = ch
 }
 
-func (w *WebRTCTransport) init(options map[string]interface{}) error {
+func (w *WebRTCTransport) init(options RTCOptions) error {
 	w.mediaEngine = webrtc.MediaEngine{}
-	w.mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
 
 	rtcpfb := []webrtc.RTCPFeedback{
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBGoogREMB,
-		},
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBCCM,
-		},
-		webrtc.RTCPFeedback{
-			Type: webrtc.TypeRTCPFBNACK,
-		},
-		webrtc.RTCPFeedback{
-			Type: "nack pli",
-		},
-	}
-	publish := KvOK(options, "publish", "true")
-	tcc := KvOK(options, "transport-cc", "true")
-	dc := KvOK(options, "data-channel", "true")
-	codec := GetUpperString(options, "codec")
-	bandwidth, err := GetInt(options, "bandwidth")
-	if err == nil {
-		if publish {
-			w.bandwidth = bandwidth
-		}
+		{Type: webrtc.TypeRTCPFBGoogREMB},
+		{Type: webrtc.TypeRTCPFBCCM},
+		{Type: webrtc.TypeRTCPFBNACK},
+		{Type: "nack pli"},
 	}
 
-	if tcc {
+	if options.Publish && options.Bandwidth > 0 {
+		w.bandwidth = options.Bandwidth
+	}
+
+	if options.TransportCC {
 		rtcpfb = append(rtcpfb, webrtc.RTCPFeedback{
 			Type: webrtc.TypeRTCPFBTransportCC,
 		})
 	}
 
-	if publish {
-		if codec == webrtc.H264 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-		} else if codec == webrtc.VP8 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
-		} else if codec == webrtc.VP9 {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
-		} else {
-			w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-		}
-	} else {
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp))
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""))
-		w.mediaEngine.RegisterCodec(webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000))
+	codecMap := map[uint8]*webrtc.RTPCodec{
+		// Opus
+		webrtc.DefaultPayloadTypeOpus: webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000),
+		109:                           webrtc.NewRTPOpusCodec(109, 48000),
+		// VP8
+		webrtc.DefaultPayloadTypeVP8: webrtc.NewRTPVP8CodecExt(webrtc.DefaultPayloadTypeVP8, 90000, rtcpfb, ""),
+		120:                          webrtc.NewRTPVP8CodecExt(120, 90000, rtcpfb, ""),
+		// VP9
+		webrtc.DefaultPayloadTypeVP9: webrtc.NewRTPVP9Codec(webrtc.DefaultPayloadTypeVP9, 90000),
+		121:                          webrtc.NewRTPVP9Codec(121, 90000),
+		// H264
+		webrtc.DefaultPayloadTypeH264: webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp),
+		97:                            webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"),
+		126:                           webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"),
 	}
 
-	if !dc {
+	if len(options.Codecs) == 0 {
+		// Default add everything?
+		for _, v := range codecMap {
+			w.mediaEngine.RegisterCodec(v)
+		}
+	} else {
+		for _, c := range options.Codecs {
+			if codec, ok := codecMap[c]; ok {
+				w.mediaEngine.RegisterCodec(codec)
+			}
+		}
+	}
+
+	if !options.DataChannel {
 		setting.DetachDataChannels()
 	}
 	w.api = webrtc.NewAPI(webrtc.WithMediaEngine(w.mediaEngine), webrtc.WithSettingEngine(setting))
 	return nil
 }
 
+// RTCOptions options to open new transport
+type RTCOptions struct {
+	Publish     bool
+	Subscribe   bool
+	DataChannel bool
+	TransportCC bool
+	Codec       string
+	Codecs      []uint8
+	Bandwidth   int
+	Ssrcpt      map[uint32]uint8
+}
+
 // NewWebRTCTransport create a WebRTCTransport
-// options:
-//   "video" = webrtc.H264[default] webrtc.VP8  webrtc.VP9
-//   "audio" = webrtc.Opus[default] webrtc.PCMA webrtc.PCMU webrtc.G722
-//   "transport-cc"  = "true" or "false"[default]
-//   "data-channel"  = "true" or "false"[default]
-func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransport {
+func NewWebRTCTransport(id string, options RTCOptions) *WebRTCTransport {
 	w := &WebRTCTransport{
 		id:          id,
 		outTracks:   make(map[uint32]*webrtc.Track),
@@ -144,6 +176,7 @@ func NewWebRTCTransport(id string, options map[string]interface{}) *WebRTCTransp
 		rtcpCh:      make(chan rtcp.Packet, maxChanSize),
 		candidateCh: make(chan *webrtc.ICECandidate, maxChanSize),
 		alive:       true,
+		ptMap:       make(map[uint32]uint8),
 	}
 	err := w.init(options)
 	if err != nil {
@@ -244,10 +277,17 @@ func (w *WebRTCTransport) AddSendTrack(ssrc uint32, pt uint8, streamID string, t
 		return nil, err
 	}
 
-	_, err = w.pc.AddTransceiverFromTrack(track, webrtc.RtpTransceiverInit{Direction: webrtc.RTPTransceiverDirectionSendonly})
+	_, err = w.pc.AddTransceiverFromTrack(track, webrtc.RtpTransceiverInit{
+		Direction: webrtc.RTPTransceiverDirectionSendonly,
+		SendEncodings: []webrtc.RTPEncodingParameters{webrtc.RTPEncodingParameters{
+			RTPCodingParameters: webrtc.RTPCodingParameters{SSRC: ssrc, PayloadType: pt}},
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	w.ptMap[ssrc] = pt
 
 	w.outTrackLock.Lock()
 	w.outTracks[ssrc] = track
@@ -269,8 +309,8 @@ func (w *WebRTCTransport) AddCandidate(candidate string) error {
 }
 
 // Answer answer to pub or sub
-func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[string]interface{}) (webrtc.SessionDescription, error) {
-	w.isPub = KvOK(options, "publish", "true")
+func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options RTCOptions) (webrtc.SessionDescription, error) {
+	w.isPub = options.Publish
 	if w.isPub {
 		w.pc.OnTrack(func(remoteTrack *webrtc.Track, receiver *webrtc.RTPReceiver) {
 			w.inTrackLock.Lock()
@@ -281,11 +321,10 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options map[st
 			w.receiveInTrackRTP(remoteTrack)
 		})
 	} else {
-		ssrcPT := options["ssrcpt"]
-		if ssrcPT == nil {
+		if options.Ssrcpt == nil {
 			return webrtc.SessionDescription{}, errInvalidOptions
 		}
-		ssrcPTMap, _ := ssrcPT.(map[uint32]uint8)
+		ssrcPTMap := options.Ssrcpt
 		if len(ssrcPTMap) == 0 {
 			return webrtc.SessionDescription{}, errInvalidOptions
 		}
@@ -368,12 +407,34 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 	if pkt == nil {
 		return errInvalidPacket
 	}
+
+	// Handle PT rewrites
+	// If pub packet is not of paylod sub wants
+	srcType := pkt.Header.PayloadType
+	destType := w.ptMap[pkt.Header.SSRC]
+	if srcType != destType {
+		// And we can "transform it"
+		if candid, ok := ptTransformMap[srcType]; ok {
+			// sub pt is listed in transform map[paylod] array
+			for _, k := range candid {
+				if destType == k {
+					// Do the transform
+					newPkt := *pkt
+					log.Debugf("Transforming %v => %v", srcType, destType)
+					newPkt.Header.PayloadType = destType
+					pkt = &newPkt
+					break
+				}
+			}
+		}
+	}
+
 	w.outTrackLock.RLock()
 	track := w.outTracks[pkt.SSRC]
 	w.outTrackLock.RUnlock()
 
 	if track == nil {
-		log.Errorf("WebRTCTransport.WriteRTP track==nil pkt.SSRC=%d", pkt.SSRC)
+		log.Errorf("WebRTCTransport.WriteRTP track==nil pkt.SSRC=%d PT=%d", pkt.SSRC, pkt.Header.PayloadType)
 		return errInvalidTrack
 	}
 

@@ -69,27 +69,53 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	mid := uuid.New().String()
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
-	rtcOptions := make(map[string]interface{})
-	rtcOptions["transport-cc"] = "false"
-	rtcOptions["publish"] = "true"
+	rtcOptions := transport.RTCOptions{
+		TransportCC: false,
+		Publish:     true,
+	}
 
 	options := msg["options"]
 	if options != nil {
 		options, ok := msg["options"].(map[string]interface{})
 		if ok {
-			rtcOptions["codec"] = options["codec"]
-			rtcOptions["bandwidth"] = options["bandwidth"]
+			rtcOptions.Codec = options["codec"].(string)
+			// TODO parse int
+			rtcOptions.Bandwidth = int(options["bandwidth"].(float64))
 		}
 	}
 
-	videoCodec := strings.ToUpper(rtcOptions["codec"].(string))
+	videoCodec := strings.ToUpper(rtcOptions.Codec)
 
+	sdpObj, err := sdptransform.Parse(offer.SDP)
+	if err != nil {
+		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
+		return nil, util.NewNpError(415, "publish: sdp parse failed.")
+	}
+
+	allowedCodecs := make([]uint8, 0)
+	tracks := make(map[string][]proto.TrackInfo)
+	for _, stream := range sdpObj.GetStreams() {
+		for id, track := range stream.GetTracks() {
+			pt, codecType := getPubPTForTrack(videoCodec, track, sdpObj)
+
+			var infos []proto.TrackInfo
+			if len(track.GetSSRCS()) == 0 {
+				return nil, util.NewNpError(415, "publish: ssrc not found.")
+			}
+			allowedCodecs = append(allowedCodecs, pt)
+			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: int(pt), Type: track.GetMedia(), ID: id, Codec: codecType})
+			tracks[stream.GetID()+" "+id] = infos
+		}
+	}
+
+	rtcOptions.Codecs = allowedCodecs
 	pub := transport.NewWebRTCTransport(mid, rtcOptions)
 	if pub == nil {
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
 	}
 
 	router := rtc.GetOrNewRouter(mid)
+
 	go handleTrickle(router, pub)
 
 	answer, err := pub.Answer(offer, rtcOptions)
@@ -100,43 +126,6 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 
 	router.AddPub(uid, pub)
 
-	sdpObj, err := sdptransform.Parse(offer.SDP)
-	if err != nil {
-		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
-		return nil, util.NewNpError(415, "publish: sdp parse failed.")
-	}
-
-	tracks := make(map[string][]proto.TrackInfo)
-	for _, stream := range sdpObj.GetStreams() {
-		for id, track := range stream.GetTracks() {
-			pt := int(0)
-			codecType := ""
-			media := sdpObj.GetMedia(track.GetMedia())
-			codecs := media.GetCodecs()
-
-			for payload, codec := range codecs {
-				if track.GetMedia() == "audio" {
-					codecType = strings.ToUpper(codec.GetCodec())
-					if strings.EqualFold(codec.GetCodec(), webrtc.Opus) {
-						pt = payload
-						break
-					}
-				} else if track.GetMedia() == "video" {
-					codecType = strings.ToUpper(codec.GetCodec())
-					if codecType == videoCodec {
-						pt = payload
-						break
-					}
-				}
-			}
-			var infos []proto.TrackInfo
-			if len(track.GetSSRCS()) == 0 {
-				return nil, util.NewNpError(415, "publish: ssrc not found.")
-			}
-			infos = append(infos, proto.TrackInfo{Ssrc: int(track.GetSSRCS()[0]), Payload: pt, Type: track.GetMedia(), ID: id, Codec: codecType})
-			tracks[stream.GetID()+" "+id] = infos
-		}
-	}
 	log.Infof("publish tracks %v, answer = %v", tracks, answer)
 	return util.Map("jsep", answer, "mid", mid, "tracks", tracks), nil
 }
@@ -172,16 +161,17 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	sdp := util.Val(jsep, "sdp")
 
-	rtcOptions := make(map[string]interface{})
-	rtcOptions["transport-cc"] = "false"
-	rtcOptions["subscribe"] = "true"
+	rtcOptions := transport.RTCOptions{
+		TransportCC: false,
+		Subscribe:   true,
+	}
 
 	options := msg["options"]
 	if options != nil {
 		options, ok := msg["options"].(map[string]interface{})
 		if ok {
-			rtcOptions["codec"] = options["codec"]
-			rtcOptions["bandwidth"] = options["bandwidth"]
+			rtcOptions.Codec = options["codec"].(string)
+			rtcOptions.Bandwidth = int(options["bandwidth"].(float64)) // TODO parse
 		}
 	}
 
@@ -189,15 +179,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 
 	tracksMap := msg["tracks"].(map[string]interface{})
 	log.Infof("subscribe tracks=%v", tracksMap)
-	ssrcPT := make(map[uint32]uint8)
-	rtcOptions["ssrcpt"] = ssrcPT
-	sub := transport.NewWebRTCTransport(subID, rtcOptions)
-
-	if sub == nil {
-		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
-	}
-
-	go handleTrickle(router, sub)
+	rtcOptions.Ssrcpt = make(map[uint32]uint8)
 
 	tracks := make(map[string]proto.TrackInfo)
 	for msid, track := range tracksMap {
@@ -211,14 +193,48 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 				Codec:   info["codec"].(string),
 				Fmtp:    info["fmtp"].(string),
 			}
-			ssrcPT[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
+			rtcOptions.Ssrcpt[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
 			tracks[msid] = trackInfo
 		}
 	}
 
+	sdpObj, err := sdptransform.Parse(sdp)
+	if err != nil {
+		log.Errorf("err=%v sdpObj=%v", err, sdpObj)
+		return nil, util.NewNpError(415, "subscribe: sdp parse failed.")
+	}
+
+	ssrcPTMap := make(map[int]uint8)
+	allowedCodecs := make([]uint8, 0, len(tracks))
+
+	for _, track := range tracks {
+		// Find pt for track given track.Payload and sdp
+		ssrcPTMap[track.Ssrc] = getSubPTForTrack(track, sdpObj)
+		allowedCodecs = append(allowedCodecs, ssrcPTMap[track.Ssrc])
+	}
+
+	// Set media engine codecs based on found pts
+	log.Infof("Allowed codecs %v", allowedCodecs)
+	rtcOptions.Codecs = allowedCodecs
+
+	// New api
+	sub := transport.NewWebRTCTransport(subID, rtcOptions)
+
+	if sub == nil {
+		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
+	}
+
+	go handleTrickle(router, sub)
+
 	for msid, track := range tracks {
 		ssrc := uint32(track.Ssrc)
+		// Get payload type from request track
 		pt := uint8(track.Payload)
+		if newPt, ok := ssrcPTMap[track.Ssrc]; ok {
+			// Override with "negotiated" PT
+			pt = newPt
+		}
+
 		// I2AacsRLsZZriGapnvPKiKBcLi8rTrO1jOpq c84ded42-d2b0-4351-88d2-b7d240c33435
 		//                streamID                        trackID
 		streamID := strings.Split(msid, " ")[0]
@@ -230,12 +246,14 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		}
 	}
 
+	// Build answer
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	answer, err := sub.Answer(offer, rtcOptions)
 	if err != nil {
 		log.Errorf("err=%v answer=%v", err, answer)
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
+
 	router.AddSub(subID, sub)
 
 	log.Infof("subscribe mid %s, answer = %v", subID, answer)

@@ -139,7 +139,7 @@ func (r *Router) GetPub() transport.Transport {
 
 func (r *Router) subWriteLoop(subID string, trans transport.Transport) {
 	for pkt := range r.subChans[subID] {
-		// log.Infof(" WriteRTP %v:%v to %v ", pkt.SSRC, pkt.SequenceNumber, t.ID())
+		// log.Infof(" WriteRTP %v:%v to %v PT: %v", pkt.SSRC, pkt.SequenceNumber, trans.ID(), pkt.Header.PayloadType)
 
 		if err := trans.WriteRTP(pkt); err != nil {
 			// log.Errorf("wt.WriteRTP err=%v", err)
@@ -177,7 +177,7 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 						//origin ssrc
 						SenderSSRC: nack.SenderSSRC,
 						MediaSSRC:  nack.MediaSSRC,
-						Nacks:      []rtcp.NackPair{rtcp.NackPair{PacketID: nackPair.PacketID}},
+						Nacks:      []rtcp.NackPair{{PacketID: nackPair.PacketID}},
 					}
 					if r.pub != nil {
 						err := r.GetPub().WriteRTCP(n)
