@@ -1,7 +1,6 @@
 package elements
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -50,6 +49,11 @@ func NewWebmSaver(id string) *WebmSaver {
 	}
 }
 
+// Type of element
+func (s *WebmSaver) Type() string {
+	return TypeWebmSaver
+}
+
 // Write sample to webmsaver
 func (s *WebmSaver) Write(sample *samples.Sample) error {
 	if sample.Type == samples.TypeVP8 {
@@ -65,8 +69,8 @@ func (s *WebmSaver) Read() <-chan *samples.Sample {
 }
 
 // Attach attach a child element
-func (s *WebmSaver) Attach() error {
-	return errors.New("attach not supported")
+func (s *WebmSaver) Attach(e Element) error {
+	return ErrAttachNotSupported
 }
 
 // Close Close the WebmSaver
