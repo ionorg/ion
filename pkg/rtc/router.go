@@ -159,7 +159,7 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 			break
 		}
 		switch pkt := pkt.(type) {
-		case *rtcp.PictureLossIndication:
+		case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
 			if r.GetPub() != nil {
 				// Request a Key Frame
 				log.Infof("Router.AddSub got pli: %+v", pkt)
