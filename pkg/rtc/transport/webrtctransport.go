@@ -90,7 +90,7 @@ type WebRTCTransport struct {
 	bandwidth         int
 	isPub             bool
 	shutdownChan      chan string
-	ptMap             map[uint32]uint8
+	ssrcPtMap         map[uint32]uint8
 }
 
 // SetShutdownChan sets notify channel on transport shutdown
@@ -176,7 +176,7 @@ func NewWebRTCTransport(id string, options RTCOptions) *WebRTCTransport {
 		rtcpCh:      make(chan rtcp.Packet, maxChanSize),
 		candidateCh: make(chan *webrtc.ICECandidate, maxChanSize),
 		alive:       true,
-		ptMap:       make(map[uint32]uint8),
+		ssrcPtMap:   make(map[uint32]uint8),
 	}
 	err := w.init(options)
 	if err != nil {
@@ -287,7 +287,7 @@ func (w *WebRTCTransport) AddSendTrack(ssrc uint32, pt uint8, streamID string, t
 		return nil, err
 	}
 
-	w.ptMap[ssrc] = pt
+	w.ssrcPtMap[ssrc] = pt
 
 	w.outTrackLock.Lock()
 	w.outTracks[ssrc] = track
@@ -344,7 +344,7 @@ func (w *WebRTCTransport) Answer(offer webrtc.SessionDescription, options RTCOpt
 				}
 			}
 		}
-		w.receiveOutTrackRTCP()
+		w.receiveOutTracksRTCP()
 	}
 
 	err := w.pc.SetRemoteDescription(offer)
@@ -411,7 +411,7 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 	// Handle PT rewrites
 	// If pub packet is not of paylod sub wants
 	srcType := pkt.Header.PayloadType
-	destType := w.ptMap[pkt.Header.SSRC]
+	destType := w.ssrcPtMap[pkt.Header.SSRC]
 	if srcType != destType {
 		// And we can "transform it"
 		if candid, ok := ptTransformMap[srcType]; ok {
@@ -459,30 +459,31 @@ func (w *WebRTCTransport) Close() {
 	w.stop = true
 }
 
-// receive rtcp from outgoing tracks
-func (w *WebRTCTransport) receiveOutTrackRTCP() {
-	go func() {
-		for _, sender := range w.pc.GetSenders() {
-			for {
-				if w.stop {
-					return
-				}
+func (w *WebRTCTransport) receiveOutTracksRTCP() {
+	for _, sender := range w.pc.GetSenders() {
+		go w.receiveOutTrackRTCP(sender)
+	}
+}
 
-				pkts, err := sender.ReadRTCP()
-				if err != nil {
-					if err == io.EOF {
-						return
-					}
-					log.Errorf("rtcp err => %v", err)
-				}
-
-				for _, pkt := range pkts {
-					w.rtcpCh <- pkt
-				}
+// receive rtcp from outgoing track
+func (w *WebRTCTransport) receiveOutTrackRTCP(sender *webrtc.RTPSender) {
+	for {
+		pkts, err := sender.ReadRTCP()
+		if err != nil {
+			if err == io.EOF {
+				return
 			}
-
+			log.Errorf("rtcp err => %v", err)
 		}
-	}()
+
+		if w.stop {
+			return
+		}
+
+		for _, pkt := range pkts {
+			w.rtcpCh <- pkt
+		}
+	}
 }
 
 // GetInTracks return incoming tracks
