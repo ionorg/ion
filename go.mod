@@ -18,7 +18,7 @@ require (
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/rtcp v1.2.3
 	github.com/pion/rtp v1.5.4
-	github.com/pion/stun v0.3.3
+	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.0
 	github.com/pion/webrtc/v2 v2.2.13
 	github.com/rs/zerolog v1.18.0
