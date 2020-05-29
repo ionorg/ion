@@ -98,7 +98,7 @@ func (c *Config) load() bool {
 		fmt.Printf("config file %s read failed. %v\n", c.CfgFile, err)
 		return false
 	}
-	err = viper.GetViper().UnmarshalExact(c)
+	err = viper.GetViper().Unmarshal(c)
 	if err != nil {
 		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
 		return false
