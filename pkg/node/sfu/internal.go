@@ -70,8 +70,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 
 	rtcOptions := transport.RTCOptions{
-		TransportCC: false,
-		Publish:     true,
+		Publish: true,
 	}
 
 	options := msg["options"]
@@ -81,6 +80,9 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 			rtcOptions.Codec = options["codec"].(string)
 			// TODO parse int
 			rtcOptions.Bandwidth = int(options["bandwidth"].(float64))
+			if util.KvOK(options, "transport-cc", "true") {
+				rtcOptions.TransportCC = true
+			}
 		}
 	}
 
@@ -161,8 +163,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	sdp := util.Val(jsep, "sdp")
 
 	rtcOptions := transport.RTCOptions{
-		TransportCC: false,
-		Subscribe:   true,
+		Subscribe: true,
 	}
 
 	options := msg["options"]
@@ -171,6 +172,9 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 		if ok {
 			rtcOptions.Codec = options["codec"].(string)
 			rtcOptions.Bandwidth = int(options["bandwidth"].(float64)) // TODO parse
+			if util.KvOK(options, "transport-cc", "true") {
+				rtcOptions.TransportCC = true
+			}
 		}
 	}
 

@@ -23,6 +23,7 @@ const (
 type JitterBufferConfig struct {
 	ID            string
 	On            bool
+	TCCOn         bool
 	REMBCycle     int
 	PLICycle      int
 	MaxBandwidth  int
@@ -103,10 +104,13 @@ func (j *JitterBuffer) AttachPub(t transport.Transport) {
 // AddBuffer add a buffer by ssrc
 func (j *JitterBuffer) AddBuffer(ssrc uint32) *Buffer {
 	log.Infof("JitterBuffer.AddBuffer ssrc=%d", ssrc)
-	b := NewBuffer()
-	b.InitBufferTime(j.config.MaxBufferTime)
+	o := BufferOptions{
+		TCCOn:      j.config.TCCOn,
+		BufferTime: j.config.MaxBufferTime,
+	}
+	b := NewBuffer(o)
 	j.buffers[ssrc] = b
-	j.nackLoop(b)
+	j.rtcpLoop(b)
 	return b
 }
 
@@ -149,18 +153,18 @@ func (j *JitterBuffer) ReadRTP() <-chan *rtp.Packet {
 	return j.outRTPChan
 }
 
-func (j *JitterBuffer) nackLoop(b *Buffer) {
+func (j *JitterBuffer) rtcpLoop(b *Buffer) {
 	go func() {
-		for nack := range b.GetRTCPChan() {
+		for pkt := range b.GetRTCPChan() {
 			if j.stop {
 				return
 			}
 			if j.Pub == nil {
 				continue
 			}
-			err := j.Pub.WriteRTCP(nack)
+			err := j.Pub.WriteRTCP(pkt)
 			if err != nil {
-				log.Errorf("JitterBuffer.nackLoop j.Pub.WriteRTCP err=%v", err)
+				log.Errorf("JitterBuffer.rtcpLoop j.Pub.WriteRTCP err=%v", err)
 			}
 		}
 	}()

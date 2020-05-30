@@ -21,6 +21,21 @@ var (
 	localIPPrefix = [...]string{"192.168", "10.0", "169.254", "172.16"}
 )
 
+// KvOK check flag and value
+func KvOK(m map[string]interface{}, k, v string) bool {
+	str := ""
+	val, ok := m[k]
+	if ok {
+		str, ok = val.(string)
+		if ok {
+			if strings.EqualFold(str, v) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func IsLocalIP(ip string) bool {
 	for i := 0; i < len(localIPPrefix); i++ {
 		if strings.HasPrefix(ip, localIPPrefix[i]) {

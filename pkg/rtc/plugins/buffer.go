@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtcp"
@@ -25,6 +26,16 @@ const (
 
 	//default buffer time by ms
 	defaultBufferTime = 1000
+
+	tccExtMapID = 3
+	//64ms = 64000us = 250 << 8
+	//https://webrtc.googlesource.com/src/webrtc/+/f54860e9ef0b68e182a01edc994626d21961bc4b/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.cc#41
+	baseScaleFactor = 64000
+	//https://webrtc.googlesource.com/src/webrtc/+/f54860e9ef0b68e182a01edc994626d21961bc4b/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.cc#43
+	timeWrapPeriodUs = (int64(1) << 24) * baseScaleFactor
+
+	//experiment cycle
+	tccCycle = 10 * time.Millisecond
 )
 
 func tsDelta(x, y uint32) uint32 {
@@ -32,6 +43,12 @@ func tsDelta(x, y uint32) uint32 {
 		return x - y
 	}
 	return y - x
+}
+
+type rtpExtInfo struct {
+	//transport sequence num
+	TSN       uint16
+	Timestamp int64
 }
 
 // Buffer contains all packets
@@ -61,23 +78,156 @@ type Buffer struct {
 	maxBufferTS uint32
 
 	stop bool
+
+	feedbackPacketCount uint8
+
+	rtpExtInfoChan chan rtpExtInfo
+	// lastTCCSN      uint16
+	// bufferStartTS time.Time
+}
+
+type BufferOptions struct {
+	TCCOn      bool
+	BufferTime int
 }
 
 // NewBuffer constructs a new Buffer
-func NewBuffer() *Buffer {
+func NewBuffer(o BufferOptions) *Buffer {
 	b := &Buffer{
-		rtcpCh: make(chan rtcp.Packet, maxPktSize),
+		rtcpCh:         make(chan rtcp.Packet, maxPktSize),
+		rtpExtInfoChan: make(chan rtpExtInfo, maxPktSize),
 	}
+
+	if o.TCCOn {
+		b.calcTCCLoop()
+	}
+
+	if o.BufferTime <= 0 {
+		o.BufferTime = defaultBufferTime
+	}
+	b.maxBufferTS = uint32(o.BufferTime) * videoClock / 1000
+	// b.bufferStartTS = time.Now()
+	log.Infof("NewBuffer BufferOptions=%v", o)
 	return b
 }
 
-// InitBufferTime init buffer time by ms
-func (b *Buffer) InitBufferTime(time int) {
-	if time <= 0 {
-		time = defaultBufferTime
+func (b *Buffer) calcTCCLoop() {
+	go func() {
+		t := time.NewTicker(tccCycle)
+		defer t.Stop()
+		for {
+			if b.stop {
+				return
+			}
+			<-t.C
+			b.calcTCC()
+		}
+	}()
+}
+
+func (b *Buffer) calcTCC() {
+	cap := len(b.rtpExtInfoChan)
+	if cap == 0 {
+		return
 	}
-	b.maxBufferTS = uint32(time) * videoClock / 1000
-	log.Infof("Buffer.InitBufferTime time=%d b.maxBufferTS=%d", time, b.maxBufferTS)
+
+	//get all rtp extension infos from channel
+	rtpExtInfo := make(map[uint16]int64)
+	for i := 0; i < cap; i++ {
+		info := <-b.rtpExtInfoChan
+		rtpExtInfo[info.TSN] = info.Timestamp
+	}
+
+	//find the min and max transport sn
+	var minTSN, maxTSN uint16
+	for tsn := range rtpExtInfo {
+
+		//init
+		if minTSN == 0 {
+			minTSN = tsn
+		}
+
+		if minTSN > tsn {
+			minTSN = tsn
+		}
+
+		if maxTSN < tsn {
+			maxTSN = tsn
+		}
+	}
+
+	//force small deta rtcp.RunLengthChunk
+	chunk := &rtcp.RunLengthChunk{
+		Type:               rtcp.TypeTCCRunLengthChunk,
+		PacketStatusSymbol: rtcp.TypeTCCPacketReceivedSmallDelta,
+		RunLength:          maxTSN - minTSN + 1,
+	}
+
+	//gather deltas
+	var recvDeltas []*rtcp.RecvDelta
+	var refTime uint32
+	var lastTS int64
+	var baseTimeTicks int64
+	for i := minTSN; i <= maxTSN; i++ {
+		ts, ok := rtpExtInfo[i]
+
+		//lost packet
+		if !ok {
+			recvDelta := &rtcp.RecvDelta{
+				Type: rtcp.TypeTCCPacketReceivedSmallDelta,
+			}
+			recvDeltas = append(recvDeltas, recvDelta)
+			continue
+		}
+
+		// init lastTS
+		if lastTS == 0 {
+			lastTS = ts
+		}
+
+		//received packet
+		if baseTimeTicks == 0 {
+			baseTimeTicks = (ts % timeWrapPeriodUs) / baseScaleFactor
+		}
+
+		var delta int64
+		if lastTS == ts {
+			delta = ts%timeWrapPeriodUs - baseTimeTicks*baseScaleFactor
+		} else {
+			delta = (ts - lastTS) % timeWrapPeriodUs
+		}
+
+		if refTime == 0 {
+			refTime = uint32(baseTimeTicks) & 0x007FFFFF
+		}
+
+		recvDelta := &rtcp.RecvDelta{
+			Type:  rtcp.TypeTCCPacketReceivedSmallDelta,
+			Delta: delta,
+		}
+		recvDeltas = append(recvDeltas, recvDelta)
+	}
+	rtcpTCC := &rtcp.TransportLayerCC{
+		Header: rtcp.Header{
+			Padding: false,
+			Count:   rtcp.FormatTCC,
+			Type:    rtcp.TypeTransportSpecificFeedback,
+			// Length:  5, //need calc
+		},
+		// SenderSSRC:         b.ssrc,
+		MediaSSRC:          b.ssrc,
+		BaseSequenceNumber: minTSN,
+		PacketStatusCount:  maxTSN - minTSN + 1,
+		ReferenceTime:      refTime,
+		FbPktCount:         b.feedbackPacketCount,
+		RecvDeltas:         recvDeltas,
+		PacketChunks:       []rtcp.PacketStatusChunk{chunk},
+	}
+	rtcpTCC.Header.Length = rtcpTCC.Len()/4 - 1
+	if !b.stop {
+		b.rtcpCh <- rtcpTCC
+		b.feedbackPacketCount++
+	}
 }
 
 // Push adds a RTP Packet, out of order, new packet may be arrived later
@@ -109,6 +259,25 @@ func (b *Buffer) Push(p *rtp.Packet) {
 	b.pktBuffer[p.SequenceNumber] = p
 	b.lastPushSN = p.SequenceNumber
 
+	//store arrival time
+	timestampUs := time.Now().UnixNano() / 1000
+	rtpTCC := rtp.TransportCCExtension{}
+	err := rtpTCC.Unmarshal(p.GetExtension(tccExtMapID))
+	if err == nil {
+		// if time.Now().Sub(b.bufferStartTS) > time.Second {
+
+		//only calc the packet which rtpTCC.TransportSequence > b.lastTCCSN
+		//https://webrtc.googlesource.com/src/webrtc/+/f54860e9ef0b68e182a01edc994626d21961bc4b/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.cc#353
+		// if rtpTCC.TransportSequence > b.lastTCCSN {
+		b.rtpExtInfoChan <- rtpExtInfo{
+			TSN:       rtpTCC.TransportSequence,
+			Timestamp: timestampUs,
+		}
+		// b.lastTCCSN = rtpTCC.TransportSequence
+		// }
+	}
+	// }
+
 	// clear old packet by timestamp
 	b.clearOldPkt(p.Timestamp, p.SequenceNumber)
 
@@ -126,8 +295,8 @@ func (b *Buffer) Push(p *rtp.Packet) {
 			b.lostPkt += lostPkt
 			nack := &rtcp.TransportLayerNack{
 				//origin ssrc
-				SenderSSRC: b.ssrc,
-				MediaSSRC:  b.ssrc,
+				// SenderSSRC: b.ssrc,
+				MediaSSRC: b.ssrc,
 				Nacks: []rtcp.NackPair{
 					nackPair,
 				},
