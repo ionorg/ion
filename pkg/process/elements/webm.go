@@ -16,16 +16,10 @@ const (
 	TypeWebmSaver = "WebmSaver"
 )
 
-var (
-	config WebmSaverConfig
-)
-
 // WebmSaverConfig .
 type WebmSaverConfig struct {
-	Enabled   bool
-	Togglable bool
-	DefaultOn bool
-	Path      string
+	ID   string
+	Path string
 }
 
 // WebmSaver Module for saving rtp streams to webm
@@ -36,15 +30,10 @@ type WebmSaver struct {
 	audioTimestamp, videoTimestamp uint32
 }
 
-// InitWebmSaver sets initial config
-func InitWebmSaver(c WebmSaverConfig) {
-	config = c
-}
-
 // NewWebmSaver Initialize a new webm saver
-func NewWebmSaver(id string) *WebmSaver {
+func NewWebmSaver(config WebmSaverConfig) *WebmSaver {
 	return &WebmSaver{
-		id:   id,
+		id:   config.ID,
 		path: config.Path,
 	}
 }

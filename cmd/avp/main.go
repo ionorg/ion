@@ -18,7 +18,10 @@ import (
 func getDefaultElements(id string) map[string]elements.Element {
 	de := make(map[string]elements.Element)
 	if conf.Pipeline.WebmSaver.Enabled && conf.Pipeline.WebmSaver.DefaultOn {
-		webm := elements.NewWebmSaver(id)
+		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
+			ID:   id,
+			Path: conf.Pipeline.WebmSaver.Path,
+		})
 		de[elements.TypeWebmSaver] = webm
 	}
 	return de
@@ -27,7 +30,10 @@ func getDefaultElements(id string) map[string]elements.Element {
 func getTogglableElement(msg proto.ElementInfo) (elements.Element, error) {
 	switch msg.Type {
 	case elements.TypeWebmSaver:
-		return elements.NewWebmSaver(msg.MID), nil
+		return elements.NewWebmSaver(elements.WebmSaverConfig{
+			ID:   msg.MID,
+			Path: conf.Pipeline.WebmSaver.Path,
+		}), nil
 	}
 
 	return nil, errors.New("element not found")
