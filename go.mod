@@ -5,15 +5,14 @@ go 1.13
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/at-wat/ebml-go v0.11.0
-	github.com/cloudwebrtc/go-protoo v0.0.0-20200510140124-cf4744e87257
-	github.com/cloudwebrtc/nats-protoo v0.0.0-20200328144814-d3c1c848d442
+	github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0
+	github.com/cloudwebrtc/nats-protoo v0.0.0-20200602160410-25aa7ab703af
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis/v7 v7.3.0
 	github.com/google/uuid v1.1.1
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
-	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/rtcp v1.2.3
 	github.com/pion/rtp v1.5.4

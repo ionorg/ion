@@ -1,8 +1,6 @@
 package biz
 
 import (
-	"encoding/json"
-
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -26,10 +24,10 @@ func login(peer *signal.Peer, msg proto.LoginMsg) (interface{}, *nprotoo.Error) 
 // join room
 func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
-	rid := msg.Rid
+	rid := msg.RID
 
 	// Validate
-	if msg.Rid == "" {
+	if msg.RID == "" {
 		return nil, ridError
 	}
 
@@ -48,35 +46,27 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	uid := peer.ID()
 	islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
 	// Send getPubs => islb
-	islb.AsyncRequest(proto.IslbGetPubs, util.Map("rid", rid, "uid", uid)).Then(
-		func(result map[string]interface{}) {
-			log.Infof("IslbGetPubs: result=%v", result)
-			if result["pubs"] == nil {
+	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
+		func(result nprotoo.RawMessage) {
+			var resMsg proto.GetPubResp
+			if err := result.Unmarshal(&resMsg); err != nil {
+				log.Errorf("Unmarshal pub response %v", err)
 				return
 			}
-			pubs := result["pubs"].([]interface{})
-			for _, pub := range pubs {
-				info := pub.(map[string]interface{})["info"].(string)
-				mid := pub.(map[string]interface{})["mid"].(string)
-				uid := pub.(map[string]interface{})["uid"].(string)
-				rid := result["rid"].(string)
-				tracks := pub.(map[string]interface{})["tracks"].(map[string]interface{})
-
-				var infoObj map[string]interface{}
-				err := json.Unmarshal([]byte(info), &infoObj)
-				if err != nil {
-					log.Errorf("json.Unmarshal: err=%v", err)
+			log.Infof("IslbGetPubs: result=%v", result)
+			for _, pub := range resMsg.Pubs {
+				if pub.MID == "" {
+					continue
 				}
-				log.Infof("IslbGetPubs: mid=%v info=%v", mid, infoObj)
-				// peer <=  range pubs(mid)
-				if mid != "" {
-					peer.Notify(proto.ClientOnStreamAdd, util.Map("rid", rid, "uid", uid, "mid", mid, "info", infoObj, "tracks", tracks))
+				notif := proto.StreamAddMsg{
+					MediaInfo: pub.MediaInfo,
+					Info:      pub.Info,
+					Tracks:    pub.Tracks,
 				}
+				peer.Notify(proto.ClientOnStreamAdd, notif)
 			}
 		},
-		func(err *nprotoo.Error) {
-
-		})
+		func(err *nprotoo.Error) {})
 
 	return emptyMap, nil
 }
@@ -85,10 +75,10 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 	log.Infof("biz.leave peer.ID()=%s msg=%v", peer.ID(), msg)
 	defer util.Recover("biz.leave")
 
-	rid := msg.Rid
+	rid := msg.RID
 
 	// Validate
-	if msg.Rid == "" {
+	if msg.RID == "" {
 		return nil, ridError
 	}
 
@@ -128,10 +118,16 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 
 	rid := room.ID()
 	uid := peer.ID()
-	result, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "rid", rid, "jsep", jsep, "options", options))
+	resMsg, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "rid", rid, "jsep", jsep, "options", options))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	var result map[string]interface{}
+	if err := resMsg.Unmarshal(&result); err != nil {
+		log.Errorf("Unmarshal pub response %v", err)
+		return nil, err
 	}
 
 	log.Infof("publish: result => %v", result)
@@ -207,12 +203,21 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 
-	result, err := islb.SyncRequest(proto.IslbGetMediaInfo, util.Map("rid", rid, "mid", mid))
+	result, err := islb.SyncRequest(proto.IslbGetMediaInfo, proto.MediaInfo{RID: rid, MID: mid})
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "rid", rid, "mid", mid, "tracks", result["tracks"], "jsep", jsep))
+	var some map[string]interface{}
+	if err := result.Unmarshal(&some); err != nil {
+		return nil, err
+	}
+	// subMsg := proto.SFUSubscribeMsg{
+	// 	MediaInfo: proto.MediaInfo{
+	// 		UID: uid, RID: rid, MID: mid,
+	// 	},
+	// }
+	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "rid", rid, "mid", mid, "tracks", some["tracks"], "jsep", jsep))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -251,7 +256,7 @@ func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo
 	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
 	// Validate
-	if msg.Rid == "" || msg.Uid == "" {
+	if msg.RID == "" || msg.UID == "" {
 		return nil, ridError
 	}
 
@@ -259,7 +264,7 @@ func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	rid, uid, info := msg.Rid, msg.Uid, msg.Info
+	rid, uid, info := msg.RID, msg.UID, msg.Info
 	islb.AsyncRequest(proto.IslbOnBroadcast, util.Map("rid", rid, "uid", uid, "info", info))
 	return emptyMap, nil
 }

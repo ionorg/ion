@@ -13,9 +13,9 @@ import (
 
 func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
-	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-		method := request["method"].(string)
-		data := json.RawMessage(request["data"].([]byte))
+	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
+		method := request.Method
+		data := request.Data
 		log.Debugf("handleRequest: method => %s, data => %v", method, data)
 
 		var proc proto.ElementInfo

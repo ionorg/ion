@@ -35,15 +35,13 @@ func ServiceNodeRegistry() {
 	serviceNode.RegisterNode("sfu", "node-name", "nats-channel-test")
 	protoo := nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
 	wg.Add(1)
-	protoo.OnRequest(serviceNode.GetRPCChannel(), func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-		method := request["method"].(string)
-		data := request["data"].(map[string]interface{})
-		log.Infof("method => %s, data => %v", method, data)
+	protoo.OnRequest(serviceNode.GetRPCChannel(), func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
+		log.Infof("method => %s, data => %v", request.Method, request.Data)
 		reject(404, "Not found")
 		wg.Done()
 	})
 
-	protoo.OnBroadcast(serviceNode.GetEventChannel(), func(data map[string]interface{}, subj string) {
+	protoo.OnBroadcast(serviceNode.GetEventChannel(), func(data nprotoo.Notification, subj string) {
 		log.Infof("Got Broadcast subj => %s, data => %v", subj, data)
 		wg.Done()
 	})
@@ -62,7 +60,7 @@ func ServiceNodeWatch() {
 			req := protoo.NewRequestor(GetRPCChannel(node))
 			wg.Add(1)
 			req.Request("offer", JsonEncode(`{ "sdp": "dummy-sdp"}`),
-				func(result map[string]interface{}) {
+				func(result nprotoo.RawMessage) {
 					log.Infof("offer success: =>  %s", result)
 				},
 				func(code int, err string) {

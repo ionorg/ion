@@ -26,7 +26,7 @@ type Peer struct {
 	peer.Peer
 }
 
-func (c *Peer) Request(method string, data map[string]interface{}) {
+func (c *Peer) Request(method string, data interface{}) {
 	c.Peer.Request(method, data, accept, reject)
 }
 

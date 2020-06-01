@@ -51,6 +51,10 @@ const (
 	IslbID = "islb"
 )
 
+type MID string
+type RID string
+type UID string
+
 /*
 media
 dc/${nid}/${rid}/${uid}/media/pub/${mid}
@@ -60,13 +64,12 @@ node2 shadow
 msid  [{ssrc: 1234, pt: 111, type:audio}]
 msid  [{ssrc: 5678, pt: 96, type:video}]
 */
-
 type MediaInfo struct {
 	DC  string `json:"dc,omitempty"`  //Data Center ID
 	NID string `json:"nid,omitempty"` //Node ID
-	RID string `json:"rid,omitempty"` //Room ID
-	UID string `json:"uid,omitempty"` //User ID
-	MID string `json:"mid,omitempty"` //Media ID
+	RID RID    `json:"rid,omitempty"` //Room ID
+	UID UID    `json:"uid,omitempty"` //User ID
+	MID MID    `json:"mid,omitempty"` //Media ID
 }
 
 func (m MediaInfo) BuildKey() string {
@@ -85,7 +88,7 @@ func (m MediaInfo) BuildKey() string {
 	if m.MID == "" {
 		m.MID = "*"
 	}
-	strs := []string{m.DC, m.NID, m.RID, m.UID, "media", "pub", m.MID}
+	strs := []string{m.DC, m.NID, string(m.RID), string(m.UID), "media", "pub", string(m.MID)}
 	return strings.Join(strs, "/")
 }
 
@@ -98,9 +101,9 @@ func ParseMediaInfo(key string) (*MediaInfo, error) {
 	}
 	info.DC = arr[0]
 	info.NID = arr[1]
-	info.RID = arr[2]
-	info.UID = arr[3]
-	info.MID = arr[6]
+	info.RID = RID(arr[2])
+	info.UID = UID(arr[3])
+	info.MID = MID(arr[6])
 	return &info, nil
 }
 
@@ -112,12 +115,12 @@ info {name: "Guest"}
 
 type UserInfo struct {
 	DC  string
-	RID string
-	UID string
+	RID RID
+	UID UID
 }
 
 func (u UserInfo) BuildKey() string {
-	strs := []string{u.DC, u.RID, "user", "info", u.UID}
+	strs := []string{u.DC, string(u.RID), "user", "info", string(u.UID)}
 	return strings.Join(strs, "/")
 }
 
@@ -128,8 +131,8 @@ func ParseUserInfo(key string) (*UserInfo, error) {
 		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
 	}
 	info.DC = arr[0]
-	info.RID = arr[1]
-	info.UID = arr[4]
+	info.RID = RID(arr[1])
+	info.UID = UID(arr[4])
 	return &info, nil
 }
 
