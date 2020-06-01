@@ -99,11 +99,12 @@ func (p *Pipeline) start() {
 			p.elementLock.RLock()
 			// Push to client send queues
 			for _, element := range p.elements {
-				err := element.Write(sample)
-				if err != nil {
-					log.Errorf("element.Write err=%v", err)
-					continue
-				}
+				go func(element elements.Element) {
+					err := element.Write(sample)
+					if err != nil {
+						log.Errorf("element.Write err=%v", err)
+					}
+				}(element)
 			}
 			p.elementLock.RUnlock()
 		}
