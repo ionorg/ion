@@ -52,6 +52,10 @@ func getPubPTForTrack(videoCodec string, track *sdp.TrackInfo, sdpObj *sdp.SDPIn
 			}
 		} else if track.GetMedia() == "video" {
 			codecName = strings.ToUpper(codec.GetCodec())
+			//skip 126 for pub, chrome sub will decode fail when H264 playload type is 126
+			if codecName == "H264" && payload == 126 {
+				continue
+			}
 			if codecName == videoCodec {
 				pt = uint8(payload)
 				break

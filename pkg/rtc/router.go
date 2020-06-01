@@ -162,14 +162,14 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 		case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
 			if r.GetPub() != nil {
 				// Request a Key Frame
-				log.Infof("Router.AddSub got pli: %+v", pkt)
+				log.Infof("Router got pli: %d", pkt.DestinationSSRC())
 				err := r.GetPub().WriteRTCP(pkt)
 				if err != nil {
-					log.Errorf("Router.AddSub pli err => %+v", err)
+					log.Errorf("Router pli err => %+v", err)
 				}
 			}
 		case *rtcp.TransportLayerNack:
-			// log.Infof("Router.AddSub got nack: %+v", pkt)
+			// log.Infof("Router got nack: %+v", pkt)
 			nack := pkt
 			for _, nackPair := range nack.Nacks {
 				if !r.ReSendRTP(subID, nack.MediaSSRC, nackPair.PacketID) {
@@ -182,7 +182,7 @@ func (r *Router) subFeedbackLoop(subID string, trans transport.Transport) {
 					if r.pub != nil {
 						err := r.GetPub().WriteRTCP(n)
 						if err != nil {
-							log.Errorf("Router.AddSub nack WriteRTCP err => %+v", err)
+							log.Errorf("Router nack WriteRTCP err => %+v", err)
 						}
 					}
 				}
