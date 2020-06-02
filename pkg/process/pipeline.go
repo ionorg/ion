@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/process/elements"
 	"github.com/pion/ion/pkg/process/samples"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc/transport"
@@ -19,8 +18,8 @@ var (
 	config Config
 )
 
-type getDefaultElementsFn func(id string) map[string]elements.Element
-type getTogglableElementFn func(msg proto.ElementInfo) (elements.Element, error)
+type getDefaultElementsFn func(id string) map[string]Element
+type getTogglableElementFn func(msg proto.ElementInfo) (Element, error)
 
 // Config for pipeline
 type Config struct {
@@ -38,7 +37,7 @@ type Config struct {
 //                                            +--->element
 type Pipeline struct {
 	pub           transport.Transport
-	elements      map[string]elements.Element
+	elements      map[string]Element
 	elementLock   sync.RWMutex
 	elementChans  map[string]chan *samples.Sample
 	sampleBuilder *samples.Builder
@@ -99,7 +98,7 @@ func (p *Pipeline) start() {
 			p.elementLock.RLock()
 			// Push to client send queues
 			for _, element := range p.elements {
-				go func(element elements.Element) {
+				go func(element Element) {
 					err := element.Write(sample)
 					if err != nil {
 						log.Errorf("element.Write err=%v", err)
@@ -130,7 +129,7 @@ func (p *Pipeline) AddElement(einfo proto.ElementInfo) {
 }
 
 // GetElement get a node by id
-func (p *Pipeline) GetElement(id string) elements.Element {
+func (p *Pipeline) GetElement(id string) Element {
 	p.elementLock.RLock()
 	defer p.elementLock.RUnlock()
 	return p.elements[id]

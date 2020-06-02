@@ -1,14 +1,7 @@
-package elements
+package process
 
 import (
-	"errors"
-
 	"github.com/pion/ion/pkg/process/samples"
-)
-
-var (
-	// ErrAttachNotSupported returned when attaching elments is not supported
-	ErrAttachNotSupported = errors.New("attach not supported")
 )
 
 // Element interface
