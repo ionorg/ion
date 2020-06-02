@@ -14,7 +14,6 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/stun"
-	"github.com/pion/webrtc/v2"
 )
 
 var (
@@ -209,15 +208,6 @@ func GetLostSN(begin, bitmap uint16) []uint16 {
 
 func GetMills() int64 {
 	return time.Now().UnixNano() / 1e6
-}
-
-func IsVideo(pt uint8) bool {
-	if pt == webrtc.DefaultPayloadTypeVP8 ||
-		pt == webrtc.DefaultPayloadTypeVP9 ||
-		pt == webrtc.DefaultPayloadTypeH264 {
-		return true
-	}
-	return false
 }
 
 func StrToUint8(str string) uint8 {

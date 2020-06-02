@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	maxChanSize = 100
-	IOSH264Fmtp = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+	maxChanSize       = 100
+	IOSH264Fmtp       = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+	FireFoxH264Fmtp97 = "profile-level-id=42e01f;level-asymmetry-allowed=1"
 )
 
 var (
@@ -34,17 +35,20 @@ var (
 	ptTransformMap = map[uint8][]uint8{
 		webrtc.DefaultPayloadTypeVP8:  {120},
 		webrtc.DefaultPayloadTypeVP9:  {121},
+		webrtc.DefaultPayloadTypeH264: {97},
 		webrtc.DefaultPayloadTypeOpus: {109},
 
 		// reverse
 		121: {webrtc.DefaultPayloadTypeVP9},
 		120: {webrtc.DefaultPayloadTypeVP8},
+		97:  {webrtc.DefaultPayloadTypeH264},
 		109: {webrtc.DefaultPayloadTypeOpus},
 	}
 	// TODO build one from the other
 	codecTransformMap = map[string][]uint8{
 		webrtc.VP8:  {webrtc.DefaultPayloadTypeVP8, 120},
 		webrtc.VP9:  {webrtc.DefaultPayloadTypeVP9, 121},
+		webrtc.H264: {webrtc.DefaultPayloadTypeH264, 97},
 		webrtc.Opus: {webrtc.DefaultPayloadTypeOpus, 109},
 	}
 )
@@ -55,6 +59,17 @@ func PaylaodTransformMap() map[uint8][]uint8 {
 
 func CodecTransformMap() map[string][]uint8 {
 	return codecTransformMap
+}
+
+// IsVideo check playload is video, now support chrome and firefox
+func IsVideo(pt uint8) bool {
+	if pt == webrtc.DefaultPayloadTypeVP8 ||
+		pt == webrtc.DefaultPayloadTypeVP9 ||
+		pt == webrtc.DefaultPayloadTypeH264 ||
+		pt == 126 || pt == 97 {
+		return true
+	}
+	return false
 }
 
 // InitWebRTC init WebRTCTransport setting
@@ -130,8 +145,7 @@ func (w *WebRTCTransport) init(options RTCOptions) error {
 		121:                          webrtc.NewRTPVP9Codec(121, 90000),
 		// H264
 		webrtc.DefaultPayloadTypeH264: webrtc.NewRTPH264CodecExt(webrtc.DefaultPayloadTypeH264, 90000, rtcpfb, IOSH264Fmtp),
-		97:                            webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1"),
-		126:                           webrtc.NewRTPH264CodecExt(126, 90000, rtcpfb, "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1"),
+		97:                            webrtc.NewRTPH264CodecExt(97, 90000, rtcpfb, FireFoxH264Fmtp97),
 	}
 
 	if len(options.Codecs) == 0 {
@@ -420,7 +434,7 @@ func (w *WebRTCTransport) WriteRTP(pkt *rtp.Packet) error {
 				if destType == k {
 					// Do the transform
 					newPkt := *pkt
-					log.Debugf("Transforming %v => %v", srcType, destType)
+					log.Infof("Transforming %v => %v", srcType, destType)
 					newPkt.Header.PayloadType = destType
 					pkt = &newPkt
 					break
