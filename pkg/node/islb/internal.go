@@ -22,6 +22,10 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 			service := node.Info["service"]
 			name := node.Info["name"]
 			log.Debugf("Service [%s] UP %s => %s", service, name, id)
+
+			eventID := discovery.GetEventChannel(node)
+			log.Infof("handleBroadCast: eventID => [%s]", eventID)
+			protoo.OnBroadcast(eventID, handleBroadcast)
 		}
 	} else if state == discovery.DOWN {
 		if _, found := services[id]; found {
@@ -393,41 +397,52 @@ func broadcast(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	return util.Map(), nil
 }
 
+func handle(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+	method := msg["method"].(string)
+	data := msg["data"].(map[string]interface{})
+	log.Infof("method => %s, data => %v", method, data)
+
+	switch method {
+	case proto.IslbFindService:
+		return findServiceNode(data)
+	case proto.IslbOnStreamAdd:
+		return streamAdd(data)
+	case proto.IslbOnStreamRemove:
+		return streamRemove(data)
+	case proto.IslbGetPubs:
+		return getPubs(data)
+	case proto.IslbClientOnJoin:
+		return clientJoin(data)
+	case proto.IslbClientOnLeave:
+		return clientLeave(data)
+	case proto.IslbGetMediaInfo:
+		return getMediaInfo(data)
+	case proto.IslbRelay:
+		return relay(data)
+	case proto.IslbUnrelay:
+		return unRelay(data)
+	case proto.IslbOnBroadcast:
+		return broadcast(data)
+	}
+
+	return nil, util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+}
+
+func handleBroadcast(msg map[string]interface{}, subj string) {
+	go func(msg map[string]interface{}) {
+		_, err := handle(msg)
+		if err != nil {
+			log.Debugf("handleBroadcast error => %s", err.Reason)
+		}
+	}(msg)
+}
+
 func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 
 	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
 		go func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-			method := request["method"].(string)
-			data := request["data"].(map[string]interface{})
-			log.Infof("method => %s, data => %v", method, data)
-
-			var result map[string]interface{}
-			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
-
-			switch method {
-			case proto.IslbFindService:
-				result, err = findServiceNode(data)
-			case proto.IslbOnStreamAdd:
-				result, err = streamAdd(data)
-			case proto.IslbOnStreamRemove:
-				result, err = streamRemove(data)
-			case proto.IslbGetPubs:
-				result, err = getPubs(data)
-			case proto.IslbClientOnJoin:
-				result, err = clientJoin(data)
-			case proto.IslbClientOnLeave:
-				result, err = clientLeave(data)
-			case proto.IslbGetMediaInfo:
-				result, err = getMediaInfo(data)
-			case proto.IslbRelay:
-				result, err = relay(data)
-			case proto.IslbUnrelay:
-				result, err = unRelay(data)
-			case proto.IslbOnBroadcast:
-				result, err = broadcast(data)
-			}
-
+			result, err := handle(request)
 			if err != nil {
 				reject(err.Code, err.Reason)
 			} else {
