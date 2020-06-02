@@ -7,7 +7,7 @@ require (
 	github.com/at-wat/ebml-go v0.11.0
 	github.com/cloudwebrtc/go-protoo v0.0.0-20200510140124-cf4744e87257
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200328144814-d3c1c848d442
-	github.com/coreos/etcd v3.3.22+incompatible // indirect
+	github.com/coreos/etcd v3.3.4+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis/v7 v7.3.0
@@ -22,16 +22,15 @@ require (
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.0
 	github.com/pion/webrtc/v2 v2.2.13
-	github.com/rs/zerolog v1.18.0
+	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
-	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/spf13/viper v1.7.0
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/tjfoc/gmsm v1.3.1 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
-	go.etcd.io/etcd v3.3.22+incompatible
+	go.etcd.io/etcd v3.3.4+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
