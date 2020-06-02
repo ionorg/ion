@@ -14,6 +14,7 @@ require (
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
 	github.com/notedit/sdp v0.0.4
+	github.com/pion/ion-elements v0.0.0-20200602184012-6219471db5b9 // indirect
 	github.com/pion/rtcp v1.2.3
 	github.com/pion/rtp v1.5.4
 	github.com/pion/stun v0.3.5
