@@ -43,6 +43,7 @@ func init() {
 		On: conf.Plugins.On,
 		JitterBuffer: plugins.JitterBufferConfig{
 			On:            conf.Plugins.JitterBuffer.On,
+			TCCOn:         conf.Plugins.JitterBuffer.TCCOn,
 			REMBCycle:     conf.Plugins.JitterBuffer.REMBCycle,
 			PLICycle:      conf.Plugins.JitterBuffer.PLICycle,
 			MaxBandwidth:  conf.Plugins.JitterBuffer.MaxBandwidth,

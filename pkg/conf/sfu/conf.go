@@ -39,6 +39,7 @@ type global struct {
 
 type JitterBuffer struct {
 	On            bool `mapstructure:"on"`
+	TCCOn         bool `mapstructure:"tccon"`
 	REMBCycle     int  `mapstructure:"rembcycle"`
 	PLICycle      int  `mapstructure:"plicycle"`
 	MaxBandwidth  int  `mapstructure:"maxbandwidth"`
