@@ -153,13 +153,13 @@ func (p *Pipeline) DelElement(id string) {
 
 func (p *Pipeline) delElements() {
 	p.elementLock.RLock()
-	keys := make([]string, 0, len(p.elements))
-	for k := range p.elements {
-		keys = append(keys, k)
+	ids := make([]string, 0, len(p.elements))
+	for id := range p.elements {
+		ids = append(ids, id)
 	}
 	p.elementLock.RUnlock()
 
-	for _, id := range keys {
+	for _, id := range ids {
 		p.DelElement(id)
 	}
 }
