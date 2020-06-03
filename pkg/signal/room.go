@@ -4,6 +4,7 @@ import (
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/room"
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 )
 
 type Room struct {
@@ -14,13 +15,13 @@ func (r *Room) AddPeer(peer *Peer) {
 	r.Room.AddPeer(&peer.Peer)
 }
 
-func (r *Room) ID() string {
-	return r.Room.ID()
+func (r *Room) ID() proto.RID {
+	return proto.RID(r.Room.ID())
 }
 
-func newRoom(id string) *Room {
+func newRoom(id proto.RID) *Room {
 	r := &Room{
-		Room: *room.NewRoom(id),
+		Room: *room.NewRoom(string(id)),
 	}
 	roomLock.Lock()
 	rooms[id] = r
@@ -28,7 +29,7 @@ func newRoom(id string) *Room {
 	return r
 }
 
-func getRoom(id string) *Room {
+func getRoom(id proto.RID) *Room {
 	roomLock.RLock()
 	r := rooms[id]
 	roomLock.RUnlock()
@@ -77,7 +78,7 @@ func GetRoomsByPeer(id string) []*Room {
 	return r
 }
 
-func DelPeer(rid, id string) {
+func DelPeer(rid proto.RID, id string) {
 	log.Infof("DelPeer rid=%s id=%s", rid, id)
 	room := getRoom(rid)
 	if room != nil {
@@ -85,7 +86,7 @@ func DelPeer(rid, id string) {
 	}
 }
 
-func AddPeer(rid string, peer *Peer) {
+func AddPeer(rid proto.RID, peer *Peer) {
 	log.Infof("AddPeer rid=%s peer.ID=%s", rid, peer.ID())
 	room := getRoom(rid)
 	if room == nil {
@@ -94,7 +95,7 @@ func AddPeer(rid string, peer *Peer) {
 	room.AddPeer(peer)
 }
 
-func HasPeer(rid string, peer *Peer) bool {
+func HasPeer(rid proto.RID, peer *Peer) bool {
 	log.Debugf("HasPeer rid=%s peer.ID=%s", rid, peer.ID())
 	room := getRoom(rid)
 	if room == nil {
@@ -103,7 +104,7 @@ func HasPeer(rid string, peer *Peer) bool {
 	return room.GetPeer(peer.ID()) != nil
 }
 
-func NotifyAllWithoutPeer(rid string, peer *Peer, method string, msg map[string]interface{}) {
+func NotifyAllWithoutPeer(rid proto.RID, peer *Peer, method string, msg interface{}) {
 	log.Debugf("signal.NotifyAllWithoutPeer rid=%s peer.ID=%s method=%s msg=%v", rid, peer.ID(), method, msg)
 	room := getRoom(rid)
 	if room != nil {
@@ -112,7 +113,7 @@ func NotifyAllWithoutPeer(rid string, peer *Peer, method string, msg map[string]
 	}
 }
 
-func NotifyAll(rid string, method string, msg map[string]interface{}) {
+func NotifyAll(rid proto.RID, method string, msg interface{}) {
 	room := getRoom(rid)
 	if room != nil {
 		room.Map(func(id string, peer *peer.Peer) {
@@ -123,12 +124,12 @@ func NotifyAll(rid string, method string, msg map[string]interface{}) {
 	}
 }
 
-func NotifyAllWithoutID(rid string, skipID string, method string, msg map[string]interface{}) {
+func NotifyAllWithoutID(rid proto.RID, skipID proto.UID, method string, msg interface{}) {
 	room := getRoom(rid)
 	log.Infof("room => %v", rid)
 	if room != nil {
 		room.Map(func(id string, peer *peer.Peer) {
-			if peer != nil && peer.ID() != skipID {
+			if peer != nil && proto.UID(peer.ID()) != skipID {
 				peer.Notify(method, msg)
 			}
 		})

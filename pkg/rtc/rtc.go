@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/ion/pkg/rtc/rtpengine"
 	"github.com/pion/ion/pkg/rtc/transport"
@@ -18,11 +19,11 @@ const (
 )
 
 var (
-	routers    = make(map[string]*Router)
+	routers    = make(map[proto.MID]*Router)
 	routerLock sync.RWMutex
 
 	//CleanChannel return the dead pub's mid
-	CleanChannel  = make(chan string, maxCleanSize)
+	CleanChannel  = make(chan proto.MID, maxCleanSize)
 	pluginsConfig plugins.Config
 
 	stop bool
@@ -77,8 +78,8 @@ func InitRTP(port int, kcpKey, kcpSalt string) error {
 					}
 
 					log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
-					if router := AddRouter(id); router != nil {
-						router.AddPub(id, rtpTransport)
+					if router := AddRouter(proto.MID(id)); router != nil {
+						router.AddPub(proto.UID(id), rtpTransport)
 					}
 				}(rtpTransport)
 			}
@@ -87,7 +88,7 @@ func InitRTP(port int, kcpKey, kcpSalt string) error {
 	return nil
 }
 
-func GetOrNewRouter(id string) *Router {
+func GetOrNewRouter(id proto.MID) *Router {
 	log.Infof("rtc.GetOrNewRouter id=%s", id)
 	router := GetRouter(id)
 	if router == nil {
@@ -97,7 +98,7 @@ func GetOrNewRouter(id string) *Router {
 }
 
 // GetRouter get router from map
-func GetRouter(id string) *Router {
+func GetRouter(id proto.MID) *Router {
 	log.Infof("rtc.GetRouter id=%s", id)
 	routerLock.RLock()
 	defer routerLock.RUnlock()
@@ -105,7 +106,7 @@ func GetRouter(id string) *Router {
 }
 
 // AddRouter add a new router
-func AddRouter(id string) *Router {
+func AddRouter(id proto.MID) *Router {
 	log.Infof("rtc.AddRouter id=%s", id)
 	routerLock.Lock()
 	defer routerLock.Unlock()
@@ -119,7 +120,7 @@ func AddRouter(id string) *Router {
 }
 
 // DelRouter delete pub
-func DelRouter(id string) {
+func DelRouter(id proto.MID) {
 	log.Infof("DelRouter id=%s", id)
 	router := GetRouter(id)
 	if router == nil {
@@ -165,7 +166,7 @@ func check() {
 				CleanChannel <- id
 				log.Infof("Stat delete %v", id)
 			}
-			info += "pub: " + id + "\n"
+			info += "pub: " + string(id) + "\n"
 			subs := router.GetSubs()
 			if len(subs) < 6 {
 				for id := range subs {

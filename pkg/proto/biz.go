@@ -10,9 +10,17 @@ type ClientUserInfo struct {
 	Name string `json:"name"`
 }
 
+func (m *ClientUserInfo) MarshalBinary() ([]byte, error) {
+	return json.Marshal(m)
+}
+
+func (m *ClientUserInfo) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, m)
+}
+
 type RoomInfo struct {
-	Rid string `json:"rid"`
-	Uid string `json:"uid"`
+	RID RID `json:"rid"`
+	UID UID `json:"uid"`
 }
 
 type RTCInfo struct {
@@ -20,12 +28,18 @@ type RTCInfo struct {
 }
 
 type PublishOptions struct {
-	Codec      string `json:"codec"`
-	Resolution string `json:"resolution"`
-	Bandwidth  int    `json:"bandwidth"`
-	Audio      bool   `json:"audio"`
-	Video      bool   `json:"video"`
-	Screen     bool   `json:"screen"`
+	Codec       string `json:"codec"`
+	Resolution  string `json:"resolution"`
+	Bandwidth   int    `json:"bandwidth"`
+	Audio       bool   `json:"audio"`
+	Video       bool   `json:"video"`
+	Screen      bool   `json:"screen"`
+	TransportCC bool   `json:"transportCC,omitempty"`
+}
+
+type SubscribeOptions struct {
+	Bandwidth   int  `json:"bandwidth"`
+	TransportCC bool `json:"transportCC"`
 }
 
 type TrackMap map[string][]TrackInfo
@@ -65,9 +79,15 @@ type UnpublishMsg struct {
 	MediaInfo
 }
 
+type SFUSubscribeMsg struct {
+	SubscribeMsg
+	Tracks TrackMap `json:"tracks"`
+}
+
 type SubscribeMsg struct {
 	MediaInfo
 	RTCInfo
+	Options SubscribeOptions
 }
 
 type SubscribeResponseMsg struct {

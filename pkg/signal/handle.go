@@ -65,7 +65,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	}
 
 	type CloseMsg struct {
-		Rid string `json:"rid"`
+		Rid proto.RID `json:"rid"`
 	}
 
 	handleClose := func(code int, err string) {
