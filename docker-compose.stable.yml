@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   sfu:
-    image: pionwebrtc/ion-sfu:v0.4.1
+    image: pionwebrtc/ion-sfu:v0.4.2
     ports:
       - "5000-5200:5000-5200/udp"
     depends_on:
