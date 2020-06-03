@@ -334,38 +334,38 @@ func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
 	return nil, util.NewNpError(404, "MediaInfo Not found")
 }
 
-func relay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
-	rid := util.Val(data, "rid")
-	mid := util.Val(data, "mid")
-	from := util.Val(data, "from")
+// func relay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
+// 	rid := util.Val(data, "rid")
+// 	mid := util.Val(data, "mid")
+// 	from := util.Val(data, "from")
 
-	key := proto.GetPubNodePath(rid, mid)
-	info := redis.HGetAll(key)
-	for ip := range info {
-		method := util.Map("method", proto.IslbRelay, "sid", from, "mid", mid)
-		log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
-		//amqp.RpcCall(ip, method, "")
-	}
-	return struct{}{}, nil
-}
+// 	key := proto.GetPubNodePath(rid, mid)
+// 	info := redis.HGetAll(key)
+// 	for ip := range info {
+// 		method := util.Map("method", proto.IslbRelay, "sid", from, "mid", mid)
+// 		log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
+// 		//amqp.RpcCall(ip, method, "")
+// 	}
+// 	return struct{}{}, nil
+// }
 
-func unRelay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
-	rid := util.Val(data, "rid")
-	mid := util.Val(data, "mid")
-	from := util.Val(data, "from")
+// func unRelay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
+// 	rid := util.Val(data, "rid")
+// 	mid := util.Val(data, "mid")
+// 	from := util.Val(data, "from")
 
-	key := proto.GetPubNodePath(rid, mid)
-	info := redis.HGetAll(key)
-	for ip := range info {
-		method := util.Map("method", proto.IslbUnrelay, "mid", mid, "sid", from)
-		log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
-		//amqp.RpcCall(ip, method, "")
-	}
-	// time.Sleep(time.Millisecond * 10)
-	resp := util.Map("mid", mid, "sid", from)
-	log.Infof("unRelay: resp=%v", resp)
-	return resp, nil
-}
+// 	key := proto.GetPubNodePath(rid, mid)
+// 	info := redis.HGetAll(key)
+// 	for ip := range info {
+// 		method := util.Map("method", proto.IslbUnrelay, "mid", mid, "sid", from)
+// 		log.Infof("amqp.RpcCall ip=%s, method=%v", ip, method)
+// 		//amqp.RpcCall(ip, method, "")
+// 	}
+// 	// time.Sleep(time.Millisecond * 10)
+// 	resp := util.Map("mid", mid, "sid", from)
+// 	log.Infof("unRelay: resp=%v", resp)
+// 	return resp, nil
+// }
 
 func broadcast(data proto.BroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("broadcaster.Say msg=%v", data)
