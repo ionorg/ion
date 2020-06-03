@@ -18,5 +18,7 @@ FROM alpine:3.11.6
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /avp /usr/local/bin/avp
 
+COPY configs/docker/avp.toml /configs/avp.toml
+
 ENTRYPOINT ["/usr/local/bin/avp"]
 CMD ["-c", "/configs/avp.toml"]

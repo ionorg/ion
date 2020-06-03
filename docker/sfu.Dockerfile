@@ -18,5 +18,7 @@ FROM alpine:3.11.6
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /sfu /usr/local/bin/sfu
 
+COPY configs/docker/sfu.toml /configs/sfu.toml
+
 ENTRYPOINT ["/usr/local/bin/sfu"]
 CMD ["-c", "/configs/sfu.toml"]

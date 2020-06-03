@@ -18,5 +18,7 @@ FROM alpine:3.11.6
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /biz /usr/local/bin/biz
 
+COPY configs/docker/biz.toml /configs/biz.toml
+
 ENTRYPOINT ["/usr/local/bin/biz"]
 CMD ["-c", "/configs/biz.toml"]
