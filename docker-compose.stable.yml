@@ -15,7 +15,7 @@ services:
       - ionnet
 
   biz:
-    image: pionwebrtc/ion-biz:v0.4.1
+    image: pionwebrtc/ion-biz:v0.4.2
     command: "-c /configs/biz.toml"
     volumes:
       - "./configs/docker/biz.toml:/configs/biz.toml"
