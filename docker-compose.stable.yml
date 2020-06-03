@@ -22,7 +22,7 @@ services:
       - etcd
 
   islb:
-    image: pionwebrtc/ion-islb:v0.4.1
+    image: pionwebrtc/ion-islb:v0.4.2
     depends_on:
       - nats
       - etcd
