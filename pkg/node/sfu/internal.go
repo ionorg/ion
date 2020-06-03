@@ -127,7 +127,7 @@ func publish(msg proto.PublishMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "publish: pub.Answer failed.")
 	}
 
-	router.AddPub(string(uid), pub)
+	router.AddPub(uid, pub)
 
 	log.Infof("publish tracks %v, answer = %v", tracks, answer)
 	resp := proto.PublishResponseMsg{

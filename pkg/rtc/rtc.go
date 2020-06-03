@@ -79,7 +79,7 @@ func InitRTP(port int, kcpKey, kcpSalt string) error {
 
 					log.Infof("accept new rtp id=%s conn=%s", id, rtpTransport.RemoteAddr().String())
 					if router := AddRouter(proto.MID(id)); router != nil {
-						router.AddPub(id, rtpTransport)
+						router.AddPub(proto.UID(id), rtpTransport)
 					}
 				}(rtpTransport)
 			}
