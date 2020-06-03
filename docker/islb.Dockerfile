@@ -17,5 +17,7 @@ FROM alpine:3.11.6
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /islb /usr/local/bin/islb
 
+COPY configs/docker/islb.toml /configs/islb.toml
+
 ENTRYPOINT ["/usr/local/bin/islb"]
 CMD ["-c", "/configs/islb.toml"]

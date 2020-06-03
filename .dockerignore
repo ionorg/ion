@@ -7,7 +7,6 @@ islb.Dockerfile
 web.Dockerfile
 docker-compose.yml
 docker
-configs
 docs
 screenshots
 */*/node_modules
