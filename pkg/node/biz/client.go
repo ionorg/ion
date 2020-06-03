@@ -44,7 +44,10 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	// Send join => islb
 	info := msg.Info
 	uid := peer.ID()
-	islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
+	_, err := islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
+	if err != nil {
+		log.Errorf("IslbClientOnJoin failed %v", err.Error())
+	}
 	// Send getPubs => islb
 	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
 		func(result nprotoo.RawMessage) {
@@ -58,11 +61,7 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 				if pub.MID == "" {
 					continue
 				}
-				notif := proto.StreamAddMsg{
-					MediaInfo: pub.MediaInfo,
-					Info:      pub.Info,
-					Tracks:    pub.Tracks,
-				}
+				notif := proto.StreamAddMsg(pub)
 				peer.Notify(proto.ClientOnStreamAdd, notif)
 			}
 		},
@@ -90,7 +89,10 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 	}
 
 	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", ""))
-	islb.SyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", uid))
+	_, err := islb.SyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", uid))
+	if err != nil {
+		log.Errorf("IslbOnStreamRemove failed %v", err.Error())
+	}
 	signal.DelPeer(rid, peer.ID())
 	return emptyMap, nil
 }
