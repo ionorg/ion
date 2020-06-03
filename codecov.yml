@@ -10,10 +10,7 @@ coverage:
       default:
         # Allow decreasing 2% of total coverage to avoid noise.
         threshold: 2%
-    patch:
-      default:
-        target: 0%
-        only_pulls: true
+    patch: off
 
 ignore:
   - "cmd/*"
