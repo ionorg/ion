@@ -238,6 +238,12 @@ github.com/pion/ion-elements v0.0.0-20200602184012-6219471db5b9 h1:QvYlkLQWQea44
 github.com/pion/ion-elements v0.0.0-20200602184012-6219471db5b9/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
 github.com/pion/ion-elements v0.1.0 h1:8ARiVz+zX1p8Ji9tWiYSr3UDC1877k5WGOPO2CAdbhg=
 github.com/pion/ion-elements v0.1.0/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
+github.com/pion/ion-elements v0.1.1-0.20200603152220-97e954fa8147 h1:vMimzA4eshiRuTtC+sTQtJCCWLuVP1MMtP96eq6aaos=
+github.com/pion/ion-elements v0.1.1-0.20200603152220-97e954fa8147/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
+github.com/pion/ion-elements v0.1.1-0.20200603153622-8d2b6b850c9b h1:ko42eDxfJcqNjkSgi3iM0jSF/pt0K3E2i/eApgrl4tE=
+github.com/pion/ion-elements v0.1.1-0.20200603153622-8d2b6b850c9b/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
+github.com/pion/ion-elements v0.1.1 h1:loeBUKq1YAOOw5swvsdHfb9B/6KiipiTvS0BDmxc18g=
+github.com/pion/ion-elements v0.1.1/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
 github.com/pion/logging v0.2.2/go.mod h1:k0/tDVsRCX2Mb2ZEmTqNa7CWsQPc+YYCB7Q+5pahoms=
 github.com/pion/mdns v0.0.4 h1:O4vvVqr4DGX63vzmO6Fw9vpy3lfztVWHGCQfyw0ZLSY=

@@ -2,11 +2,10 @@ package samples
 
 // Types for samples
 const (
-	TypeOpus  = 111
-	TypeVP8   = 96
-	TypeVP9   = 98
-	TypeH264  = 102
-	TypeRGB24 = 200
+	TypeOpus = 1
+	TypeVP8  = 2
+	TypeVP9  = 3
+	TypeH264 = 4
 )
 
 // Sample of audio or video

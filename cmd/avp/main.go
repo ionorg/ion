@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"path"
 
 	elements "github.com/pion/ion-elements"
 	conf "github.com/pion/ion/pkg/conf/avp"
@@ -18,11 +20,19 @@ import (
 func getDefaultElements(id string) map[string]process.Element {
 	de := make(map[string]process.Element)
 	if conf.Pipeline.WebmSaver.Enabled && conf.Pipeline.WebmSaver.DefaultOn {
-		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
+		filewriter := elements.NewFileWriter(elements.FileWriterConfig{
 			ID:   id,
-			Path: conf.Pipeline.WebmSaver.Path,
+			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", id)),
 		})
-		de[elements.TypeWebmSaver] = webm
+		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
+			ID: id,
+		})
+		err := webm.Attach(filewriter)
+		if err != nil {
+			log.Errorf("error attaching filewriter to webm %s", err)
+		} else {
+			de[elements.TypeWebmSaver] = webm
+		}
 	}
 	return de
 }
@@ -30,10 +40,19 @@ func getDefaultElements(id string) map[string]process.Element {
 func getTogglableElement(msg proto.ElementInfo) (process.Element, error) {
 	switch msg.Type {
 	case elements.TypeWebmSaver:
-		return elements.NewWebmSaver(elements.WebmSaverConfig{
+		filewriter := elements.NewFileWriter(elements.FileWriterConfig{
 			ID:   msg.MID,
-			Path: conf.Pipeline.WebmSaver.Path,
-		}), nil
+			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", msg.MID)),
+		})
+		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
+			ID: msg.MID,
+		})
+		err := webm.Attach(filewriter)
+		if err != nil {
+			log.Errorf("error attaching filewriter to webm %s", err)
+			return nil, err
+		}
+		return webm, nil
 	}
 
 	return nil, errors.New("element not found")
