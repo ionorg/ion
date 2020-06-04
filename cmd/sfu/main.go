@@ -61,6 +61,7 @@ func init() {
 		panic(err)
 	}
 	rtc.InitPlugins(pluginConfig)
+	rtc.InitRouter(*conf.Router)
 }
 
 func main() {

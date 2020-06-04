@@ -18,6 +18,10 @@ const (
 	liveCycle   = 6 * time.Second
 )
 
+type RouterConfig struct {
+	MinBandwidth uint64 `mapstructure:"minbandwidth"`
+}
+
 //                                      +--->sub
 //                                      |
 // pub--->pubCh-->pluginChain-->subCh---+--->sub
@@ -160,7 +164,10 @@ func (r *Router) subWriteLoop(subID proto.MID, trans transport.Transport) {
 func (r *Router) rembLoop() {
 	lastRembTime := time.Now()
 	maxRembTime := 200 * time.Millisecond
-	var rembMin uint64 = 100000
+	rembMin := routerConfig.MinBandwidth
+	if rembMin == 0 {
+		rembMin = 10000
+	}
 	var lowest uint64 = 99999999999999999
 	var rembCount, rembTotalRate uint64
 
