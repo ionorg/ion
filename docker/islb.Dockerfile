@@ -1,4 +1,4 @@
-FROM golang:1.14.3-stretch
+FROM golang:1.14.4-stretch
 
 ENV GO111MODULE=on
 
@@ -16,6 +16,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /islb .
 FROM alpine:3.12.0
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /islb /usr/local/bin/islb
+
+COPY configs/docker/islb.toml /configs/islb.toml
 
 ENTRYPOINT ["/usr/local/bin/islb"]
 CMD ["-c", "/configs/islb.toml"]

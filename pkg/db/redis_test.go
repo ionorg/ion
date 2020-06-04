@@ -12,9 +12,9 @@ var (
 	db     *Redis
 	dc     = "dc1"
 	node   = "sfu1"
-	room   = "room1"
-	uid    = "uuid-xxxxx-xxxxx-xxxxx-xxxxx"
-	mid    = "mid-xxxxx-xxxxx-xxxxx-xxxxx"
+	room   = proto.RID("room1")
+	uid    = proto.UID("uuid-xxxxx-xxxxx-xxxxx-xxxxx")
+	mid    = proto.MID("mid-xxxxx-xxxxx-xxxxx-xxxxx")
 	msid0  = "pion audio"
 	msid1  = "pion video"
 	track0 = proto.TrackInfo{Ssrc: 3694449886, Payload: 111, Type: "audio", ID: "aid0"}
@@ -36,7 +36,7 @@ var (
 	ukey = proto.UserInfo{
 		DC:  dc,
 		RID: room,
-		UID: room,
+		UID: uid,
 	}.BuildKey()
 )
 

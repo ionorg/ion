@@ -106,27 +106,29 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 	return nil, false
 }
 
-func handleSFUBroadCast(msg map[string]interface{}, subj string) {
-	go func(msg map[string]interface{}) {
-		method := util.Val(msg, "method")
-		data := msg["data"].(map[string]interface{})
-		log.Infof("handleSFUBroadCast: method=%s, data=%v", method, data)
-		rid := util.Val(data, "rid")
-		uid := util.Val(data, "uid")
-		switch method {
+func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
+	go func(msg nprotoo.Notification) {
+		var data proto.MediaInfo
+		if err := json.Unmarshal(msg.Data, &data); err != nil {
+			log.Errorf("handleSFUBroadCast Unmarshall error %v", err)
+			return
+		}
+
+		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, data)
+
+		switch msg.Method {
 		case proto.SFUTrickleICE:
-			signal.NotifyAllWithoutID(rid, uid, proto.ClientOnStreamAdd, data)
+			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnStreamAdd, data)
 		case proto.SFUStreamRemove:
-			mid := util.Val(data, "mid")
 			islb, found := getRPCForIslb()
 			if found {
-				islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("mid", mid))
+				islb.AsyncRequest(proto.IslbOnStreamRemove, data)
 			}
 		}
 	}(msg)
 }
 
-func getRPCForSFU(mid string) (string, *nprotoo.Requestor, *nprotoo.Error) {
+func getRPCForSFU(mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	islb, found := getRPCForIslb()
 	if !found {
 		return "", nil, util.NewNpError(500, "Not found any node for islb.")
@@ -136,15 +138,18 @@ func getRPCForSFU(mid string) (string, *nprotoo.Requestor, *nprotoo.Error) {
 		return "", nil, err
 	}
 
+	var answer proto.GetSFURPCParams
+	if err := json.Unmarshal(result, &answer); err != nil {
+		return "", nil, &nprotoo.Error{Code: 123, Reason: "Unmarshal error getRPCForSFU"}
+	}
+
 	log.Infof("SFU result => %v", result)
-	rpcID := result["rpc-id"].(string)
-	eventID := result["event-id"].(string)
-	nodeID := result["id"].(string)
+	rpcID := answer.RPCID
 	rpc, found := rpcs[rpcID]
 	if !found {
 		rpc = protoo.NewRequestor(rpcID)
-		protoo.OnBroadcast(eventID, handleSFUBroadCast)
+		protoo.OnBroadcast(answer.EventID, handleSFUBroadCast)
 		rpcs[rpcID] = rpc
 	}
-	return nodeID, rpc, nil
+	return answer.ID, rpc, nil
 }

@@ -1,4 +1,4 @@
-FROM golang:1.14.2-stretch
+FROM golang:1.14.4-stretch
 
 ENV GO111MODULE=on
 
@@ -17,6 +17,8 @@ FROM alpine:3.12.0
 
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /avp /usr/local/bin/avp
+
+COPY configs/docker/avp.toml /configs/avp.toml
 
 ENTRYPOINT ["/usr/local/bin/avp"]
 CMD ["-c", "/configs/avp.toml"]

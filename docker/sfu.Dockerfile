@@ -1,4 +1,4 @@
-FROM golang:1.14.3-stretch
+FROM golang:1.14.4-stretch
 
 ENV GO111MODULE=on
 
@@ -17,6 +17,8 @@ FROM alpine:3.12.0
 
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /sfu /usr/local/bin/sfu
+
+COPY configs/docker/sfu.toml /configs/sfu.toml
 
 ENTRYPOINT ["/usr/local/bin/sfu"]
 CMD ["-c", "/configs/sfu.toml"]

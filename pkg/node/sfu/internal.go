@@ -19,23 +19,35 @@ var emptyMap = map[string]interface{}{}
 
 func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
-	protoo.OnRequest(rpcID, func(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
-		method := request["method"].(string)
-		data := request["data"].(map[string]interface{})
+	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
+		method := request.Method
+		data := request.Data
 		log.Debugf("handleRequest: method => %s, data => %v", method, data)
 
-		var result map[string]interface{}
+		var result interface{}
 		err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
 
 		switch method {
 		case proto.ClientPublish:
-			result, err = publish(data)
+			var msgData proto.PublishMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = publish(msgData)
+			}
 		case proto.ClientUnPublish:
-			result, err = unpublish(data)
+			var msgData proto.UnpublishMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = unpublish(msgData)
+			}
 		case proto.ClientSubscribe:
-			result, err = subscribe(data)
+			var msgData proto.SFUSubscribeMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = subscribe(msgData)
+			}
 		case proto.ClientUnSubscribe:
-			result, err = unsubscribe(data)
+			var msgData proto.UnsubscribeMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = unsubscribe(msgData)
+			}
 		}
 
 		if err != nil {
@@ -58,33 +70,22 @@ func handleTrickle(r *rtc.Router, t *transport.WebRTCTransport) {
 }
 
 // publish .
-func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+func publish(msg proto.PublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("publish msg=%v", msg)
-	jsep := msg["jsep"].(map[string]interface{})
-	if jsep == nil {
+	if msg.Jsep.SDP == "" {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
-	sdp := util.Val(jsep, "sdp")
-	uid := util.Val(msg, "uid")
+	uid := msg.UID
 	mid := uuid.New().String()
-	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
+	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: msg.Jsep.SDP}
 
 	rtcOptions := transport.RTCOptions{
 		Publish: true,
 	}
 
-	options := msg["options"]
-	if options != nil {
-		options, ok := msg["options"].(map[string]interface{})
-		if ok {
-			rtcOptions.Codec = options["codec"].(string)
-			// TODO parse int
-			rtcOptions.Bandwidth = int(options["bandwidth"].(float64))
-			if util.KvOK(options, "transport-cc", "true") {
-				rtcOptions.TransportCC = true
-			}
-		}
-	}
+	rtcOptions.Codec = msg.Options.Codec
+	rtcOptions.Bandwidth = msg.Options.Bandwidth
+	rtcOptions.TransportCC = msg.Options.TransportCC
 
 	videoCodec := strings.ToUpper(rtcOptions.Codec)
 
@@ -116,7 +117,7 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 		return nil, util.NewNpError(415, "publish: transport.NewWebRTCTransport failed.")
 	}
 
-	router := rtc.GetOrNewRouter(mid)
+	router := rtc.GetOrNewRouter(proto.MID(mid))
 
 	go handleTrickle(router, pub)
 
@@ -129,14 +130,19 @@ func publish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error
 	router.AddPub(uid, pub)
 
 	log.Infof("publish tracks %v, answer = %v", tracks, answer)
-	return util.Map("jsep", answer, "mid", mid, "tracks", tracks), nil
+	resp := proto.PublishResponseMsg{
+		RTCInfo:   proto.RTCInfo{Jsep: answer},
+		MediaInfo: proto.MediaInfo{MID: proto.MID(mid)},
+		Tracks:    tracks,
+	}
+	return resp, nil
 }
 
 // unpublish .
-func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+func unpublish(msg proto.UnpublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("unpublish msg=%v", msg)
 
-	mid := util.Val(msg, "mid")
+	mid := msg.MID
 	router := rtc.GetOrNewRouter(mid)
 	if router != nil {
 		rtc.DelRouter(mid)
@@ -146,58 +152,36 @@ func unpublish(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 }
 
 // subscribe .
-func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+func subscribe(msg proto.SFUSubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("subscribe msg=%v", msg)
-
-	mid := util.Val(msg, "mid")
-	router := rtc.GetOrNewRouter(mid)
+	router := rtc.GetOrNewRouter(msg.MID)
 	if router == nil {
 		return nil, util.NewNpError(404, "subscribe: Router not found!")
 	}
 
-	jsep := msg["jsep"].(map[string]interface{})
-	if jsep == nil {
+	if msg.Jsep.SDP == "" {
 		return nil, util.NewNpError(415, "subscribe: Unsupported Media Type")
 	}
 
-	sdp := util.Val(jsep, "sdp")
+	sdp := msg.Jsep.SDP
 
 	rtcOptions := transport.RTCOptions{
 		Subscribe: true,
 	}
 
-	options := msg["options"]
-	if options != nil {
-		options, ok := msg["options"].(map[string]interface{})
-		if ok {
-			rtcOptions.Codec = options["codec"].(string)
-			rtcOptions.Bandwidth = int(options["bandwidth"].(float64)) // TODO parse
-			if util.KvOK(options, "transport-cc", "true") {
-				rtcOptions.TransportCC = true
-			}
-		}
-	}
+	rtcOptions.Bandwidth = msg.Options.Bandwidth
+	rtcOptions.TransportCC = msg.Options.TransportCC
 
-	subID := uuid.New().String()
+	subID := proto.MID(uuid.New().String())
 
-	tracksMap := msg["tracks"].(map[string]interface{})
-	log.Infof("subscribe tracks=%v", tracksMap)
+	log.Infof("subscribe tracks=%v", msg.Tracks)
 	rtcOptions.Ssrcpt = make(map[uint32]uint8)
 
 	tracks := make(map[string]proto.TrackInfo)
-	for msid, track := range tracksMap {
-		for _, item := range track.([]interface{}) {
-			info := item.(map[string]interface{})
-			trackInfo := proto.TrackInfo{
-				ID:      info["id"].(string),
-				Type:    info["type"].(string),
-				Ssrc:    int(info["ssrc"].(float64)),
-				Payload: int(info["pt"].(float64)),
-				Codec:   info["codec"].(string),
-				Fmtp:    info["fmtp"].(string),
-			}
-			rtcOptions.Ssrcpt[uint32(trackInfo.Ssrc)] = uint8(trackInfo.Payload)
-			tracks[msid] = trackInfo
+	for msid, track := range msg.Tracks {
+		for _, item := range track {
+			rtcOptions.Ssrcpt[uint32(item.Ssrc)] = uint8(item.Payload)
+			tracks[msid] = item
 		}
 	}
 
@@ -221,7 +205,7 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 	rtcOptions.Codecs = allowedCodecs
 
 	// New api
-	sub := transport.NewWebRTCTransport(subID, rtcOptions)
+	sub := transport.NewWebRTCTransport(string(subID), rtcOptions)
 
 	if sub == nil {
 		return nil, util.NewNpError(415, "subscribe: transport.NewWebRTCTransport failed.")
@@ -264,11 +248,11 @@ func subscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 }
 
 // unsubscribe .
-func unsubscribe(msg map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
+func unsubscribe(msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("unsubscribe msg=%v", msg)
-	mid := util.Val(msg, "mid")
+	mid := msg.MID
 	found := false
-	rtc.MapRouter(func(id string, r *rtc.Router) {
+	rtc.MapRouter(func(id proto.MID, r *rtc.Router) {
 		subs := r.GetSubs()
 		for sid := range subs {
 			if sid == mid {
