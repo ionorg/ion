@@ -20,6 +20,7 @@ const (
 
 type RouterConfig struct {
 	MinBandwidth uint64 `mapstructure:"minbandwidth"`
+	REMBFeedback bool   `mapstructure:"rembfeedback"`
 }
 
 //                                      +--->sub
@@ -62,7 +63,9 @@ func (r *Router) InitPlugins(config plugins.Config) error {
 }
 
 func (r *Router) start() {
-	go r.rembLoop()
+	if routerConfig.REMBFeedback {
+		go r.rembLoop()
+	}
 	go func() {
 		defer util.Recover("[Router.start]")
 		for {
@@ -230,7 +233,9 @@ func (r *Router) subFeedbackLoop(subID proto.MID, trans transport.Transport) {
 				}
 			}
 		case *rtcp.ReceiverEstimatedMaximumBitrate:
-			r.rembChan <- pkt
+			if routerConfig.REMBFeedback {
+				r.rembChan <- pkt
+			}
 		case *rtcp.TransportLayerNack:
 			// log.Infof("Router got nack: %+v", pkt)
 			nack := pkt

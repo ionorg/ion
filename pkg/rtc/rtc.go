@@ -25,9 +25,8 @@ var (
 	//CleanChannel return the dead pub's mid
 	CleanChannel  = make(chan proto.MID, maxCleanSize)
 	pluginsConfig plugins.Config
-	routerConfig RouterConfig
-
-	stop bool
+	routerConfig  RouterConfig
+	stop          bool
 )
 
 // InitIce ice urls
