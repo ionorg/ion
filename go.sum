@@ -240,8 +240,11 @@ github.com/pion/dtls/v2 v2.0.0/go.mod h1:VkY5VL2wtsQQOG60xQ4lkV5pdn0wwBBTzCfRJqX
 github.com/pion/ice v0.7.15 h1:s1In+gnuyVq7WKWGVQL+1p+OcrMsbfL+VfSe2isH8Ag=
 github.com/pion/ice v0.7.15/go.mod h1:Z6zybEQgky5mZkKcLfmvc266JukK2srz3VZBBD1iXBw=
 github.com/pion/ion v0.4.2-0.20200602171638-d7dc6b713737/go.mod h1:pzWW8GmeHqhuFfoyuhgUsNFcHsAihgIxvdRLFmyv4lM=
+github.com/pion/ion v0.4.4/go.mod h1:W0IxFTjcYYfkJDCAn+soW1zAjA0/lKCBJs0Wh1TeQLw=
 github.com/pion/ion-elements v0.1.1 h1:loeBUKq1YAOOw5swvsdHfb9B/6KiipiTvS0BDmxc18g=
 github.com/pion/ion-elements v0.1.1/go.mod h1:8ptjqR31WjjKkRZQlWP1el4t1VHUfkdyDGJaBhd2OGM=
+github.com/pion/ion-elements v0.1.2 h1:1oup5G8NdO+kv6YTw4sDIzWzf9u21JzC7LbfqSYuzP8=
+github.com/pion/ion-elements v0.1.2/go.mod h1:vnzEPGqp2XD7wIOqwS7/EK3kQnYE8tjIoJaHm5c2S4U=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
 github.com/pion/logging v0.2.2/go.mod h1:k0/tDVsRCX2Mb2ZEmTqNa7CWsQPc+YYCB7Q+5pahoms=
 github.com/pion/mdns v0.0.4 h1:O4vvVqr4DGX63vzmO6Fw9vpy3lfztVWHGCQfyw0ZLSY=
