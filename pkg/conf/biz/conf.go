@@ -44,6 +44,7 @@ type signal struct {
 	Port int    `mapstructure:"port"`
 	Cert string `mapstructure:"cert"`
 	Key  string `mapstructure:"key"`
+	AllowDisconnected bool `mapstructure:"allow_disconnected"`
 }
 
 type nats struct {
