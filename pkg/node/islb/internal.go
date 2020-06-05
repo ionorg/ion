@@ -380,7 +380,7 @@ func handleRequest(rpcID string) {
 		go func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
 			method := request.Method
 			msg := request.Data
-			log.Infof("method => %s, data => %v", method, msg)
+			log.Infof("method => %s", method)
 
 			var result interface{}
 			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))

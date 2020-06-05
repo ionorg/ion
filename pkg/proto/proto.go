@@ -8,14 +8,12 @@ import (
 
 const (
 	// client to ion
-	ClientLogin       = "login"
 	ClientJoin        = "join"
 	ClientLeave       = "leave"
 	ClientPublish     = "publish"
 	ClientUnPublish   = "unpublish"
 	ClientSubscribe   = "subscribe"
 	ClientUnSubscribe = "unsubscribe"
-	ClientClose       = "close"
 	ClientBroadcast   = "broadcast"
 	ClientTrickleICE  = "trickle"
 
