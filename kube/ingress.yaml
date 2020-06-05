@@ -15,7 +15,7 @@ metadata:
     
 spec:
   rules:
-    - host: ion.streamhuddle.com
+    - host: YOUR.DOMAIN.COM
       http:
         paths:
           - path: /
@@ -28,5 +28,5 @@ spec:
               servicePort: 8443
   tls:
     - hosts:
-      - ion.streamhuddle.com
-      secretName: ion-streamhuddle-tls
+      - YOUR.DOMAIN.COM
+      secretName: ion-app-tls
