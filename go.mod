@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de
-	github.com/go-redis/redis/v7 v7.3.0
+	github.com/go-redis/redis/v7 v7.4.0
 	github.com/google/uuid v1.1.1
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-elements v0.1.1
