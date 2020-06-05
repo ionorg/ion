@@ -302,7 +302,7 @@ func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 		r.idLock.Unlock()
 	}
 
-	_, err = writeStream.WriteRTP(&pkt.Header, rtp.Payload)
+	_, err = writeStream.WriteRTP(&pkt.Header, pkt.Payload)
 
 	if err != nil {
 		log.Errorf("writeStream.WriteRTP => %s", err.Error())
