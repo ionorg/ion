@@ -1,0 +1,659 @@
+apiVersion: apps/v1
+# islb relay isn't finished yet, so only 1 sfu is supported
+# when relay is ready, we'll switch to DaemonSet (1 pod per node)
+# so the connections will be spread across the cluster
+kind: Deployment
+metadata:
+  name: sfu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: sfu
+  template:
+    metadata:
+      labels:
+        name: sfu
+    spec:
+      #tolerations:
+      #- key: node-role.kubernetes.io/master
+      #  effect: NoSchedule
+      # this toleration is to have the daemonset runnable on master nodes
+      # it is commented out so the master will NOT run SFU nodes
+      # because SFU nodes are liable to eat a lot of bandwidth and connections
+      
+      containers:
+      - name: sfu
+        image: pionwebrtc/ion-sfu:0.2.0
+        command: ["/usr/local/bin/sfu", "-c", "/configs/sfu.toml"]
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 250m
+            memory: 500Mi
+        env:
+        - name: SERVICE
+          value: sfu
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - name: config-volume
+          mountPath: /configs/
+        ports:
+        - containerPort: 5000
+          hostPort: 5000
+          protocol: UDP
+        - containerPort: 5001
+          hostPort: 5001
+          protocol: UDP
+        - containerPort: 5002
+          hostPort: 5002
+          protocol: UDP
+        - containerPort: 5003
+          hostPort: 5003
+          protocol: UDP
+        - containerPort: 5004
+          hostPort: 5004
+          protocol: UDP
+        - containerPort: 5005
+          hostPort: 5005
+          protocol: UDP
+        - containerPort: 5006
+          hostPort: 5006
+          protocol: UDP
+        - containerPort: 5007
+          hostPort: 5007
+          protocol: UDP
+        - containerPort: 5008
+          hostPort: 5008
+          protocol: UDP
+        - containerPort: 5009
+          hostPort: 5009
+          protocol: UDP
+        - containerPort: 5010
+          hostPort: 5010
+          protocol: UDP
+        - containerPort: 5011
+          hostPort: 5011
+          protocol: UDP
+        - containerPort: 5012
+          hostPort: 5012
+          protocol: UDP
+        - containerPort: 5013
+          hostPort: 5013
+          protocol: UDP
+        - containerPort: 5014
+          hostPort: 5014
+          protocol: UDP
+        - containerPort: 5015
+          hostPort: 5015
+          protocol: UDP
+        - containerPort: 5016
+          hostPort: 5016
+          protocol: UDP
+        - containerPort: 5017
+          hostPort: 5017
+          protocol: UDP
+        - containerPort: 5018
+          hostPort: 5018
+          protocol: UDP
+        - containerPort: 5019
+          hostPort: 5019
+          protocol: UDP
+        - containerPort: 5020
+          hostPort: 5020
+          protocol: UDP
+        - containerPort: 5021
+          hostPort: 5021
+          protocol: UDP
+        - containerPort: 5022
+          hostPort: 5022
+          protocol: UDP
+        - containerPort: 5023
+          hostPort: 5023
+          protocol: UDP
+        - containerPort: 5024
+          hostPort: 5024
+          protocol: UDP
+        - containerPort: 5025
+          hostPort: 5025
+          protocol: UDP
+        - containerPort: 5026
+          hostPort: 5026
+          protocol: UDP
+        - containerPort: 5027
+          hostPort: 5027
+          protocol: UDP
+        - containerPort: 5028
+          hostPort: 5028
+          protocol: UDP
+        - containerPort: 5029
+          hostPort: 5029
+          protocol: UDP
+        - containerPort: 5030
+          hostPort: 5030
+          protocol: UDP
+        - containerPort: 5031
+          hostPort: 5031
+          protocol: UDP
+        - containerPort: 5032
+          hostPort: 5032
+          protocol: UDP
+        - containerPort: 5033
+          hostPort: 5033
+          protocol: UDP
+        - containerPort: 5034
+          hostPort: 5034
+          protocol: UDP
+        - containerPort: 5035
+          hostPort: 5035
+          protocol: UDP
+        - containerPort: 5036
+          hostPort: 5036
+          protocol: UDP
+        - containerPort: 5037
+          hostPort: 5037
+          protocol: UDP
+        - containerPort: 5038
+          hostPort: 5038
+          protocol: UDP
+        - containerPort: 5039
+          hostPort: 5039
+          protocol: UDP
+        - containerPort: 5040
+          hostPort: 5040
+          protocol: UDP
+        - containerPort: 5041
+          hostPort: 5041
+          protocol: UDP
+        - containerPort: 5042
+          hostPort: 5042
+          protocol: UDP
+        - containerPort: 5043
+          hostPort: 5043
+          protocol: UDP
+        - containerPort: 5044
+          hostPort: 5044
+          protocol: UDP
+        - containerPort: 5045
+          hostPort: 5045
+          protocol: UDP
+        - containerPort: 5046
+          hostPort: 5046
+          protocol: UDP
+        - containerPort: 5047
+          hostPort: 5047
+          protocol: UDP
+        - containerPort: 5048
+          hostPort: 5048
+          protocol: UDP
+        - containerPort: 5049
+          hostPort: 5049
+          protocol: UDP
+        - containerPort: 5050
+          hostPort: 5050
+          protocol: UDP
+        - containerPort: 5051
+          hostPort: 5051
+          protocol: UDP
+        - containerPort: 5052
+          hostPort: 5052
+          protocol: UDP
+        - containerPort: 5053
+          hostPort: 5053
+          protocol: UDP
+        - containerPort: 5054
+          hostPort: 5054
+          protocol: UDP
+        - containerPort: 5055
+          hostPort: 5055
+          protocol: UDP
+        - containerPort: 5056
+          hostPort: 5056
+          protocol: UDP
+        - containerPort: 5057
+          hostPort: 5057
+          protocol: UDP
+        - containerPort: 5058
+          hostPort: 5058
+          protocol: UDP
+        - containerPort: 5059
+          hostPort: 5059
+          protocol: UDP
+        - containerPort: 5060
+          hostPort: 5060
+          protocol: UDP
+        - containerPort: 5061
+          hostPort: 5061
+          protocol: UDP
+        - containerPort: 5062
+          hostPort: 5062
+          protocol: UDP
+        - containerPort: 5063
+          hostPort: 5063
+          protocol: UDP
+        - containerPort: 5064
+          hostPort: 5064
+          protocol: UDP
+        - containerPort: 5065
+          hostPort: 5065
+          protocol: UDP
+        - containerPort: 5066
+          hostPort: 5066
+          protocol: UDP
+        - containerPort: 5067
+          hostPort: 5067
+          protocol: UDP
+        - containerPort: 5068
+          hostPort: 5068
+          protocol: UDP
+        - containerPort: 5069
+          hostPort: 5069
+          protocol: UDP
+        - containerPort: 5070
+          hostPort: 5070
+          protocol: UDP
+        - containerPort: 5071
+          hostPort: 5071
+          protocol: UDP
+        - containerPort: 5072
+          hostPort: 5072
+          protocol: UDP
+        - containerPort: 5073
+          hostPort: 5073
+          protocol: UDP
+        - containerPort: 5074
+          hostPort: 5074
+          protocol: UDP
+        - containerPort: 5075
+          hostPort: 5075
+          protocol: UDP
+        - containerPort: 5076
+          hostPort: 5076
+          protocol: UDP
+        - containerPort: 5077
+          hostPort: 5077
+          protocol: UDP
+        - containerPort: 5078
+          hostPort: 5078
+          protocol: UDP
+        - containerPort: 5079
+          hostPort: 5079
+          protocol: UDP
+        - containerPort: 5080
+          hostPort: 5080
+          protocol: UDP
+        - containerPort: 5081
+          hostPort: 5081
+          protocol: UDP
+        - containerPort: 5082
+          hostPort: 5082
+          protocol: UDP
+        - containerPort: 5083
+          hostPort: 5083
+          protocol: UDP
+        - containerPort: 5084
+          hostPort: 5084
+          protocol: UDP
+        - containerPort: 5085
+          hostPort: 5085
+          protocol: UDP
+        - containerPort: 5086
+          hostPort: 5086
+          protocol: UDP
+        - containerPort: 5087
+          hostPort: 5087
+          protocol: UDP
+        - containerPort: 5088
+          hostPort: 5088
+          protocol: UDP
+        - containerPort: 5089
+          hostPort: 5089
+          protocol: UDP
+        - containerPort: 5090
+          hostPort: 5090
+          protocol: UDP
+        - containerPort: 5091
+          hostPort: 5091
+          protocol: UDP
+        - containerPort: 5092
+          hostPort: 5092
+          protocol: UDP
+        - containerPort: 5093
+          hostPort: 5093
+          protocol: UDP
+        - containerPort: 5094
+          hostPort: 5094
+          protocol: UDP
+        - containerPort: 5095
+          hostPort: 5095
+          protocol: UDP
+        - containerPort: 5096
+          hostPort: 5096
+          protocol: UDP
+        - containerPort: 5097
+          hostPort: 5097
+          protocol: UDP
+        - containerPort: 5098
+          hostPort: 5098
+          protocol: UDP
+        - containerPort: 5099
+          hostPort: 5099
+          protocol: UDP
+        - containerPort: 5100
+          hostPort: 5100
+          protocol: UDP
+        - containerPort: 5101
+          hostPort: 5101
+          protocol: UDP
+        - containerPort: 5102
+          hostPort: 5102
+          protocol: UDP
+        - containerPort: 5103
+          hostPort: 5103
+          protocol: UDP
+        - containerPort: 5104
+          hostPort: 5104
+          protocol: UDP
+        - containerPort: 5105
+          hostPort: 5105
+          protocol: UDP
+        - containerPort: 5106
+          hostPort: 5106
+          protocol: UDP
+        - containerPort: 5107
+          hostPort: 5107
+          protocol: UDP
+        - containerPort: 5108
+          hostPort: 5108
+          protocol: UDP
+        - containerPort: 5109
+          hostPort: 5109
+          protocol: UDP
+        - containerPort: 5110
+          hostPort: 5110
+          protocol: UDP
+        - containerPort: 5111
+          hostPort: 5111
+          protocol: UDP
+        - containerPort: 5112
+          hostPort: 5112
+          protocol: UDP
+        - containerPort: 5113
+          hostPort: 5113
+          protocol: UDP
+        - containerPort: 5114
+          hostPort: 5114
+          protocol: UDP
+        - containerPort: 5115
+          hostPort: 5115
+          protocol: UDP
+        - containerPort: 5116
+          hostPort: 5116
+          protocol: UDP
+        - containerPort: 5117
+          hostPort: 5117
+          protocol: UDP
+        - containerPort: 5118
+          hostPort: 5118
+          protocol: UDP
+        - containerPort: 5119
+          hostPort: 5119
+          protocol: UDP
+        - containerPort: 5120
+          hostPort: 5120
+          protocol: UDP
+        - containerPort: 5121
+          hostPort: 5121
+          protocol: UDP
+        - containerPort: 5122
+          hostPort: 5122
+          protocol: UDP
+        - containerPort: 5123
+          hostPort: 5123
+          protocol: UDP
+        - containerPort: 5124
+          hostPort: 5124
+          protocol: UDP
+        - containerPort: 5125
+          hostPort: 5125
+          protocol: UDP
+        - containerPort: 5126
+          hostPort: 5126
+          protocol: UDP
+        - containerPort: 5127
+          hostPort: 5127
+          protocol: UDP
+        - containerPort: 5128
+          hostPort: 5128
+          protocol: UDP
+        - containerPort: 5129
+          hostPort: 5129
+          protocol: UDP
+        - containerPort: 5130
+          hostPort: 5130
+          protocol: UDP
+        - containerPort: 5131
+          hostPort: 5131
+          protocol: UDP
+        - containerPort: 5132
+          hostPort: 5132
+          protocol: UDP
+        - containerPort: 5133
+          hostPort: 5133
+          protocol: UDP
+        - containerPort: 5134
+          hostPort: 5134
+          protocol: UDP
+        - containerPort: 5135
+          hostPort: 5135
+          protocol: UDP
+        - containerPort: 5136
+          hostPort: 5136
+          protocol: UDP
+        - containerPort: 5137
+          hostPort: 5137
+          protocol: UDP
+        - containerPort: 5138
+          hostPort: 5138
+          protocol: UDP
+        - containerPort: 5139
+          hostPort: 5139
+          protocol: UDP
+        - containerPort: 5140
+          hostPort: 5140
+          protocol: UDP
+        - containerPort: 5141
+          hostPort: 5141
+          protocol: UDP
+        - containerPort: 5142
+          hostPort: 5142
+          protocol: UDP
+        - containerPort: 5143
+          hostPort: 5143
+          protocol: UDP
+        - containerPort: 5144
+          hostPort: 5144
+          protocol: UDP
+        - containerPort: 5145
+          hostPort: 5145
+          protocol: UDP
+        - containerPort: 5146
+          hostPort: 5146
+          protocol: UDP
+        - containerPort: 5147
+          hostPort: 5147
+          protocol: UDP
+        - containerPort: 5148
+          hostPort: 5148
+          protocol: UDP
+        - containerPort: 5149
+          hostPort: 5149
+          protocol: UDP
+        - containerPort: 5150
+          hostPort: 5150
+          protocol: UDP
+        - containerPort: 5151
+          hostPort: 5151
+          protocol: UDP
+        - containerPort: 5152
+          hostPort: 5152
+          protocol: UDP
+        - containerPort: 5153
+          hostPort: 5153
+          protocol: UDP
+        - containerPort: 5154
+          hostPort: 5154
+          protocol: UDP
+        - containerPort: 5155
+          hostPort: 5155
+          protocol: UDP
+        - containerPort: 5156
+          hostPort: 5156
+          protocol: UDP
+        - containerPort: 5157
+          hostPort: 5157
+          protocol: UDP
+        - containerPort: 5158
+          hostPort: 5158
+          protocol: UDP
+        - containerPort: 5159
+          hostPort: 5159
+          protocol: UDP
+        - containerPort: 5160
+          hostPort: 5160
+          protocol: UDP
+        - containerPort: 5161
+          hostPort: 5161
+          protocol: UDP
+        - containerPort: 5162
+          hostPort: 5162
+          protocol: UDP
+        - containerPort: 5163
+          hostPort: 5163
+          protocol: UDP
+        - containerPort: 5164
+          hostPort: 5164
+          protocol: UDP
+        - containerPort: 5165
+          hostPort: 5165
+          protocol: UDP
+        - containerPort: 5166
+          hostPort: 5166
+          protocol: UDP
+        - containerPort: 5167
+          hostPort: 5167
+          protocol: UDP
+        - containerPort: 5168
+          hostPort: 5168
+          protocol: UDP
+        - containerPort: 5169
+          hostPort: 5169
+          protocol: UDP
+        - containerPort: 5170
+          hostPort: 5170
+          protocol: UDP
+        - containerPort: 5171
+          hostPort: 5171
+          protocol: UDP
+        - containerPort: 5172
+          hostPort: 5172
+          protocol: UDP
+        - containerPort: 5173
+          hostPort: 5173
+          protocol: UDP
+        - containerPort: 5174
+          hostPort: 5174
+          protocol: UDP
+        - containerPort: 5175
+          hostPort: 5175
+          protocol: UDP
+        - containerPort: 5176
+          hostPort: 5176
+          protocol: UDP
+        - containerPort: 5177
+          hostPort: 5177
+          protocol: UDP
+        - containerPort: 5178
+          hostPort: 5178
+          protocol: UDP
+        - containerPort: 5179
+          hostPort: 5179
+          protocol: UDP
+        - containerPort: 5180
+          hostPort: 5180
+          protocol: UDP
+        - containerPort: 5181
+          hostPort: 5181
+          protocol: UDP
+        - containerPort: 5182
+          hostPort: 5182
+          protocol: UDP
+        - containerPort: 5183
+          hostPort: 5183
+          protocol: UDP
+        - containerPort: 5184
+          hostPort: 5184
+          protocol: UDP
+        - containerPort: 5185
+          hostPort: 5185
+          protocol: UDP
+        - containerPort: 5186
+          hostPort: 5186
+          protocol: UDP
+        - containerPort: 5187
+          hostPort: 5187
+          protocol: UDP
+        - containerPort: 5188
+          hostPort: 5188
+          protocol: UDP
+        - containerPort: 5189
+          hostPort: 5189
+          protocol: UDP
+        - containerPort: 5190
+          hostPort: 5190
+          protocol: UDP
+        - containerPort: 5191
+          hostPort: 5191
+          protocol: UDP
+        - containerPort: 5192
+          hostPort: 5192
+          protocol: UDP
+        - containerPort: 5193
+          hostPort: 5193
+          protocol: UDP
+        - containerPort: 5194
+          hostPort: 5194
+          protocol: UDP
+        - containerPort: 5195
+          hostPort: 5195
+          protocol: UDP
+        - containerPort: 5196
+          hostPort: 5196
+          protocol: UDP
+        - containerPort: 5197
+          hostPort: 5197
+          protocol: UDP
+        - containerPort: 5198
+          hostPort: 5198
+          protocol: UDP
+        - containerPort: 5199
+          hostPort: 5199
+          protocol: UDP
+        - containerPort: 5200
+          hostPort: 5200
+          protocol: UDP
+      volumes:
+      - name: config-volume
+        configMap:
+          # Provide the name of the ConfigMap containing the files you want
+          # to add to the container
+          name: ion-config
+      
+      terminationGracePeriodSeconds: 30
+      
+        
+   
