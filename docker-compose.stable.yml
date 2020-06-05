@@ -12,7 +12,7 @@ services:
       - ionnet
 
   biz:
-    image: pionwebrtc/ion-biz:v0.4.4
+    image: pionwebrtc/ion-biz:v0.4.6
     ports:
       - 8443:8443
     networks:
