@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
 helm install ion-nats bitnami/nats --namespace=ion \
   --set auth.enabled=false \
   --set clusterDomain=netp.tech \
