@@ -51,16 +51,9 @@ type JoinMsg struct {
 	Info ClientUserInfo `json:"info"`
 }
 
-type LoginMsg struct {
-}
-
 type LeaveMsg struct {
 	RoomInfo
 	Info ClientUserInfo `json:"info"`
-}
-
-type CloseMsg struct {
-	LeaveMsg
 }
 
 type PublishMsg struct {

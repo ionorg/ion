@@ -29,16 +29,6 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 
 	//TODO DRY this up
 	switch method {
-	case proto.ClientClose:
-		var msgData proto.CloseMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = clientClose(peer, msgData)
-		}
-	case proto.ClientLogin:
-		var msgData proto.LoginMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = login(peer, msgData)
-		}
 	case proto.ClientJoin:
 		var msgData proto.JoinMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {

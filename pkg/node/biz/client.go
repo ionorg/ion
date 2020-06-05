@@ -15,12 +15,6 @@ var (
 	midError = util.NewNpError(codeMIDErr, codeStr(codeMIDErr))
 )
 
-func login(peer *signal.Peer, msg proto.LoginMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.login peer.ID()=%s msg=%v", peer.ID(), msg)
-	//TODO auth check, maybe jwt
-	return emptyMap, nil
-}
-
 // join room
 func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
@@ -88,18 +82,13 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 
-	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", ""))
+	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid))
 	_, err := islb.SyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", uid))
 	if err != nil {
 		log.Errorf("IslbOnStreamRemove failed %v", err.Error())
 	}
 	signal.DelPeer(rid, peer.ID())
 	return emptyMap, nil
-}
-
-func clientClose(peer *signal.Peer, msg proto.CloseMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
-	return leave(peer, msg.LeaveMsg)
 }
 
 func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Error) {

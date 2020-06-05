@@ -64,10 +64,6 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		bizCall(method, peer, data, emptyAccept, reject)
 	}
 
-	type CloseMsg struct {
-		Rid proto.RID `json:"rid"`
-	}
-
 	handleClose := func(code int, err string) {
 		roomLock.RLock()
 		defer roomLock.RUnlock()
@@ -76,9 +72,11 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		for _, room := range rooms {
 			if room != nil {
 				if code > 1000 {
-					msg := CloseMsg{Rid: room.ID()}
+					msg := proto.LeaveMsg{
+						RoomInfo: proto.RoomInfo{RID: room.ID()},
+					}
 					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.ClientClose, peer, msgStr, emptyAccept, reject)
+					bizCall(proto.ClientLeave, peer, msgStr, emptyAccept, reject)
 				}
 				room.RemovePeer(peer.ID())
 			}
