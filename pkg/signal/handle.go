@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwebrtc/go-protoo/logger"
 	pr "github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
+
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -69,6 +70,11 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	}
 
 	handleClose := func(code int, err string) {
+		if allowClientDisconnect {
+			log.Infof("signal.in handleClose.AllowDisconnected => peer (%s)", peer.ID())
+			return
+		}
+
 		roomLock.RLock()
 		defer roomLock.RUnlock()
 		rooms := GetRoomsByPeer(peer.ID())
