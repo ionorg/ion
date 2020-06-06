@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	listener    *udp.Listener
+	listener    net.Listener
 	kcpListener *kcp.Listener
 	stop        bool
 )
