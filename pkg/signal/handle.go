@@ -70,7 +70,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	}
 
 	handleClose := func(code int, err string) {
-		if disconnectedClients {
+		if allowClientDisconnect {
 			log.Infof("signal.in handleClose.AllowDisconnected => peer (%s)", peer.ID())
 			return
 		}
