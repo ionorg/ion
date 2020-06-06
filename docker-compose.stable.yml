@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   sfu:
-    image: pionwebrtc/ion-sfu:v0.4.4
+    image: pionwebrtc/ion-sfu:v0.4.6
     ports:
       - "5000-5200:5000-5200/udp"
     depends_on:
@@ -12,7 +12,7 @@ services:
       - ionnet
 
   biz:
-    image: pionwebrtc/ion-biz:v0.4.4
+    image: pionwebrtc/ion-biz:v0.4.6
     ports:
       - 8443:8443
     networks:
@@ -22,7 +22,7 @@ services:
       - etcd
 
   islb:
-    image: pionwebrtc/ion-islb:v0.4.4
+    image: pionwebrtc/ion-islb:v0.4.6
     depends_on:
       - nats
       - etcd

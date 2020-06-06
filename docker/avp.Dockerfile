@@ -13,7 +13,7 @@ COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
 WORKDIR $GOPATH/src/github.com/pion/ion/cmd/avp
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /avp .
 
-FROM alpine:3.11.6
+FROM alpine:3.12.0
 
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /avp /usr/local/bin/avp

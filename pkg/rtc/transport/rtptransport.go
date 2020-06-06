@@ -291,16 +291,18 @@ func (r *RTPTransport) WriteRTP(rtp *rtp.Packet) error {
 		return err
 	}
 
+	pkt := *rtp
+
 	if rtp.SequenceNumber%10 == 0 {
 		r.idLock.Lock()
-		err := r.setIDHeaderExtension(rtp)
+		err := r.setIDHeaderExtension(&pkt)
 		if err != nil {
 			log.Errorf("error setting id to rtp extension %+v", err)
 		}
 		r.idLock.Unlock()
 	}
 
-	_, err = writeStream.WriteRTP(&rtp.Header, rtp.Payload)
+	_, err = writeStream.WriteRTP(&pkt.Header, pkt.Payload)
 
 	if err != nil {
 		log.Errorf("writeStream.WriteRTP => %s", err.Error())
