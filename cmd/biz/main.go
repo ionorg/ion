@@ -13,7 +13,7 @@ import (
 
 func init() {
 	log.Init(conf.Log.Level)
-	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, biz.Entry)
+	signal.Init(conf.Signal.Host, conf.Signal.Port, conf.Signal.Cert, conf.Signal.Key, conf.Signal.AllowDisconnected, biz.Entry)
 }
 
 func close() {
