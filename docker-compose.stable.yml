@@ -13,6 +13,8 @@ services:
 
   biz:
     image: pionwebrtc/ion-biz:v0.4.6
+    volumes:
+      - "./configs/certs:/configs/certs"
     ports:
       - 8443:8443
     networks:
