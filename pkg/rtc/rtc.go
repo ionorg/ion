@@ -25,14 +25,18 @@ var (
 	//CleanChannel return the dead pub's mid
 	CleanChannel  = make(chan proto.MID, maxCleanSize)
 	pluginsConfig plugins.Config
-
-	stop bool
+	routerConfig  RouterConfig
+	stop          bool
 )
 
 // InitIce ice urls
 func InitIce(iceServers []webrtc.ICEServer, icePortStart, icePortEnd uint16) error {
 	//init ice urls and ICE settings
 	return transport.InitWebRTC(iceServers, icePortStart, icePortEnd)
+}
+
+func InitRouter(config RouterConfig) {
+	routerConfig = config
 }
 
 // InitPlugins plugins config
