@@ -7,6 +7,13 @@ dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
 
+[router]
+# pass bandwidth feeback to pub
+rembfeedback = false
+# Cap bandwidth feedback
+minbandwidth = 100000
+maxbandwidth = 5000000
+
 [plugins]
 on = true
 

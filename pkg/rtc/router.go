@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ const (
 
 type RouterConfig struct {
 	MinBandwidth uint64 `mapstructure:"minbandwidth"`
+	MaxBandwidth uint64 `mapstructure:"maxbandwidth"`
 	REMBFeedback bool   `mapstructure:"rembfeedback"`
 }
 
@@ -168,10 +170,14 @@ func (r *Router) rembLoop() {
 	lastRembTime := time.Now()
 	maxRembTime := 200 * time.Millisecond
 	rembMin := routerConfig.MinBandwidth
+	rembMax := routerConfig.MaxBandwidth
 	if rembMin == 0 {
-		rembMin = 10000
+		rembMin = 10000 //10 KBit
 	}
-	var lowest uint64 = 99999999999999999
+	if rembMax == 0 {
+		rembMax = 100000000 //100 MBit
+	}
+	var lowest uint64 = math.MaxUint64
 	var rembCount, rembTotalRate uint64
 
 	for pkt := range r.rembChan {
@@ -188,10 +194,12 @@ func (r *Router) rembLoop() {
 			avg := uint64(rembTotalRate / rembCount)
 
 			_ = avg
-			target := lowest // or lowest
+			target := lowest
 
 			if target < rembMin {
 				target = rembMin
+			} else if target > rembMax {
+				target = rembMax
 			}
 
 			newPkt := &rtcp.ReceiverEstimatedMaximumBitrate{
@@ -205,14 +213,14 @@ func (r *Router) rembLoop() {
 			if r.GetPub() != nil {
 				err := r.GetPub().WriteRTCP(newPkt)
 				if err != nil {
-					log.Errorf("Router.AddSub REMB err => %+v", err)
+					log.Errorf("Router.rembLoop err => %+v", err)
 				}
 			}
 
 			// Reset stats
 			rembCount = 0
 			rembTotalRate = 0
-			lowest = 99999999999999999
+			lowest = math.MaxUint64
 		}
 	}
 }
