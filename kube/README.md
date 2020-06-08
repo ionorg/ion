@@ -4,29 +4,29 @@ Kubernetes Config Readme
 ***ALPHA QUALITY NOTE***
 This Kubernetes configuration is basically un-tested. DO NOT USE IT IN PRODUCTION.
 
-Features
-========
-If you install nats, redis and etcd from the helm charts with metrics.enabled, you get
-prometheus service health monitoring for free!
-
 Requirements
 ============
 1. Helm3 - We use helm3 to install NATS/etcd/redis in your namespace
-2. `nginx-ingress` with automatic TLS is *required*. Instructions for installing this depend on your Kubernetes provider and are outside the scope of this document.
+2. A public IP and valid subdomain to use for `nginx-ingress`; it must be a valid resolving subdomain with a publicly accessible IP for the TLS to provision. 
+3. `nginx-ingress` with automatic TLS is *required*; there are many possible ways to set this up, depending on your Kubernetes provider. If you use a different ingress or don't support the default TLS parameters, you must ensure the Web service has TLS configured; the video chat will always fail to connect over HTTP.
+
+Getting a `LoadBalancer` with a public IP and setting up TLS are well-documented roadblocks for many new Kubernetes users. Rather than testing on a local machine on a home network behind a router, it might be easier to provision a kubernetes cluster with proper `LoadBalancer` support.
 
 Usage
 =====
 0. (recommended) Read every file in this directory before deploying. They are short and crucial. Understand them.
-1. Install NATS/etcd/redis by running `bash helm.sh`
-2. Update ingress.yaml to add your domain for HTTPS; it must be a valid resolving subdomain. TLS is required for the ion frontend, video will not connect without it.
-3. Install the ion stack (SFU/ISLB/BIZ/AVP nodes and the WEB service) by running `bash apply.sh`
+1. `kubectl create namespace ion` -- You can use another namespace but you'll need to update parts of the `grafana_charts` in step 5
+2. Install NATS/etcd/redis by running `bash helm.sh`
+3. Update ingress.yaml to add your domain.
+4. Install the ion stack (SFU/ISLB/BIZ/AVP nodes and the WEB service) by running `bash apply.sh`
+5. [optional] Add the `grafana` charts from `docs/grafana_charts/`; you can install a portable grafana in the current namespace just by running `helm install grafana bitnami/grafana`
 
 SFU Caveats
 =======
 + Only 1 SFU is currently supported (pending ISLB Relay Feature)
-+ SFU is currently configured as a Deployment; this will be changed to a DaemonSet once Relay is supported
++ SFU is currently configured as a Deployment(scale=1); this will be changed to a DaemonSet (1 pod per node) once Relay is supported
 
 Development Notes
 =================
 + It should be upgraded to a Helm chart ASAP; I have never done this, I am learning
-+ Tested locally on k3s, but you *must* have local SSL certs working (which can be hard to setup)
++ Tested locally on k3s, but you *must* have local SSL certs working (which can be hard to setup); I suggest using [`mkcert`](https://github.com/FiloSottile/mkcert) to create a certificate, followed by `mkcert -install` to ensure your browser trusts the CA.
