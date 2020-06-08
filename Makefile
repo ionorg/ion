@@ -29,7 +29,7 @@ nodes: go_deps
 	go build -o bin/sfu $(GO_LDFLAGS) cmd/sfu/main.go
 
 start_test_services:
-	docker-compose -f docker-compose.test.yml up -d
+	docker-compose -f docker-compose.stable.yml up -d redis nats etcd
 
 test: nodes start_test_services
 	go test \

@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	EtcdAddr = "http://127.0.0.1:2379"
+	EtcdAddr = "http://127.0.0.1:2389"
+	NatsAddr = "http://127.0.0.1:4223"
 )
 
 var (
@@ -33,7 +34,7 @@ func JsonEncode(str string) map[string]interface{} {
 func ServiceNodeRegistry() {
 	serviceNode := NewServiceNode([]string{EtcdAddr}, "dc1")
 	serviceNode.RegisterNode("sfu", "node-name", "nats-channel-test")
-	protoo := nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
+	protoo := nprotoo.NewNatsProtoo(NatsAddr)
 	wg.Add(1)
 	protoo.OnRequest(serviceNode.GetRPCChannel(), func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
 		log.Infof("method => %s, data => %v", request.Method, request.Data)
@@ -53,7 +54,7 @@ func ServiceNodeRegistry() {
 
 func ServiceNodeWatch() {
 	serviceWatcher := NewServiceWatcher([]string{EtcdAddr}, "dc1")
-	protoo := nprotoo.NewNatsProtoo(nprotoo.DefaultNatsURL)
+	protoo := nprotoo.NewNatsProtoo(NatsAddr)
 	go serviceWatcher.WatchServiceNode("sfu", func(service string, state NodeStateType, node Node) {
 		if state == UP {
 			log.Infof("Service UP [%s] => %v", service, node)
