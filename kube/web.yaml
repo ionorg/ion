@@ -47,16 +47,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-        volumeMounts:
-        - name: config-volume
-          mountPath: /etc/caddy/
         ports:
         - name: web
           containerPort: 80
           protocol: TCP
-      volumes:
-      - name: config-volume
-        configMap:
-          # Provide the name of the ConfigMap containing the files you want
-          # to add to the container
-          name: ion-config
