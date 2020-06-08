@@ -91,19 +91,10 @@ _test_job: &test_job
   env: CACHE_NAME=test
   before_install:
     - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
-    - go mod download
   install:
-    - go build ./...
-  before_script:
-    - docker-compose -f docker-compose.test.yml up -d
+    - make nodes
   script:
-    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf | grep -v node)}
-    - coverpkgs=$(echo "${testpkgs}" | paste -s -d ',')
-    - |
-      go test \
-        -coverpkg=${coverpkgs} -coverprofile=cover.out -covermode=atomic \
-        ${TEST_EXTRA_ARGS:-} \
-        -v -race ${testpkgs}
+    - make test
     - if [ -n "${TEST_HOOK}" ]; then ${TEST_HOOK}; fi
   after_success:
     - travis_retry bash <(curl -s https://codecov.io/bash) -c -F go
@@ -113,7 +104,7 @@ _test_i386_job: &test_i386_job
   before_install:
     - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
   before_script:
-    - docker-compose -f docker-compose.test.yml up -d
+    - make start_test_services
   script:
     - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf)}
     - |
