@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: islb
-        image: pionwebrtc/ion-islb:0.2.0
+        image: pionwebrtc/ion-islb:v0.4.6
         command: ["/usr/local/bin/islb", "-c", "/configs/islb.toml"]
         resources:
           requests:
