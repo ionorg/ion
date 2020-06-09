@@ -3,7 +3,7 @@ set -e
 
 test -z "$1" && NS="ion" || NS="$1"
 
-echo "Installing data services into namespace $1..."
+echo "Installing data services into namespace $NS..."
 
 ### Data Services
 
