@@ -17,7 +17,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: "*"
+          class: "traefik"
 ---
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -37,4 +37,4 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: "*"
+          class: "traefik"
