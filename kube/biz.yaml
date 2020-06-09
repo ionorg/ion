@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: biz
-        image: pionwebrtc/ion-biz:0.2.0
+        image: pionwebrtc/ion-biz:v0.4.6
         command: ["/usr/local/bin/biz", "-c", "/configs/biz.toml"]
         resources:
           requests:

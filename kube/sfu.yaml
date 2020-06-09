@@ -24,7 +24,7 @@ spec:
       
       containers:
       - name: sfu
-        image: pionwebrtc/ion-sfu:0.2.0
+        image: pionwebrtc/ion-sfu:v0.4.6
         command: ["/usr/local/bin/sfu", "-c", "/configs/sfu.toml"]
         resources:
           limits:
