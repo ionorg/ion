@@ -13,7 +13,7 @@ require (
 	github.com/pion/rtp v1.5.5
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.0
-	github.com/pion/webrtc/v2 v2.2.13
+	github.com/pion/webrtc/v2 v2.2.15
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/spf13/viper v1.7.0
