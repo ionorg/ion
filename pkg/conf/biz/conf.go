@@ -40,11 +40,13 @@ type etcd struct {
 }
 
 type signal struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Cert string `mapstructure:"cert"`
-	Key  string `mapstructure:"key"`
-	AllowDisconnected bool `mapstructure:"allow_disconnected"`
+	Host              string `mapstructure:"host"`
+	Port              int    `mapstructure:"port"`
+	Cert              string `mapstructure:"cert"`
+	Key               string `mapstructure:"key"`
+	WebSocketPath     string `mapstructure:"path"`
+	Authenticate      bool   `mapstructure:"authenticate"`
+	AllowDisconnected bool   `mapstructure:"allow_disconnected"`
 }
 
 type nats struct {

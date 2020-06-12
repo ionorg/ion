@@ -7,11 +7,18 @@ import (
 	"github.com/cloudwebrtc/go-protoo/logger"
 	pr "github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )
+
+// Claims supported in JWT
+type Claims struct {
+	*jwt.StandardClaims
+	*proto.RoomClaims
+}
 
 func in(transport *transport.WebSocketTransport, request *http.Request) {
 	vars := request.URL.Query()
@@ -23,6 +30,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 	id := peerID[0]
 	log.Infof("signal.in, id => %s", id)
 	peer := newPeer(id, transport)
+	claims := ForContext(request.Context())
 
 	handleRequest := func(request pr.Request, accept func(interface{}), reject func(errorCode int, errorReason string)) {
 		defer util.Recover("signal.in handleRequest")
@@ -41,7 +49,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		}
 
 		log.Infof("signal.in handleRequest id=%s method => %s", peer.ID(), method)
-		bizCall(method, peer, data, accept, reject)
+		bizCall(method, peer, data, claims, accept, reject)
 	}
 
 	handleNotification := func(notification pr.Notification) {
@@ -62,7 +70,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 
 		// msg := data.(map[string]interface{})
 		log.Infof("signal.in handleNotification id=%s method => %s", peer.ID(), method)
-		bizCall(method, peer, data, emptyAccept, reject)
+		bizCall(method, peer, data, claims, emptyAccept, reject)
 	}
 
 	handleClose := func(code int, err string) {
@@ -82,7 +90,7 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 						RoomInfo: proto.RoomInfo{RID: room.ID()},
 					}
 					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.ClientLeave, peer, msgStr, emptyAccept, reject)
+					bizCall(proto.ClientLeave, peer, msgStr, claims, emptyAccept, reject)
 				}
 				room.RemovePeer(peer.ID())
 			}

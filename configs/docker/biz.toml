@@ -8,8 +8,8 @@ addr = "127.0.0.1"
 dc = "dc1"
 
 [log]
-level = "info"
-# level = "debug"
+# level = "info"
+level = "debug"
 
 [etcd]
 # ["ip:port", "ip:port"]
@@ -21,6 +21,9 @@ host = "0.0.0.0"
 port = "8443"
 # cert= "/configs/certs/cert.pem"
 # key= "/configs/certs/key.pem"
+path = "/ws"
+authenticate = false
+allow_disconnected = false
 
 [nats]
 url = "nats://nats:4222"
