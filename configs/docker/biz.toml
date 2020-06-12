@@ -22,7 +22,7 @@ port = "8443"
 # cert= "/configs/certs/cert.pem"
 # key= "/configs/certs/key.pem"
 path = "/ws"
-authenticate = false
+authorization = false
 allow_disconnected = false
 
 [nats]

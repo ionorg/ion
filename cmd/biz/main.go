@@ -18,7 +18,7 @@ func init() {
 		Port:          conf.Signal.Port,
 		CertFile:      conf.Signal.Cert,
 		KeyFile:       conf.Signal.Key,
-		Authenticate:  conf.Signal.Authenticate,
+		Authorization: conf.Signal.Authorization,
 		WebSocketPath: conf.Signal.WebSocketPath,
 	}, conf.Signal.AllowDisconnected, biz.Entry)
 }

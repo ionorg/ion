@@ -45,7 +45,7 @@ type signal struct {
 	Cert              string `mapstructure:"cert"`
 	Key               string `mapstructure:"key"`
 	WebSocketPath     string `mapstructure:"path"`
-	Authenticate      bool   `mapstructure:"authenticate"`
+	Authorization     bool   `mapstructure:"authorization"`
 	AllowDisconnected bool   `mapstructure:"allow_disconnected"`
 }
 

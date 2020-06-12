@@ -20,8 +20,8 @@ func (m *ClientUserInfo) UnmarshalBinary(data []byte) error {
 
 type RoomClaims struct {
 	ID           string `json:"id,omitempty"`
-	Videopublish bool   `json:"videopublish,omitempty"`
-	Audiopublish bool   `json:"audiopublish,omitempty"`
+	VideoPublish bool   `json:"videopublish,omitempty"`
+	AudioPublish bool   `json:"audiopublish,omitempty"`
 }
 
 type RoomInfo struct {

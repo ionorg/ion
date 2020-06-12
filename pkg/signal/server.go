@@ -19,14 +19,10 @@ type WebSocketServerConfig struct {
 	CertFile      string
 	KeyFile       string
 	WebSocketPath string
-	Authenticate  bool
+	Authorization bool
 }
 
 type MsgHandler func(ws *transport.WebSocketTransport, request *http.Request)
-
-type WebSocketServer struct {
-	handleWebSocket func(ws *transport.WebSocketTransport, request *http.Request)
-}
 
 type contextKey struct {
 	name string
@@ -61,9 +57,9 @@ func getClaims(r *http.Request) (*Claims, error) {
 	return token.Claims.(*Claims), nil
 }
 
-func handler(authenticate bool, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
+func handler(authorization bool, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if authenticate {
+		if authorization {
 			claims, err := getClaims(r)
 
 			if err != nil {
@@ -96,7 +92,7 @@ func handler(authenticate bool, msgHandler MsgHandler) func(w http.ResponseWrite
 // NewWebSocketServer for signaling
 func NewWebSocketServer(cfg WebSocketServerConfig, msgHandler MsgHandler) error {
 	// Websocket handle func
-	http.HandleFunc(cfg.WebSocketPath, handler(cfg.Authenticate, msgHandler))
+	http.HandleFunc(cfg.WebSocketPath, handler(cfg.Authorization, msgHandler))
 
 	if cfg.CertFile == "" || cfg.KeyFile == "" {
 		logger.Infof("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
