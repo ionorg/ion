@@ -13,11 +13,11 @@ require (
 	github.com/pion/rtp v1.5.5
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.0
-	github.com/pion/webrtc/v2 v2.2.15
+	github.com/pion/webrtc/v2 v2.2.16
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/spf13/viper v1.7.0
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.etcd.io/etcd v3.3.4+incompatible
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/crypto v0.0.0-20200602180216-279210d13fed
 )
