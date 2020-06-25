@@ -4,6 +4,10 @@ dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
 
+[grpc]
+# internet ip
+port = ":50051"
+
 [pprof]
 port = ":6062"
 

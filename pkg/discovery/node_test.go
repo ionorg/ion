@@ -33,7 +33,7 @@ func JsonEncode(str string) map[string]interface{} {
 
 func ServiceNodeRegistry() {
 	serviceNode := NewServiceNode([]string{EtcdAddr}, "dc1")
-	serviceNode.RegisterNode("sfu", "node-name", "nats-channel-test")
+	serviceNode.RegisterNode("sfu", "node-name", "nats-channel-test", "")
 	protoo := nprotoo.NewNatsProtoo(NatsAddr)
 	wg.Add(1)
 	protoo.OnRequest(serviceNode.GetRPCChannel(), func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {

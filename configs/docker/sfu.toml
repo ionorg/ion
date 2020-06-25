@@ -1,9 +1,12 @@
 [global]
 # data center id
 dc = "dc1"
-
 # internet ip
 addr = "127.0.0.1"
+
+[grpc]
+# internet ip
+port = ":50051"
 
 [pprof]
 port = ":6062"
@@ -43,19 +46,20 @@ kcpsalt = ""
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
 portrange = [5000, 5200]
+
 [webrtc.iceserver]
 urls = ["stun:stun.l.google.com:19302"]
 
 [rtp]
 # listen port
 port = 6666
+
 # kcpkey = ""
 # kcpsalt = ""
-
 [log]
 level = "info"
-# level = "debug"
 
+# level = "debug"
 [etcd]
 # ["ip:port", "ip:port"]
 addrs = ["etcd:2379"]

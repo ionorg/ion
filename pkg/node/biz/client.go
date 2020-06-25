@@ -147,7 +147,7 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks))
 
 	go func() {
-		// Next response is sent on webrtc transport close
+		// Next response is received on webrtc transport close
 		answer, err = stream.Recv()
 		log.Infof("Pub closed => %s", mid)
 		islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid))

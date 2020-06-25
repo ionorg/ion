@@ -8,18 +8,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	portRangeLimit = 100
-)
-
 var (
-	cfg     = config{}
-	Global  = base.Global
+	cfg = config{}
+
+	GRPC    = base.GRPC
 	Plugins = base.Plugins
 	WebRTC  = base.WebRTC
 	Rtp     = base.Rtp
 	Log     = base.Log
 	Router  = base.Router
+	Global  = &cfg.Global
 	Etcd    = &cfg.Etcd
 	Pprof   = &cfg.Pprof
 )
@@ -38,9 +36,14 @@ type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
 
+type global struct {
+	Dc string `mapstructure:"dc"`
+}
+
 type config struct {
-	Pprof pprof `mapstructure:"pprof"`
-	Etcd  etcd  `mapstructure:"etcd"`
+	Global global `mapstructure:"global"`
+	Pprof  pprof  `mapstructure:"pprof"`
+	Etcd   etcd   `mapstructure:"etcd"`
 }
 
 func (c *config) load() bool {
