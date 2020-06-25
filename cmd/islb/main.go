@@ -29,7 +29,7 @@ func main() {
 	}
 
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
+	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id", "")
 
 	redisCfg := db.Config{
 		Addrs: conf.Redis.Addrs,

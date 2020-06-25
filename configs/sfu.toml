@@ -1,9 +1,11 @@
 [global]
-pprof = ":6062"
 # data center id
 dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
+
+[pprof]
+port = ":6062"
 
 [router]
 # pass bandwidth feeback to pub

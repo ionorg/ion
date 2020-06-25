@@ -1,7 +1,13 @@
 package biz
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/pion/ion-sfu/pkg/proto/media"
+	"github.com/pion/ion-sfu/pkg/proto/sfu"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
@@ -94,10 +100,10 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.publish peer.ID()=%s", peer.ID())
 
-	nid, sfu, err := getRPCForSFU("")
+	nid, sfuClient, err := getRPCForSFU("")
 	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+		log.Warnf("sfu node not found, reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
 	}
 
 	jsep := msg.Jsep
@@ -109,56 +115,45 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 
 	rid := room.ID()
 	uid := peer.ID()
-	resMsg, err := sfu.SyncRequest(proto.ClientPublish, util.Map("uid", uid, "rid", rid, "jsep", jsep, "options", options))
+
+	stream, err := sfuClient.Publish(context.Background(), &sfu.PublishRequest{
+		Rid: "default",
+		Options: &sfu.PublishOptions{
+			Codec:       options.Codec,
+			Bandwidth:   uint32(options.Bandwidth),
+			Transportcc: options.TransportCC,
+		},
+		Description: &sfu.SessionDescription{
+			Type: jsep.Type.String(),
+			Sdp:  jsep.SDP,
+		},
+	})
+
 	if err != nil {
-		log.Warnf("reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+		log.Warnf("reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
 	}
 
-	var result map[string]interface{}
-	if err := resMsg.Unmarshal(&result); err != nil {
-		log.Errorf("Unmarshal pub response %v", err)
-		return nil, err
-	}
+	answer, err := stream.Recv()
 
-	log.Infof("publish: result => %v", result)
-	mid := util.Val(result, "mid")
-	tracks := result["tracks"]
+	log.Infof("publish: result => %v", answer)
+	mid := answer.Mediainfo.Mid
+	tracks := answer.Stream.Tracks
+
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks))
-	return result, nil
-}
 
-// unpublish from app
-func unpublish(peer *signal.Peer, msg proto.UnpublishMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
+	go func() {
+		// Next response is sent on webrtc transport close
+		answer, err = stream.Recv()
+		log.Infof("Pub closed => %s", mid)
+		islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid))
+	}()
 
-	mid := msg.MID
-	rid := msg.RID
-	uid := peer.ID()
-
-	_, sfu, err := getRPCForSFU(mid)
-	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, err
-	}
-
-	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid, "uid", uid, "rid", rid))
-	if err != nil {
-		return nil, err
-	}
-
-	islb, found := getRPCForIslb()
-	if !found {
-		return nil, util.NewNpError(500, "Not found any node for islb.")
-	}
-	// if this mid is a webrtc pub
-	// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb broadcast stream-remove
-	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", mid))
-	return emptyMap, nil
+	return answer, nil
 }
 
 func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo.Error) {
@@ -172,10 +167,10 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, jsepError
 	}
 
-	nodeID, sfu, err := getRPCForSFU(mid)
+	nodeID, sfuClient, err := getRPCForSFU(string(mid))
 	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+		log.Warnf("sfu node not found, reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
 	}
 
 	// TODO:
@@ -184,7 +179,6 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 	}
 
 	room := signal.GetRoomByPeer(peer.ID())
-	uid := peer.ID()
 	rid := room.ID()
 
 	jsep := msg.Jsep
@@ -194,53 +188,54 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 
-	result, err := islb.SyncRequest(proto.IslbGetMediaInfo, proto.MediaInfo{RID: rid, MID: mid})
+	result, nerr := islb.SyncRequest(proto.IslbGetMediaInfo, proto.MediaInfo{RID: rid, MID: mid})
 	if err != nil {
-		log.Warnf("reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+		log.Warnf("reject: %d => %s", nerr.Code, nerr.Reason)
+		return nil, util.NewNpError(nerr.Code, nerr.Reason)
 	}
-	var some map[string]interface{}
+	var some map[string]map[string][]proto.TrackInfo
 	if err := result.Unmarshal(&some); err != nil {
 		return nil, err
 	}
-	// subMsg := proto.SFUSubscribeMsg{
-	// 	MediaInfo: proto.MediaInfo{
-	// 		UID: uid, RID: rid, MID: mid,
-	// 	},
-	// }
-	result, err = sfu.SyncRequest(proto.ClientSubscribe, util.Map("uid", uid, "rid", rid, "mid", mid, "tracks", some["tracks"], "jsep", jsep))
-	if err != nil {
-		log.Warnf("reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	for msid, tracks := range some["tracks"] {
+		var mtracks []*media.Track
+		for _, track := range tracks {
+			mtrack := media.Track{
+				Id:      track.ID,
+				Ssrc:    uint32(track.Ssrc),
+				Payload: uint32(track.Payload),
+				Type:    track.Type,
+				Codec:   track.Codec,
+				Fmtp:    track.Fmtp,
+			}
+			mtracks = append(mtracks, &mtrack)
+		}
+
+		answer, err := sfuClient.Subscribe(ctx, &sfu.SubscribeRequest{
+			Mid: string(msg.MID),
+			Description: &sfu.SessionDescription{
+				Type: jsep.Type.String(),
+				Sdp:  jsep.SDP,
+			},
+			Stream: &media.Stream{
+				Id:     msid,
+				Tracks: mtracks,
+			},
+		})
+
+		if err != nil {
+			return nil, util.NewNpError(500, "error subscribing to stream")
+		}
+
+		log.Infof("subscribe: result => %v", result)
+		return answer, nil
 	}
 
-	log.Infof("subscribe: result => %v", result)
-	return result, nil
-}
-
-func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	mid := msg.MID
-
-	// Validate
-	if mid == "" {
-		return nil, midError
-	}
-
-	_, sfu, err := getRPCForSFU(mid)
-	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
-	}
-
-	result, err := sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("mid", mid))
-	if err != nil {
-		log.Warnf("reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
-	}
-
-	log.Infof("publish: result => %v", result)
-	return result, nil
+	return nil, util.NewNpError(404, "stream not found")
 }
 
 func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo.Error) {
@@ -261,22 +256,22 @@ func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo
 }
 
 func trickle(peer *signal.Peer, msg proto.TrickleMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.trickle peer.ID()=%s msg=%v", peer.ID(), msg)
-	mid := msg.MID
+	// log.Infof("biz.trickle peer.ID()=%s msg=%v", peer.ID(), msg)
+	// mid := msg.MID
 
-	// Validate
-	if msg.RID == "" || msg.UID == "" {
-		return nil, ridError
-	}
+	// // Validate
+	// if msg.RID == "" || msg.UID == "" {
+	// 	return nil, ridError
+	// }
 
-	_, sfu, err := getRPCForSFU(mid)
-	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
-	}
+	// _, sfu, err := getRPCForSFU(mid)
+	// if err != nil {
+	// 	log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+	// 	return nil, util.NewNpError(err.Code, err.Reason)
+	// }
 
-	trickle := msg.Trickle
+	// trickle := msg.Trickle
 
-	sfu.AsyncRequest(proto.ClientTrickleICE, util.Map("mid", mid, "trickle", trickle))
+	// sfu.AsyncRequest(proto.ClientTrickleICE, util.Map("mid", mid, "trickle", trickle))
 	return emptyMap, nil
 }

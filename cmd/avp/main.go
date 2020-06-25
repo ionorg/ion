@@ -88,7 +88,7 @@ func main() {
 	}
 
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("avp", "node-avp", "avp-channel-id")
+	serviceNode.RegisterNode("avp", "node-avp", "avp-channel-id", "")
 
 	rpcID := serviceNode.GetRPCChannel()
 	eventID := serviceNode.GetEventChannel()

@@ -22,9 +22,8 @@ type FindServiceParams struct {
 }
 
 type GetSFURPCParams struct {
-	RPCID   string
-	EventID string
-	ID      string
-	Name    string
-	Service string
+	ID          string
+	Name        string
+	Service     string
+	GRPCAddress string
 }

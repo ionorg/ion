@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/util"
 )
 
 //ServiceRegistry lib
@@ -41,7 +40,6 @@ func (r *ServiceRegistry) RegisterServiceNode(serviceName string, node Node) err
 	if node.ID == "" {
 		return fmt.Errorf("Node name must be non empty")
 	}
-	node.Info["ip"] = util.GetIntefaceIP()
 	go r.keepRegistered(serviceName, node)
 	return nil
 }

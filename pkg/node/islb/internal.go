@@ -109,10 +109,9 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 				name := node.Info["name"]
 				id := node.Info["id"]
 				if service == node.Info["service"] && minfo.NID == id {
-					rpcID := discovery.GetRPCChannel(node)
-					eventID := discovery.GetEventChannel(node)
-					resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
+					grpc := discovery.GetGRPCAddress(node)
+					resp := proto.GetSFURPCParams{Name: name, Service: service, ID: id, GRPCAddress: grpc}
+					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, grpc)
 					return resp, nil
 				}
 			}
@@ -122,12 +121,11 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 	// TODO: Add a load balancing algorithm.
 	for _, node := range services {
 		if service == node.Info["service"] {
-			rpcID := discovery.GetRPCChannel(node)
-			eventID := discovery.GetEventChannel(node)
+			grpc := discovery.GetGRPCAddress(node)
 			name := node.Info["name"]
 			id := node.Info["id"]
-			resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
+			resp := proto.GetSFURPCParams{Name: name, Service: service, ID: id, GRPCAddress: grpc}
+			log.Infof("findServiceNode: [%s] %s => %s", service, name, grpc)
 			return resp, nil
 		}
 	}

@@ -11,6 +11,9 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"
+	"google.golang.org/grpc"
+
+	"github.com/pion/ion-sfu/pkg/proto/sfu"
 )
 
 // ParseProtoo Unmarshals a protoo payload.
@@ -44,20 +47,10 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = publish(peer, msgData)
 		}
-	case proto.ClientUnPublish:
-		var msgData proto.UnpublishMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = unpublish(peer, msgData)
-		}
 	case proto.ClientSubscribe:
 		var msgData proto.SubscribeMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = subscribe(peer, msgData)
-		}
-	case proto.ClientUnSubscribe:
-		var msgData proto.UnsubscribeMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = unsubscribe(peer, msgData)
 		}
 	case proto.ClientBroadcast:
 		var msgData proto.BroadcastMsg
@@ -96,29 +89,7 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 	return nil, false
 }
 
-func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
-	go func(msg nprotoo.Notification) {
-		var data proto.MediaInfo
-		if err := json.Unmarshal(msg.Data, &data); err != nil {
-			log.Errorf("handleSFUBroadCast Unmarshall error %v", err)
-			return
-		}
-
-		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, data)
-
-		switch msg.Method {
-		case proto.SFUTrickleICE:
-			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnStreamAdd, data)
-		case proto.SFUStreamRemove:
-			islb, found := getRPCForIslb()
-			if found {
-				islb.AsyncRequest(proto.IslbOnStreamRemove, data)
-			}
-		}
-	}(msg)
-}
-
-func getRPCForSFU(mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
+func getRPCForSFU(mid string) (string, sfu.SFUClient, error) {
 	islb, found := getRPCForIslb()
 	if !found {
 		return "", nil, util.NewNpError(500, "Not found any node for islb.")
@@ -134,12 +105,17 @@ func getRPCForSFU(mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	}
 
 	log.Infof("SFU result => %v", result)
-	rpcID := answer.RPCID
-	rpc, found := rpcs[rpcID]
+	grpcAddr := answer.GRPCAddress
+	sfuGrpc, found := sfus[grpcAddr]
 	if !found {
-		rpc = protoo.NewRequestor(rpcID)
-		protoo.OnBroadcast(answer.EventID, handleSFUBroadCast)
-		rpcs[rpcID] = rpc
+		conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			log.Panicf("did not connect: %v", err)
+			return "", nil, fmt.Errorf("sfu node not found")
+		}
+
+		sfuGrpc = sfu.NewSFUClient(conn)
+		sfus[grpcAddr] = sfuGrpc
 	}
-	return answer.ID, rpc, nil
+	return answer.ID, sfuGrpc, nil
 }

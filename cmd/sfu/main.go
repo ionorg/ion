@@ -4,12 +4,12 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	sfu "github.com/pion/ion-sfu/pkg/node"
+	"github.com/pion/ion-sfu/pkg/rtc"
+	"github.com/pion/ion-sfu/pkg/rtc/plugins"
 	conf "github.com/pion/ion/pkg/conf/sfu"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node/sfu"
-	"github.com/pion/ion/pkg/rtc"
-	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/webrtc/v2"
 )
 
@@ -67,10 +67,10 @@ func init() {
 func main() {
 	log.Infof("--- Starting SFU Node ---")
 
-	if conf.Global.Pprof != "" {
+	if conf.Pprof.Port != "" {
 		go func() {
-			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			log.Infof("Start pprof on %s", conf.Pprof.Port)
+			err := http.ListenAndServe(conf.Pprof.Port, nil)
 			if err != nil {
 				log.Errorf("http.ListenAndServe err=%v", err)
 			}
@@ -80,8 +80,6 @@ func main() {
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
 	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
 
-	rpcID := serviceNode.GetRPCChannel()
-	eventID := serviceNode.GetEventChannel()
-	sfu.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], rpcID, eventID, conf.Nats.URL)
+	sfu.Init(conf.Global.Port)
 	select {}
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/util"
 	"go.etcd.io/etcd/clientv3"
 )
 
@@ -50,12 +51,21 @@ func (sn *ServiceNode) GetRPCChannel() string {
 	return "rpc-" + sn.node.Info["id"]
 }
 
+// GetGRPCAddress .
+func (sn *ServiceNode) GetGRPCAddress() string {
+	return sn.node.Info["grpc"]
+}
+
 // RegisterNode register a new node.
-func (sn *ServiceNode) RegisterNode(serviceName string, name string, ID string) {
+func (sn *ServiceNode) RegisterNode(serviceName, name, ID, grpcPort string) {
 	sn.node.ID = randomString(12)
 	sn.node.Info["name"] = name
 	sn.node.Info["service"] = serviceName
 	sn.node.Info["id"] = serviceName + "-" + sn.node.ID
+	sn.node.Info["ip"] = util.GetIntefaceIP()
+	if grpcPort != "" {
+		sn.node.Info["grpc"] = sn.node.Info["ip"] + grpcPort
+	}
 	err := sn.reg.RegisterServiceNode(serviceName, sn.node)
 	if err != nil {
 		log.Panicf("%v", err)
@@ -183,4 +193,9 @@ func GetEventChannel(node Node) string {
 // GetRPCChannel .
 func GetRPCChannel(node Node) string {
 	return "rpc-" + node.Info["id"]
+}
+
+// GetGRPCAddress for a node
+func GetGRPCAddress(node Node) string {
+	return node.Info["grpc"]
 }
