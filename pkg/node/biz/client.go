@@ -6,7 +6,6 @@ import (
 	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	"github.com/pion/ion-sfu/pkg/proto/media"
 	"github.com/pion/ion-sfu/pkg/proto/sfu"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -183,52 +182,16 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		log.Warnf("Not the same node, need to enable sfu-sfu relay!")
 	}
 
-	room := signal.GetRoomByPeer(peer.ID())
-	rid := room.ID()
-
 	jsep := msg.Description
-
-	islb, found := getRPCForIslb()
-	if !found {
-		return nil, util.NewNpError(500, "Not found any node for islb.")
-	}
-
-	result, nerr := islb.SyncRequest(proto.IslbGetMediaInfo, proto.MediaInfo{RID: rid, MID: mid})
-	if err != nil {
-		log.Warnf("reject: %d => %s", nerr.Code, nerr.Reason)
-		return nil, util.NewNpError(nerr.Code, nerr.Reason)
-	}
-
-	var res proto.GetMediaInfoResponseMsg
-	if err := result.Unmarshal(&res); err != nil {
-		return nil, err
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	var mtracks []*media.Track
-	for _, track := range res.Stream.Tracks {
-		mtrack := media.Track{
-			Id:      track.ID,
-			Ssrc:    uint32(track.Ssrc),
-			Payload: uint32(track.Payload),
-			Type:    track.Type,
-			Codec:   track.Codec,
-			Fmtp:    track.Fmtp,
-		}
-		mtracks = append(mtracks, &mtrack)
-	}
-	log.Infof("subscribing with tracks: %v", mtracks)
 	answer, err := sfuClient.Subscribe(ctx, &sfu.SubscribeRequest{
 		Mid: string(msg.MID),
 		Description: &sfu.SessionDescription{
 			Type: jsep.Type.String(),
 			Sdp:  jsep.SDP,
-		},
-		Stream: &media.Stream{
-			Id:     res.Stream.ID,
-			Tracks: mtracks,
 		},
 	})
 
@@ -237,7 +200,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, util.NewNpError(500, "error subscribing to stream")
 	}
 
-	log.Infof("subscribe: result => %s", result)
+	log.Infof("subscribe: result => %s", answer)
 	return answer, nil
 }
 

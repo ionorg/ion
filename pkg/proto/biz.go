@@ -42,11 +42,6 @@ type SubscribeOptions struct {
 	TransportCC bool `json:"transportCC"`
 }
 
-type Stream struct {
-	ID     string      `json:"id"`
-	Tracks []TrackInfo `json:"tracks"`
-}
-
 /// Messages ///
 
 type JoinMsg struct {
@@ -68,7 +63,6 @@ type PublishMsg struct {
 type PublishResponseMsg struct {
 	MediaInfo
 	RTCInfo
-	Stream Stream `json:"stream"`
 }
 
 type UnpublishMsg struct {
@@ -103,15 +97,9 @@ type TrickleMsg struct {
 
 type StreamAddMsg struct {
 	MediaInfo
-	Info   ClientUserInfo `json:"info"`
-	Stream Stream         `json:"stream"`
+	Info ClientUserInfo `json:"info"`
 }
 
 type StreamRemoveMsg struct {
 	MediaInfo
-}
-
-type GetMediaInfoResponseMsg struct {
-	MediaInfo
-	Stream Stream `json:"stream"`
 }

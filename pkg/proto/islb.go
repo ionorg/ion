@@ -2,8 +2,7 @@ package proto
 
 type PubInfo struct {
 	MediaInfo
-	Info   ClientUserInfo `json:"info"`
-	Stream Stream         `json:"stream"`
+	Info ClientUserInfo `json:"info"`
 }
 
 type GetPubResp struct {

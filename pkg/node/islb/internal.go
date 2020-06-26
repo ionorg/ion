@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
@@ -159,17 +158,6 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 
 	log.Infof("%s", data)
 
-	field, value, err = proto.MarshalTrackField(data.Stream.ID, data.Stream)
-	if err != nil {
-		log.Errorf("MarshalTrackField: %v ", err)
-	}
-
-	log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
-	err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
-	if err != nil {
-		log.Errorf("redis.HSetTTL err = %v", err)
-	}
-
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
 	fields := redis.HGetAll(ukey)
 
@@ -225,19 +213,6 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 			RID: info.RID,
 			UID: info.UID,
 		}.BuildKey())
-		trackFields := redis.HGetAll(path)
-
-		var stream proto.Stream
-		for key, value := range trackFields {
-			if strings.HasPrefix(key, "track/") {
-				log.Infof("here %s, %s", key, value)
-				msid, stream, err := proto.UnmarshalTrackField(key, value)
-				if err != nil {
-					log.Errorf("%v", err)
-				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, stream.Tracks)
-			}
-		}
 
 		log.Infof("Fields %v", fields)
 
@@ -251,7 +226,6 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 		pub := proto.PubInfo{
 			MediaInfo: *info,
 			Info:      extraInfo,
-			Stream:    stream,
 		}
 		pubs = append(pubs, pub)
 	}
@@ -296,34 +270,6 @@ func clientLeave(data proto.RoomInfo) (interface{}, *nprotoo.Error) {
 	time.Sleep(500 * time.Millisecond)
 	broadcaster.Say(proto.IslbClientOnLeave, data)
 	return struct{}{}, nil
-}
-
-func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
-	// Ensure DC
-	data.DC = dc
-
-	mkey := data.BuildKey()
-	log.Infof("getMediaInfo key=%s", mkey)
-
-	if keys := redis.Keys(mkey + "*"); len(keys) > 0 {
-		key := keys[0]
-		log.Infof("Got: key => %s", key)
-		fields := redis.HGetAll(key)
-		for key, value := range fields {
-			if strings.HasPrefix(key, "track/") {
-				msid, stream, err := proto.UnmarshalTrackField(key, value)
-				if err != nil {
-					log.Errorf("%v", err)
-				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, stream.Tracks)
-				resp := util.Map("mid", data.MID, "stream", stream)
-				log.Infof("getMediaInfo: resp=%v", resp)
-				return resp, nil
-			}
-		}
-	}
-
-	return nil, util.NewNpError(404, "MediaInfo Not found")
 }
 
 // func relay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
@@ -409,11 +355,6 @@ func handleRequest(rpcID string) {
 				var msgData proto.RoomInfo
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = clientLeave(msgData)
-				}
-			case proto.IslbGetMediaInfo:
-				var msgData proto.MediaInfo
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = getMediaInfo(msgData)
 				}
 			// case proto.IslbRelay:
 			// 	result, err = relay(data)
