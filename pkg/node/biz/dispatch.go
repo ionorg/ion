@@ -47,10 +47,20 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = publish(peer, msgData)
 		}
+	case proto.ClientUnPublish:
+		var msgData proto.UnpublishMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = unpublish(peer, msgData)
+		}
 	case proto.ClientSubscribe:
 		var msgData proto.SubscribeMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = subscribe(peer, msgData)
+		}
+	case proto.ClientUnSubscribe:
+		var msgData proto.UnsubscribeMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = unsubscribe(peer, msgData)
 		}
 	case proto.ClientBroadcast:
 		var msgData proto.BroadcastMsg

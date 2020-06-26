@@ -156,8 +156,6 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("Set: %v ", err)
 	}
 
-	log.Infof("%s", data)
-
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
 	fields := redis.HGetAll(ukey)
 
@@ -330,8 +328,6 @@ func handleRequest(rpcID string) {
 					result, err = findServiceNode(msgData)
 				}
 			case proto.IslbOnStreamAdd:
-				log.Infof("here")
-				log.Infof("%s", msg)
 				var msgData proto.StreamAddMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = streamAdd(msgData)

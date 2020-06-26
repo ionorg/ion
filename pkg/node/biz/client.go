@@ -160,6 +160,41 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 	return answer, nil
 }
 
+// unpublish from app
+func unpublish(peer *signal.Peer, msg proto.UnpublishMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
+
+	mid := string(msg.MID)
+	rid := msg.RID
+	uid := peer.ID()
+
+	_, client, err := getRPCForSFU(mid)
+	if err != nil {
+		log.Warnf("sfu node not found, reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err = client.Unpublish(ctx, &sfu.UnpublishRequest{
+		Mid: mid,
+	})
+
+	if err != nil {
+		log.Errorf("Error subscribing to stream: %s", err)
+		return nil, util.NewNpError(500, "error subscribing to stream")
+	}
+
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
+	}
+	// if this mid is a webrtc pub
+	// tell islb stream-remove, `rtc.DelPub(mid)` will be done when islb broadcast stream-remove
+	islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid, "mid", mid))
+	return emptyMap, nil
+}
+
 func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.subscribe peer.ID()=%s ", peer.ID())
 	mid := msg.MID
@@ -171,7 +206,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, jsepError
 	}
 
-	nodeID, sfuClient, err := getRPCForSFU(string(mid))
+	nodeID, client, err := getRPCForSFU(string(mid))
 	if err != nil {
 		log.Warnf("sfu node not found, reject: %s", err)
 		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
@@ -186,8 +221,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-
-	answer, err := sfuClient.Subscribe(ctx, &sfu.SubscribeRequest{
+	answer, err := client.Subscribe(ctx, &sfu.SubscribeRequest{
 		Mid: string(msg.MID),
 		Description: &sfu.SessionDescription{
 			Type: jsep.Type.String(),
@@ -202,6 +236,34 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 
 	log.Infof("subscribe: result => %s", answer)
 	return answer, nil
+}
+
+func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
+	mid := string(msg.MID)
+
+	// Validate
+	if mid == "" {
+		return nil, midError
+	}
+
+	_, client, err := getRPCForSFU(mid)
+	if err != nil {
+		log.Warnf("sfu node not found, reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result, err := client.Unsubscribe(ctx, &sfu.UnsubscribeRequest{Mid: mid})
+
+	if err != nil {
+		log.Warnf("error unsubscribing, reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
+	}
+
+	log.Infof("unsubscribe: result => %v", result)
+	return result, nil
 }
 
 func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo.Error) {

@@ -8,12 +8,14 @@ import (
 
 const (
 	// client to ion
-	ClientJoin       = "join"
-	ClientLeave      = "leave"
-	ClientPublish    = "publish"
-	ClientSubscribe  = "subscribe"
-	ClientBroadcast  = "broadcast"
-	ClientTrickleICE = "trickle"
+	ClientJoin        = "join"
+	ClientLeave       = "leave"
+	ClientPublish     = "publish"
+	ClientUnPublish   = "unpublish"
+	ClientSubscribe   = "subscribe"
+	ClientUnSubscribe = "unsubscribe"
+	ClientBroadcast   = "broadcast"
+	ClientTrickleICE  = "trickle"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"
