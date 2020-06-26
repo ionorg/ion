@@ -104,7 +104,7 @@ func getRPCForSFU(mid string) (string, sfu.SFUClient, error) {
 		return "", nil, &nprotoo.Error{Code: 123, Reason: "Unmarshal error getRPCForSFU"}
 	}
 
-	log.Infof("SFU result => %v", result)
+	log.Infof("Found sfu => %s", result)
 	grpcAddr := answer.GRPCAddress
 	sfuGrpc, found := sfus[grpcAddr]
 	if !found {

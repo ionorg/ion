@@ -3,7 +3,7 @@ package proto
 type PubInfo struct {
 	MediaInfo
 	Info   ClientUserInfo `json:"info"`
-	Tracks TrackMap       `json:"tracks"`
+	Stream Stream         `json:"stream"`
 }
 
 type GetPubResp struct {

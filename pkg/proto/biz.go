@@ -24,7 +24,7 @@ type RoomInfo struct {
 }
 
 type RTCInfo struct {
-	Jsep webrtc.SessionDescription `json:"jsep"`
+	Description webrtc.SessionDescription `json:"description"`
 }
 
 type PublishOptions struct {
@@ -42,7 +42,10 @@ type SubscribeOptions struct {
 	TransportCC bool `json:"transportCC"`
 }
 
-type TrackMap map[string][]TrackInfo
+type Stream struct {
+	ID     string      `json:"id"`
+	Tracks []TrackInfo `json:"tracks"`
+}
 
 /// Messages ///
 
@@ -65,16 +68,11 @@ type PublishMsg struct {
 type PublishResponseMsg struct {
 	MediaInfo
 	RTCInfo
-	Tracks TrackMap `json:"tracks"`
+	Stream Stream `json:"stream"`
 }
 
 type UnpublishMsg struct {
 	MediaInfo
-}
-
-type SFUSubscribeMsg struct {
-	SubscribeMsg
-	Tracks TrackMap `json:"tracks"`
 }
 
 type SubscribeMsg struct {
@@ -106,9 +104,14 @@ type TrickleMsg struct {
 type StreamAddMsg struct {
 	MediaInfo
 	Info   ClientUserInfo `json:"info"`
-	Tracks TrackMap       `json:"tracks"`
+	Stream Stream         `json:"stream"`
 }
 
 type StreamRemoveMsg struct {
 	MediaInfo
+}
+
+type GetMediaInfoResponseMsg struct {
+	MediaInfo
+	Stream Stream `json:"stream"`
 }

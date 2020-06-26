@@ -56,7 +56,7 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 				log.Errorf("Unmarshal pub response %v", err)
 				return
 			}
-			log.Infof("IslbGetPubs: result=%v", result)
+			log.Infof("IslbGetPubs: result=%s", result)
 			for _, pub := range resMsg.Pubs {
 				if pub.MID == "" {
 					continue
@@ -106,7 +106,7 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
 	}
 
-	jsep := msg.Jsep
+	jsep := msg.Description
 	options := msg.Options
 	room := signal.GetRoomByPeer(peer.ID())
 	if room == nil {
@@ -136,15 +136,20 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 
 	answer, err := stream.Recv()
 
+	if err != nil {
+		log.Warnf("reject: %s", err)
+		return nil, util.NewNpError(500, fmt.Sprintf("%s", err))
+	}
+
 	log.Infof("publish: result => %v", answer)
-	mid := answer.Mediainfo.Mid
-	tracks := answer.Stream.Tracks
 
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks))
+
+	mid := answer.Mediainfo.Mid
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "stream", answer.Stream))
 
 	go func() {
 		// Next response is received on webrtc transport close
@@ -163,7 +168,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 	// Validate
 	if mid == "" {
 		return nil, midError
-	} else if msg.Jsep.SDP == "" {
+	} else if msg.Description.SDP == "" {
 		return nil, jsepError
 	}
 
@@ -181,7 +186,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 	room := signal.GetRoomByPeer(peer.ID())
 	rid := room.ID()
 
-	jsep := msg.Jsep
+	jsep := msg.Description
 
 	islb, found := getRPCForIslb()
 	if !found {
@@ -193,49 +198,47 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		log.Warnf("reject: %d => %s", nerr.Code, nerr.Reason)
 		return nil, util.NewNpError(nerr.Code, nerr.Reason)
 	}
-	var some map[string]map[string][]proto.TrackInfo
-	if err := result.Unmarshal(&some); err != nil {
+
+	var res proto.GetMediaInfoResponseMsg
+	if err := result.Unmarshal(&res); err != nil {
 		return nil, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	for msid, tracks := range some["tracks"] {
-		var mtracks []*media.Track
-		for _, track := range tracks {
-			mtrack := media.Track{
-				Id:      track.ID,
-				Ssrc:    uint32(track.Ssrc),
-				Payload: uint32(track.Payload),
-				Type:    track.Type,
-				Codec:   track.Codec,
-				Fmtp:    track.Fmtp,
-			}
-			mtracks = append(mtracks, &mtrack)
+	var mtracks []*media.Track
+	for _, track := range res.Stream.Tracks {
+		mtrack := media.Track{
+			Id:      track.ID,
+			Ssrc:    uint32(track.Ssrc),
+			Payload: uint32(track.Payload),
+			Type:    track.Type,
+			Codec:   track.Codec,
+			Fmtp:    track.Fmtp,
 		}
+		mtracks = append(mtracks, &mtrack)
+	}
+	log.Infof("subscribing with tracks: %v", mtracks)
+	answer, err := sfuClient.Subscribe(ctx, &sfu.SubscribeRequest{
+		Mid: string(msg.MID),
+		Description: &sfu.SessionDescription{
+			Type: jsep.Type.String(),
+			Sdp:  jsep.SDP,
+		},
+		Stream: &media.Stream{
+			Id:     res.Stream.ID,
+			Tracks: mtracks,
+		},
+	})
 
-		answer, err := sfuClient.Subscribe(ctx, &sfu.SubscribeRequest{
-			Mid: string(msg.MID),
-			Description: &sfu.SessionDescription{
-				Type: jsep.Type.String(),
-				Sdp:  jsep.SDP,
-			},
-			Stream: &media.Stream{
-				Id:     msid,
-				Tracks: mtracks,
-			},
-		})
-
-		if err != nil {
-			return nil, util.NewNpError(500, "error subscribing to stream")
-		}
-
-		log.Infof("subscribe: result => %v", result)
-		return answer, nil
+	if err != nil {
+		log.Errorf("Error subscribing to stream: %s", err)
+		return nil, util.NewNpError(500, "error subscribing to stream")
 	}
 
-	return nil, util.NewNpError(404, "stream not found")
+	log.Infof("subscribe: result => %s", result)
+	return answer, nil
 }
 
 func broadcast(peer *signal.Peer, msg proto.BroadcastMsg) (interface{}, *nprotoo.Error) {

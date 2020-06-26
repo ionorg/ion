@@ -78,8 +78,9 @@ func main() {
 	}
 
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id", "")
+	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id", conf.GRPC.Port)
 
+	sfu.InitLogLevel(conf.Log.Level)
 	sfu.Init(conf.GRPC.Port)
 	select {}
 }

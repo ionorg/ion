@@ -162,15 +162,15 @@ type TrackInfo struct {
 	Fmtp    string `json:"fmtp"`
 }
 
-func MarshalTrackField(id string, infos []TrackInfo) (string, string, error) {
-	str, err := json.Marshal(infos)
+func MarshalTrackField(id string, stream Stream) (string, string, error) {
+	str, err := json.Marshal(stream.Tracks)
 	if err != nil {
 		return "track/" + id, "", fmt.Errorf("Marshal: %v", err)
 	}
 	return "track/" + id, string(str), nil
 }
 
-func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error) {
+func UnmarshalTrackField(key string, value string) (string, *Stream, error) {
 	var tracks []TrackInfo
 	if err := json.Unmarshal([]byte(value), &tracks); err != nil {
 		return "", nil, fmt.Errorf("Unmarshal: %v", err)
@@ -179,7 +179,10 @@ func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error)
 		return "", nil, fmt.Errorf("Invalid track failed => %s", key)
 	}
 	msid := strings.Split(key, "/")[1]
-	return msid, &tracks, nil
+	return msid, &Stream{
+		ID:     msid,
+		Tracks: tracks,
+	}, nil
 }
 
 func GetPubNodePath(rid, uid string) string {

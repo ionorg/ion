@@ -157,20 +157,17 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("Set: %v ", err)
 	}
 
-	for msid, track := range data.Tracks {
-		var infos []proto.TrackInfo
-		infos = append(infos, track...)
+	log.Infof("%s", data)
 
-		field, value, err := proto.MarshalTrackField(msid, infos)
-		if err != nil {
-			log.Errorf("MarshalTrackField: %v ", err)
-			continue
-		}
-		log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
-		err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
-		if err != nil {
-			log.Errorf("redis.HSetTTL err = %v", err)
-		}
+	field, value, err = proto.MarshalTrackField(data.Stream.ID, data.Stream)
+	if err != nil {
+		log.Errorf("MarshalTrackField: %v ", err)
+	}
+
+	log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
+	err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+	if err != nil {
+		log.Errorf("redis.HSetTTL err = %v", err)
 	}
 
 	// dc1/room1/user/info/${uid} info {"name": "Guest"}
@@ -230,15 +227,15 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 		}.BuildKey())
 		trackFields := redis.HGetAll(path)
 
-		tracks := make(map[string][]proto.TrackInfo)
+		var stream proto.Stream
 		for key, value := range trackFields {
 			if strings.HasPrefix(key, "track/") {
-				msid, infos, err := proto.UnmarshalTrackField(key, value)
+				log.Infof("here %s, %s", key, value)
+				msid, stream, err := proto.UnmarshalTrackField(key, value)
 				if err != nil {
 					log.Errorf("%v", err)
 				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
-				tracks[msid] = *infos
+				log.Debugf("msid => %s, tracks => %v\n", msid, stream.Tracks)
 			}
 		}
 
@@ -254,7 +251,7 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 		pub := proto.PubInfo{
 			MediaInfo: *info,
 			Info:      extraInfo,
-			Tracks:    tracks,
+			Stream:    stream,
 		}
 		pubs = append(pubs, pub)
 	}
@@ -312,21 +309,18 @@ func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
 		key := keys[0]
 		log.Infof("Got: key => %s", key)
 		fields := redis.HGetAll(key)
-		tracks := make(map[string][]proto.TrackInfo)
 		for key, value := range fields {
 			if strings.HasPrefix(key, "track/") {
-				msid, infos, err := proto.UnmarshalTrackField(key, value)
+				msid, stream, err := proto.UnmarshalTrackField(key, value)
 				if err != nil {
 					log.Errorf("%v", err)
 				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
-				tracks[msid] = *infos
+				log.Debugf("msid => %s, tracks => %v\n", msid, stream.Tracks)
+				resp := util.Map("mid", data.MID, "stream", stream)
+				log.Infof("getMediaInfo: resp=%v", resp)
+				return resp, nil
 			}
 		}
-
-		resp := util.Map("mid", data.MID, "tracks", tracks)
-		log.Infof("getMediaInfo: resp=%v", resp)
-		return resp, nil
 	}
 
 	return nil, util.NewNpError(404, "MediaInfo Not found")
@@ -390,6 +384,8 @@ func handleRequest(rpcID string) {
 					result, err = findServiceNode(msgData)
 				}
 			case proto.IslbOnStreamAdd:
+				log.Infof("here")
+				log.Infof("%s", msg)
 				var msgData proto.StreamAddMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = streamAdd(msgData)
@@ -431,6 +427,7 @@ func handleRequest(rpcID string) {
 			}
 
 			if err != nil {
+				log.Warnf("Error handling request: %s", err.Reason)
 				reject(err.Code, err.Reason)
 			} else {
 				accept(result)
