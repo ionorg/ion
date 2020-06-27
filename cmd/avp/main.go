@@ -3,18 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"path"
 
-	elements "github.com/pion/ion-elements"
-	conf "github.com/pion/ion/pkg/conf/avp"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/node/avp"
-	"github.com/pion/ion/pkg/process"
-	"github.com/pion/ion/pkg/process/samples"
-	"github.com/pion/ion/pkg/proto"
+	conf "github.com/pion/ion-avp/pkg/conf"
+	"github.com/pion/ion-avp/pkg/elements"
+	"github.com/pion/ion-avp/pkg/log"
+	avp "github.com/pion/ion-avp/pkg/node"
+	"github.com/pion/ion-avp/pkg/process"
+	"github.com/pion/ion-avp/pkg/process/samples"
+	pb "github.com/pion/ion-avp/pkg/proto/avp"
 )
 
 func getDefaultElements(id string) map[string]process.Element {
@@ -37,15 +35,15 @@ func getDefaultElements(id string) map[string]process.Element {
 	return de
 }
 
-func getTogglableElement(msg proto.ElementInfo) (process.Element, error) {
-	switch msg.Type {
+func getTogglableElement(e *pb.Element) (process.Element, error) {
+	switch e.Type {
 	case elements.TypeWebmSaver:
 		filewriter := elements.NewFileWriter(elements.FileWriterConfig{
-			ID:   msg.MID,
-			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", msg.MID)),
+			ID:   e.Mid,
+			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", e.Mid)),
 		})
 		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
-			ID: msg.MID,
+			ID: e.Mid,
 		})
 		err := webm.Attach(filewriter)
 		if err != nil {
@@ -76,22 +74,6 @@ func init() {
 
 func main() {
 	log.Infof("--- Starting AVP Node ---")
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
-
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("avp", "node-avp", "avp-channel-id")
-
-	rpcID := serviceNode.GetRPCChannel()
-	eventID := serviceNode.GetEventChannel()
-	avp.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], rpcID, eventID, conf.Nats.URL)
+	avp.Init(conf.GRPC.Port)
 	select {}
 }

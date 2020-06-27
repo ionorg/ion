@@ -1,9 +1,6 @@
-[global]
-pprof = ":6062"
-# data center id
-dc = "dc1"
+[grpc]
 # internet ip
-addr = "127.0.0.1"
+port = ":50051"
 
 [pipeline.samplebuilder]
 # max late for audio rtp packets
@@ -26,11 +23,3 @@ port = 6668
 # kcpsalt = ""
 [log]
 level = "info"
-
-# level = "debug"
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2379"]
-
-[nats]
-url = "nats://127.0.0.1:4222"
