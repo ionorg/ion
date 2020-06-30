@@ -3,7 +3,7 @@ package proto
 import (
 	"encoding/json"
 
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 type ClientUserInfo struct {

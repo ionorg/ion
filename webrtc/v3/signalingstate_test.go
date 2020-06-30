@@ -3,7 +3,7 @@ package webrtc
 import (
 	"testing"
 
-	"github.com/sssgun/webrtc/v3/pkg/rtcerr"
+	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -7,7 +7,7 @@ import (
 	"syscall/js"
 
 	"github.com/pion/sdp/v2"
-	"github.com/sssgun/webrtc/v3/pkg/rtcerr"
+	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 
 // PeerConnection represents a WebRTC connection that establishes a
@@ -82,7 +82,7 @@ func (pc *PeerConnection) OnDataChannel(f func(*DataChannel)) {
 		defer oldHandler.Release()
 	}
 	onDataChannelHandler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// sssgun/webrtc/projects/15
+		// sssgun/ion/webrtc/projects/15
 		// This reference to the underlying DataChannel doesn't know
 		// about any other references to the same DataChannel. This might result in
 		// memory leaks where we don't clean up handler functions. Could possibly fix
@@ -145,7 +145,7 @@ func (pc *PeerConnection) checkConfiguration(configuration Configuration) error 
 		}
 	}
 
-	// https://github.com/sssgun/webrtc/issues/513
+	// https://github.com/sssgun/ion/webrtc/issues/513
 	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #4)
 	// if len(configuration.Certificates) > 0 {
 	// 	if len(configuration.Certificates) != len(existingConfiguration.Certificates) {

@@ -40,7 +40,7 @@ type MediaEngine struct {
 // RegisterCodec is not safe for concurrent use.
 func (m *MediaEngine) RegisterCodec(codec *RTPCodec) uint8 {
 	// TODO: dynamically generate a payload type in the range 96-127 if one wasn't provided.
-	// See https://github.com/sssgun/webrtc/issues/43
+	// See https://github.com/sssgun/ion/webrtc/issues/43
 	m.codecs = append(m.codecs, codec)
 	return codec.PayloadType
 }
@@ -144,7 +144,7 @@ func (m *MediaEngine) getCodecSDP(sdpCodec sdp.Codec) (*RTPCodec, error) {
 			codec.ClockRate == sdpCodec.ClockRate &&
 			(sdpCodec.EncodingParameters == "" ||
 				strconv.Itoa(int(codec.Channels)) == sdpCodec.EncodingParameters) &&
-			codec.SDPFmtpLine == sdpCodec.Fmtp { // sssgun/webrtc#43
+			codec.SDPFmtpLine == sdpCodec.Fmtp { // sssgun/ion/webrtc#43
 			return codec, nil
 		}
 	}

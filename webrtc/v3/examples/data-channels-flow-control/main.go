@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sssgun/webrtc/v3"
+	"github.com/sssgun/ion/webrtc/v3"
 )
 
 const (

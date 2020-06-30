@@ -10,7 +10,7 @@ import (
 	"github.com/sssgun/ion/pkg/node/sfu"
 	"github.com/sssgun/ion/pkg/rtc"
 	"github.com/sssgun/ion/pkg/rtc/plugins"
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 func init() {
@@ -29,6 +29,7 @@ func init() {
 			Username:   iceServer.Username,
 			Credential: iceServer.Credential,
 		}
+		log.Infof("[SFU] ICEServer: %v", s)
 		iceServers = append(iceServers, s)
 	}
 	if err := rtc.InitIce(iceServers, icePortStart, icePortEnd); err != nil {

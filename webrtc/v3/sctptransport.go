@@ -12,7 +12,7 @@ import (
 	"github.com/pion/datachannel"
 	"github.com/pion/logging"
 	"github.com/pion/sctp"
-	"github.com/sssgun/webrtc/v3/pkg/rtcerr"
+	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 
 const sctpMaxChannels = uint16(65535)
@@ -268,8 +268,8 @@ func (r *SCTPTransport) updateMessageSize() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	var remoteMaxMessageSize float64 = 65536 // sssgun/webrtc#758
-	var canSendSize float64 = 65536          // sssgun/webrtc#758
+	var remoteMaxMessageSize float64 = 65536 // sssgun/ion/webrtc#758
+	var canSendSize float64 = 65536          // sssgun/ion/webrtc#758
 
 	r.maxMessageSize = r.calcMessageSize(remoteMaxMessageSize, canSendSize)
 }

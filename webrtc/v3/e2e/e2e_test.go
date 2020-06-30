@@ -16,8 +16,8 @@ import (
 
 	"github.com/sclevine/agouti"
 
-	"github.com/sssgun/webrtc/v3"
-	"github.com/sssgun/webrtc/v3/pkg/media"
+	"github.com/sssgun/ion/webrtc/v3"
+	"github.com/sssgun/ion/webrtc/v3/pkg/media"
 )
 
 var silentOpusFrame = []byte{0xf8, 0xff, 0xfe} // 20ms, 8kHz, mono

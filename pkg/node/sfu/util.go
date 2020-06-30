@@ -7,7 +7,7 @@ import (
 	"github.com/sssgun/ion/pkg/log"
 	"github.com/sssgun/ion/pkg/proto"
 	transport "github.com/sssgun/ion/pkg/rtc/transport"
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 func getSubPTForTrack(track proto.TrackInfo, sdpObj *sdp.SDPInfo) uint8 {

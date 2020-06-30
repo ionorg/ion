@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2/pkg/crypto/fingerprint"
-	"github.com/sssgun/webrtc/v3/pkg/rtcerr"
+	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 
 // Certificate represents a x509Cert used to authenticate WebRTC communications.

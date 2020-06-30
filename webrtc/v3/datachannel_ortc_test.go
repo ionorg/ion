@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/pion/transport/test"
-	"github.com/sssgun/webrtc/v3/internal/util"
+	"github.com/sssgun/ion/webrtc/v3/internal/util"
 )
 
 func TestDataChannel_ORTCE2E(t *testing.T) {

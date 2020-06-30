@@ -3,7 +3,7 @@ package transport
 import (
 	"testing"
 
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 func TestWebRTCTransportOffer(t *testing.T) {

@@ -96,7 +96,7 @@ func TestPopulateFromSDP(t *testing.T) {
 	assertCodecWithPayloadType(VP9, 135)
 }
 
-// sssgun/webrtc#1078
+// sssgun/ion/webrtc#1078
 func TestOpusCase(t *testing.T) {
 	pc, err := NewPeerConnection(Configuration{})
 	assert.NoError(t, err)

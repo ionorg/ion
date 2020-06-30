@@ -3,7 +3,7 @@ package webrtc
 import (
 	"fmt"
 
-	"github.com/sssgun/webrtc/v2/pkg/rtcerr"
+	"github.com/sssgun/ion/webrtc/v2/pkg/rtcerr"
 )
 
 type stateChangeOp int

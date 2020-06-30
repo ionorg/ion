@@ -163,7 +163,7 @@ func (r *RTPSender) ReadRTCP() ([]rtcp.Packet, error) {
 
 // SendRTP sends a RTP packet on this RTPSender
 //
-// You should use Track instead to send packets. This is exposed because sssgun/webrtc currently
+// You should use Track instead to send packets. This is exposed because sssgun/ion/webrtc currently
 // provides no way for users to send RTP packets directly. This is makes users unable to send
 // retransmissions to a single RTPSender. in /v3 this will go away, only use this API if you really
 // need it.

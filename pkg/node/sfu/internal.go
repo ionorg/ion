@@ -12,7 +12,7 @@ import (
 	"github.com/sssgun/ion/pkg/rtc"
 	transport "github.com/sssgun/ion/pkg/rtc/transport"
 	"github.com/sssgun/ion/pkg/util"
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 var emptyMap = map[string]interface{}{}

@@ -10,7 +10,7 @@ import (
 	"github.com/sssgun/ion/pkg/rtc/plugins"
 	"github.com/sssgun/ion/pkg/rtc/rtpengine"
 	"github.com/sssgun/ion/pkg/rtc/transport"
-	"github.com/pion/webrtc/v2"
+	"github.com/sssgun/ion/webrtc/v2"
 )
 
 const (

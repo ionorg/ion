@@ -14,6 +14,7 @@ go_deps:
 	go mod download
 
 clean:
+	go clean --modcache
 	rm -rf bin
 
 upx:
