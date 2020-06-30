@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pion/ion/pkg/proto"
+	"github.com/sssgun/ion/pkg/proto"
 )
 
 var (

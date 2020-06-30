@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
-	"github.com/pion/ion/pkg/log"
+	"github.com/sssgun/ion/pkg/log"
 )
 
 func newPeer(id string, t *transport.WebSocketTransport) *Peer {

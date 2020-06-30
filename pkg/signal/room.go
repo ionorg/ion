@@ -3,8 +3,8 @@ package signal
 import (
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/room"
-	"github.com/pion/ion/pkg/log"
-	"github.com/pion/ion/pkg/proto"
+	"github.com/sssgun/ion/pkg/log"
+	"github.com/sssgun/ion/pkg/proto"
 )
 
 type Room struct {

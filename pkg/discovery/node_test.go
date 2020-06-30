@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	log "github.com/pion/ion/pkg/log"
+	log "github.com/sssgun/ion/pkg/log"
 )
 
 const (
