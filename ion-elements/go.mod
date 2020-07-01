@@ -1,4 +1,4 @@
-module github.com/sssgun/ion-elements
+module github.com/sssgun/ion/ion-elements
 
 go 1.14
 
