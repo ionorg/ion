@@ -1,0 +1,34 @@
+{{- if .Values.ingress.enabled -}}
+{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ include "ion.fullname" . }}-ingress
+  labels:
+    {{- include "ion.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.ingress.domain }}
+    secretName: {{ include "ion.fullname" . }}-tls-certificate
+  rules:
+    - host: {{ .Values.ingress.domain }}
+      http:
+        paths:
+        - backend:
+            serviceName: {{ include "ion.fullname" . }}-web
+            servicePort: 80 
+          path: /
+        - backend:
+            serviceName: {{ include "ion.fullname" . }}-biz
+            servicePort: 8443 
+          path: /ws
+
+{{- end }}
