@@ -16,6 +16,10 @@ require (
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/spf13/viper v1.7.0
+	github.com/sssgun/ion/logging v0.0.0-20200701021750-3cca5a754c1d
+	github.com/sssgun/ion/rtcp v0.0.0-20200701021750-3cca5a754c1d
+	github.com/sssgun/ion/rtp v0.0.0-20200701021750-3cca5a754c1d
+	github.com/sssgun/ion/stun v0.0.0-20200701021750-3cca5a754c1d
 	github.com/sssgun/ion/webrtc/v2 v2.0.0-20200630092813-b031bf554ded
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
