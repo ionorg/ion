@@ -22,7 +22,7 @@ require (
 	github.com/pion/transport v0.10.0
 	github.com/pion/webrtc/v2 v2.2.17
 	github.com/rs/zerolog v1.19.0
-	github.com/shirou/gopsutil v2.20.5+incompatible
+	github.com/shirou/gopsutil v2.20.6+incompatible
 	github.com/spf13/viper v1.7.0
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
