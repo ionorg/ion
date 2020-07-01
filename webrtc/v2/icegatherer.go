@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/pion/ice"
-	"github.com/pion/logging"
+	"github.com/sssgun/ion/ice"
+	"github.com/sssgun/ion/logging"
 )
 
 // ICEGatherer gathers local host, server reflexive and relay

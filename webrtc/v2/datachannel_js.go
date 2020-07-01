@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/pion/datachannel"
+	"github.com/sssgun/ion/datachannel"
 )
 
 const dataChannelBufferSize = 16384 // Lowest common denominator among browsers

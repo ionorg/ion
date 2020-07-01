@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/pion/dtls/v2/pkg/crypto/fingerprint"
+	"github.com/sssgun/ion/dtls/v2/pkg/crypto/fingerprint"
 	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 

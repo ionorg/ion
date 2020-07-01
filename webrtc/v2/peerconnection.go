@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pion/logging"
-	"github.com/pion/rtcp"
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/rtcp"
+	"github.com/sssgun/ion/sdp/v2"
 
 	"github.com/sssgun/ion/webrtc/v2/internal/util"
 	"github.com/sssgun/ion/webrtc/v2/pkg/rtcerr"

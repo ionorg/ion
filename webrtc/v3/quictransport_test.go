@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/quic"
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/quic"
+	"github.com/sssgun/ion/transport/test"
 	"github.com/sssgun/ion/webrtc/v3/internal/util"
 )
 

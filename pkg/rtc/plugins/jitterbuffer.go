@@ -7,8 +7,8 @@ import (
 
 	"github.com/sssgun/ion/pkg/log"
 	"github.com/sssgun/ion/pkg/rtc/transport"
-	"github.com/pion/rtcp"
-	"github.com/pion/rtp"
+	"github.com/sssgun/ion/rtcp"
+	"github.com/sssgun/ion/rtp"
 )
 
 const (

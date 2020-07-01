@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pion/logging"
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/sdp/v2"
 )
 
 type trackDetails struct {

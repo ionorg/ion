@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/datachannel"
-	"github.com/pion/logging"
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/datachannel"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/transport/test"
 	"github.com/stretchr/testify/assert"
 )
 

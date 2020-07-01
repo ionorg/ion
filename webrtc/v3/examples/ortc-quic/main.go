@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pion/quic"
+	"github.com/sssgun/ion/quic"
 	"github.com/sssgun/ion/webrtc/v3"
 
 	"github.com/sssgun/ion/webrtc/v3/examples/internal/signal"

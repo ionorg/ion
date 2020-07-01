@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/sssgun/ion/pkg/rtc/rtpengine/packetio"
-	"github.com/pion/rtp"
+	"github.com/sssgun/ion/rtp"
 )
 
 // Limit the buffer size to 1MB

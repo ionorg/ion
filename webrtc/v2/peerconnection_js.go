@@ -6,7 +6,7 @@ package webrtc
 import (
 	"syscall/js"
 
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/sdp/v2"
 	"github.com/sssgun/ion/webrtc/v2/pkg/rtcerr"
 )
 
@@ -142,7 +142,7 @@ func (pc *PeerConnection) checkConfiguration(configuration Configuration) error 
 		}
 	}
 
-	// https://github.com/pion/webrtc/issues/513
+	// https://github.com/sssgun/ion/webrtc/issues/513
 	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #4)
 	// if len(configuration.Certificates) > 0 {
 	// 	if len(configuration.Certificates) != len(existingConfiguration.Certificates) {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/transport/test"
 	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 

@@ -1,0 +1,20 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+
+linters:
+  enable-all: true
+  disable:
+    - lll
+    - funlen
+    - godox
+    - prealloc
+    - dupl
+
+issues:
+  exclude-use-default: false
+
+run:
+  skip-dirs-use-default: false

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/logging"
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/transport/test"
 )
 
 func TestStressDuplex(t *testing.T) {

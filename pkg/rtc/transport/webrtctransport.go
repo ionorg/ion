@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/sssgun/ion/pkg/log"
-	"github.com/pion/rtcp"
-	"github.com/pion/rtp"
+	"github.com/sssgun/ion/rtcp"
+	"github.com/sssgun/ion/rtp"
 	"github.com/sssgun/ion/webrtc/v2"
 )
 

@@ -1,0 +1,18 @@
+### JetBrains IDE ###
+#####################
+.idea/
+
+### Emacs Temporary Files ###
+#############################
+*~
+
+### Folders ###
+###############
+bin/
+vendor/
+
+### Files ###
+#############
+*.ivf
+tags
+cover.out

@@ -112,10 +112,10 @@ _test_i386_job: &test_i386_job
         -u $(id -u):$(id -g) \
         -e "GO111MODULE=on" \
         -e "CGO_ENABLED=0" \
-        -v ${PWD}:/go/src/github.com/pion/$(basename ${PWD}) \
+        -v ${PWD}:/go/src/github.com/sssgun/ion/$(basename ${PWD}) \
         -v ${HOME}/gopath/pkg/mod:/go/pkg/mod \
         -v ${HOME}/.cache/go-build:/.cache/go-build \
-        -w /go/src/github.com/pion/$(basename ${PWD}) \
+        -w /go/src/github.com/sssgun/ion/$(basename ${PWD}) \
         --network ion_default \
         -it i386/golang:${GO_VERSION}-alpine \
         /usr/local/go/bin/go test \

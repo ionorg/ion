@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pion/datachannel"
-	"github.com/pion/logging"
+	"github.com/sssgun/ion/datachannel"
+	"github.com/sssgun/ion/logging"
 	"github.com/sssgun/ion/webrtc/v2/pkg/rtcerr"
 )
 

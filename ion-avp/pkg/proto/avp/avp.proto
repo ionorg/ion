@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "github.com/sssgun/ion/ion-avp/pkg/proto/avp";
+
+package avp;
+
+service AVP {
+    rpc StartProcess(StartProcessRequest) returns (StartProcessReply) {}
+    rpc StopProcess(StopProcessRequest) returns (StopProcessReply) {}
+}
+
+message StartProcessRequest {
+    Element element = 1;
+}
+message StartProcessReply {}
+message StopProcessRequest {}
+message StopProcessReply {}
+
+// Element describes an a/v process
+message Element {
+    string mid = 1;
+    string rid = 2;
+    string type = 3;
+    bytes config = 4;
+}

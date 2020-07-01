@@ -6,7 +6,7 @@ package webrtc
 import (
 	"syscall/js"
 
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/sdp/v2"
 	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/transport/test"
 	"github.com/stretchr/testify/assert"
 )
 

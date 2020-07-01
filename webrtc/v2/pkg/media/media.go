@@ -4,7 +4,7 @@ package media
 import (
 	"time"
 
-	"github.com/pion/rtp"
+	"github.com/sssgun/ion/rtp"
 )
 
 // A Sample contains encoded media and the number of samples in that media (see NSamples).

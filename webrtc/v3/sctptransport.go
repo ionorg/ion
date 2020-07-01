@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pion/datachannel"
-	"github.com/pion/logging"
-	"github.com/pion/sctp"
+	"github.com/sssgun/ion/datachannel"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/sctp"
 	"github.com/sssgun/ion/webrtc/v3/pkg/rtcerr"
 )
 

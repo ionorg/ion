@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/rtp"
+	"github.com/sssgun/ion/rtp/codecs"
+	"github.com/sssgun/ion/sdp/v2"
 )
 
 // PayloadTypes for the default codecs
@@ -40,7 +40,7 @@ type MediaEngine struct {
 // RegisterCodec is not safe for concurrent use.
 func (m *MediaEngine) RegisterCodec(codec *RTPCodec) uint8 {
 	// TODO: dynamically generate a payload type in the range 96-127 if one wasn't provided.
-	// See https://github.com/pion/webrtc/issues/43
+	// See https://github.com/sssgun/ion/webrtc/issues/43
 	m.codecs = append(m.codecs, codec)
 	return codec.PayloadType
 }

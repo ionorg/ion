@@ -1,0 +1,14 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+
+linters:
+  enable-all: true
+  disable:
+    - funlen
+    - godox
+
+issues:
+  exclude-use-default: false

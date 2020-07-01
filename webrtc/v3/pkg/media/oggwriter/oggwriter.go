@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
+	"github.com/sssgun/ion/rtp"
+	"github.com/sssgun/ion/rtp/codecs"
 )
 
 const (

@@ -1,0 +1,20 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+
+linters:
+  enable-all: true
+  disable:
+    - dupl
+    - funlen
+    - gochecknoglobals
+    - gocritic
+    - godox
+    - lll
+    - maligned
+    - unparam
+
+issues:
+  exclude-use-default: false

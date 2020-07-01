@@ -3,7 +3,7 @@ package transport
 import (
 	"testing"
 
-	"github.com/pion/rtp"
+	"github.com/sssgun/ion/rtp"
 )
 
 func TestNewRTPTransport(t *testing.T) {

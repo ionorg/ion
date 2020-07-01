@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/rtcp"
-	"github.com/pion/sdp/v2"
-	"github.com/pion/transport/test"
+	"github.com/sssgun/ion/rtcp"
+	"github.com/sssgun/ion/sdp/v2"
+	"github.com/sssgun/ion/transport/test"
 	"github.com/sssgun/ion/webrtc/v3/pkg/media"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

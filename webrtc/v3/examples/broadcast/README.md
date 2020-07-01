@@ -6,7 +6,7 @@ This could serve as the building block to building conferencing software, and ot
 ## Instructions
 ### Download broadcast
 ```
-go get github.com/pion/webrtc/v3/examples/broadcast
+go get github.com/sssgun/ion/webrtc/v3/examples/broadcast
 ```
 
 ### Open broadcast example page
@@ -14,7 +14,7 @@ go get github.com/pion/webrtc/v3/examples/broadcast
 
 ### Run Broadcast
 #### Linux/macOS
-Run `broadcast` OR run `main.go` in `github.com/pion/webrtc/examples/broadcast`
+Run `broadcast` OR run `main.go` in `github.com/sssgun/ion/webrtc/examples/broadcast`
 
 ### Start a publisher
 

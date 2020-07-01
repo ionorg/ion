@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/pion/ice"
-	"github.com/pion/logging"
-	"github.com/pion/transport/vnet"
+	"github.com/sssgun/ion/ice"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/transport/vnet"
 )
 
 // SettingEngine allows influencing behavior in ways that are not

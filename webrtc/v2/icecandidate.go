@@ -3,8 +3,8 @@ package webrtc
 import (
 	"fmt"
 
-	"github.com/pion/ice"
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/ice"
+	"github.com/sssgun/ion/sdp/v2"
 )
 
 // ICECandidate represents a ice candidate

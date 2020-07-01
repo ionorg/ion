@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pion/logging"
-	"github.com/pion/transport/vnet"
+	"github.com/sssgun/ion/logging"
+	"github.com/sssgun/ion/transport/vnet"
 	"github.com/sssgun/ion/webrtc/v3"
 )
 

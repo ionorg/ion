@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pion/ice/v2"
-	"github.com/pion/logging"
+	"github.com/sssgun/ion/ice/v2"
+	"github.com/sssgun/ion/logging"
 	"github.com/sssgun/ion/webrtc/v3/internal/mux"
 )
 

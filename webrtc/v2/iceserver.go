@@ -3,7 +3,7 @@
 package webrtc
 
 import (
-	"github.com/pion/ice"
+	"github.com/sssgun/ion/ice"
 	"github.com/sssgun/ion/webrtc/v2/pkg/rtcerr"
 )
 

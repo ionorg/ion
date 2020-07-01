@@ -13,7 +13,7 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/sssgun/ion/pkg/log"
-	"github.com/pion/stun"
+	"github.com/sssgun/ion/stun"
 )
 
 var (

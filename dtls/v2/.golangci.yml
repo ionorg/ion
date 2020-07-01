@@ -1,0 +1,36 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+
+linters:
+  enable-all: true
+  disable:
+    - dupl
+    - funlen
+    - gochecknoglobals
+    - gocyclo
+    - godox
+    - lll
+    - maligned
+
+issues:
+  exclude-use-default: false
+
+  exclude-rules:
+    - path: pkg/crypto/ccm
+      text: "L' should not be capitalized"
+      linters:
+        - gocritic
+    - path: cipher_suite
+      text: "should not use ALL_CAPS in Go names; use CamelCase instead"
+      linters:
+        - stylecheck
+    - path: cipher_suite
+      text: "don't use ALL_CAPS in Go names; use CamelCase"
+      linters:
+        - golint
+
+run:
+  skip-dirs-use-default: false

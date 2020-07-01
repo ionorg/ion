@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
-	"github.com/pion/sdp/v2"
+	"github.com/sssgun/ion/rtp"
+	"github.com/sssgun/ion/rtp/codecs"
+	"github.com/sssgun/ion/sdp/v2"
 )
 
 // PayloadTypes for the default codecs
