@@ -8,12 +8,6 @@ require (
 	github.com/go-redis/redis/v7 v7.3.0
 	github.com/google/uuid v1.1.1
 	github.com/notedit/sdp v0.0.4
-	github.com/sssgun/ion/ion-elements v0.1.3
-	github.com/sssgun/ion/rtcp v1.2.3
-	github.com/sssgun/ion/rtp v1.5.5
-	github.com/sssgun/ion/stun v0.3.5
-	github.com/sssgun/ion/transport v0.10.0
-	github.com/sssgun/ion/webrtc/v2 v2.2.17
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/spf13/viper v1.7.0
