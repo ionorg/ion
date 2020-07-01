@@ -1,0 +1,85 @@
+dist: bionic
+language: go
+
+env:
+  global:
+    - GO111MODULE=on
+    - GOLANGCI_LINT_VERSION=1.19.1
+
+cache:
+  directories:
+    - ${HOME}/.cache/go-build
+    - ${GOPATH}/pkg/mod
+  npm: true
+  yarn: true
+
+_lint_job: &lint_job
+  env: CACHE_NAME=lint
+  before_install:
+    - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
+  install: skip
+  before_script:
+    - |
+      curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+        | bash -s - -b $GOPATH/bin v${GOLANGCI_LINT_VERSION}
+  script:
+    - bash .github/lint-filename.sh
+    - golangci-lint run ./...
+
+_test_job: &test_job
+  env: CACHE_NAME=test
+  before_install:
+    - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
+    - go mod download
+  install:
+    - go build ./...
+  script:
+    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf | grep -v node)}
+    - coverpkgs=$(echo "${testpkgs}" | paste -s -d ',')
+    - |
+      go test \
+        -coverpkg=${coverpkgs} -coverprofile=cover.out -covermode=atomic \
+        ${TEST_EXTRA_ARGS:-} \
+        -v -race ${testpkgs}
+    - if [ -n "${TEST_HOOK}" ]; then ${TEST_HOOK}; fi
+  after_success:
+    - travis_retry bash <(curl -s https://codecov.io/bash) -c -F go
+_test_i386_job: &test_i386_job
+  env: CACHE_NAME=test386
+  services: docker
+  before_install:
+    - if [ -f .github/.ci.conf ]; then . .github/.ci.conf; fi
+  script:
+    - testpkgs=${TEST_PACKAGES:-$(go list ./... | grep -v cmd | grep -v conf)}
+    - |
+      docker run \
+        -u $(id -u):$(id -g) \
+        -e "GO111MODULE=on" \
+        -e "CGO_ENABLED=0" \
+        -v ${PWD}:/go/src/github.com/pion/$(basename ${PWD}) \
+        -v ${HOME}/gopath/pkg/mod:/go/pkg/mod \
+        -v ${HOME}/.cache/go-build:/.cache/go-build \
+        -w /go/src/github.com/pion/$(basename ${PWD}) \
+        --network ion_default \
+        -it i386/golang:${GO_VERSION}-alpine \
+        /usr/local/go/bin/go test \
+          ${TEST_EXTRA_ARGS:-} \
+          -v ${testpkgs}
+
+jobs:
+  include:
+    - <<: *lint_job
+      name: Lint 1.14
+      go: 1.14
+      if: branch = master OR tag IS present
+    - <<: *test_job
+      name: Test 1.13
+      go: 1.13
+      if: branch = master OR tag IS present
+    - <<: *test_job
+      name: Test 1.14
+      go: 1.14
+      if: branch = master OR tag IS present
+
+notifications:
+  email: false
