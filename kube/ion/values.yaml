@@ -2,6 +2,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+
+# TODO: At the moment this value needs to remain 1. Scaling the SFU instance is not configured / supported at the moment!!!
 replicaCount: 1
 
 image:
