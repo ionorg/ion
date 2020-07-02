@@ -35,7 +35,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: pionwebrtc/ion:v0.4.6
+          image: pionwebrtc/ion-sfu:v0.4.6
           command: ["/usr/local/bin/sfu", "-c", "/configs/sfu.toml"]
           resources:
             requests:
