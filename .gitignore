@@ -1,8 +1,8 @@
 .*.sw[op]
 logs
 bin
-configs/cert.pem
-configs/key.pem
+configs/cert/cert.pem
+configs/cert/key.pem
 configs/islb.pid
 configs/node.pid
 configs/biz.pid

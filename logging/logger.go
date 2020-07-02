@@ -193,10 +193,6 @@ func NewDefaultLoggerFactory() *DefaultLoggerFactory {
 		env := os.Getenv(fmt.Sprintf("PION_LOG_%s", name))
 
 		if env == "" {
-			env = os.Getenv(fmt.Sprintf("PIONS_LOG_%s", name))
-		}
-
-		if env == "" {
 			continue
 		}
 
@@ -207,7 +203,7 @@ func NewDefaultLoggerFactory() *DefaultLoggerFactory {
 
 		scopes := strings.Split(strings.ToLower(env), ",")
 		for _, scope := range scopes {
-			factory.ScopeLevels[scope] = level
+			factory.ScopeLevels[strings.TrimSpace(scope)] = level
 		}
 	}
 

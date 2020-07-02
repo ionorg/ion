@@ -37,6 +37,11 @@ done
 
 docker-compose up -d nats redis etcd
 
+# Configure logging options
+echo "------------log opts--------------"
+source $APP_DIR/scripts/loggingConf.sh
+printenv | grep PION
+
 echo "------------islb--------------"
 $APP_DIR/scripts/islbStart.sh
 
