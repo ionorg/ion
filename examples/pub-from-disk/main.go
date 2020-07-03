@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	address       = "wss://ion.streamhuddle.com/ws"
+  address       = "wss://localhost:9090/ws"
 	audioFileName = "output.ogg"
 	videoFileName = "output.ivf"
 	rid           = "test"
