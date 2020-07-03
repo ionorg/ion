@@ -1,0 +1,7 @@
+---
+ name: ion-pub-from-disk
+ description: Example of how to publish to ion via biz from file on disk
+ authors:
+   - Sean DuBois
+   - Tarrence van As
+   - Leeward Bound
