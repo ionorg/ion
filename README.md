@@ -1,57 +1,30 @@
 
-
 <div align=left><a href="https://github.com/pion/ion/wiki">
-    <img src="docs/imgs/ion.png" width = 15% align = "left">
+    <img src="https://github.com/pion/ion/raw/master/docs/imgs/ion.png" width = 15% align = "left">
 </a>
-
-
 
 #### *ION is a distributed real-time communication system, the goal is to chat anydevice, anytime, anywhere!*
 
 ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)[![Build Status](https://travis-ci.com/pion/ion.svg?branch=master)](https://travis-ci.com/pion/ion)[![Go Report Card](https://goreportcard.com/badge/github.com/pion/ion)![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/pion/ion)![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/pion/ion?include_prereleases)](https://goreportcard.com/report/github.com/pion/ion)![Docker Pulls](https://img.shields.io/docker/pulls/pionwebrtc/ion-biz?style=plastic)[![Financial Contributors on Open Collective](https://opencollective.com/pion-ion/all/badge.svg?label=financial+contributors)](https://opencollective.com/pion-ion) ![GitHub contributors](https://img.shields.io/github/contributors-anon/pion/ion)![Twitter Follow](https://img.shields.io/twitter/follow/_PION?style=social)[![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://pion.ly/slack)
 
-## Architecture
+<br />
 
-<img src="https://github.com/pion/ion/raw/master/docs/imgs/arch.png" width = 100%>
+## Quick-Start (*LOCALHOST ONLY*)
 
-## Modules
+*NOTE:* To run this example on a VPS, make sure you [read the docs](docs/production) because WebRTC requires some open UDP ports, and `ion-app-web` uses LetsEncrypt, which assumes your server has a public IP with a subdomain pointed at it.
 
 
-| **Name**                                                     | **Information**                                              |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| <a href="https://github.com/pion/ion"><img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-BIZ**](https://github.com/pion/ion)                   | *Business signal server*                                  |
-| <a href="https://github.com/pion/ion"><img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-ISLB**](https://github.com/pion/ion)                  | *Intelligent-Server-Load-Balancing server*                 |
-| <a href="https://github.com/pion/ion-sfu"> <img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-SFU**](https://github.com/pion/ion-sfu)                   | *Selective-Forwarding-Unit server*                         |
-| <a href="https://github.com/pion/ion-sdk-js"> <img src="docs/imgs/ts.png" height = 12% width = 10%> </a> [**ION-SDK-JS**](https://github.com/pion/ion-sdk-js)         | *Ion js sdk written by typescript*                         |
-| <a href="https://github.com/pion/ion-sdk-flutter"> <img src="docs/imgs/flutter.png" height = 12% width = 10%> </a>  [**ION-SDK-FLUTTER**](https://github.com/pion/ion-sdk-flutter) | *Ion flutter sdk powered by [flutter-webrtc](https://github.com/cloudwebrtc/flutter-webrtc)* |
-| <a href="https://github.com/pion/ion-app-web"> <img src="docs/imgs/chrome.png" height = 12% width = 10%> </a> [**ION-APP-WEB**](https://github.com/pion/ion-app-web)       | *Ion web app*                                              |
-| <a href="https://github.com/pion/ion-app-flutter"> <img src="docs/imgs/flutter.png" height = 12% width = 10%> </a> [**ION-APP-FLUTTER**](https://github.com/pion/ion-app-flutter) | *Ion flutter app*                                          |
-
-## Documentation
-
-### Deps
-
-This project uses docker
-
-https://docs.docker.com/get-docker/
-
-### Run
-
-#### 1. Run
-
+#### 1. Run Ion Backend Services
+After cloning the folder, create a docker network (we use this so `ion-app-web` can communicate securely with the backend):
 ```
-git clone https://github.com/pion/ion
-
 docker network create ionnet
-
-cd ion
 
 docker-compose up
 ```
 
 #### 3. Expose Ports
 
-Ensure the ports `5000-5200/udp` are exposed or forwarded for the SFU service
+Ensure the ports `5000-5200/udp` are exposed or forwarded for the SFU service; 
 
 
 #### 4. UI (optional)
@@ -64,6 +37,34 @@ For dev and more options see the wiki
 
 * [Development](https://github.com/pion/ion/tree/master/docs)
 
+
+
+## Documentation
++ [Development](docs/dev/)
+    + [Quick Start](docs/dev/quick_start.md)
+    + [Docker Compose](docs/dev/docker.md)
+    + [Debugging](docs/dev/debugging.md)
++ [Production](docs/production/)
+    + [Docker Compose](docs/production/README.md)
+    + [Kubernetes](kube/README.md)
+    + [Stress Test](docs/production/stress_test.md)
++ [Server](docs/server_features.md)
++ [Clients](docs/client_features.md)
++ Ion SDKs
+    + [SDK - Javascript](https://github.com/pion/ion-sdk-js)
+    + [SDK - Flutter](https://github.com/pion/ion-sdk-flutter)
++ Open-Source ION Clients
+    + [Ion Web App](https://github.com/pion/ion-app-web)
+    + [Ion Flutter App](https://github.com/pion/ion-app-flutter)
++ Other Ion Projects
+    + [Ion Load Tool](https://github.com/pion/ion-load-tool)
+
+
++ [Glossary / Definitions](docs/glossary.md)
++ [Frequently Asked Questions](docs/faq.md)
+
+## Architecture
+![arch](https://github.com/pion/ion/raw/master/docs/imgs/arch.png)
 
 ## Roadmap
 
@@ -80,6 +81,3 @@ For dev and more options see the wiki
 *Original Author: [adwpc](https://github.com/adwpc) [cloudwebrtc](https://github.com/cloudwebrtc)*
 
 *Community Hero: [Sean-Der](https://github.com/Sean-Der)*
-
-
-
