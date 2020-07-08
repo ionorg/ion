@@ -21,7 +21,7 @@
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | <a href="https://github.com/pion/ion"><img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-BIZ**](https://github.com/pion/ion)                   | *Business signal server*                                  |
 | <a href="https://github.com/pion/ion"><img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-ISLB**](https://github.com/pion/ion)                  | *Intelligent-Server-Load-Balancing server*                 |
-| <a href="https://github.com/pion/ion"> <img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-SFU**](https://github.com/pion/ion)                   | *Selective-Forwarding-Unit server*                         |
+| <a href="https://github.com/pion/ion-sfu"> <img src="docs/imgs/go.png" height = 12% width = 10%> </a>[**ION-SFU**](https://github.com/pion/ion-sfu)                   | *Selective-Forwarding-Unit server*                         |
 | <a href="https://github.com/pion/ion-sdk-js"> <img src="docs/imgs/ts.png" height = 12% width = 10%> </a> [**ION-SDK-JS**](https://github.com/pion/ion-sdk-js)         | *Ion js sdk written by typescript*                         |
 | <a href="https://github.com/pion/ion-sdk-flutter"> <img src="docs/imgs/flutter.png" height = 12% width = 10%> </a>  [**ION-SDK-FLUTTER**](https://github.com/pion/ion-sdk-flutter) | *Ion flutter sdk powered by [flutter-webrtc](https://github.com/cloudwebrtc/flutter-webrtc)* |
 | <a href="https://github.com/pion/ion-app-web"> <img src="docs/imgs/chrome.png" height = 12% width = 10%> </a> [**ION-APP-WEB**](https://github.com/pion/ion-app-web)       | *Ion web app*                                              |
@@ -35,19 +35,34 @@ This project uses docker
 
 https://docs.docker.com/get-docker/
 
-### Setup
+### Run
+
+#### 1. Run
+
 ```
+git clone https://github.com/pion/ion
+
 docker network create ionnet
+
+cd ion
+
+docker-compose up
 ```
 
-### Run
-```
-docker-compose -f docker-compose.stable.yml up
-```
+#### 3. Expose Ports
+
+Ensure the ports `5000-5200/udp` are exposed or forwarded for the SFU service
+
+
+#### 4. UI (optional)
+
+Head over to [Ion Web App](https://github.com/pion/ion-app-web) to bring up the front end.
+
+The web app repo also contains examples of exposing the ion biz websocket via reverse proxy with automatic SSL.
 
 For dev and more options see the wiki
 
-* [Development](https://github.com/pion/ion/wiki/DockerDev)
+* [Development](https://github.com/pion/ion/tree/master/docs)
 
 
 ## Roadmap
