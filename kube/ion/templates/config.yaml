@@ -90,7 +90,7 @@ data:
 
     [webrtc]
     # Range of ports that ion accepts WebRTC traffic on
-    portrange = [5000, 5200]
+    portrange = [5000, 52000]
 
     [webrtc.iceserver]
     urls = ["stun:stun.l.google.com:19302"]

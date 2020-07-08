@@ -34,16 +34,16 @@ spec:
         - name: {{ .Chart.Name }}-web
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: pionwebrtc/ion-web:latest
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          image: {{.Values.web.image.repository }}:{{.Values.web.image.tag}}
           command: ["caddy", "file-server", "--listen", ":80", "-root", "/app/dist"]
           resources:
             requests:
               cpu: 250m
               memory: 200Mi
-            limits:
-              cpu: 500m
-              memory: 500Mi
+              #            limits:
+              #              cpu: 500m
+              #              memory: 500Mi
           env:
             - name: SERVICE
               value: web

@@ -6,11 +6,6 @@
 # TODO: At the moment this value needs to remain 1. Scaling the SFU instance is not configured / supported at the moment!!!
 replicaCount: 1
 
-image:
-  repository: nginx
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
@@ -71,6 +66,32 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+sfu:
+  image:
+    repository: pionwebrtc/ion-sfu 
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "v0.4.6"
+biz:
+  image:
+    repository: pionwebrtc/ion-biz 
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "v0.4.6"
+
+islb:
+  image:
+    repository: pionwebrtc/ion-islb 
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "v0.4.6"
+
+web:
+  image:
+    repository: pionwebrtc/ion-web 
+    pullPolicy: IfNotPresent
+    # Overrides he image tag whose default is the chart appVersion.
+    tag: "latest"
 
 nats:
   auth:
@@ -78,8 +99,10 @@ nats:
 
 redis:
   usePassword: false
+
 etcd:
   auth:
     rbac:
       enabled: false
+
 
