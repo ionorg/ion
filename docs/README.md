@@ -19,7 +19,7 @@
     + [Kubernetes](../kube/README.md)
     + [Stress Test](production/stress_test.md)
 + [Server](server_features.md)
-+ [Clients](clients_features.md)
++ [Clients](client_features.md)
 + Ion SDKs
     + [SDK - Javascript](https://github.com/pion/ion-sdk-js)
     + [SDK - Flutter](https://github.com/pion/ion-sdk-flutter)
