@@ -11,7 +11,7 @@
 
 ## Quick-Start (*LOCALHOST ONLY*)
 
-*NOTE:* Do not attempt to run this example on a VPS. Make sure you [read the docs](docs/production); WebRTC requires some specific network configuration for the SFU service (depending on your host), and the JavaScript `GetUserMedia()` API can only request camera access on pages with SSL (or `localhost`). If you are not running on `localhost`, you MUST configure networking for SFU and enable HTTPS enable for `ion-app-web`.
+*NOTE:* Do not attempt to run this example on a VPS. Make sure you [read the docs](docs/production); WebRTC requires some specific network configuration for the SFU service (depending on your host), and the JavaScript `GetUserMedia()` API can only request camera access on pages with SSL (or `localhost`). If you are not running on `localhost`, you MUST configure networking for SFU and enable HTTPS for `ion-app-web`.
 
 
 #### 1. Run Ion Backend Services
