@@ -9,6 +9,13 @@
 
 <br />
 
+## ❤️Sponsor to help this awsome project go faster！🚀
+(https://opencollective.com/pion-ion)
+
+You can vote for feature if you are a sponsor.
+
+Features: https://github.com/pion/ion/projects/1
+
 ## Quick-Start (*LOCALHOST ONLY*)
 
 *NOTE:* Do not attempt to run this example on a VPS. Make sure you [read the docs](docs/production); WebRTC requires some specific network configuration for the SFU service (depending on your host), and the JavaScript `GetUserMedia()` API can only request camera access on pages with SSL (or `localhost`). If you are not running on `localhost`, you MUST configure networking for SFU and enable HTTPS for `ion-app-web`.
