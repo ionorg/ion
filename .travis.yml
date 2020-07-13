@@ -127,13 +127,13 @@ _e2e_tests: &e2e_tests
   env: 
     - CACHE_NAME=e2e_tests
     - IMAGE=pionwebrtc/ion-e2e-test
-    - VERSION=0.1.0f
+    - VERSION=0.1.0g
   services: docker
   before_install:
     - docker pull ${IMAGE}:${VERSION}
   script:
-    - pwd
-    - ls -al
+    - mkdir ${HOME}/.cache/e2e || true
+    - ls -al ${HOME}/.cache/e2e
     - |
       timeout 1200 docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
@@ -144,11 +144,9 @@ _e2e_tests: &e2e_tests
         -e MULTI=windows/chrome,windows/firefox,mac/chrome \
         -v ${HOME}/.cache/e2e:/data \
         ${IMAGE}:${VERSION} bash /test/00-main.sh
-    - mkdir ${HOME}/.cache/e2e || true && cp terraform.tfstate ${HOME}/.cache/e2e
   after_script:
-    - pwd
-    - ls -al
-    - cp ${HOME}/.cache/e2e/terraform.tfstate ${PWD}
+    - ls -al ${HOME}/.cache/e2e
+    - mkdir ${HOME}/.cache/e2e || true
     - |
       docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
