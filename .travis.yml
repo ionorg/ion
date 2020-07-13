@@ -126,7 +126,7 @@ _e2e_tests: &e2e_tests
   env: 
     - CACHE_NAME=e2e_tests
     - IMAGE=pionwebrtc/ion-e2e-test
-    - VERSION=0.1.0c
+    - VERSION=0.1.0d
   services: docker
   before_install:
     - docker pull ${IMAGE}:${VERSION}
