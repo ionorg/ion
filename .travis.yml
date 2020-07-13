@@ -10,7 +10,7 @@ cache:
   directories:
     - ${HOME}/.cache/go-build
     - ${GOPATH}/pkg/mod
-    - /e2e
+    - ${HOME}/.cache/e2e
   npm: true
   yarn: true
 
@@ -132,7 +132,7 @@ _e2e_tests: &e2e_tests
   before_install:
     - docker pull ${IMAGE}:${VERSION}
   script:
-    - mkdir /e2e || true && cd /e2e
+    - mkdir ${HOME}/.cache/e2e || true && cd ${HOME}/.cache/e2e
     - |
       timeout 1200 docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
@@ -144,7 +144,7 @@ _e2e_tests: &e2e_tests
         -v ${PWD}:/data \
         ${IMAGE}:${VERSION} bash /test/00-main.sh
   after_script:
-    - mkdir /e2e || true && cd /e2e
+    - mkdir ${HOME}/.cache/e2e || true && cd ${HOME}/.cache/e2e
     - |
       docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
