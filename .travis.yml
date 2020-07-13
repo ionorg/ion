@@ -140,7 +140,7 @@ _e2e_tests: &e2e_tests
         -e LINODE_DOMAIN_ID=${LINODE_PION_ION_DOMAIN_ID} \
         -e BROWSERSTACK_URL=${PION_BROWSERSTACK_URL} \
         -e ION_VERSION=${TRAVIS_COMMIT} \
-        -e MULTI=windows/chrome,windows/firefox,mac/chrome
+        -e MULTI=windows/chrome,windows/firefox,mac/chrome \
         -v ${PWD}:/data \
         ${IMAGE}:${VERSION} bash /test/00-main.sh
   after_script:
