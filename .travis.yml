@@ -132,7 +132,8 @@ _e2e_tests: &e2e_tests
   before_install:
     - docker pull ${IMAGE}:${VERSION}
   script:
-    - mkdir ${HOME}/.cache/e2e || true && cd ${HOME}/.cache/e2e
+    - pwd
+    - ls -al
     - |
       timeout 1200 docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
@@ -143,8 +144,11 @@ _e2e_tests: &e2e_tests
         -e MULTI=windows/chrome,windows/firefox,mac/chrome \
         -v ${HOME}/.cache/e2e:/data \
         ${IMAGE}:${VERSION} bash /test/00-main.sh
+    - mkdir ${HOME}/.cache/e2e || true && cp terraform.tfstate ${HOME}/.cache/e2e
   after_script:
-    - mkdir ${HOME}/.cache/e2e || true && cd ${HOME}/.cache/e2e
+    - pwd
+    - ls -al
+    - cp ${HOME}/.cache/e2e/terraform.tfstate ${PWD}
     - |
       docker run \
         -e JOB_ID=${TRAVIS_BUILD_ID} \
