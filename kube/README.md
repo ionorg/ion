@@ -26,7 +26,7 @@ helm install $RELEASE_NAME ion \
 The SFU Deployment requires host networking to expose the range orf UDP ports used for RTP traffic (due to the lack of support for UDP ranges in kubernetes services).  This requires a custom firewall rule that will expose traffic to the kubernetes nodes for the UDP range set in `ion/templates/config.yaml`.  This can be created for your default-network in GCP with the following gcloud command.
 
 ```
-gcloud compute firewall-rules create ion-webrtc --allow udp:5000-5200,udp:6666
+gcloud compute firewall-rules create ion-webrtc --allow udp:5000-52000,udp:6666
 ```
 
 
