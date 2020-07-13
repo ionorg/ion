@@ -127,7 +127,7 @@ _e2e_tests: &e2e_tests
   env: 
     - CACHE_NAME=e2e_tests
     - IMAGE=pionwebrtc/ion-e2e-test
-    - VERSION=0.1.0e
+    - VERSION=0.1.0f
   services: docker
   before_install:
     - docker pull ${IMAGE}:${VERSION}
@@ -141,7 +141,7 @@ _e2e_tests: &e2e_tests
         -e BROWSERSTACK_URL=${PION_BROWSERSTACK_URL} \
         -e ION_VERSION=${TRAVIS_COMMIT} \
         -e MULTI=windows/chrome,windows/firefox,mac/chrome \
-        -v ${PWD}:/data \
+        -v ${HOME}/.cache/e2e:/data \
         ${IMAGE}:${VERSION} bash /test/00-main.sh
   after_script:
     - mkdir ${HOME}/.cache/e2e || true && cd ${HOME}/.cache/e2e
@@ -150,7 +150,7 @@ _e2e_tests: &e2e_tests
         -e JOB_ID=${TRAVIS_BUILD_ID} \
         -e LINODE_KEY=${LINODE_PION_ION_DEV} \
         -e LINODE_DOMAIN_ID=${LINODE_PION_ION_DOMAIN_ID} \
-        -v ${PWD}:/data \
+        -v ${HOME}/.cache/e2e:/data \
         ${IMAGE}:${VERSION} bash /test/99-cleanup.sh
 
 jobs:
