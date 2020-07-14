@@ -2,8 +2,9 @@ package proto
 
 type PubInfo struct {
 	MediaInfo
-	Info   ClientUserInfo `json:"info"`
-	Tracks TrackMap       `json:"tracks"`
+	Info        ClientUserInfo `json:"info"`
+	Tracks      TrackMap       `json:"tracks"`
+	Description string         `json:"description,omitempty"`
 }
 
 type GetPubResp struct {
