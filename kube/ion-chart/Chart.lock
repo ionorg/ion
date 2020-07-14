@@ -1,0 +1,12 @@
+dependencies:
+- name: nats
+  repository: https://charts.bitnami.com/bitnami
+  version: 4.4.1
+- name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 10.7.5
+- name: etcd
+  repository: https://charts.bitnami.com/bitnami
+  version: 4.8.5
+digest: sha256:5409b38a8ae522ac8089e6a9943997acf09c6a32269dfcf766e1683eb2bb18e2
+generated: "2020-06-24T10:43:14.0284901-04:00"
