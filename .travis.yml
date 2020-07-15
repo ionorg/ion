@@ -159,7 +159,7 @@ jobs:
   include:
     - <<: *e2e_tests
       name: End-to-end browser tests
-      if: branch = feature/e2e
+      if: branch = master OR tag IS present
     - <<: *lint_job
       name: Lint 1.14
       go: 1.14
