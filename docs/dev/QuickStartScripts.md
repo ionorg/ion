@@ -1,6 +1,6 @@
 # Just three quick steps to start the server
 
-### step 1. clone
+### step 1. Clone
 
 git clone https://github.com/pion/ion
 cd ion
