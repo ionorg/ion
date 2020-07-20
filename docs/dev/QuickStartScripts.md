@@ -1,9 +1,14 @@
-# Just two quick steps to start the server
+# Just three quick steps to start the server
 
-### step 1.Creates a new network. 
+### step 1. clone
+
+git clone https://github.com/pion/ion
+cd ion
+
+### step 2.Creates a new network. 
 docker network create ionnet
 
-### step 2.Start all modules
+### step 3.Start all modules
 ./scripts/allStart.sh
 
 
