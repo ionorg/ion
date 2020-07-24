@@ -19,6 +19,7 @@ type GetMediaParams struct {
 type FindServiceParams struct {
 	Service string
 	MID     MID
+	RID     RID
 }
 
 type GetSFURPCParams struct {

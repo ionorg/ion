@@ -93,6 +93,8 @@ func watchStream(key string) {
 func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error) {
 	service := data.Service
 	mid := data.MID
+	rid := data.RID
+
 	if mid != "" {
 		mkey := proto.MediaInfo{
 			DC:  dc,
@@ -116,6 +118,38 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 					return resp, nil
 				}
 			}
+		}
+	}
+
+	// When we have a RID check for other pubs to colocate streams
+	if rid != "" {
+		log.Infof("findServiceNode: got room id: %s, checking for existing streams", rid)
+		rid := data.RID //util.Val(data, "rid")
+		key := proto.MediaInfo{
+			DC:  dc,
+			RID: rid,
+		}.BuildKey()
+		log.Infof("findServiceNode: RID root key=%s", key)
+
+		for _, path := range redis.Keys(key + "*") {
+			log.Infof("findServiceNode media info path = %s", path)
+			minfo, err := proto.ParseMediaInfo(path)
+			if err != nil {
+				break
+			}
+
+			for _, node := range services {
+				name := node.Info["name"]
+				id := node.Info["id"]
+				if service == node.Info["service"] && minfo.NID == id {
+					rpcID := discovery.GetRPCChannel(node)
+					eventID := discovery.GetEventChannel(node)
+					resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
+					return resp, nil
+				}
+			}
+
 		}
 	}
 
