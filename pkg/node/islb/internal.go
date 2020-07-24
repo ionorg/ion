@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -132,9 +133,11 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 		log.Infof("findServiceNode: RID root key=%s", key)
 
 		for _, path := range redis.Keys(key + "*") {
+
 			log.Infof("findServiceNode media info path = %s", path)
 			minfo, err := proto.ParseMediaInfo(path)
 			if err != nil {
+				log.Errorf("Error parsing media info", err)
 				break
 			}
 
@@ -153,17 +156,36 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 		}
 	}
 
-	// TODO: Add a load balancing algorithm.
-	for _, node := range services {
-		if service == node.Info["service"] {
-			rpcID := discovery.GetRPCChannel(node)
-			eventID := discovery.GetEventChannel(node)
-			name := node.Info["name"]
-			id := node.Info["id"]
-			resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
-			return resp, nil
+	// MID/RID Doesn't exist in Redis
+	// Find least packed SFU to return
+	var node *discovery.Node = nil
+	minStreamCount := math.MaxInt32
+	for _, sfu := range services {
+		if service == sfu.Info["service"] {
+			// get stream count
+			sfuKey := proto.MediaInfo{
+				DC:  dc,
+				NID: sfu.Info["id"],
+			}.BuildKey()
+			streamCount := len(redis.Keys(sfuKey))
+
+			log.Infof("findServiceNode looking up sfu stream count [%s] = %v", sfuKey, streamCount)
+			if streamCount <= minStreamCount {
+				node = &sfu
+				minStreamCount = streamCount
+			}
 		}
+	}
+
+	if node != nil {
+		log.Infof("findServiceNode: found best candidate SFU [%s] = %v", *node, minStreamCount)
+		rpcID := discovery.GetRPCChannel(*node)
+		eventID := discovery.GetEventChannel(*node)
+		name := node.Info["name"]
+		id := node.Info["id"]
+		resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+		log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
+		return resp, nil
 	}
 
 	return nil, util.NewNpError(404, fmt.Sprintf("Service node [%s] not found", service))
