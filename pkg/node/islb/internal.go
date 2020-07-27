@@ -122,6 +122,12 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 		}
 	}
 
+	// If we don't have a MID, we must place the stream in a room
+	// This mutex prevents a race condition which could cause
+	// rooms to split between SFU's
+	roomMutex.Lock()
+	defer roomMutex.Unlock()
+
 	// When we have a RID check for other pubs to colocate streams
 	if rid != "" {
 		log.Infof("findServiceNode: got room id: %s, checking for existing streams", rid)
@@ -158,7 +164,7 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 
 	// MID/RID Doesn't exist in Redis
 	// Find least packed SFU to return
-	var node *discovery.Node = nil
+	sfuID := ""
 	minStreamCount := math.MaxInt32
 	for _, sfu := range services {
 		if service == sfu.Info["service"] {
@@ -171,16 +177,17 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 
 			log.Infof("findServiceNode looking up sfu stream count [%s] = %v", sfuKey, streamCount)
 			if streamCount <= minStreamCount {
-				node = &sfu
+				sfuID = sfu.ID
 				minStreamCount = streamCount
 			}
 		}
 	}
+	log.Infof("findServiceNode: selecting SFU [%s] = %v", sfuID, minStreamCount)
 
-	if node != nil {
-		log.Infof("findServiceNode: found best candidate SFU [%s] = %v", *node, minStreamCount)
-		rpcID := discovery.GetRPCChannel(*node)
-		eventID := discovery.GetEventChannel(*node)
+	if node, ok := services[sfuID]; ok {
+		log.Infof("findServiceNode: found best candidate SFU [%s]", node)
+		rpcID := discovery.GetRPCChannel(node)
+		eventID := discovery.GetEventChannel(node)
 		name := node.Info["name"]
 		id := node.Info["id"]
 		resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
