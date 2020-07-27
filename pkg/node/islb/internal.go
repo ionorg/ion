@@ -143,7 +143,7 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 			log.Infof("findServiceNode media info path = %s", path)
 			minfo, err := proto.ParseMediaInfo(path)
 			if err != nil {
-				log.Errorf("Error parsing media info", err)
+				log.Errorf("Error parsing media info = %v", err)
 				break
 			}
 
