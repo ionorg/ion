@@ -48,7 +48,7 @@ func main() {
 	biz.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, conf.Nats.URL)
 
 	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
+	go serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)
 
 	defer close()
 	select {}
