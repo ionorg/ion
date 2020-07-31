@@ -34,7 +34,10 @@ func Init(conf WebSocketServerConfig, allowDisconnected bool, bizEntry BizEntry)
 	bizCall = bizEntry
 	allowClientDisconnect = allowDisconnected
 	go stat()
-	panic(NewWebSocketServer(conf, in))
+	go func() {
+		panic(NewWebSocketServer(conf, in))
+	}()
+
 }
 
 func stat() {
