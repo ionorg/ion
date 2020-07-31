@@ -20,13 +20,13 @@ require (
 	github.com/pion/rtp v1.6.0
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.1
-	github.com/pion/webrtc/v2 v2.2.21
+	github.com/pion/webrtc/v2 v2.2.23
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.6+incompatible
 	github.com/spf13/viper v1.7.0
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.etcd.io/etcd v3.3.22+incompatible
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
