@@ -54,8 +54,12 @@ type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
 =======
 type JoinMsg struct {
+<<<<<<< HEAD
 	RoomInfo
 >>>>>>> Handle join with ion-sfu.
+=======
+	RID RID `json:"rid"`
+>>>>>>> Add offer/answer hooks.
 	RTCInfo
 	Info ClientUserInfo `json:"info"`
 }
@@ -64,11 +68,16 @@ type JoinMsg struct {
 type ToClientJoinMsg struct {
 =======
 type JoinResponseMsg struct {
+<<<<<<< HEAD
 >>>>>>> Handle join with ion-sfu.
+=======
+	UID UID `json:"uid"`
+>>>>>>> Add offer/answer hooks.
 	MediaInfo
 	RTCInfo
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 type FromSignalLeaveMsg struct {
 	RoomInfo
@@ -107,10 +116,19 @@ type ToClientTrickleMsg struct {
 // Biz to SFU
 
 type ToSfuJoinMsg struct {
+=======
+type OfferMsg struct {
 	RoomInfo
 	RTCInfo
 }
 
+type AnswerMsg struct {
+>>>>>>> Add offer/answer hooks.
+	RoomInfo
+	RTCInfo
+}
+
+<<<<<<< HEAD
 type FromSfuJoinMsg struct {
 	MediaInfo
 	RTCInfo
@@ -161,6 +179,8 @@ type FromClientBroadcastMsg struct {
 
 =======
 >>>>>>> Handle join with ion-sfu.
+=======
+>>>>>>> Add offer/answer hooks.
 type LeaveMsg struct {
 	RoomInfo
 	Info ClientUserInfo `json:"info"`
