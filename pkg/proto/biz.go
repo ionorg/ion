@@ -3,7 +3,7 @@ package proto
 import (
 	"encoding/json"
 
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 type ClientUserInfo struct {
@@ -48,7 +48,13 @@ type TrackMap map[string][]TrackInfo
 
 type JoinMsg struct {
 	RoomInfo
+	RTCInfo
 	Info ClientUserInfo `json:"info"`
+}
+
+type JoinResponseMsg struct {
+	MediaInfo
+	RTCInfo
 }
 
 type LeaveMsg struct {

@@ -9,7 +9,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 const (

@@ -16,12 +16,16 @@ const (
 	ClientUnSubscribe = "unsubscribe"
 	ClientBroadcast   = "broadcast"
 	ClientTrickleICE  = "trickle"
+	ClientOffer       = "offer"
+	ClientAnswer      = "answer"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"
 	ClientOnLeave        = "peer-leave"
 	ClientOnStreamAdd    = "stream-add"
 	ClientOnStreamRemove = "stream-remove"
+	ClientOnOffer        = "offer"
+	ClientOnAnswer       = "answer"
 
 	// ion to islb
 	IslbFindService  = "findService"
@@ -38,8 +42,11 @@ const (
 	IslbOnBroadcast    = ClientBroadcast
 
 	// SFU Endpoints
-	SFUTrickleICE   = ClientTrickleICE
-	SFUStreamRemove = ClientOnStreamRemove
+	SfuTrickleICE     = ClientTrickleICE
+	SfuClientOnJoin   = ClientOnJoin
+	SfuClientOnOffer  = ClientOnOffer
+	SfuClientOnAnswer = ClientOnAnswer
+	SFUStreamRemove   = ClientOnStreamRemove
 
 	IslbID = "islb"
 )

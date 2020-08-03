@@ -35,12 +35,23 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	// Send join => islb
+
+	_, sfu, err := getRPCForSFU(rid)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
 	info := msg.Info
 	uid := peer.ID()
-	_, err := islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
+	// Send join => islb
+	_, err = islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
 	if err != nil {
 		log.Errorf("IslbClientOnJoin failed %v", err.Error())
+	}
+	// Send join => sfu
+	_, err = sfu.SyncRequest(proto.SfuClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
+	if err != nil {
+		log.Errorf("SfuClientOnJoin failed %v", err.Error())
 	}
 	// Send getPubs => islb
 	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
@@ -140,7 +151,7 @@ func unpublish(peer *signal.Peer, msg proto.UnpublishMsg) (interface{}, *nprotoo
 	rid := msg.RID
 	uid := peer.ID()
 
-	_, sfu, err := getRPCForSFU(mid)
+	_, sfu, err := getRPCForSFU(rid)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, err
@@ -172,7 +183,7 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 		return nil, jsepError
 	}
 
-	nodeID, sfu, err := getRPCForSFU(mid)
+	nodeID, sfu, err := getRPCForSFU(msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -227,7 +238,7 @@ func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *npr
 		return nil, midError
 	}
 
-	_, sfu, err := getRPCForSFU(mid)
+	_, sfu, err := getRPCForSFU(msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -269,7 +280,7 @@ func trickle(peer *signal.Peer, msg proto.TrickleMsg) (interface{}, *nprotoo.Err
 		return nil, ridError
 	}
 
-	_, sfu, err := getRPCForSFU(mid)
+	_, sfu, err := getRPCForSFU(msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

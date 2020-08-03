@@ -107,8 +107,10 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, data)
 
 		switch msg.Method {
-		case proto.SFUTrickleICE:
+		case proto.SfuTrickleICE:
 			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnStreamAdd, data)
+		case proto.SfuClientOnOffer:
+			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnOffer, data)
 		case proto.SFUStreamRemove:
 			islb, found := getRPCForIslb()
 			if found {
@@ -118,12 +120,12 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 	}(msg)
 }
 
-func getRPCForSFU(mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
+func getRPCForSFU(rid proto.RID) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	islb, found := getRPCForIslb()
 	if !found {
 		return "", nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu", "mid", mid))
+	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu", "rid", rid))
 	if err != nil {
 		return "", nil, err
 	}

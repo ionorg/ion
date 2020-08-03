@@ -7,15 +7,18 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/google/uuid"
 	sdptransform "github.com/notedit/sdp"
+	sfu "github.com/pion/ion-sfu/pkg"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/rtc"
 	transport "github.com/pion/ion/pkg/rtc/transport"
 	"github.com/pion/ion/pkg/util"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 var emptyMap = map[string]interface{}{}
+
+var server = sfu.NewSFU(sfu.Config{})
 
 func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
@@ -28,6 +31,11 @@ func handleRequest(rpcID string) {
 		err := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
 
 		switch method {
+		case proto.SfuClientOnJoin:
+			var msgData proto.JoinMsg
+			if err = data.Unmarshal(&msgData); err != nil {
+				result, err = join(msgData)
+			}
 		case proto.ClientPublish:
 			var msgData proto.PublishMsg
 			if err = data.Unmarshal(&msgData); err == nil {
@@ -62,11 +70,82 @@ func handleTrickle(r *rtc.Router, t *transport.WebRTCTransport) {
 	for {
 		trickle := <-t.GetCandidateChan()
 		if trickle != nil {
-			broadcaster.Say(proto.SFUTrickleICE, util.Map("mid", t.ID(), "trickle", trickle.ToJSON()))
+			broadcaster.Say(proto.SfuTrickleICE, util.Map("mid", t.ID(), "trickle", trickle.ToJSON()))
 		} else {
 			return
 		}
 	}
+}
+
+func join(msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("join msg=%v", msg)
+	if msg.Jsep.SDP == "" {
+		return nil, util.NewNpError(415, "publish: jsep invaild.")
+	}
+	mid := uuid.New().String()
+	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: msg.Jsep.SDP}
+	peer, err := sfu.NewPeer(offer)
+	if err != nil {
+		log.Errorf("join error: %v", err)
+		return nil, util.NewNpError(415, "join error")
+	}
+
+	log.Infof("peer %s join room %s", peer.ID(), msg.RID)
+
+	room := server.GetRoom(string(msg.RID))
+	if room == nil {
+		room = server.CreateRoom(string(msg.RID))
+	}
+	room.AddTransport(peer)
+
+	err = peer.SetRemoteDescription(offer)
+	if err != nil {
+		log.Errorf("join error: %v", err)
+		return nil, util.NewNpError(415, "join error")
+	}
+
+	answer, err := peer.CreateAnswer()
+	if err != nil {
+		log.Errorf("join error: %v", err)
+		return nil, util.NewNpError(415, "join error")
+	}
+
+	err = peer.SetLocalDescription(answer)
+	if err != nil {
+		log.Errorf("join error: %v", err)
+		return nil, util.NewNpError(415, "join error")
+	}
+
+	peer.OnICECandidate(func(c *webrtc.ICECandidate) {
+		if c == nil {
+			// Gathering done
+			return
+		}
+		broadcaster.Say(proto.SfuTrickleICE, util.Map("mid", mid, "trickle", c.ToJSON()))
+	})
+
+	peer.OnNegotiationNeeded(func() {
+		log.Debugf("on negotiation needed called")
+		offer, err := peer.CreateOffer()
+		if err != nil {
+			log.Errorf("CreateOffer error: %v", err)
+			return
+		}
+
+		err = peer.SetLocalDescription(offer)
+		if err != nil {
+			log.Errorf("SetLocalDescription error: %v", err)
+			return
+		}
+
+		broadcaster.Say(proto.SfuClientOnOffer, util.Map("mid", mid, "type", offer.Type, "sdp", offer.SDP))
+	})
+
+	resp := proto.JoinResponseMsg{
+		RTCInfo:   proto.RTCInfo{Jsep: answer},
+		MediaInfo: proto.MediaInfo{MID: proto.MID(mid)},
+	}
+	return resp, nil
 }
 
 // publish .

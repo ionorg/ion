@@ -10,7 +10,7 @@ import (
 	"github.com/pion/ion/pkg/node/sfu"
 	"github.com/pion/ion/pkg/rtc"
 	"github.com/pion/ion/pkg/rtc/plugins"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 func init() {

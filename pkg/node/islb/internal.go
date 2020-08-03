@@ -92,11 +92,11 @@ func watchStream(key string) {
 /*Find service nodes by name, such as sfu|mcu|sip-gateway|rtmp-gateway */
 func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error) {
 	service := data.Service
-	mid := data.MID
-	if mid != "" {
+	rid := data.RID
+	if rid != "" {
 		mkey := proto.MediaInfo{
 			DC:  dc,
-			MID: mid,
+			RID: rid,
 		}.BuildKey()
 		log.Infof("Find mids by mkey %s", mkey)
 		for _, key := range redis.Keys(mkey + "*") {
