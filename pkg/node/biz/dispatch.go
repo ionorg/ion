@@ -34,6 +34,16 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = join(peer, msgData)
 		}
+	case proto.ClientOffer:
+		var msgData proto.OfferMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = offer(peer, msgData)
+		}
+	case proto.ClientAnswer:
+		var msgData proto.AnswerMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = answer(peer, msgData)
+		}
 	case proto.ClientLeave:
 		var msgData proto.FromSignalLeaveMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
@@ -88,7 +98,6 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 
 		switch msg.Method {
 		case proto.SfuTrickleICE:
-<<<<<<< HEAD
 			var msgData proto.FromSfuTrickleMsg
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
 				log.Errorf("handleSFUBroadCast failed to parse %v", err)
@@ -133,15 +142,6 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
 				log.Errorf("handleSFUBroadCast failed to parse %v", err)
 				return
-=======
-			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnStreamAdd, data)
-		case proto.SfuClientOnOffer:
-			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnOffer, data)
-		case proto.SFUStreamRemove:
-			islb, found := getRPCForIslb()
-			if found {
-				islb.AsyncRequest(proto.IslbOnStreamRemove, data)
->>>>>>> Handle join with ion-sfu.
 			}
 			log.Infof("LEAVE FROM SFU")
 			leave(proto.FromSignalLeaveMsg{RoomInfo: proto.RoomInfo{RID: msgData.RID, UID: msgData.UID}})
@@ -149,11 +149,7 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 	}(msg)
 }
 
-<<<<<<< HEAD
 func getRPCForSFU(mid proto.MID, rid proto.RID) (string, *nprotoo.Requestor, *nprotoo.Error) {
-=======
-func getRPCForSFU(rid proto.RID) (string, *nprotoo.Requestor, *nprotoo.Error) {
->>>>>>> Handle join with ion-sfu.
 	islb, found := getRPCForIslb()
 	if !found {
 		return "", nil, util.NewNpError(500, "Not found any node for islb.")
