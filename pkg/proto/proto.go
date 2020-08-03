@@ -42,12 +42,20 @@ const (
 	IslbOnBroadcast    = ClientBroadcast
 
 	// SFU Endpoints
+<<<<<<< HEAD
 	SfuTrickleICE    = ClientTrickleICE
 	SfuClientJoin    = ClientJoin
 	SfuClientOffer   = ClientOnOffer
 	SfuClientAnswer  = ClientOnAnswer
 	SfuClientTrickle = ClientTrickleICE
 	SfuClientLeave   = ClientLeave
+=======
+	SfuTrickleICE     = ClientTrickleICE
+	SfuClientOnJoin   = ClientOnJoin
+	SfuClientOnOffer  = ClientOnOffer
+	SfuClientOnAnswer = ClientOnAnswer
+	SFUStreamRemove   = ClientOnStreamRemove
+>>>>>>> Handle join with ion-sfu.
 
 	IslbID = "islb"
 )

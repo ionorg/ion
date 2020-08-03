@@ -32,3 +32,7 @@ require (
 	google.golang.org/grpc v1.27.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
+
+// See https://github.com/etcd-io/etcd/issues/11563.
+// At some point a migration to v3.4 of etcd would be a better solution.
+replace github.com/coreos/etcd => github.com/ozonru/etcd v3.3.20-grpc1.27-origmodule+incompatible
