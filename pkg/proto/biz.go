@@ -47,19 +47,29 @@ type TrackMap map[string][]TrackInfo
 
 // Client <-> Biz messages.
 
+<<<<<<< HEAD
 // TODO(kevmo314): Consolidate these messages.
 
 type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
+=======
+type JoinMsg struct {
+	RoomInfo
+>>>>>>> Handle join with ion-sfu.
 	RTCInfo
 	Info ClientUserInfo `json:"info"`
 }
 
+<<<<<<< HEAD
 type ToClientJoinMsg struct {
+=======
+type JoinResponseMsg struct {
+>>>>>>> Handle join with ion-sfu.
 	MediaInfo
 	RTCInfo
 }
 
+<<<<<<< HEAD
 type FromSignalLeaveMsg struct {
 	RoomInfo
 }
@@ -149,6 +159,8 @@ type FromClientBroadcastMsg struct {
 	Info json.RawMessage `json:"info"`
 }
 
+=======
+>>>>>>> Handle join with ion-sfu.
 type LeaveMsg struct {
 	RoomInfo
 	Info ClientUserInfo `json:"info"`
