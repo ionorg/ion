@@ -34,6 +34,16 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = join(peer, msgData)
 		}
+	case proto.ClientOffer:
+		var msgData proto.OfferMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = offer(peer, msgData)
+		}
+	case proto.ClientAnswer:
+		var msgData proto.AnswerMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = answer(peer, msgData)
+		}
 	case proto.ClientLeave:
 		var msgData proto.LeaveMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {

@@ -53,26 +53,36 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	if err != nil {
 		log.Errorf("SfuClientOnJoin failed %v", err.Error())
 	}
-	// Send getPubs => islb
-	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
-		func(result nprotoo.RawMessage) {
-			var resMsg proto.GetPubResp
-			if err := result.Unmarshal(&resMsg); err != nil {
-				log.Errorf("Unmarshal pub response %v", err)
-				return
-			}
-			log.Infof("IslbGetPubs: result=%v", result)
-			for _, pub := range resMsg.Pubs {
-				if pub.MID == "" {
-					continue
-				}
-				notif := proto.StreamAddMsg(pub)
-				peer.Notify(proto.ClientOnStreamAdd, notif)
-			}
-		},
-		func(err *nprotoo.Error) {})
 
 	return emptyMap, nil
+}
+
+func offer(peer *signal.Peer, msg proto.OfferMsg) (interface{}, *nprotoo.Error) {
+	_, sfu, err := getRPCForSFU(msg.RID)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	_, err = sfu.SyncRequest(proto.SfuClientOnOffer, util.Map("rid", msg.RID, "uid", msg.UID, "jsep", msg.Jsep))
+	if err != nil {
+		log.Errorf("SfuClientOnOffer failed %v", err.Error())
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	return nil, nil
+}
+
+func answer(peer *signal.Peer, msg proto.AnswerMsg) (interface{}, *nprotoo.Error) {
+	_, sfu, err := getRPCForSFU(msg.RID)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	_, err = sfu.SyncRequest(proto.SfuClientOnAnswer, util.Map("rid", msg.RID, "uid", msg.UID, "jsep", msg.Jsep))
+	if err != nil {
+		log.Errorf("SfuClientOnAnswer failed %v", err.Error())
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	return nil, nil
 }
 
 func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) {

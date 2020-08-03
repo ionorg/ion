@@ -273,7 +273,6 @@ func clientJoin(data proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	ukey := proto.UserInfo{
 		DC:  dc,
 		RID: data.RID,
-		UID: data.UID,
 	}.BuildKey()
 	log.Infof("clientJoin: set %s => %v", ukey, &data.Info)
 	err := redis.HSetTTL(ukey, "info", &data.Info, redisLongKeyTTL)

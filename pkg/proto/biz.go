@@ -47,13 +47,24 @@ type TrackMap map[string][]TrackInfo
 /// Messages ///
 
 type JoinMsg struct {
-	RoomInfo
+	RID RID `json:"rid"`
 	RTCInfo
 	Info ClientUserInfo `json:"info"`
 }
 
 type JoinResponseMsg struct {
+	UID UID `json:"uid"`
 	MediaInfo
+	RTCInfo
+}
+
+type OfferMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type AnswerMsg struct {
+	RoomInfo
 	RTCInfo
 }
 

@@ -20,6 +20,8 @@ var emptyMap = map[string]interface{}{}
 
 var server = sfu.NewSFU(sfu.Config{})
 
+var peers = map[proto.UID]*sfu.Peer{}
+
 func handleRequest(rpcID string) {
 	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
@@ -35,6 +37,16 @@ func handleRequest(rpcID string) {
 			var msgData proto.JoinMsg
 			if err = data.Unmarshal(&msgData); err != nil {
 				result, err = join(msgData)
+			}
+		case proto.SfuClientOnOffer:
+			var msgData proto.OfferMsg
+			if err = data.Unmarshal(&msgData); err != nil {
+				result, err = offer(msgData)
+			}
+		case proto.SfuClientOnAnswer:
+			var msgData proto.AnswerMsg
+			if err = data.Unmarshal(&msgData); err != nil {
+				result, err = answer(msgData)
 			}
 		case proto.ClientPublish:
 			var msgData proto.PublishMsg
@@ -89,6 +101,7 @@ func join(msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("join error: %v", err)
 		return nil, util.NewNpError(415, "join error")
 	}
+	peers[proto.UID(peer.ID())] = peer
 
 	log.Infof("peer %s join room %s", peer.ID(), msg.RID)
 
@@ -142,10 +155,56 @@ func join(msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	})
 
 	resp := proto.JoinResponseMsg{
+		UID:       proto.UID(peer.ID()),
 		RTCInfo:   proto.RTCInfo{Jsep: answer},
 		MediaInfo: proto.MediaInfo{MID: proto.MID(mid)},
 	}
 	return resp, nil
+}
+
+func offer(msg proto.OfferMsg) (interface{}, *nprotoo.Error) {
+	peer, ok := peers[msg.UID]
+	if !ok {
+		return nil, util.NewNpError(415, "peer not found")
+	}
+
+	err := peer.SetRemoteDescription(msg.Jsep)
+	if err != nil {
+		log.Errorf("set remote description error: %v", err)
+		return nil, util.NewNpError(415, "set remote description error")
+	}
+
+	answer, err := peer.CreateAnswer()
+	if err != nil {
+		log.Errorf("create answer error: %v", err)
+		return nil, util.NewNpError(415, "create answer error")
+	}
+
+	err = peer.SetLocalDescription(answer)
+	if err != nil {
+		log.Errorf("set local description error: %v", err)
+		return nil, util.NewNpError(415, "set local description error")
+	}
+
+	resp := proto.AnswerMsg{
+		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
+		RTCInfo:  proto.RTCInfo{Jsep: answer},
+	}
+	return resp, nil
+}
+
+func answer(msg proto.AnswerMsg) (interface{}, *nprotoo.Error) {
+	peer, ok := peers[msg.UID]
+	if !ok {
+		return nil, util.NewNpError(415, "peer not found")
+	}
+
+	err := peer.SetRemoteDescription(msg.Jsep)
+	if err != nil {
+		log.Errorf("set remote description error: %v", err)
+		return nil, util.NewNpError(415, "set remote description error")
+	}
+	return nil, nil
 }
 
 // publish .
