@@ -25,7 +25,7 @@ func handleRequest(rpcID string) {
 		log.Debugf("handleRequest: method => %s, data => %v", method, data)
 
 		var result interface{}
-		err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
+		err := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
 
 		switch method {
 		case proto.ClientPublish:
