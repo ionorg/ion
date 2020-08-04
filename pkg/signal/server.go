@@ -37,7 +37,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func getClaims(authConf conf.AuthConfig, r *http.Request) (*Claims, error) {
+func getClaims(connectionAuth conf.AuthConfig, r *http.Request) (*Claims, error) {
 	vars := r.URL.Query()
 
 	log.Debugf("Authenticating token")
@@ -48,7 +48,7 @@ func getClaims(authConf conf.AuthConfig, r *http.Request) (*Claims, error) {
 
 	tokenStr := tokenParam[0]
 	// Passing nil for keyFunc, since token is expected to be already verified (by a proxy)
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, authConf.KeyFunc)
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, connectionAuth.KeyFunc)
 	if err != nil {
 		ve := err.(*jwt.ValidationError)
 		// ValidationErrorUnverifiable is expected since no keyFunc passed to ParseWithClaims
@@ -59,11 +59,11 @@ func getClaims(authConf conf.AuthConfig, r *http.Request) (*Claims, error) {
 	return token.Claims.(*Claims), nil
 }
 
-func handler(authConf conf.AuthConfig, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
+func handler(connectionAuth conf.AuthConfig, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if authConf.Enabled {
+		if connectionAuth.Enabled {
 			// extract connection level claims from auth token
-			claims, err := getClaims(authConf, r)
+			claims, err := getClaims(connectionAuth, r)
 			if err != nil {
 				log.Errorf("Error authenticating user => %s", err)
 				http.Error(w, "Invalid token", http.StatusForbidden)
