@@ -24,6 +24,10 @@ type RoomClaims struct {
 	AudioPublish bool   `json:"audiopublish,omitempty"`
 }
 
+type RoomToken struct {
+	Token string `json:"token,omitempty"`
+}
+
 type RoomInfo struct {
 	RID RID `json:"rid"`
 	UID UID `json:"uid"`
@@ -55,6 +59,7 @@ type TrackMap map[string][]TrackInfo
 
 type JoinMsg struct {
 	RoomInfo
+	RoomToken
 	Info ClientUserInfo `json:"info"`
 }
 

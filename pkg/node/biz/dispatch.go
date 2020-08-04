@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -13,20 +14,58 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+var (
+	errorTokenRequired          = util.NewNpError(http.StatusUnauthorized, "Authorization token required for access")
+	errorInvalidRoomToken       = util.NewNpError(http.StatusUnauthorized, "Invalid room token")
+	errorUnauthorizedRoomAccess = util.NewNpError(http.StatusForbidden, "Permission not sufficient for room")
+)
+
 // ParseProtoo Unmarshals a protoo payload.
-func ParseProtoo(msg json.RawMessage, claims *signal.Claims, msgType interface{}) *nprotoo.Error {
+func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType interface{}) *nprotoo.Error {
 	if err := json.Unmarshal(msg, &msgType); err != nil {
 		log.Errorf("Biz.Entry parse error %v", err.Error())
 		return util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
 	}
 
-	if claims != nil {
-		if msg, ok := msgType.(proto.RoomInfo); !ok || msg.RID != proto.RID(claims.ID) {
-			log.Errorf("Biz.Entry error authenticating token")
-			return util.NewNpError(http.StatusForbidden, fmt.Sprintf("Invalid token"))
-		}
+	roomInfo, ok := msgType.(proto.RoomInfo)
+	if ok && roomAuth.Enabled {
+		return authenticateRoom(msgType, connectionClaims, roomInfo)
 	}
+
 	return nil
+}
+
+// authenticateRoom checks both the connection token AND an optional message token for RID claims
+// returns nil for success and returns an error if there are no valid claims for the RID
+func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, roomInfo proto.RoomInfo) *nprotoo.Error {
+	// Connection token has valid claim on this room, succeed early
+	if connectionClaims != nil && roomInfo.RID == proto.RID(connectionClaims.ID) {
+		return nil
+	}
+
+	// Check for a message level proto.RoomToken
+	var msgClaims *signal.Claims = nil
+	if msg, ok := msgType.(proto.RoomToken); ok {
+		token, err := jwt.ParseWithClaims(msg.Token, &signal.Claims{}, roomAuth.KeyFunc)
+		if err != nil {
+			return errorInvalidRoomToken
+		}
+		msgClaims = token.Claims.(*signal.Claims)
+	}
+
+	// No tokens were passed in
+	if connectionClaims == nil && msgClaims == nil {
+		return errorTokenRequired
+	}
+
+	// Message token is valid, succeed
+	if msgClaims != nil && roomInfo.RID == proto.RID(msgClaims.ID) {
+		return nil
+	}
+
+	// If this is reached, a token was passed but it did not have a valid RID claim
+	return errorUnauthorizedRoomAccess
+
 }
 
 // Entry is the biz entry

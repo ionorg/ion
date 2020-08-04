@@ -10,6 +10,7 @@ import (
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
+	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/log"
 )
 
@@ -19,7 +20,8 @@ type WebSocketServerConfig struct {
 	CertFile      string
 	KeyFile       string
 	WebSocketPath string
-	Authorization bool
+
+	AuthConnection conf.AuthConfig
 }
 
 type MsgHandler func(ws *transport.WebSocketTransport, request *http.Request)
@@ -35,7 +37,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func getClaims(r *http.Request) (*Claims, error) {
+func getClaims(authConf conf.AuthConfig, r *http.Request) (*Claims, error) {
 	vars := r.URL.Query()
 
 	log.Debugf("Authenticating token")
@@ -46,7 +48,7 @@ func getClaims(r *http.Request) (*Claims, error) {
 
 	tokenStr := tokenParam[0]
 	// Passing nil for keyFunc, since token is expected to be already verified (by a proxy)
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, nil)
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, authConf.KeyFunc)
 	if err != nil {
 		ve := err.(*jwt.ValidationError)
 		// ValidationErrorUnverifiable is expected since no keyFunc passed to ParseWithClaims
@@ -57,11 +59,11 @@ func getClaims(r *http.Request) (*Claims, error) {
 	return token.Claims.(*Claims), nil
 }
 
-func handler(authorization bool, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
+func handler(authConf conf.AuthConfig, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if authorization {
-			claims, err := getClaims(r)
-
+		if authConf.Enabled {
+			// extract connection level claims from auth token
+			claims, err := getClaims(authConf, r)
 			if err != nil {
 				log.Errorf("Error authenticating user => %s", err)
 				http.Error(w, "Invalid token", http.StatusForbidden)
@@ -92,7 +94,7 @@ func handler(authorization bool, msgHandler MsgHandler) func(w http.ResponseWrit
 // NewWebSocketServer for signaling
 func NewWebSocketServer(cfg WebSocketServerConfig, msgHandler MsgHandler) error {
 	// Websocket handle func
-	http.HandleFunc(cfg.WebSocketPath, handler(cfg.Authorization, msgHandler))
+	http.HandleFunc(cfg.WebSocketPath, handler(cfg.AuthConnection, msgHandler))
 
 	if cfg.CertFile == "" || cfg.KeyFile == "" {
 		logger.Infof("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
