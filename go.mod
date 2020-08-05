@@ -29,6 +29,6 @@ require (
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200306183522-221f0cc107cb
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.27.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
