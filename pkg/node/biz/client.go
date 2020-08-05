@@ -83,6 +83,66 @@ func leave(msg proto.FromSignalLeaveMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("SfuClientLeave failed %v", err.Error())
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
+<<<<<<< HEAD
+=======
+
+	var result map[string]interface{}
+	if err := resMsg.Unmarshal(&result); err != nil {
+		log.Errorf("Unmarshal pub response %v", err)
+		return nil, err
+	}
+
+	log.Infof("publish: result => %v", result)
+	mid := util.Val(result, "mid")
+	tracks := result["tracks"]
+	islb, found := getRPCForIslb()
+	if !found {
+		return nil, util.NewNpError(500, "Not found any node for islb.")
+	}
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks, "description", options.Description))
+	return result, nil
+}
+
+// unpublish from app
+func unpublish(peer *signal.Peer, msg proto.UnpublishMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("signal.unpublish peer.ID()=%s msg=%v", peer.ID(), msg)
+
+	mid := msg.MID
+	rid := msg.RID
+	uid := peer.ID()
+
+	_, sfu, err := getRPCForSFU(mid, "")
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, err
+	}
+
+	_, err = sfu.SyncRequest(proto.ClientUnPublish, util.Map("mid", mid, "uid", uid, "rid", rid))
+	if err != nil {
+		return nil, err
+	}
+
+	islb, found := getRPCForIslb()
+	if !found {
+		log.Errorf("islb node not found")
+	}
+	if _, err := islb.SyncRequest(proto.IslbClientOnLeave, util.Map("rid", msg.RID, "uid", msg.UID)); err != nil {
+		log.Errorf("IslbClientOnLeave failed %v", err.Error())
+	}
+
+	nodeID, sfu, err := getRPCForSFU(mid, "")
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+	_, err = sfu.SyncRequest(proto.SfuClientLeave, proto.ToSfuLeaveMsg{
+		RoomInfo: msg.RoomInfo,
+	})
+	if err != nil {
+		log.Errorf("SfuClientLeave failed %v", err.Error())
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+>>>>>>> Update SFU node to use ion-sfu.
 	return nil, nil
 }
 
