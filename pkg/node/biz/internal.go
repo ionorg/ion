@@ -17,7 +17,7 @@ func handleIslbBroadCast(msg nprotoo.Notification, subj string) {
 		proto.IslbOnBroadcast:    proto.ClientBroadcast,
 	}
 	go func(msg nprotoo.Notification) {
-		var data proto.BroadcastMsg
+		var data proto.FromClientBroadcastMsg
 		if err := msg.Data.Unmarshal(&data); err != nil {
 			log.Errorf("Error parsing message %v", err)
 			return

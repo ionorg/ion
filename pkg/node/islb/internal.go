@@ -269,7 +269,7 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 	return resp, nil
 }
 
-func clientJoin(data proto.JoinMsg) (interface{}, *nprotoo.Error) {
+func clientJoin(data proto.FromClientJoinMsg) (interface{}, *nprotoo.Error) {
 	ukey := proto.UserInfo{
 		DC:  dc,
 		RID: data.RID,
@@ -366,7 +366,7 @@ func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
 // 	return resp, nil
 // }
 
-func broadcast(data proto.BroadcastMsg) (interface{}, *nprotoo.Error) {
+func broadcast(data proto.FromClientBroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("broadcaster.Say msg=%v", data)
 	broadcaster.Say(proto.IslbOnBroadcast, data)
 	return struct{}{}, nil
@@ -406,7 +406,7 @@ func handleRequest(rpcID string) {
 					result, err = getPubs(msgData)
 				}
 			case proto.IslbClientOnJoin:
-				var msgData proto.JoinMsg
+				var msgData proto.FromClientJoinMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = clientJoin(msgData)
 				}
@@ -425,7 +425,7 @@ func handleRequest(rpcID string) {
 			// case proto.IslbUnrelay:
 			// 	result, err = unRelay(data)
 			case proto.IslbOnBroadcast:
-				var msgData proto.BroadcastMsg
+				var msgData proto.FromClientBroadcastMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = broadcast(msgData)
 				}

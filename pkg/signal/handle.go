@@ -77,13 +77,11 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		log.Infof("signal.in handleClose [%d] %s rooms=%v", code, err, rooms)
 		for _, room := range rooms {
 			if room != nil {
-				if code > 1000 {
-					msg := proto.LeaveMsg{
-						RoomInfo: proto.RoomInfo{RID: room.ID()},
-					}
-					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.ClientLeave, peer, msgStr, emptyAccept, reject)
+				msg := proto.FromSignalLeaveMsg{
+					RoomInfo: proto.RoomInfo{UID: proto.UID(peer.ID()), RID: room.ID()},
 				}
+				msgStr, _ := json.Marshal(msg)
+				bizCall(proto.ClientLeave, peer, msgStr, emptyAccept, reject)
 				room.RemovePeer(peer.ID())
 			}
 		}

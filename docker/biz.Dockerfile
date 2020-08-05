@@ -5,6 +5,8 @@ ENV GO111MODULE=on
 WORKDIR $GOPATH/src/github.com/pion/ion
 
 COPY go.mod go.sum ./
+
+COPY ./ion-sfu/ /ion-sfu/
 RUN cd $GOPATH/src/github.com/pion/ion && go mod download
 
 COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg

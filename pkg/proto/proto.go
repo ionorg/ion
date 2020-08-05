@@ -42,11 +42,12 @@ const (
 	IslbOnBroadcast    = ClientBroadcast
 
 	// SFU Endpoints
-	SfuTrickleICE     = ClientTrickleICE
-	SfuClientOnJoin   = ClientOnJoin
-	SfuClientOnOffer  = ClientOnOffer
-	SfuClientOnAnswer = ClientOnAnswer
-	SFUStreamRemove   = ClientOnStreamRemove
+	SfuTrickleICE    = ClientTrickleICE
+	SfuClientJoin    = ClientJoin
+	SfuClientOffer   = ClientOnOffer
+	SfuClientAnswer  = ClientOnAnswer
+	SfuClientTrickle = ClientTrickleICE
+	SfuClientLeave   = ClientLeave
 
 	IslbID = "islb"
 )
