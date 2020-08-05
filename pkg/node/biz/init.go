@@ -19,13 +19,13 @@ var (
 )
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID string, natsURL string, roomAuth conf.AuthConfig) {
+func Init(dcID, nodeID, rpcID, eventID string, natsURL string, authConf conf.AuthConfig) {
 	dc = dcID
 	nid = nodeID
 	services = make(map[string]discovery.Node)
 	rpcs = make(map[string]*nprotoo.Requestor)
 	protoo = nprotoo.NewNatsProtoo(natsURL)
-	roomAuth = roomAuth
+	roomAuth = authConf
 }
 
 // WatchServiceNodes .
