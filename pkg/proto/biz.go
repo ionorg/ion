@@ -49,6 +49,7 @@ type TrackMap map[string][]TrackInfo
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 // TODO(kevmo314): Consolidate these messages.
 
 type FromClientJoinMsg struct {
@@ -60,6 +61,10 @@ type JoinMsg struct {
 >>>>>>> Handle join with ion-sfu.
 =======
 =======
+=======
+// TODO(kevmo314): Consolidate these messages.
+
+>>>>>>> Add TODO.
 type FromClientJoinMsg struct {
 >>>>>>> Update SFU node to use ion-sfu.
 	RID RID `json:"rid"`
