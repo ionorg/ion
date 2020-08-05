@@ -46,6 +46,8 @@ type TrackMap map[string][]TrackInfo
 
 // Client <-> Biz messages.
 
+// TODO(kevmo314): Consolidate these messages.
+
 type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
 	RTCInfo
