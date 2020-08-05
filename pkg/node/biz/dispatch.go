@@ -38,8 +38,10 @@ func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType i
 // authenticateRoom checks both the connection token AND an optional message token for RID claims
 // returns nil for success and returns an error if there are no valid claims for the RID
 func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, roomInfo proto.RoomInfo) *nprotoo.Error {
+	log.Debugf("authenticateRoom: checking claims")
 	// Connection token has valid claim on this room, succeed early
 	if connectionClaims != nil && roomInfo.RID == proto.RID(connectionClaims.ID) {
+		log.Debugf("authenticateRoom: Valid RID in connectionClaims %v", roomInfo.RID)
 		return nil
 	}
 
@@ -48,6 +50,7 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, room
 	if msg, ok := msgType.(proto.RoomToken); ok {
 		token, err := jwt.ParseWithClaims(msg.Token, &signal.Claims{}, roomAuth.KeyFunc)
 		if err != nil {
+			log.Debugf("authenticateRoom: Error parsing token: %#v", err)
 			return errorInvalidRoomToken
 		}
 		msgClaims = token.Claims.(*signal.Claims)
@@ -60,12 +63,12 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, room
 
 	// Message token is valid, succeed
 	if msgClaims != nil && roomInfo.RID == proto.RID(msgClaims.ID) {
+		log.Debugf("authenticateRoom: Valid RID in msgClaims %v", roomInfo.RID)
 		return nil
 	}
 
 	// If this is reached, a token was passed but it did not have a valid RID claim
 	return errorUnauthorizedRoomAccess
-
 }
 
 // Entry is the biz entry
