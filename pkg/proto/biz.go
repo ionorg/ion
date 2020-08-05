@@ -48,6 +48,7 @@ type TrackMap map[string][]TrackInfo
 // Client <-> Biz messages.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // TODO(kevmo314): Consolidate these messages.
 
 type FromClientJoinMsg struct {
@@ -58,12 +59,16 @@ type JoinMsg struct {
 	RoomInfo
 >>>>>>> Handle join with ion-sfu.
 =======
+=======
+type FromClientJoinMsg struct {
+>>>>>>> Update SFU node to use ion-sfu.
 	RID RID `json:"rid"`
 >>>>>>> Add offer/answer hooks.
 	RTCInfo
 	Info ClientUserInfo `json:"info"`
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 type ToClientJoinMsg struct {
 =======
@@ -73,10 +78,88 @@ type JoinResponseMsg struct {
 =======
 	UID UID `json:"uid"`
 >>>>>>> Add offer/answer hooks.
+=======
+type ToClientJoinMsg struct {
 	MediaInfo
 	RTCInfo
 }
 
+type FromSignalLeaveMsg struct {
+	RoomInfo
+}
+
+type FromClientOfferMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type ToClientOfferMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type ToClientAnswerMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type FromClientAnswerMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type FromClientTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type ToClientTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+// Biz to SFU
+
+type ToSfuJoinMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromSfuJoinMsg struct {
+	MediaInfo
+	RTCInfo
+}
+
+type ToSfuLeaveMsg struct {
+	RoomInfo
+}
+
+type FromSfuLeaveMsg struct {
+>>>>>>> Update SFU node to use ion-sfu.
+	MediaInfo
+}
+
+type ToSfuTrickleMsg struct {
+	RoomInfo
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type FromSfuTrickleMsg struct {
+	RoomInfo
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type ToSfuOfferMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromSfuOfferMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 type FromSignalLeaveMsg struct {
@@ -118,10 +201,14 @@ type ToClientTrickleMsg struct {
 type ToSfuJoinMsg struct {
 =======
 type OfferMsg struct {
+=======
+type FromSfuAnswerMsg struct {
+>>>>>>> Update SFU node to use ion-sfu.
 	RoomInfo
 	RTCInfo
 }
 
+<<<<<<< HEAD
 type AnswerMsg struct {
 >>>>>>> Add offer/answer hooks.
 	RoomInfo
@@ -153,10 +240,14 @@ type FromSfuTrickleMsg struct {
 }
 
 type ToSfuOfferMsg struct {
+=======
+type ToSfuAnswerMsg struct {
+>>>>>>> Update SFU node to use ion-sfu.
 	RoomInfo
 	RTCInfo
 }
 
+<<<<<<< HEAD
 type FromSfuOfferMsg struct {
 	RoomInfo
 	RTCInfo
@@ -172,15 +263,20 @@ type ToSfuAnswerMsg struct {
 	RTCInfo
 }
 
+=======
+>>>>>>> Update SFU node to use ion-sfu.
 type FromClientBroadcastMsg struct {
 	RoomInfo
 	Info json.RawMessage `json:"info"`
 }
 
+<<<<<<< HEAD
 =======
 >>>>>>> Handle join with ion-sfu.
 =======
 >>>>>>> Add offer/answer hooks.
+=======
+>>>>>>> Update SFU node to use ion-sfu.
 type LeaveMsg struct {
 	RoomInfo
 	Info ClientUserInfo `json:"info"`

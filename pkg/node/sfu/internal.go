@@ -6,6 +6,7 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	sfu "github.com/pion/ion-sfu/pkg"
 	sfulog "github.com/pion/ion-sfu/pkg/log"
 =======
@@ -13,6 +14,10 @@ import (
 	sdptransform "github.com/notedit/sdp"
 	sfu "github.com/pion/ion-sfu/pkg"
 >>>>>>> Handle join with ion-sfu.
+=======
+	sfu "github.com/pion/ion-sfu/pkg"
+	sfulog "github.com/pion/ion-sfu/pkg/log"
+>>>>>>> Update SFU node to use ion-sfu.
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -22,6 +27,9 @@ import (
 var emptyMap = map[string]interface{}{}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Update SFU node to use ion-sfu.
 // TODO(kevmo314): Move to a config.toml.
 var server = sfu.NewSFU(sfu.Config{
 	Receiver: sfu.ReceiverConfig{
@@ -39,11 +47,14 @@ var server = sfu.NewSFU(sfu.Config{
 })
 
 var peers = map[proto.UID]*sfu.WebRTCTransport{}
+<<<<<<< HEAD
 =======
 var server = sfu.NewSFU(sfu.Config{})
 >>>>>>> Handle join with ion-sfu.
 
 var peers = map[proto.UID]*sfu.Peer{}
+=======
+>>>>>>> Update SFU node to use ion-sfu.
 
 func handleRequest(rpcID string) {
 	log.Debugf("handleRequest: rpcID => [%v]", rpcID)
@@ -56,6 +67,7 @@ func handleRequest(rpcID string) {
 		err := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
 
 		switch method {
+<<<<<<< HEAD
 <<<<<<< HEAD
 		case proto.SfuClientJoin:
 			var msgData proto.ToSfuJoinMsg
@@ -83,6 +95,15 @@ func handleRequest(rpcID string) {
 		case proto.ClientPublish:
 			var msgData proto.PublishMsg
 >>>>>>> Handle join with ion-sfu.
+=======
+		case proto.SfuClientJoin:
+			var msgData proto.ToSfuJoinMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = join(msgData)
+			}
+		case proto.SfuClientOffer:
+			var msgData proto.ToSfuOfferMsg
+>>>>>>> Update SFU node to use ion-sfu.
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = offer(msgData)
 			}
@@ -178,14 +199,21 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	})
 
 	// TODO(kevmo314): Correctly handle transport closure.
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> Update SFU node to use ion-sfu.
 	// peer.OnClose(func() {
 	// 	broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
 	// 		MediaInfo: proto.MediaInfo{RID: msg.RID, UID: msg.UID, MID: proto.MID(peer.ID())},
 	// 	})
 	// })
 
+<<<<<<< HEAD
 	// TODO: Remove once OnNegotiationNeeded is supported.
+=======
+>>>>>>> Update SFU node to use ion-sfu.
 	go func() {
 		time.Sleep(1000 * time.Millisecond)
 
