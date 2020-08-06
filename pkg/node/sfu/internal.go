@@ -146,13 +146,14 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	})
 
 	// TODO(kevmo314): Correctly handle transport closure.
-	
+
 	// peer.OnClose(func() {
 	// 	broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
 	// 		MediaInfo: proto.MediaInfo{RID: msg.RID, UID: msg.UID, MID: proto.MID(peer.ID())},
 	// 	})
 	// })
 
+	// TODO: Remove once OnNegotiationNeeded is supported.
 	go func() {
 		time.Sleep(1000 * time.Millisecond)
 
