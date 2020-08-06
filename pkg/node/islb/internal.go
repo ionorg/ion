@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -93,6 +94,8 @@ func watchStream(key string) {
 func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error) {
 	service := data.Service
 	mid := data.MID
+	rid := data.RID
+
 	if mid != "" {
 		mkey := proto.MediaInfo{
 			DC:  dc,
@@ -119,17 +122,77 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 		}
 	}
 
-	// TODO: Add a load balancing algorithm.
-	for _, node := range services {
-		if service == node.Info["service"] {
-			rpcID := discovery.GetRPCChannel(node)
-			eventID := discovery.GetEventChannel(node)
-			name := node.Info["name"]
-			id := node.Info["id"]
-			resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
-			return resp, nil
+	// If we don't have a MID, we must place the stream in a room
+	// This mutex prevents a race condition which could cause
+	// rooms to split between SFU's
+	roomMutex.Lock()
+	defer roomMutex.Unlock()
+
+	// When we have a RID check for other pubs to colocate streams
+	if rid != "" {
+		log.Infof("findServiceNode: got room id: %s, checking for existing streams", rid)
+		rid := data.RID //util.Val(data, "rid")
+		key := proto.MediaInfo{
+			DC:  dc,
+			RID: rid,
+		}.BuildKey()
+		log.Infof("findServiceNode: RID root key=%s", key)
+
+		for _, path := range redis.Keys(key + "*") {
+
+			log.Infof("findServiceNode media info path = %s", path)
+			minfo, err := proto.ParseMediaInfo(path)
+			if err != nil {
+				log.Errorf("Error parsing media info = %v", err)
+				break
+			}
+
+			for _, node := range services {
+				name := node.Info["name"]
+				id := node.Info["id"]
+				if service == node.Info["service"] && minfo.NID == id {
+					rpcID := discovery.GetRPCChannel(node)
+					eventID := discovery.GetEventChannel(node)
+					resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
+					return resp, nil
+				}
+			}
+
 		}
+	}
+
+	// MID/RID Doesn't exist in Redis
+	// Find least packed SFU to return
+	sfuID := ""
+	minStreamCount := math.MaxInt32
+	for _, sfu := range services {
+		if service == sfu.Info["service"] {
+			// get stream count
+			sfuKey := proto.MediaInfo{
+				DC:  dc,
+				NID: sfu.Info["id"],
+			}.BuildKey()
+			streamCount := len(redis.Keys(sfuKey))
+
+			log.Infof("findServiceNode looking up sfu stream count [%s] = %v", sfuKey, streamCount)
+			if streamCount <= minStreamCount {
+				sfuID = sfu.ID
+				minStreamCount = streamCount
+			}
+		}
+	}
+	log.Infof("findServiceNode: selecting SFU [%s] = %v", sfuID, minStreamCount)
+
+	if node, ok := services[sfuID]; ok {
+		log.Infof("findServiceNode: found best candidate SFU [%s]", node)
+		rpcID := discovery.GetRPCChannel(node)
+		eventID := discovery.GetEventChannel(node)
+		name := node.Info["name"]
+		id := node.Info["id"]
+		resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+		log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
+		return resp, nil
 	}
 
 	return nil, util.NewNpError(404, fmt.Sprintf("Service node [%s] not found", service))
