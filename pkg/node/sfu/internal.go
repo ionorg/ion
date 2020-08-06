@@ -200,10 +200,14 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 
 	// TODO(kevmo314): Correctly handle transport closure.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 	
 >>>>>>> Update SFU node to use ion-sfu.
+=======
+
+>>>>>>> Add TODO.
 	// peer.OnClose(func() {
 	// 	broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
 	// 		MediaInfo: proto.MediaInfo{RID: msg.RID, UID: msg.UID, MID: proto.MID(peer.ID())},
@@ -211,9 +215,13 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	// })
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	// TODO: Remove once OnNegotiationNeeded is supported.
 =======
 >>>>>>> Update SFU node to use ion-sfu.
+=======
+	// TODO: Remove once OnNegotiationNeeded is supported.
+>>>>>>> Add TODO.
 	go func() {
 		time.Sleep(1000 * time.Millisecond)
 
