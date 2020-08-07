@@ -129,24 +129,52 @@ func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.E
 func leave(msg proto.FromSignalLeaveMsg) (interface{}, *nprotoo.Error) {
 	signal.DelPeer(msg.RID, string(msg.UID))
 
+	// TODO: This can perhaps be optimized a bit.
 	islb, found := getRPCForIslb()
 	if !found {
 		log.Errorf("islb node not found")
+		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
 	}); err != nil {
 		log.Errorf("IslbClientOnLeave failed %v", err.Error())
 	}
+	var fromIslbListMids proto.FromIslbListMids
+	if err := json.Unmarshal(resp, &fromIslbListMids); err != nil {
+		log.Errorf("IslbListMids failed %v", err)
+		return nil, util.NewNpError(500, "IslbListMids failed")
+	}
+	// Send getPubs => islb
+	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
+		func(result nprotoo.RawMessage) {
+			var resMsg proto.GetPubResp
+			if err := result.Unmarshal(&resMsg); err != nil {
+				log.Errorf("Unmarshal pub response %v", err)
+				return
+			}
+			log.Infof("IslbGetPubs: result=%v", resMsg)
+			for _, pub := range resMsg.Pubs {
+				if pub.MID == "" {
+					continue
+				}
+				notif := proto.StreamAddMsg(pub)
+				peer.Notify(proto.ClientOnStreamAdd, notif)
+			}
+		},
+		func(err *nprotoo.Error) {})
+
+	return emptyMap, nil
+}
 
 	_, sfu, err := getRPCForSFU(mid, msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-
-	if _, err := sfu.SyncRequest(proto.SfuClientLeave, msg); err != nil {
-		log.Errorf("SfuClientLeave failed %v", err.Error())
+	_, err = sfu.SyncRequest(proto.SfuClientOnOffer, util.Map("rid", msg.RID, "uid", msg.UID, "jsep", msg.Jsep))
+	if err != nil {
+		log.Errorf("SfuClientOnOffer failed %v", err.Error())
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 	return nil, nil

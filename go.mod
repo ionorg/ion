@@ -15,12 +15,21 @@ require (
 	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v0.0.0-20200804215229-8dd60729382a
+<<<<<<< HEAD
 	github.com/pion/ion-sfu v1.0.2
 	github.com/pion/rtcp v1.2.3 // indirect
 	github.com/pion/rtp v1.6.0 // indirect
 	github.com/pion/stun v0.3.5 // indirect
 	github.com/pion/transport v0.10.1 // indirect
 	github.com/pion/webrtc/v2 v2.2.23 // indirect
+=======
+	github.com/pion/ion-sfu v0.0.0-20200807155507-abb544eab216
+	github.com/pion/rtcp v1.2.3
+	github.com/pion/rtp v1.6.0
+	github.com/pion/stun v0.3.5
+	github.com/pion/transport v0.10.1
+	github.com/pion/webrtc/v2 v2.2.23
+>>>>>>> Latest changes.
 	github.com/pion/webrtc/v3 v3.0.0-20200722224412-9d3c067b1ab7
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.8+incompatible

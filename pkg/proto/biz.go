@@ -349,11 +349,17 @@ type FromIslbFindSfuMsg struct {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 type StreamAddMsg struct {
 	MediaInfo
 	Info        ClientUserInfo `json:"info"`
 	Tracks      TrackMap       `json:"tracks"`
 	Description string         `json:"description,omitempty"`
+=======
+type ToIslbListMids struct {
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+>>>>>>> Latest changes.
 =======
 type ToIslbListMids struct {
 	UID UID `json:"uid"`
