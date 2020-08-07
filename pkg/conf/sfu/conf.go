@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pion/ion/pkg/rtc"
 	"github.com/spf13/viper"
 )
 
@@ -22,7 +21,6 @@ var (
 	Log     = &cfg.Log
 	Etcd    = &cfg.Etcd
 	Nats    = &cfg.Nats
-	Router  = &cfg.Router
 )
 
 func init() {
@@ -91,14 +89,13 @@ type rtp struct {
 }
 
 type config struct {
-	Global  global           `mapstructure:"global"`
-	Router  rtc.RouterConfig `mapstructure:"router"`
-	Plugins plugins          `mapstructure:"plugins"`
-	WebRTC  webrtc           `mapstructure:"webrtc"`
-	Rtp     rtp              `mapstructure:"rtp"`
-	Log     log              `mapstructure:"log"`
-	Etcd    etcd             `mapstructure:"etcd"`
-	Nats    nats             `mapstructure:"nats"`
+	Global  global  `mapstructure:"global"`
+	Plugins plugins `mapstructure:"plugins"`
+	WebRTC  webrtc  `mapstructure:"webrtc"`
+	Rtp     rtp     `mapstructure:"rtp"`
+	Log     log     `mapstructure:"log"`
+	Etcd    etcd    `mapstructure:"etcd"`
+	Nats    nats    `mapstructure:"nats"`
 	CfgFile string
 }
 

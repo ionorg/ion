@@ -33,5 +33,4 @@ func Init(dcID, nodeID, rpcID, eventID string, redisCfg db.Config, etcd []string
 	broadcaster = protoo.NewBroadcaster(eventID)
 	services = make(map[string]discovery.Node)
 	handleRequest(rpcID)
-	WatchAllStreams()
 }

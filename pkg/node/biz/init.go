@@ -48,7 +48,7 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 			rpcs[id] = protoo.NewRequestor(rpcID)
 
 			log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
-			protoo.OnBroadcast(eventID, handleIslbBroadCast)
+			protoo.OnBroadcast(eventID, handleIslbBroadcast)
 		}
 
 	} else if state == discovery.DOWN {
