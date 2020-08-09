@@ -230,6 +230,7 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("Set: %v ", err)
 	}
 
+<<<<<<< HEAD
 	for msid, track := range data.Tracks {
 		var infos []proto.TrackInfo
 		infos = append(infos, track...)
@@ -256,6 +257,14 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 			extraInfo = data.Info
 		}
 		data.Info = extraInfo
+=======
+	field = "track/" + string(data.StreamID)
+	// The value here actually doesn't matter, so just store the associated MID in case it's useful in the future.
+	log.Infof("SetTrackField: mkey, field, value = %s, %s, %d", mkey, field, data.MID)
+	err = redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
+	if err != nil {
+		log.Errorf("redis.HSetTTL err = %v", err)
+>>>>>>> Fix incorrect mkey assignment.
 	}
 
 	log.Infof("Broadcast: [stream-add] => %v", data)
@@ -318,6 +327,7 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 			}
 		}
 
+<<<<<<< HEAD
 		log.Infof("Fields %v", fields)
 
 		var extraInfo proto.ClientUserInfo = proto.ClientUserInfo{}
@@ -325,6 +335,24 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 			if err := json.Unmarshal([]byte(infoStr), &extraInfo); err != nil {
 				log.Errorf("Unmarshal pub extra info %v", err)
 				extraInfo = proto.ClientUserInfo{} // Needed?
+=======
+		mkey := proto.MediaInfo{
+			DC:  dc,
+			RID: msg.RID,
+			UID: parsedUserKey.UID,
+		}.BuildKey()
+		mediaKeys := redis.Keys(mkey)
+		for _, mediaKey := range mediaKeys {
+			mediaFields := redis.HGetAll(mediaKey)
+			for mediaField := range mediaFields {
+				log.Warnf("Received media field %s for key %s", mediaField, mediaKey)
+				if len(mediaField) > 6 && mediaField[:6] == "track/" {
+					streams = append(streams, proto.Stream{
+						UID:      parsedUserKey.UID,
+						StreamID: proto.StreamID(mediaField[6:]),
+					})
+				}
+>>>>>>> Fix incorrect mkey assignment.
 			}
 		}
 
