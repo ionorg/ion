@@ -197,16 +197,10 @@ func streamAdd(data proto.ToIslbStreamAddMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("Set: %v ", err)
 	}
 
-	ukey := proto.UserInfo{
-		DC:  dc,
-		RID: data.RID,
-		UID: data.UID,
-	}.BuildKey()
-
 	field = "track/" + string(data.StreamID)
 	// The value here actually doesn't matter, so just store the associated MID in case it's useful in the future.
 	log.Infof("SetTrackField: mkey, field, value = %s, %s, %d", mkey, field, data.MID)
-	err = redis.HSetTTL(ukey, field, string(data.MID), redisLongKeyTTL)
+	err = redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
@@ -307,11 +301,15 @@ func peerJoin(msg proto.ToIslbPeerJoinMsg) (interface{}, *nprotoo.Error) {
 		}.BuildKey()
 		mediaKeys := redis.Keys(mkey)
 		for _, mediaKey := range mediaKeys {
-			if mediaKey[:6] == "track/" {
-				streams = append(streams, proto.Stream{
-					UID:      parsedUserKey.UID,
-					StreamID: proto.StreamID(mediaKey[6:]),
-				})
+			mediaFields := redis.HGetAll(mediaKey)
+			for mediaField := range mediaFields {
+				log.Warnf("Received media field %s for key %s", mediaField, mediaKey)
+				if len(mediaField) > 6 && mediaField[:6] == "track/" {
+					streams = append(streams, proto.Stream{
+						UID:      parsedUserKey.UID,
+						StreamID: proto.StreamID(mediaField[6:]),
+					})
+				}
 			}
 		}
 <<<<<<< HEAD
