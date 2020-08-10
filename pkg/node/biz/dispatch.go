@@ -27,9 +27,10 @@ func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType i
 		return util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
 	}
 
-	roomInfo, ok := msgType.(proto.RoomInfo)
+	authenticatable, ok := msgType.(proto.Authenticatable)
+	log.Debugf("msgType: %#v \nHasRoomInfo: %#v ok: %v", msgType, authenticatable, ok)
 	if ok && roomAuth.Enabled {
-		return authenticateRoom(msgType, connectionClaims, roomInfo)
+		return authenticateRoom(msgType, connectionClaims, authenticatable)
 	}
 
 	return nil
@@ -37,22 +38,23 @@ func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType i
 
 // authenticateRoom checks both the connection token AND an optional message token for RID claims
 // returns nil for success and returns an error if there are no valid claims for the RID
-func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, roomInfo proto.RoomInfo) *nprotoo.Error {
-	log.Debugf("authenticateRoom: checking claims")
+func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, authenticatable proto.Authenticatable) *nprotoo.Error {
+	log.Debugf("authenticateRoom: checking claims on token %v", authenticatable.Token())
 	// Connection token has valid claim on this room, succeed early
-	if connectionClaims != nil && roomInfo.RID == proto.RID(connectionClaims.ID) {
-		log.Debugf("authenticateRoom: Valid RID in connectionClaims %v", roomInfo.RID)
+	if connectionClaims != nil && authenticatable.Room().RID == proto.RID(connectionClaims.RID) {
+		log.Debugf("authenticateRoom: Valid RID in connectionClaims %v", authenticatable.Room().RID)
 		return nil
 	}
 
 	// Check for a message level proto.RoomToken
 	var msgClaims *signal.Claims = nil
-	if msg, ok := msgType.(proto.RoomToken); ok {
-		token, err := jwt.ParseWithClaims(msg.Token, &signal.Claims{}, roomAuth.KeyFunc)
+	if t := authenticatable.Token(); t != "" {
+		token, err := jwt.ParseWithClaims(t, &signal.Claims{}, roomAuth.KeyFunc)
 		if err != nil {
 			log.Debugf("authenticateRoom: Error parsing token: %#v", err)
 			return errorInvalidRoomToken
 		}
+		log.Debugf("authenticateRoom: Got Token %#v", token)
 		msgClaims = token.Claims.(*signal.Claims)
 	}
 
@@ -62,8 +64,8 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, room
 	}
 
 	// Message token is valid, succeed
-	if msgClaims != nil && roomInfo.RID == proto.RID(msgClaims.ID) {
-		log.Debugf("authenticateRoom: Valid RID in msgClaims %v", roomInfo.RID)
+	if msgClaims != nil && authenticatable.Room().RID == proto.RID(msgClaims.RID) {
+		log.Debugf("authenticateRoom: Valid RID in msgClaims %v", authenticatable.Room().RID)
 		return nil
 	}
 

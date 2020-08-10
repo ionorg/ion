@@ -8,8 +8,8 @@ addr = "127.0.0.1"
 dc = "dc1"
 
 [log]
-level = "info"
-# level = "debug"
+#level = "info"
+level = "debug"
 
 [etcd]
 # ["ip:port", "ip:port"]
@@ -25,7 +25,7 @@ path = "/ws"
 allow_disconnected = false
 
 [signal.auth_connection]
-enabled = true
+enabled = false 
 key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.com/dgrijalva/jwt-go#SigningMethod
 key = ""
 
@@ -33,7 +33,7 @@ key = ""
 [signal.auth_room]
 enabled = true
 key_type = "HMAC"
-key = ""
+key = "055sQnOJIUn39fa40tKfdrLKF8aQ+NGcUyR24INae6A5HaomQ18fLRsGtnzYJ2uS"
 
 [nats]
 url = "nats://127.0.0.1:4223"

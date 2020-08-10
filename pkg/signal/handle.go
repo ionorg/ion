@@ -8,6 +8,7 @@ import (
 	pr "github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
@@ -18,6 +19,13 @@ import (
 type Claims struct {
 	*jwt.StandardClaims
 	*proto.RoomClaims
+}
+
+func (c *Claims) Valid() error {
+	if c.RID == "" {
+		return errors.Errorf("Token must have RID")
+	}
+	return nil
 }
 
 func in(transport *transport.WebSocketTransport, request *http.Request) {
