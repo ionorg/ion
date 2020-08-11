@@ -32,6 +32,12 @@ var emptyMap = map[string]interface{}{}
 >>>>>>> Update SFU node to use ion-sfu.
 // TODO(kevmo314): Move to a config.toml.
 var server = sfu.NewSFU(sfu.Config{
+	WebRTC: sfu.WebRTCConfig{
+		ICEServers: []sfu.ICEServerConfig{
+			{URLs: []string{"stun:stun.l.google.com:19302"}},
+			{URLs: []string{"stun:stun.stunprotocol.org:3478"}},
+		},
+	},
 	Receiver: sfu.ReceiverConfig{
 		Video: sfu.WebRTCVideoReceiverConfig{
 			REMBCycle:     2,
