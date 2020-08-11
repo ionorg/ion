@@ -50,7 +50,7 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 				log.Errorf("Unmarshal pub response %v", err)
 				return
 			}
-			log.Infof("IslbGetPubs: result=%v", result)
+			log.Infof("IslbGetPubs: result=%v", resMsg)
 			for _, pub := range resMsg.Pubs {
 				if pub.MID == "" {
 					continue
@@ -129,7 +129,7 @@ func publish(peer *signal.Peer, msg proto.PublishMsg) (interface{}, *nprotoo.Err
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks))
+	islb.AsyncRequest(proto.IslbOnStreamAdd, util.Map("rid", rid, "nid", nid, "uid", uid, "mid", mid, "tracks", tracks, "description", options.Description))
 	return result, nil
 }
 

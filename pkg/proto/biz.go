@@ -35,6 +35,7 @@ type PublishOptions struct {
 	Video       bool   `json:"video"`
 	Screen      bool   `json:"screen"`
 	TransportCC bool   `json:"transportCC,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type SubscribeOptions struct {
@@ -105,8 +106,9 @@ type TrickleMsg struct {
 
 type StreamAddMsg struct {
 	MediaInfo
-	Info   ClientUserInfo `json:"info"`
-	Tracks TrackMap       `json:"tracks"`
+	Info        ClientUserInfo `json:"info"`
+	Tracks      TrackMap       `json:"tracks"`
+	Description string         `json:"description,omitempty"`
 }
 
 type StreamRemoveMsg struct {

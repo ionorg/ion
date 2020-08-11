@@ -15,6 +15,10 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+const (
+	descField = "description"
+)
+
 // WatchServiceNodes .
 func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
 	id := node.ID
@@ -221,6 +225,10 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 	if err != nil {
 		log.Errorf("Set: %v ", err)
 	}
+	err = redis.HSetTTL(mkey, descField, data.Description, redisLongKeyTTL)
+	if err != nil {
+		log.Errorf("Set: %v ", err)
+	}
 
 	for msid, track := range data.Tracks {
 		var infos []proto.TrackInfo
@@ -294,6 +302,7 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 			UID: info.UID,
 		}.BuildKey())
 		trackFields := redis.HGetAll(path)
+		desc := ""
 
 		tracks := make(map[string][]proto.TrackInfo)
 		for key, value := range trackFields {
@@ -304,6 +313,8 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 				}
 				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
 				tracks[msid] = *infos
+			} else if key == descField {
+				desc = value
 			}
 		}
 
@@ -316,10 +327,12 @@ func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
 				extraInfo = proto.ClientUserInfo{} // Needed?
 			}
 		}
+
 		pub := proto.PubInfo{
-			MediaInfo: *info,
-			Info:      extraInfo,
-			Tracks:    tracks,
+			MediaInfo:   *info,
+			Info:        extraInfo,
+			Tracks:      tracks,
+			Description: desc,
 		}
 		pubs = append(pubs, pub)
 	}
