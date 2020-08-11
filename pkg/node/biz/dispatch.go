@@ -51,7 +51,7 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, auth
 	if t := authenticatable.Token(); t != "" {
 		token, err := jwt.ParseWithClaims(t, &signal.Claims{}, roomAuth.KeyFunc)
 		if err != nil {
-			log.Debugf("authenticateRoom: Error parsing token: %#v", err)
+			log.Debugf("authenticateRoom: Error parsing token: %v", err)
 			return errorInvalidRoomToken
 		}
 		log.Debugf("authenticateRoom: Got Token %#v", token)

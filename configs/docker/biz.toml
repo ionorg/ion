@@ -22,8 +22,18 @@ port = "8443"
 # cert= "/configs/certs/cert.pem"
 # key= "/configs/certs/key.pem"
 path = "/ws"
-authorization = false
 allow_disconnected = false
+
+[signal.auth_connection]
+enabled = true 
+key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.com/dgrijalva/jwt-go#SigningMethod
+key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
+
+[signal.auth_room]
+enabled = true
+key_type = "HMAC"
+key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
+
 
 [nats]
 url = "nats://nats:4222"
