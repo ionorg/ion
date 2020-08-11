@@ -73,6 +73,13 @@ sfu:
     # Overrides the image tag whose default is the chart appVersion.
     tag: "v0.4.6"
 biz:
+  auth:
+    connection:
+      enabled: false 
+      hmac: 1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS 
+    room:
+      enabled: false 
+      hmac: 1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS
   image:
     repository: pionwebrtc/ion-biz 
     pullPolicy: IfNotPresent

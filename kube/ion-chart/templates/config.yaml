@@ -29,6 +29,16 @@ data:
     port = "8443"
     #allow_disconnected = true
 
+    [signal.auth_connection]
+    enabled = {{ .Values.biz.auth.connection.enabled }} 
+    key_type = "HMAC"
+    key = "{{.Values.biz.auth.connection.hmac}}"
+
+    [signal.auth_room]
+    enabled = {{ .Values.biz.auth.room.enabled }} 
+    key_type = "HMAC"
+    key = "{{.Values.biz.auth.room.hmac}}"
+
     [nats]
     url = "nats://{{ .Release.Name }}-nats-client:4222"
 
