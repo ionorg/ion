@@ -64,44 +64,60 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 				log.Errorf("handleSFUBroadCast failed to parse %v", err)
 				return
 			}
-			signal.GetRoom(msgData.RID).GetPeer(string(msgData.UID)).Notify(proto.ClientTrickleICE, proto.ClientTrickleMsg{
-				RID:       msgData.RID,
-				MID:       msgData.MID,
-				Candidate: msgData.Candidate,
-			})
+			if room := signal.GetRoom(msgData.RID); room != nil {
+				if peer := room.GetPeer(string(msgData.UID)); peer != nil {
+					peer.Notify(proto.ClientTrickleICE, proto.ClientTrickleMsg{
+						RID:       msgData.RID,
+						MID:       msgData.MID,
+						Candidate: msgData.Candidate,
+					})
+				} else {
+					log.Errorf("Could not find peer %s in room %s", msgData.UID, msgData.RID)
+				}
+			} else {
+				log.Errorf("Could not find room %s", msgData.RID)
+			}
 		case proto.SfuClientOffer:
 			var msgData proto.SfuNegotiationMsg
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
 				log.Errorf("handleSFUBroadCast failed to parse %v", err)
 				return
 			}
-			signal.GetRoom(msgData.RID).GetPeer(string(msgData.UID)).Request(proto.ClientOffer, proto.ClientNegotiationMsg{
-				RID:     msgData.RID,
-				MID:     msgData.MID,
-				RTCInfo: msgData.RTCInfo,
-			}, func(answer json.RawMessage) {
-				var answerData proto.ClientNegotiationMsg
-				if err := ParseProtoo(answer, &answerData); err != nil {
-					log.Warnf("Failed to parse client answer %s", answer)
-					return
-				}
+			if room := signal.GetRoom(msgData.RID); room != nil {
+				if peer := room.GetPeer(string(msgData.UID)); peer != nil {
+					peer.Request(proto.ClientOffer, proto.ClientNegotiationMsg{
+						RID:     msgData.RID,
+						MID:     msgData.MID,
+						RTCInfo: msgData.RTCInfo,
+					}, func(answer json.RawMessage) {
+						var answerData proto.ClientNegotiationMsg
+						if err := ParseProtoo(answer, &answerData); err != nil {
+							log.Warnf("Failed to parse client answer %s", answer)
+							return
+						}
 
-				_, sfu, err := getRPCForSFU(msgData.UID, msgData.RID, msgData.MID)
-				if err != nil {
-					log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-					return
+						_, sfu, err := getRPCForSFU(msgData.UID, msgData.RID, msgData.MID)
+						if err != nil {
+							log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+							return
+						}
+						if _, err := sfu.SyncRequest(proto.SfuClientAnswer, proto.SfuNegotiationMsg{
+							UID:     msgData.UID,
+							RID:     msgData.RID,
+							MID:     msgData.MID,
+							RTCInfo: answerData.RTCInfo,
+						}); err != nil {
+							log.Errorf("SfuClientOnAnswer failed %v", err.Error())
+						}
+					}, func(errorCode int, errorReason string) {
+						log.Warnf("ClientOffer failed [%d] %s", errorCode, errorReason)
+					})
+				} else {
+					log.Errorf("Could not find peer %s in room %s", msgData.UID, msgData.RID)
 				}
-				if _, err := sfu.SyncRequest(proto.SfuClientAnswer, proto.SfuNegotiationMsg{
-					UID:     msgData.UID,
-					RID:     msgData.RID,
-					MID:     msgData.MID,
-					RTCInfo: answerData.RTCInfo,
-				}); err != nil {
-					log.Errorf("SfuClientOnAnswer failed %v", err.Error())
-				}
-			}, func(errorCode int, errorReason string) {
-				log.Warnf("ClientOffer failed [%d] %s", errorCode, errorReason)
-			})
+			} else {
+				log.Errorf("Could not find room %s", msgData.RID)
+			}
 		case proto.SfuClientLeave:
 			var msgData proto.FromSfuLeaveMsg
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
