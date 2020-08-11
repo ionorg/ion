@@ -23,12 +23,6 @@ func (m *ClientUserInfo) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, m)
 }
 
-type RoomClaims struct {
-	RID          string `json:"rid,omitempty"`
-	VideoPublish bool   `json:"videopublish,omitempty"`
-	AudioPublish bool   `json:"audiopublish,omitempty"`
-}
-
 type RoomToken struct {
 	Token string `json:"token,omitempty"`
 }

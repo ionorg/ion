@@ -37,7 +37,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func getClaims(connectionAuth conf.AuthConfig, r *http.Request) (*jwt.MapClaims, error) {
+func getClaims(connectionAuth conf.AuthConfig, r *http.Request) (*Claims, error) {
 	vars := r.URL.Query()
 
 	log.Debugf("Authenticating token")
@@ -50,12 +50,11 @@ func getClaims(connectionAuth conf.AuthConfig, r *http.Request) (*jwt.MapClaims,
 
 	log.Debugf("checking claims on token %v", tokenStr)
 	// Passing nil for keyFunc, since token is expected to be already verified (by a proxy)
-	token, err := jwt.ParseWithClaims(tokenStr, &jwt.MapClaims{}, connectionAuth.KeyFunc)
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, connectionAuth.KeyFunc)
 	if err != nil {
-		// ValidationErrorUnverifiable is expected since no keyFunc passed to ParseWithClaims
 		return nil, err
 	}
-	return token.Claims.(*jwt.MapClaims), nil
+	return token.Claims.(*Claims), nil
 }
 
 func handler(connectionAuth conf.AuthConfig, msgHandler MsgHandler) func(w http.ResponseWriter, r *http.Request) {

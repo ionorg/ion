@@ -15,15 +15,24 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
+var (
+	errorTokenClaimsInvalid = errors.Errorf("Token claims invalid: must have RID or UID")
+)
+
 // Claims supported in JWT
 type Claims struct {
+	UID string `json:"uid"`
+	RID string `json:"rid"`
 	*jwt.StandardClaims
-	*proto.RoomClaims
 }
 
 func (c *Claims) Valid() error {
-	if c.RID == "" {
-		return errors.Errorf("Token must have RID")
+	if c.RID == "" && c.UID == "" {
+		return errorTokenClaimsInvalid
+	}
+
+	if c.StandardClaims != nil {
+		return c.StandardClaims.Valid()
 	}
 	return nil
 }
