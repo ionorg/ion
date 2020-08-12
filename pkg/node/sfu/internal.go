@@ -151,7 +151,7 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	if msg.Jsep.SDP == "" {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
-	peer, err := server.NewWebRTCTransport(uint32(msg.SID), msg.Jsep)
+	peer, err := server.NewWebRTCTransport(string(msg.SID), msg.Jsep)
 	if err != nil {
 		log.Errorf("join error: %v", err)
 		return nil, util.NewNpError(415, "join error")

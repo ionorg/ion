@@ -9,8 +9,11 @@ import (
 	"time"
 =======
 	"hash/adler32"
+<<<<<<< HEAD
 	"strconv"
 >>>>>>> Latest changes.
+=======
+>>>>>>> Update ion for string sids.
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
@@ -346,16 +349,12 @@ func peerJoin(msg proto.ToIslbPeerJoinMsg) (interface{}, *nprotoo.Error) {
 		adler := adler32.New()
 		adler.Write([]byte(msg.RID))
 		sid = proto.SID(adler.Sum32())
-		err := redis.HSetTTL(mkey, "sid", strconv.FormatUint(uint64(sid), 16), redisLongKeyTTL)
+		err := redis.HSetTTL(mkey, "sid", sid, redisLongKeyTTL)
 		if err != nil {
 			log.Errorf("redis.HSetTTL err = %v", err)
 		}
 	} else {
-		parsed, err := strconv.ParseUint(val, 16, 32)
-		if err != nil {
-			log.Errorf("redis.HSetTTL err = %v", err)
-		}
-		sid = proto.SID(uint32(parsed))
+		sid = proto.SID(val)
 	}
 
 	return proto.FromIslbPeerJoinMsg{
