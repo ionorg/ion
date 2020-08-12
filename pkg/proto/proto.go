@@ -53,7 +53,7 @@ const (
 )
 
 type MID string
-type SID uint32
+type SID string
 type RID string
 type UID string
 
