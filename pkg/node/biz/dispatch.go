@@ -30,44 +30,30 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 	//TODO DRY this up
 	switch method {
 	case proto.ClientJoin:
-		var msgData proto.JoinMsg
+		var msgData proto.FromClientJoinMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = join(peer, msgData)
 		}
 	case proto.ClientLeave:
-		var msgData proto.LeaveMsg
+		var msgData proto.FromSignalLeaveMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = leave(peer, msgData)
+			log.Infof("LEAVE FROM SIGNAL")
+			result, topErr = leave(msgData)
 		}
-	case proto.ClientPublish:
-		var msgData proto.PublishMsg
+	case proto.ClientOffer:
+		var msgData proto.FromClientOfferMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = publish(peer, msgData)
-		}
-	case proto.ClientUnPublish:
-		var msgData proto.UnpublishMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = unpublish(peer, msgData)
-		}
-	case proto.ClientSubscribe:
-		var msgData proto.SubscribeMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = subscribe(peer, msgData)
-		}
-	case proto.ClientUnSubscribe:
-		var msgData proto.UnsubscribeMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = unsubscribe(peer, msgData)
-		}
-	case proto.ClientBroadcast:
-		var msgData proto.BroadcastMsg
-		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
-			result, topErr = broadcast(peer, msgData)
+			result, topErr = offer(peer, msgData)
 		}
 	case proto.ClientTrickleICE:
-		var msgData proto.TrickleMsg
+		var msgData proto.FromClientTrickleMsg
 		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
 			result, topErr = trickle(peer, msgData)
+		}
+	case proto.ClientBroadcast:
+		var msgData proto.FromClientBroadcastMsg
+		if topErr = ParseProtoo(msg, &msgData); topErr == nil {
+			result, topErr = broadcast(peer, msgData)
 		}
 	}
 
@@ -98,22 +84,57 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 
 func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 	go func(msg nprotoo.Notification) {
-		var data proto.MediaInfo
-		if err := json.Unmarshal(msg.Data, &data); err != nil {
-			log.Errorf("handleSFUBroadCast Unmarshall error %v", err)
-			return
-		}
-
-		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, data)
+		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, msg)
 
 		switch msg.Method {
-		case proto.SFUTrickleICE:
-			signal.NotifyAllWithoutID(data.RID, data.UID, proto.ClientOnStreamAdd, data)
-		case proto.SFUStreamRemove:
-			islb, found := getRPCForIslb()
-			if found {
-				islb.AsyncRequest(proto.IslbOnStreamRemove, data)
+		case proto.SfuTrickleICE:
+			var msgData proto.FromSfuTrickleMsg
+			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
+				log.Errorf("handleSFUBroadCast failed to parse %v", err)
+				return
 			}
+			signal.GetRoom(msgData.RID).GetPeer(string(msgData.UID)).Notify(proto.ClientTrickleICE, proto.ToClientTrickleMsg{
+				RID:       msgData.RID,
+				Candidate: msgData.Candidate,
+			})
+		case proto.SfuClientOffer:
+			var msgData proto.FromSfuOfferMsg
+			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
+				log.Errorf("handleSFUBroadCast failed to parse %v", err)
+				return
+			}
+			signal.GetRoom(msgData.RID).GetPeer(string(msgData.UID)).Request(proto.ClientOffer, proto.ToClientOfferMsg{
+				RID:     msgData.RID,
+				RTCInfo: msgData.RTCInfo,
+			}, func(answer json.RawMessage) {
+				var answerData proto.FromClientAnswerMsg
+				if err := ParseProtoo(answer, &answerData); err != nil {
+					log.Warnf("Failed to parse client answer %s", answer)
+					return
+				}
+
+				_, sfu, err := getRPCForSFU(msgData.RID)
+				if err != nil {
+					log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+					return
+				}
+				if _, err := sfu.SyncRequest(proto.SfuClientAnswer, proto.ToSfuAnswerMsg{
+					RoomInfo: msgData.RoomInfo,
+					RTCInfo:  answerData.RTCInfo,
+				}); err != nil {
+					log.Errorf("SfuClientOnAnswer failed %v", err.Error())
+				}
+			}, func(errorCode int, errorReason string) {
+				log.Warnf("ClientOffer failed [%d] %s", errorCode, errorReason)
+			})
+		case proto.SfuClientLeave:
+			var msgData proto.FromSfuLeaveMsg
+			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
+				log.Errorf("handleSFUBroadCast failed to parse %v", err)
+				return
+			}
+			log.Infof("LEAVE FROM SFU")
+			leave(proto.FromSignalLeaveMsg{RoomInfo: proto.RoomInfo{RID: msgData.RID, UID: msgData.UID}})
 		}
 	}(msg)
 }

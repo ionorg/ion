@@ -10,7 +10,7 @@ import (
 	"github.com/pion/ion/pkg/rtc/plugins"
 	"github.com/pion/ion/pkg/rtc/rtpengine"
 	"github.com/pion/ion/pkg/rtc/transport"
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 const (

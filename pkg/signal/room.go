@@ -29,7 +29,7 @@ func newRoom(id proto.RID) *Room {
 	return r
 }
 
-func getRoom(id proto.RID) *Room {
+func GetRoom(id proto.RID) *Room {
 	roomLock.RLock()
 	r := rooms[id]
 	roomLock.RUnlock()
@@ -80,7 +80,7 @@ func GetRoomsByPeer(id string) []*Room {
 
 func DelPeer(rid proto.RID, id string) {
 	log.Infof("DelPeer rid=%s id=%s", rid, id)
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	if room != nil {
 		room.RemovePeer(id)
 	}
@@ -88,7 +88,7 @@ func DelPeer(rid proto.RID, id string) {
 
 func AddPeer(rid proto.RID, peer *Peer) {
 	log.Infof("AddPeer rid=%s peer.ID=%s", rid, peer.ID())
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	if room == nil {
 		room = newRoom(rid)
 	}
@@ -97,7 +97,7 @@ func AddPeer(rid proto.RID, peer *Peer) {
 
 func HasPeer(rid proto.RID, peer *Peer) bool {
 	log.Debugf("HasPeer rid=%s peer.ID=%s", rid, peer.ID())
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	if room == nil {
 		return false
 	}
@@ -106,7 +106,7 @@ func HasPeer(rid proto.RID, peer *Peer) bool {
 
 func NotifyAllWithoutPeer(rid proto.RID, peer *Peer, method string, msg interface{}) {
 	log.Debugf("signal.NotifyAllWithoutPeer rid=%s peer.ID=%s method=%s msg=%v", rid, peer.ID(), method, msg)
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	if room != nil {
 		log.Debugf("room %s Notify method=%s msg=%v", rid, method, msg)
 		room.Notify(&peer.Peer, method, msg)
@@ -114,7 +114,7 @@ func NotifyAllWithoutPeer(rid proto.RID, peer *Peer, method string, msg interfac
 }
 
 func NotifyAll(rid proto.RID, method string, msg interface{}) {
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	if room != nil {
 		room.Map(func(id string, peer *peer.Peer) {
 			if peer != nil {
@@ -125,7 +125,7 @@ func NotifyAll(rid proto.RID, method string, msg interface{}) {
 }
 
 func NotifyAllWithoutID(rid proto.RID, skipID proto.UID, method string, msg interface{}) {
-	room := getRoom(rid)
+	room := GetRoom(rid)
 	log.Infof("room => %v", rid)
 	if room != nil {
 		room.Map(func(id string, peer *peer.Peer) {

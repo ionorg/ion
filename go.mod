@@ -14,19 +14,21 @@ require (
 	github.com/klauspost/reedsolomon v1.9.9 // indirect
 	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/notedit/sdp v0.0.4
-	github.com/pion/ion-avp v0.0.0-20200628194531-b7b82b17ae83
-	github.com/pion/ion-sfu v0.0.0-20200628194606-99b1a0028619 // indirect
+	github.com/pion/ion-avp v0.0.0-20200804215229-8dd60729382a
+	github.com/pion/ion-sfu v0.0.0-20200805175213-218983dddfdd
 	github.com/pion/rtcp v1.2.3
 	github.com/pion/rtp v1.6.0
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.1
 	github.com/pion/webrtc/v2 v2.2.23
+	github.com/pion/webrtc/v3 v3.0.0-20200722224412-9d3c067b1ab7
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.6+incompatible
 	github.com/spf13/viper v1.7.1
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
-	go.etcd.io/etcd v3.3.22+incompatible
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20200306183522-221f0cc107cb
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	google.golang.org/grpc v1.27.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

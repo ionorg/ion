@@ -3,7 +3,7 @@ package proto
 import (
 	"encoding/json"
 
-	"github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v3"
 )
 
 type ClientUserInfo struct {
@@ -45,11 +45,108 @@ type SubscribeOptions struct {
 
 type TrackMap map[string][]TrackInfo
 
-/// Messages ///
+// Client <-> Biz messages.
 
-type JoinMsg struct {
-	RoomInfo
+// TODO(kevmo314): Consolidate these messages.
+
+type FromClientJoinMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
 	Info ClientUserInfo `json:"info"`
+}
+
+type ToClientJoinMsg struct {
+	MediaInfo
+	RTCInfo
+}
+
+type FromSignalLeaveMsg struct {
+	RoomInfo
+}
+
+type FromClientOfferMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type ToClientOfferMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type ToClientAnswerMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type FromClientAnswerMsg struct {
+	RID RID `json:"rid"`
+	RTCInfo
+}
+
+type FromClientTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type ToClientTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+// Biz to SFU
+
+type ToSfuJoinMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromSfuJoinMsg struct {
+	MediaInfo
+	RTCInfo
+}
+
+type ToSfuLeaveMsg struct {
+	RoomInfo
+}
+
+type FromSfuLeaveMsg struct {
+	MediaInfo
+}
+
+type ToSfuTrickleMsg struct {
+	RoomInfo
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type FromSfuTrickleMsg struct {
+	RoomInfo
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type ToSfuOfferMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromSfuOfferMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromSfuAnswerMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type ToSfuAnswerMsg struct {
+	RoomInfo
+	RTCInfo
+}
+
+type FromClientBroadcastMsg struct {
+	RoomInfo
+	Info json.RawMessage `json:"info"`
 }
 
 type LeaveMsg struct {
@@ -91,17 +188,6 @@ type SubscribeResponseMsg struct {
 
 type UnsubscribeMsg struct {
 	MediaInfo
-}
-
-type BroadcastMsg struct {
-	RoomInfo
-	Info json.RawMessage `json:"info"`
-}
-
-type TrickleMsg struct {
-	MediaInfo
-	Info    json.RawMessage `json:"info"`
-	Trickle json.RawMessage `json:"trickle"`
 }
 
 type StreamAddMsg struct {
