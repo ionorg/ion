@@ -26,7 +26,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
-	go.etcd.io/etcd v3.3.22+incompatible
+	go.etcd.io/etcd v3.4.11+incompatible
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
