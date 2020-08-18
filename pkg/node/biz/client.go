@@ -71,7 +71,7 @@ func leave(msg proto.FromSignalLeaveMsg) (interface{}, *nprotoo.Error) {
 		log.Errorf("IslbClientOnLeave failed %v", err.Error())
 	}
 
-	_, sfu, err := getRPCForSFU(msg.RID)
+	_, sfu, err := getRPCForSFU(mid, msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -124,7 +124,7 @@ func trickle(peer *signal.Peer, msg proto.FromClientTrickleMsg) (interface{}, *n
 		return nil, ridError
 	}
 
-	_, sfu, err := getRPCForSFU(msg.RID)
+	_, sfu, err := getRPCForSFU(mid, msg.RID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

@@ -139,12 +139,12 @@ func handleSFUBroadCast(msg nprotoo.Notification, subj string) {
 	}(msg)
 }
 
-func getRPCForSFU(rid proto.RID) (string, *nprotoo.Requestor, *nprotoo.Error) {
+func getRPCForSFU(mid proto.MID, rid proto.RID) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	islb, found := getRPCForIslb()
 	if !found {
 		return "", nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu", "rid", rid))
+	result, err := islb.SyncRequest(proto.IslbFindService, util.Map("service", "sfu", "mid", mid, "rid", rid))
 	if err != nil {
 		return "", nil, err
 	}
