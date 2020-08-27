@@ -102,14 +102,19 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 		log.Infof("signal.in handleClose [%d] %s rooms=%v", code, err, rooms)
 		for _, room := range rooms {
 			if room != nil {
-				if code > 1000 {
-					msg := proto.LeaveMsg{
-						RoomInfo: proto.RoomInfo{RID: room.ID()},
+				oldPeer := room.GetPeer(peer.ID())
+				// only remove if its the same peer. If newer peer joined before the cleanup, leave it.
+				if oldPeer == &peer.Peer {
+					if code > 1000 {
+						msg := proto.LeaveMsg{
+							RoomInfo: proto.RoomInfo{RID: room.ID()},
+						}
+						msgStr, _ := json.Marshal(msg)
+						bizCall(proto.ClientLeave, peer, msgStr, connectionClaims, emptyAccept, reject)
 					}
-					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.ClientLeave, peer, msgStr, connectionClaims, emptyAccept, reject)
+					log.Infof("signal.in handleClose removing peer (%s) from room (%s)", peer.ID(), room.ID())
+					room.RemovePeer(peer.ID())
 				}
-				room.RemovePeer(peer.ID())
 			}
 		}
 		log.Infof("signal.in handleClose => peer (%s) ", peer.ID())

@@ -84,6 +84,7 @@ func handler(connectionAuth conf.AuthConfig, msgHandler MsgHandler) func(w http.
 			http.Error(w, "Error upgrading socket", http.StatusBadRequest)
 			return
 		}
+		logger.Debugf("Creating new WebSocket")
 		wsTransport := transport.NewWebSocketTransport(socket)
 		wsTransport.Start()
 
