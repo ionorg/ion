@@ -81,9 +81,9 @@ data:
     [plugins.jitterbuffer]
     on = true
     # the remb cycle sending to pub, this told the pub it's bandwidth
-    rembcycle = 2
+    rembcycle = {{ .Values.sfu.jitterbuffer.rembcycle }} 
     # pli cycle sending to pub, and pub will send a key frame
-    plicycle = 1
+    plicycle = {{ .Values.sfu.jitterbuffer.plicycle }}
     # this limit the remb bandwidth
     maxbandwidth = 1000
     # max buffer time by ms

@@ -67,6 +67,9 @@ tolerations: []
 affinity: {}
 
 sfu:
+  jitterbuffer:
+    plicycle: 5
+    rembcycle: 2
   image:
     repository: pionwebrtc/ion-sfu 
     pullPolicy: IfNotPresent
