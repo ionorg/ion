@@ -27,6 +27,7 @@ data:
     #listen ip port
     host = "0.0.0.0"
     port = "8443"
+    path = "/ws"
     #allow_disconnected = true
 
     [signal.auth_connection]
@@ -85,7 +86,7 @@ data:
     # pli cycle sending to pub, and pub will send a key frame
     plicycle = {{ .Values.sfu.jitterbuffer.plicycle }}
     # this limit the remb bandwidth
-    maxbandwidth = 1000
+    maxbandwidth = {{ .Values.sfu.jitterbuffer.maxbandwidth }}
     # max buffer time by ms
     maxbuffertime = 1000
 
