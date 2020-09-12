@@ -244,19 +244,23 @@ func subscribe(msg proto.SFUSubscribeMsg) (interface{}, *nprotoo.Error) {
 	router.AddSub(subID, sub)
 
 	log.Infof("subscribe mid %s, answer = %v", subID, answer)
-	return util.Map("jsep", answer, "mid", subID), nil
+	return util.Map("jsep", answer, "sid", subID, "mid", msg.MID), nil
 }
 
 // unsubscribe .
 func unsubscribe(msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("unsubscribe msg=%v", msg)
+	subID := msg.SID
 	mid := msg.MID
 	found := false
 	rtc.MapRouter(func(id proto.MID, r *rtc.Router) {
+		if id != mid {
+			return
+		}
 		subs := r.GetSubs()
 		for sid := range subs {
-			if sid == mid {
-				r.DelSub(mid)
+			if sid == subID {
+				r.DelSub(subID)
 				found = true
 				return
 			}

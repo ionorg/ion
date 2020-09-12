@@ -87,10 +87,12 @@ type SubscribeMsg struct {
 type SubscribeResponseMsg struct {
 	MediaInfo
 	RTCInfo
+	SID MID `json:"sid"`
 }
 
 type UnsubscribeMsg struct {
 	MediaInfo
+	SID MID `json:"sid"`
 }
 
 type BroadcastMsg struct {

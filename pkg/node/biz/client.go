@@ -222,9 +222,9 @@ func subscribe(peer *signal.Peer, msg proto.SubscribeMsg) (interface{}, *nprotoo
 func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
 	mid := msg.MID
-
+	sid := msg.SID
 	// Validate
-	if mid == "" {
+	if mid == "" || sid == "" {
 		return nil, midError
 	}
 
@@ -234,7 +234,7 @@ func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *npr
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	result, err := sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("mid", mid))
+	result, err := sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("mid", mid, "sid", sid))
 	if err != nil {
 		log.Warnf("reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
