@@ -44,46 +44,12 @@ type TrackMap map[string][]TrackInfo
 
 // Client <-> Biz messages.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-// TODO(kevmo314): Consolidate these messages.
-
-=======
->>>>>>> Latest changes.
 type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
-=======
-type JoinMsg struct {
-<<<<<<< HEAD
-	RoomInfo
->>>>>>> Handle join with ion-sfu.
-=======
-=======
-=======
-// TODO(kevmo314): Consolidate these messages.
-
->>>>>>> Add TODO.
-type FromClientJoinMsg struct {
->>>>>>> Update SFU node to use ion-sfu.
-	RID RID `json:"rid"`
->>>>>>> Add offer/answer hooks.
 	RTCInfo
 	Info json.RawMessage `json:"info"`
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-type ToClientJoinMsg struct {
-=======
-type JoinResponseMsg struct {
-<<<<<<< HEAD
->>>>>>> Handle join with ion-sfu.
-=======
-	UID UID `json:"uid"`
->>>>>>> Add offer/answer hooks.
-=======
 type ToClientJoinMsg struct {
 	Peers   []Peer   `json:"peers"`
 	Streams []Stream `json:"streams"`
@@ -145,19 +111,9 @@ type ToSfuLeaveMsg struct {
 }
 
 type FromSfuLeaveMsg struct {
-<<<<<<< HEAD
->>>>>>> Update SFU node to use ion-sfu.
-	MediaInfo
-}
-
-type ToSfuTrickleMsg struct {
-	RoomInfo
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-=======
 	UID UID `json:"uid"`
 	RID RID `json:"rid"`
 	MID MID `json:"mid"`
->>>>>>> Latest changes.
 }
 
 type SfuTrickleMsg struct {
@@ -174,133 +130,13 @@ type SfuNegotiationMsg struct {
 	RTCInfo
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-type FromSignalLeaveMsg struct {
-	RoomInfo
-}
-
-type FromClientOfferMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type ToClientOfferMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type ToClientAnswerMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type FromClientAnswerMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type FromClientTrickleMsg struct {
-	RID       RID                     `json:"rid"`
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-type ToClientTrickleMsg struct {
-	RID       RID                     `json:"rid"`
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-// Biz to SFU
-
-type ToSfuJoinMsg struct {
-=======
-type OfferMsg struct {
-=======
-type FromSfuAnswerMsg struct {
->>>>>>> Update SFU node to use ion-sfu.
-	RoomInfo
-	RTCInfo
-}
-
-<<<<<<< HEAD
-type AnswerMsg struct {
->>>>>>> Add offer/answer hooks.
-	RoomInfo
-	RTCInfo
-}
-
-<<<<<<< HEAD
-type FromSfuJoinMsg struct {
-	MediaInfo
-	RTCInfo
-}
-
-type ToSfuLeaveMsg struct {
-	RoomInfo
-}
-
-type FromSfuLeaveMsg struct {
-	MediaInfo
-}
-
-type ToSfuTrickleMsg struct {
-	RoomInfo
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-type FromSfuTrickleMsg struct {
-	RoomInfo
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-type ToSfuOfferMsg struct {
-=======
-type ToSfuAnswerMsg struct {
->>>>>>> Update SFU node to use ion-sfu.
-	RoomInfo
-	RTCInfo
-}
-
-<<<<<<< HEAD
-type FromSfuOfferMsg struct {
-	RoomInfo
-	RTCInfo
-}
-
-type FromSfuAnswerMsg struct {
-	RoomInfo
-	RTCInfo
-}
-=======
 // Islb messages
->>>>>>> Latest changes.
 
 type IslbBroadcastMsg struct {
 	RoomInfo
 	Info json.RawMessage `json:"info"`
 }
 
-<<<<<<< HEAD
-=======
->>>>>>> Update SFU node to use ion-sfu.
-type FromClientBroadcastMsg struct {
-	RoomInfo
-	Info json.RawMessage `json:"info"`
-}
-
-<<<<<<< HEAD
-=======
->>>>>>> Handle join with ion-sfu.
-=======
->>>>>>> Add offer/answer hooks.
-=======
->>>>>>> Update SFU node to use ion-sfu.
-type LeaveMsg struct {
-	RoomInfo
-	Info ClientUserInfo `json:"info"`
-=======
 type ToIslbPeerJoinMsg struct {
 	UID  UID             `json:"uid"`
 	RID  RID             `json:"rid"`
@@ -312,7 +148,6 @@ type FromIslbPeerJoinMsg struct {
 	Peers   []Peer   `json:"peers"`
 	Streams []Stream `json:"streams"`
 	SID     SID      `json:"sid"`
->>>>>>> Latest changes.
 }
 
 type IslbPeerLeaveMsg struct {
@@ -348,25 +183,19 @@ type FromIslbFindSfuMsg struct {
 	Service string
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-type StreamAddMsg struct {
-	MediaInfo
-	Info        ClientUserInfo `json:"info"`
-	Tracks      TrackMap       `json:"tracks"`
-	Description string         `json:"description,omitempty"`
-=======
 type ToIslbListMids struct {
 	UID UID `json:"uid"`
 	RID RID `json:"rid"`
->>>>>>> Latest changes.
-=======
-type ToIslbListMids struct {
-	UID UID `json:"uid"`
-	RID RID `json:"rid"`
->>>>>>> Latest changes.
 }
 
 type FromIslbListMids struct {
 	MIDs []MID `json:"mids"`
+}
+
+type GetSFURPCParams struct {
+	RPCID   string
+	EventID string
+	ID      string
+	Name    string
+	Service string
 }

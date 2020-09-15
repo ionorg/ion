@@ -124,7 +124,10 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 				log.Errorf("handleSFUBroadCast failed to parse %v", err)
 				return
 			}
-			leave(proto.ToSfuLeaveMsg(msgData))
+			_, err := leave(proto.ToSfuLeaveMsg(msgData))
+			if err != nil {
+				log.Errorf("handleSFUBroadcast failed to leave :%v", err)
+			}
 		}
 	}(msg)
 }
