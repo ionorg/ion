@@ -27,7 +27,7 @@ dependencies:
   version: "4.4.1"
   repository: "https://charts.bitnami.com/bitnami"
 - name: redis 
-  version: "10.7.5"
+  version: "10.9.0"
   repository: "https://charts.bitnami.com/bitnami"
 - name: etcd 
   version: "4.8.5"
