@@ -17,6 +17,12 @@ var emptyMap = map[string]interface{}{}
 
 // TODO(kevmo314): Move to a config.toml.
 var server = sfu.NewSFU(sfu.Config{
+	WebRTC: sfu.WebRTCConfig{
+		ICEServers: []sfu.ICEServerConfig{
+			{URLs: []string{"stun:stun.l.google.com:19302"}},
+			{URLs: []string{"stun:stun.stunprotocol.org:3478"}},
+		},
+	},
 	Receiver: sfu.ReceiverConfig{
 		Video: sfu.WebRTCVideoReceiverConfig{
 			REMBCycle:     2,
@@ -31,7 +37,7 @@ var server = sfu.NewSFU(sfu.Config{
 	},
 })
 
-var peers = map[proto.UID]*sfu.WebRTCTransport{}
+var peers = map[proto.MID]*sfu.WebRTCTransport{}
 
 func handleRequest(rpcID string) {
 	log.Debugf("handleRequest: rpcID => [%v]", rpcID)
@@ -50,7 +56,7 @@ func handleRequest(rpcID string) {
 				result, err = join(msgData)
 			}
 		case proto.SfuClientOffer:
-			var msgData proto.ToSfuOfferMsg
+			var msgData proto.SfuNegotiationMsg
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = offer(msgData)
 			}
@@ -60,12 +66,12 @@ func handleRequest(rpcID string) {
 				result, err = leave(msgData)
 			}
 		case proto.SfuClientAnswer:
-			var msgData proto.ToSfuAnswerMsg
+			var msgData proto.SfuNegotiationMsg
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = answer(msgData)
 			}
 		case proto.SfuClientTrickle:
-			var msgData proto.ToSfuTrickleMsg
+			var msgData proto.SfuTrickleMsg
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = trickle(msgData)
 			}
@@ -84,20 +90,14 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	if msg.Jsep.SDP == "" {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
-	peer, err := sfu.NewWebRTCTransport(msg.Jsep)
+	peer, err := server.NewWebRTCTransport(string(msg.SID), sfu.MediaEngine{})
 	if err != nil {
 		log.Errorf("join error: %v", err)
 		return nil, util.NewNpError(415, "join error")
 	}
-	peers[msg.UID] = peer
+	peers[msg.MID] = peer
 
 	log.Infof("peer %s join room %s", peer.ID(), msg.RID)
-
-	room := server.GetSession(string(msg.RID))
-	if room == nil {
-		room = server.NewSession(string(msg.RID))
-	}
-	room.AddTransport(peer)
 
 	if err := peer.SetRemoteDescription(msg.Jsep); err != nil {
 		log.Errorf("join error: %v", err)
@@ -120,8 +120,10 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 			// Gathering done
 			return
 		}
-		broadcaster.Say(proto.SfuTrickleICE, proto.FromSfuTrickleMsg{
-			RoomInfo:  msg.RoomInfo,
+		broadcaster.Say(proto.SfuTrickleICE, proto.SfuTrickleMsg{
+			UID:       msg.UID,
+			RID:       msg.RID,
+			MID:       msg.MID,
 			Candidate: c.ToJSON(),
 		})
 	})
@@ -139,19 +141,21 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 			return
 		}
 
-		broadcaster.Say(proto.SfuClientOffer, proto.FromSfuOfferMsg{
-			RoomInfo: msg.RoomInfo,
-			RTCInfo:  proto.RTCInfo{Jsep: offer},
+		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+			UID:     msg.UID,
+			RID:     msg.RID,
+			MID:     msg.MID,
+			RTCInfo: proto.RTCInfo{Jsep: offer},
 		})
 	})
 
-	// TODO(kevmo314): Correctly handle transport closure.
-
-	// peer.OnClose(func() {
-	// 	broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
-	// 		MediaInfo: proto.MediaInfo{RID: msg.RID, UID: msg.UID, MID: proto.MID(peer.ID())},
-	// 	})
-	// })
+	peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
+			broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
+				RID: msg.RID, UID: msg.UID, MID: msg.MID,
+			})
+		}
+	})
 
 	// TODO: Remove once OnNegotiationNeeded is supported.
 	go func() {
@@ -169,22 +173,21 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 			return
 		}
 
-		broadcaster.Say(proto.SfuClientOffer, proto.FromSfuOfferMsg{
-			RoomInfo: msg.RoomInfo,
-			RTCInfo:  proto.RTCInfo{Jsep: offer},
+		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+			UID:     msg.UID,
+			RID:     msg.RID,
+			MID:     msg.MID,
+			RTCInfo: proto.RTCInfo{Jsep: offer},
 		})
 	}()
 
-	resp := proto.FromSfuJoinMsg{
-		MediaInfo: proto.MediaInfo{RID: msg.RID, UID: msg.UID, MID: proto.MID(peer.ID())},
-		RTCInfo:   proto.RTCInfo{Jsep: answer},
-	}
+	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: answer}}
 	return resp, nil
 }
 
-func offer(msg proto.ToSfuOfferMsg) (interface{}, *nprotoo.Error) {
+func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Debugf("offer msg=%v", msg)
-	peer, ok := peers[msg.UID]
+	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")
 	}
@@ -205,20 +208,20 @@ func offer(msg proto.ToSfuOfferMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "set local description error")
 	}
 
-	resp := proto.FromSfuAnswerMsg{
-		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
-		RTCInfo:  proto.RTCInfo{Jsep: answer},
+	resp := proto.SfuNegotiationMsg{
+		UID: msg.UID, RID: msg.RID, MID: msg.MID,
+		RTCInfo: proto.RTCInfo{Jsep: answer},
 	}
 	return resp, nil
 }
 
 func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
-	log.Debugf("leave msg=%v", msg)
-	peer, ok := peers[msg.UID]
+	peer, ok := peers[msg.MID]
 	if !ok {
+		log.Warnf("peers %v", peers)
 		return nil, util.NewNpError(415, "peer not found")
 	}
-	delete(peers, msg.UID)
+	delete(peers, msg.MID)
 
 	if err := peer.Close(); err != nil {
 		return nil, util.NewNpError(415, "failed to close peer")
@@ -227,9 +230,9 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 	return nil, nil
 }
 
-func answer(msg proto.ToSfuAnswerMsg) (interface{}, *nprotoo.Error) {
+func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Debugf("answer msg=%v", msg)
-	peer, ok := peers[msg.UID]
+	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")
 	}
@@ -241,9 +244,9 @@ func answer(msg proto.ToSfuAnswerMsg) (interface{}, *nprotoo.Error) {
 	return nil, nil
 }
 
-func trickle(msg proto.ToSfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
+func trickle(msg proto.SfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
 	log.Debugf("trickle msg=%v", msg)
-	peer, ok := peers[msg.UID]
+	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")
 	}

@@ -6,21 +6,18 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-type ClientUserInfo struct {
-	Name string `json:"name"`
-}
-
-func (m *ClientUserInfo) MarshalBinary() ([]byte, error) {
-	return json.Marshal(m)
-}
-
-func (m *ClientUserInfo) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, m)
-}
-
 type RoomInfo struct {
 	RID RID `json:"rid"`
 	UID UID `json:"uid"`
+}
+type Peer struct {
+	UID  UID             `json:"uid"`
+	Info json.RawMessage `json:"info"`
+}
+
+type Stream struct {
+	StreamID StreamID `json:"streamId"`
+	UID      UID      `json:"uid"`
 }
 
 type RTCInfo struct {
@@ -47,156 +44,158 @@ type TrackMap map[string][]TrackInfo
 
 // Client <-> Biz messages.
 
-// TODO(kevmo314): Consolidate these messages.
-
 type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
 	RTCInfo
-	Info ClientUserInfo `json:"info"`
+	Info json.RawMessage `json:"info"`
 }
 
 type ToClientJoinMsg struct {
-	MediaInfo
+	Peers   []Peer   `json:"peers"`
+	Streams []Stream `json:"streams"`
+	MID     MID      `json:"mid"`
 	RTCInfo
 }
 
-type FromSignalLeaveMsg struct {
+type ToClientPeerJoinMsg struct {
+	UID  UID             `json:"uid"`
+	RID  RID             `json:"rid"`
+	Info json.RawMessage `json:"info"`
+}
+
+type ClientNegotiationMsg struct {
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
+	RTCInfo
+}
+
+type ClientTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	MID       MID                     `json:"mid"`
+	Candidate webrtc.ICECandidateInit `json:"candidate"`
+}
+
+type FromClientBroadcastMsg struct {
+	RID  RID             `json:"rid"`
+	Info json.RawMessage `json:"info"`
+}
+
+type ToClientBroadcastMsg struct {
 	RoomInfo
+	Info json.RawMessage `json:"info"`
 }
 
-type FromClientOfferMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type ToClientOfferMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type ToClientAnswerMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type FromClientAnswerMsg struct {
-	RID RID `json:"rid"`
-	RTCInfo
-}
-
-type FromClientTrickleMsg struct {
-	RID       RID                     `json:"rid"`
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-type ToClientTrickleMsg struct {
-	RID       RID                     `json:"rid"`
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
+// Signal to biz
+type SignalCloseMsg struct {
+	RoomInfo
 }
 
 // Biz to SFU
 
 type ToSfuJoinMsg struct {
-	RoomInfo
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
+	SID SID `json:"sid"`
 	RTCInfo
 }
 
 type FromSfuJoinMsg struct {
-	MediaInfo
 	RTCInfo
 }
 
 type ToSfuLeaveMsg struct {
-	RoomInfo
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
 }
 
 type FromSfuLeaveMsg struct {
-	MediaInfo
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
 }
 
-type ToSfuTrickleMsg struct {
-	RoomInfo
+type SfuTrickleMsg struct {
+	UID       UID                     `json:"uid"`
+	RID       RID                     `json:"rid"`
+	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
 }
 
-type FromSfuTrickleMsg struct {
-	RoomInfo
-	Candidate webrtc.ICECandidateInit `json:"candidate"`
-}
-
-type ToSfuOfferMsg struct {
-	RoomInfo
+type SfuNegotiationMsg struct {
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
 	RTCInfo
 }
 
-type FromSfuOfferMsg struct {
-	RoomInfo
-	RTCInfo
-}
+// Islb messages
 
-type FromSfuAnswerMsg struct {
-	RoomInfo
-	RTCInfo
-}
-
-type ToSfuAnswerMsg struct {
-	RoomInfo
-	RTCInfo
-}
-
-type FromClientBroadcastMsg struct {
+type IslbBroadcastMsg struct {
 	RoomInfo
 	Info json.RawMessage `json:"info"`
 }
 
-type LeaveMsg struct {
+type ToIslbPeerJoinMsg struct {
+	UID  UID             `json:"uid"`
+	RID  RID             `json:"rid"`
+	MID  MID             `json:"mid"`
+	Info json.RawMessage `json:"info"`
+}
+
+type FromIslbPeerJoinMsg struct {
+	Peers   []Peer   `json:"peers"`
+	Streams []Stream `json:"streams"`
+	SID     SID      `json:"sid"`
+}
+
+type IslbPeerLeaveMsg struct {
 	RoomInfo
-	Info ClientUserInfo `json:"info"`
 }
 
-type PublishMsg struct {
-	RoomInfo
-	RTCInfo
-	Options PublishOptions `json:"options"`
+type StreamID string
+
+type ToIslbStreamAddMsg struct {
+	UID      UID      `json:"uid"`
+	RID      RID      `json:"rid"`
+	MID      MID      `json:"mid"`
+	StreamID StreamID `json:"streamId"`
 }
 
-type PublishResponseMsg struct {
-	MediaInfo
-	RTCInfo
-	Tracks TrackMap `json:"tracks"`
+type FromIslbStreamAddMsg struct {
+	UID    UID    `json:"uid"`
+	RID    RID    `json:"rid"`
+	Stream Stream `json:"stream"`
 }
 
-type UnpublishMsg struct {
-	MediaInfo
+type ToIslbFindSfuMsg struct {
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
 }
 
-type SFUSubscribeMsg struct {
-	SubscribeMsg
-	Tracks TrackMap `json:"tracks"`
+type FromIslbFindSfuMsg struct {
+	RPCID   string
+	EventID string
+	ID      string
+	Name    string
+	Service string
 }
 
-type SubscribeMsg struct {
-	MediaInfo
-	RTCInfo
-	Options SubscribeOptions
+type ToIslbListMids struct {
+	UID UID `json:"uid"`
+	RID RID `json:"rid"`
 }
 
-type SubscribeResponseMsg struct {
-	MediaInfo
-	RTCInfo
+type FromIslbListMids struct {
+	MIDs []MID `json:"mids"`
 }
 
-type UnsubscribeMsg struct {
-	MediaInfo
-}
-
-type StreamAddMsg struct {
-	MediaInfo
-	Info        ClientUserInfo `json:"info"`
-	Tracks      TrackMap       `json:"tracks"`
-	Description string         `json:"description,omitempty"`
-}
-
-type StreamRemoveMsg struct {
-	MediaInfo
+type GetSFURPCParams struct {
+	RPCID   string
+	EventID string
+	ID      string
+	Name    string
+	Service string
 }

@@ -27,19 +27,19 @@ const (
 	ClientOnOffer        = "offer"
 	ClientOnAnswer       = "answer"
 
-	// ion to islb
-	IslbFindService  = "findService"
-	IslbGetPubs      = "getPubs"
-	IslbGetMediaInfo = "getMediaInfo"
-	IslbRelay        = "relay"
-	IslbUnrelay      = "unRelay"
+	SignalClose = "signal-close"
 
-	IslbKeepAlive      = "keepAlive"
-	IslbClientOnJoin   = ClientOnJoin
-	IslbClientOnLeave  = ClientOnLeave
-	IslbOnStreamAdd    = ClientOnStreamAdd
-	IslbOnStreamRemove = ClientOnStreamRemove
-	IslbOnBroadcast    = ClientBroadcast
+	// ion to islb
+	IslbFindSfu = "findSfu"
+	IslbRelay   = "relay"
+	IslbUnrelay = "unRelay"
+
+	IslbKeepAlive = "keepAlive"
+	IslbPeerJoin  = ClientOnJoin
+	IslbPeerLeave = ClientOnLeave
+	IslbListMids  = "list-mids"
+	IslbStreamAdd = ClientOnStreamAdd
+	IslbBroadcast = ClientBroadcast
 
 	// SFU Endpoints
 	SfuTrickleICE    = ClientTrickleICE
@@ -53,6 +53,7 @@ const (
 )
 
 type MID string
+type SID string
 type RID string
 type UID string
 
@@ -121,7 +122,11 @@ type UserInfo struct {
 }
 
 func (u UserInfo) BuildKey() string {
-	strs := []string{u.DC, string(u.RID), "user", "info", string(u.UID)}
+	uid := string(u.UID)
+	if uid == "" {
+		uid = "*"
+	}
+	strs := []string{u.DC, string(u.RID), "user", "info", uid}
 	return strings.Join(strs, "/")
 }
 

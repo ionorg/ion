@@ -1,7 +1,6 @@
 package islb
 
 import (
-	"sync"
 	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
@@ -21,8 +20,7 @@ var (
 	redis       *db.Redis
 	services    map[string]discovery.Node
 	broadcaster *nprotoo.Broadcaster
-	roomMutex   sync.Mutex
-)
+	)
 
 // Init func
 func Init(dcID, nodeID, rpcID, eventID string, redisCfg db.Config, etcd []string, natsURL string) {
@@ -33,5 +31,4 @@ func Init(dcID, nodeID, rpcID, eventID string, redisCfg db.Config, etcd []string
 	broadcaster = protoo.NewBroadcaster(eventID)
 	services = make(map[string]discovery.Node)
 	handleRequest(rpcID)
-	WatchAllStreams()
 }

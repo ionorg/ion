@@ -1,79 +1,100 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
+	"github.com/spf13/viper"
 	_ "net/http/pprof"
+	"os"
 	"path"
 
-	conf "github.com/pion/ion-avp/pkg/conf"
+	grpc "github.com/pion/ion-avp/cmd/server/grpc"
+	. "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	"github.com/pion/ion-avp/pkg/log"
-	avp "github.com/pion/ion-avp/pkg/node"
-	"github.com/pion/ion-avp/pkg/process"
-	"github.com/pion/ion-avp/pkg/process/samples"
-	pb "github.com/pion/ion-avp/pkg/proto/avp"
 )
 
-func getDefaultElements(id string) map[string]process.Element {
-	de := make(map[string]process.Element)
-	if conf.Pipeline.WebmSaver.Enabled && conf.Pipeline.WebmSaver.DefaultOn {
-		filewriter := elements.NewFileWriter(elements.FileWriterConfig{
-			ID:   id,
-			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", id)),
-		})
-		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
-			ID: id,
-		})
-		err := webm.Attach(filewriter)
-		if err != nil {
-			log.Errorf("error attaching filewriter to webm %s", err)
-		} else {
-			de[elements.TypeWebmSaver] = webm
-		}
-	}
-	return de
-}
+var (
+	conf = Config{}
+	file string
+	addr string
+)
 
-func getTogglableElement(e *pb.Element) (process.Element, error) {
-	switch e.Type {
-	case elements.TypeWebmSaver:
-		filewriter := elements.NewFileWriter(elements.FileWriterConfig{
-			ID:   e.Mid,
-			Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s.webm", e.Mid)),
-		})
-		webm := elements.NewWebmSaver(elements.WebmSaverConfig{
-			ID: e.Mid,
-		})
-		err := webm.Attach(filewriter)
-		if err != nil {
-			log.Errorf("error attaching filewriter to webm %s", err)
-			return nil, err
-		}
-		return webm, nil
-	}
-
-	return nil, errors.New("element not found")
-}
-
-func init() {
-	log.Init(conf.Log.Level)
-	if err := process.InitRTP(conf.Rtp.Port, conf.Rtp.KcpKey, conf.Rtp.KcpSalt); err != nil {
-		panic(err)
-	}
-
-	process.InitPipeline(process.Config{
-		SampleBuilder: samples.BuilderConfig{
-			AudioMaxLate: conf.Pipeline.SampleBuilder.AudioMaxLate,
-			VideoMaxLate: conf.Pipeline.SampleBuilder.VideoMaxLate,
-		},
-		GetDefaultElements:  getDefaultElements,
-		GetTogglableElement: getTogglableElement,
+func createWebmSaver(sid, pid, tid string, config []byte) Element {
+	filewriter := elements.NewFileWriter(elements.FileWriterConfig{
+		ID:   pid,
+		Path: path.Join(conf.Pipeline.WebmSaver.Path, fmt.Sprintf("%s-%s.webm", sid, pid)),
 	})
+	webm := elements.NewWebmSaver(elements.WebmSaverConfig{
+		ID: pid,
+	})
+	err := webm.Attach(filewriter)
+	if err != nil {
+		log.Errorf("error attaching filewriter to webm %s", err)
+		return nil
+	}
+	return webm
+}
+
+func showHelp() {
+	fmt.Printf("Usage:%s {params}\n", os.Args[0])
+	fmt.Println("      -c {config file}")
+	fmt.Println("      -a {listen addr}")
+	fmt.Println("      -h (show help info)")
+}
+
+func load() bool {
+	_, err := os.Stat(file)
+	if err != nil {
+		return false
+	}
+
+	viper.SetConfigFile(file)
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		fmt.Printf("config file %s read failed. %v\n", file, err)
+		return false
+	}
+	err = viper.GetViper().Unmarshal(&conf)
+	if err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", file, err)
+		return false
+	}
+
+	fmt.Printf("config %s load ok!\n", file)
+	return true
+}
+
+func parse() bool {
+	flag.StringVar(&file, "c", "configs/avp.toml", "config file")
+	flag.StringVar(&addr, "a", ":50051", "address to use")
+	help := flag.Bool("h", false, "help info")
+	flag.Parse()
+	if !load() {
+		return false
+	}
+
+	if *help {
+		showHelp()
+		return false
+	}
+	return true
 }
 
 func main() {
+	if !parse() {
+		showHelp()
+		os.Exit(-1)
+	}
+
+	log.Init(conf.Log.Level)
+
 	log.Infof("--- Starting AVP Node ---")
-	avp.Init(conf.GRPC.Port)
+	registry := NewRegistry()
+	registry.AddElement("webmsaver", createWebmSaver)
+	Init(registry)
+	grpc.NewServer(addr, conf)
 	select {}
 }
