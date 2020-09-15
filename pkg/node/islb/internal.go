@@ -1,12 +1,10 @@
 package islb
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"hash/adler32"
 	"math"
-	"strings"
-	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/pion/ion/pkg/discovery"
@@ -15,9 +13,6 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
-const (
-	descField = "description"
-)
 
 // WatchServiceNodes .
 func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
@@ -34,76 +29,20 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 			service := node.Info["service"]
 			name := node.Info["name"]
 			log.Debugf("Service [%s] DOWN %s => %s", service, name, id)
-			if service == "sfu" {
-				removeStreamsByNode(node.Info["id"])
-			}
 			delete(services, id)
 		}
 	}
 }
 
-func removeStreamsByNode(nodeID string) {
-	log.Infof("removeStreamsByNode: node => %s", nodeID)
-	mkey := proto.MediaInfo{
-		DC:  dc,
-		NID: nodeID,
-	}.BuildKey()
-	for _, key := range redis.Keys(mkey + "*") {
-		log.Infof("streamRemove: key => %s", key)
-		minfo, err := proto.ParseMediaInfo(key)
-		if err == nil {
-			log.Warnf("TODO: Internal Server Error (500) to %s", minfo.UID)
-		}
-		err = redis.Del(key)
-		if err != nil {
-			log.Errorf("redis.Del err = %v", err)
-		}
-	}
-}
-
-// WatchAllStreams .
-func WatchAllStreams() {
-	mkey := proto.MediaInfo{
-		DC: dc,
-	}.BuildKey()
-	log.Infof("Watch all streams, mkey = %s", mkey)
-	for _, key := range redis.Keys(mkey) {
-		log.Infof("Watch stream, key = %s", key)
-		watchStream(key)
-	}
-}
-
-func watchStream(key string) {
-	log.Infof("Start watch stream: key = %s", key)
-	go func() {
-		for cmd := range redis.Watch(context.TODO(), key) {
-			log.Infof("watchStream: key %s cmd %s modified", key, cmd)
-			if cmd == "del" || cmd == "expired" {
-				// dc1/room1/media/pub/74baff6e-b8c9-4868-9055-b35d50b73ed6#LUMGUQ
-				info, err := proto.ParseMediaInfo(key)
-				if err == nil {
-					msg := util.Map("dc", info.DC, "rid", info.RID, "uid", info.UID, "mid", info.MID)
-					log.Infof("watchStream.BroadCast: onStreamRemove=%v", msg)
-					broadcaster.Say(proto.IslbOnStreamRemove, msg)
-				}
-				//Stop watch loop after key removed.
-				break
-			}
-		}
-		log.Infof("Stop watch stream: key = %s", key)
-	}()
-}
-
 /*Find service nodes by name, such as sfu|mcu|sip-gateway|rtmp-gateway */
-func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error) {
-	service := data.Service
-	mid := data.MID
-	rid := data.RID
-
-	if mid != "" {
+func findSfu(data proto.ToIslbFindSfuMsg) (interface{}, *nprotoo.Error) {
+	service := "sfu"
+	if data.RID != "" && data.UID != "" && data.MID != "" {
 		mkey := proto.MediaInfo{
 			DC:  dc,
-			RID: rid,
+			RID: data.RID,
+			UID: data.UID,
+			MID: data.MID,
 		}.BuildKey()
 		log.Infof("Find mids by mkey %s", mkey)
 		for _, key := range redis.Keys(mkey + "*") {
@@ -118,7 +57,7 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 				if service == node.Info["service"] && minfo.NID == id {
 					rpcID := discovery.GetRPCChannel(node)
 					eventID := discovery.GetEventChannel(node)
-					resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+					resp := proto.FromIslbFindSfuMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
 					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
 					return resp, nil
 				}
@@ -126,43 +65,16 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 		}
 	}
 
-	// If we don't have a MID, we must place the stream in a room
-	// This mutex prevents a race condition which could cause
-	// rooms to split between SFU's
-	roomMutex.Lock()
-	defer roomMutex.Unlock()
-
-	// When we have a RID check for other pubs to colocate streams
-	if rid != "" {
-		log.Infof("findServiceNode: got room id: %s, checking for existing streams", rid)
-		rid := data.RID //util.Val(data, "rid")
-		key := proto.MediaInfo{
-			DC:  dc,
-			RID: rid,
-		}.BuildKey()
-		log.Infof("findServiceNode: RID root key=%s", key)
-
-		for _, path := range redis.Keys(key + "*") {
-
-			log.Infof("findServiceNode media info path = %s", path)
-			minfo, err := proto.ParseMediaInfo(path)
-			if err != nil {
-				log.Errorf("Error parsing media info = %v", err)
-				break
-			}
-
-			for _, node := range services {
-				name := node.Info["name"]
-				id := node.Info["id"]
-				if service == node.Info["service"] && minfo.NID == id {
-					rpcID := discovery.GetRPCChannel(node)
-					eventID := discovery.GetEventChannel(node)
-					resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
-					return resp, nil
-				}
-			}
-
+	// TODO: Add a load balancing algorithm.
+	for _, node := range services {
+		if service == node.Info["service"] {
+			rpcID := discovery.GetRPCChannel(node)
+			eventID := discovery.GetEventChannel(node)
+			name := node.Info["name"]
+			id := node.Info["id"]
+			resp := proto.FromIslbFindSfuMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
+			return resp, nil
 		}
 	}
 
@@ -202,16 +114,13 @@ func findServiceNode(data proto.FindServiceParams) (interface{}, *nprotoo.Error)
 	return nil, util.NewNpError(404, fmt.Sprintf("Service node [%s] not found", service))
 }
 
-func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
-	ukey := proto.UserInfo{
+func streamAdd(data proto.ToIslbStreamAddMsg) (interface{}, *nprotoo.Error) {
+	mkey := proto.MediaInfo{
 		DC:  dc,
 		RID: data.RID,
 		UID: data.UID,
+		MID: data.MID,
 	}.BuildKey()
-
-	mInfo := data.MediaInfo
-	mInfo.DC = dc
-	mkey := mInfo.BuildKey()
 
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
 		Name: nid,
@@ -225,143 +134,141 @@ func streamAdd(data proto.StreamAddMsg) (interface{}, *nprotoo.Error) {
 	if err != nil {
 		log.Errorf("Set: %v ", err)
 	}
-	err = redis.HSetTTL(mkey, descField, data.Description, redisLongKeyTTL)
+
+	field = "track/" + string(data.StreamID)
+	// The value here actually doesn't matter, so just store the associated MID in case it's useful in the future.
+	log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, data.MID)
+	err = redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
 	if err != nil {
-		log.Errorf("Set: %v ", err)
-	}
-
-	for msid, track := range data.Tracks {
-		var infos []proto.TrackInfo
-		infos = append(infos, track...)
-
-		field, value, err := proto.MarshalTrackField(msid, infos)
-		if err != nil {
-			log.Errorf("MarshalTrackField: %v ", err)
-			continue
-		}
-		log.Infof("SetTrackField: mkey, field, value = %s, %s, %s", mkey, field, value)
-		err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
-		if err != nil {
-			log.Errorf("redis.HSetTTL err = %v", err)
-		}
-	}
-
-	// dc1/room1/user/info/${uid} info {"name": "Guest"}
-	fields := redis.HGetAll(ukey)
-
-	var extraInfo proto.ClientUserInfo = proto.ClientUserInfo{}
-	if infoStr, ok := fields["info"]; ok {
-		if err := json.Unmarshal([]byte(infoStr), &extraInfo); err != nil {
-			log.Errorf("Unmarshal pub extra info %v", err)
-			extraInfo = data.Info
-		}
-		data.Info = extraInfo
+		log.Errorf("redis.HSetTTL err = %v", err)
 	}
 
 	log.Infof("Broadcast: [stream-add] => %v", data)
-	broadcaster.Say(proto.IslbOnStreamAdd, data)
-
-	watchStream(mkey)
+	broadcaster.Say(proto.IslbStreamAdd, proto.FromIslbStreamAddMsg{
+		RID:    data.RID,
+		UID:    data.UID,
+		Stream: proto.Stream{UID: data.UID, StreamID: data.StreamID},
+	})
 	return struct{}{}, nil
 }
 
-func streamRemove(data proto.StreamRemoveMsg) (map[string]interface{}, *nprotoo.Error) {
-	data.DC = dc
-	mkey := data.BuildKey()
-
-	log.Infof("streamRemove: key => %s", mkey)
-	for _, key := range redis.Keys(mkey + "*") {
-		log.Infof("streamRemove: key => %s", key)
-		err := redis.Del(key)
-		if err != nil {
-			log.Errorf("redis.Del err = %v", err)
-		}
-	}
-	return util.Map(), nil
-}
-
-func getPubs(data proto.RoomInfo) (proto.GetPubResp, *nprotoo.Error) {
-	rid := data.RID //util.Val(data, "rid")
-
-	key := proto.MediaInfo{
-		DC:  dc,
-		RID: rid,
-	}.BuildKey()
-	log.Infof("getPubs: root key=%s", key)
-
-	var pubs []proto.PubInfo
-	for _, path := range redis.Keys(key + "*") {
-		log.Infof("getPubs media info path = %s", path)
-		info, err := proto.ParseMediaInfo(path)
-		if err != nil {
-			log.Errorf("%v", err)
-		}
-		fields := redis.HGetAll(proto.UserInfo{
-			DC:  info.DC,
-			RID: info.RID,
-			UID: info.UID,
-		}.BuildKey())
-		trackFields := redis.HGetAll(path)
-		desc := ""
-
-		tracks := make(map[string][]proto.TrackInfo)
-		for key, value := range trackFields {
-			if strings.HasPrefix(key, "track/") {
-				msid, infos, err := proto.UnmarshalTrackField(key, value)
-				if err != nil {
-					log.Errorf("%v", err)
-				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
-				tracks[msid] = *infos
-			} else if key == descField {
-				desc = value
-			}
-		}
-
-		log.Infof("Fields %v", fields)
-
-		var extraInfo proto.ClientUserInfo = proto.ClientUserInfo{}
-		if infoStr, ok := fields["info"]; ok {
-			if err := json.Unmarshal([]byte(infoStr), &extraInfo); err != nil {
-				log.Errorf("Unmarshal pub extra info %v", err)
-				extraInfo = proto.ClientUserInfo{} // Needed?
-			}
-		}
-
-		pub := proto.PubInfo{
-			MediaInfo:   *info,
-			Info:        extraInfo,
-			Tracks:      tracks,
-			Description: desc,
-		}
-		pubs = append(pubs, pub)
-	}
-
-	resp := proto.GetPubResp{
-		RoomInfo: data,
-		Pubs:     pubs,
-	}
-	log.Infof("getPubs: resp=%v", resp)
-	return resp, nil
-}
-
-func clientJoin(data proto.JoinMsg) (interface{}, *nprotoo.Error) {
-	ukey := proto.UserInfo{
+func listMids(data proto.ToIslbListMids) (interface{}, *nprotoo.Error) {
+	mkey := proto.MediaInfo{
 		DC:  dc,
 		RID: data.RID,
 		UID: data.UID,
 	}.BuildKey()
-	log.Infof("clientJoin: set %s => %v", ukey, &data.Info)
-	err := redis.HSetTTL(ukey, "info", &data.Info, redisLongKeyTTL)
+
+	mids := make([]proto.MID, 0)
+	for _, key := range redis.Keys(mkey) {
+		mediaInfo, err := proto.ParseMediaInfo(key)
+		if err != nil {
+			log.Errorf("Failed to parse media info %v", err)
+			continue
+		}
+		mids = append(mids, mediaInfo.MID)
+	}
+	return proto.FromIslbListMids{MIDs: mids}, nil
+}
+
+func peerJoin(msg proto.ToIslbPeerJoinMsg) (interface{}, *nprotoo.Error) {
+	ukey := proto.UserInfo{
+		DC:  dc,
+		RID: msg.RID,
+		UID: msg.UID,
+	}.BuildKey()
+	log.Infof("clientJoin: set %s => %v", ukey, string(msg.Info))
+
+	// Tell everyone about the new peer.
+	broadcaster.Say(proto.IslbPeerJoin, proto.ToClientPeerJoinMsg{
+		UID: msg.UID, RID: msg.RID, Info: msg.Info,
+	})
+
+	// Tell the new peer about everyone currently in the room.
+	searchKey := proto.UserInfo{
+		DC:  dc,
+		RID: msg.RID,
+	}.BuildKey()
+	keys := redis.Keys(searchKey)
+
+	peers := make([]proto.Peer, 0)
+	streams := make([]proto.Stream, 0)
+	for _, key := range keys {
+		fields := redis.HGetAll(key)
+		parsedUserKey, err := proto.ParseUserInfo(key)
+		if err != nil {
+			log.Errorf("redis.HGetAll err = %v", err)
+			continue
+		}
+		if info, ok := fields["info"]; ok {
+			peers = append(peers, proto.Peer{
+				UID:  parsedUserKey.UID,
+				Info: json.RawMessage(info),
+			})
+		} else {
+			log.Warnf("No info found for %v", key)
+		}
+
+		mkey := proto.MediaInfo{
+			DC:  dc,
+			RID: msg.RID,
+			UID: parsedUserKey.UID,
+		}.BuildKey()
+		mediaKeys := redis.Keys(mkey)
+		for _, mediaKey := range mediaKeys {
+			mediaFields := redis.HGetAll(mediaKey)
+			for mediaField := range mediaFields {
+				log.Warnf("Received media field %s for key %s", mediaField, mediaKey)
+				if len(mediaField) > 6 && mediaField[:6] == "track/" {
+					streams = append(streams, proto.Stream{
+						UID:      parsedUserKey.UID,
+						StreamID: proto.StreamID(mediaField[6:]),
+					})
+				}
+			}
+		}
+	}
+
+	// Write the user info to redis.
+	err := redis.HSetTTL(ukey, "info", string(msg.Info), redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
-	log.Infof("Broadcast: peer-join = %v", data)
-	broadcaster.Say(proto.IslbClientOnJoin, data)
-	return struct{}{}, nil
+
+	// Get the SID for the room.
+	mkey := proto.MediaInfo{
+		DC:  dc,
+		RID: msg.RID,
+		UID: msg.UID,
+		MID: msg.MID,
+	}.BuildKey()
+	fields := redis.HGetAll(mkey)
+	var sid proto.SID
+	val, ok := fields["sid"]
+	if !ok {
+		// TODO: Generate SID based off some load balancing strategy.
+		adler := adler32.New()
+		_, err = adler.Write([]byte(msg.RID))
+		if err != nil {
+			log.Errorf("adler.Write err = %v", err)
+		}
+		sid = proto.SID(fmt.Sprintf("%d", adler.Sum32()))
+		err := redis.HSetTTL(mkey, "sid", sid, redisLongKeyTTL)
+		if err != nil {
+			log.Errorf("redis.HSetTTL err = %v", err)
+		}
+	} else {
+		sid = proto.SID(val)
+	}
+
+	return proto.FromIslbPeerJoinMsg{
+		Peers:   peers,
+		Streams: streams,
+		SID:     sid,
+	}, nil
 }
 
-func clientLeave(data proto.RoomInfo) (interface{}, *nprotoo.Error) {
+func peerLeave(data proto.IslbPeerLeaveMsg) (interface{}, *nprotoo.Error) {
 	ukey := proto.UserInfo{
 		DC:  dc,
 		RID: data.RID,
@@ -372,42 +279,8 @@ func clientLeave(data proto.RoomInfo) (interface{}, *nprotoo.Error) {
 	if err != nil {
 		log.Errorf("redis.Del err = %v", err)
 	}
-	log.Infof("Broadcast peer-leave = %v", data)
-	//make broadcast leave msg after remove stream msg, for ion block bug
-	time.Sleep(500 * time.Millisecond)
-	broadcaster.Say(proto.IslbClientOnLeave, data)
+	broadcaster.Say(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg(data))
 	return struct{}{}, nil
-}
-
-func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
-	// Ensure DC
-	data.DC = dc
-
-	mkey := data.BuildKey()
-	log.Infof("getMediaInfo key=%s", mkey)
-
-	if keys := redis.Keys(mkey + "*"); len(keys) > 0 {
-		key := keys[0]
-		log.Infof("Got: key => %s", key)
-		fields := redis.HGetAll(key)
-		tracks := make(map[string][]proto.TrackInfo)
-		for key, value := range fields {
-			if strings.HasPrefix(key, "track/") {
-				msid, infos, err := proto.UnmarshalTrackField(key, value)
-				if err != nil {
-					log.Errorf("%v", err)
-				}
-				log.Debugf("msid => %s, tracks => %v\n", msid, infos)
-				tracks[msid] = *infos
-			}
-		}
-
-		resp := util.Map("mid", data.MID, "tracks", tracks)
-		log.Infof("getMediaInfo: resp=%v", resp)
-		return resp, nil
-	}
-
-	return nil, util.NewNpError(404, "MediaInfo Not found")
 }
 
 // func relay(data map[string]interface{}) (interface{}, *nprotoo.Error) {
@@ -443,9 +316,8 @@ func getMediaInfo(data proto.MediaInfo) (interface{}, *nprotoo.Error) {
 // 	return resp, nil
 // }
 
-func broadcast(data proto.BroadcastMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("broadcaster.Say msg=%v", data)
-	broadcaster.Say(proto.IslbOnBroadcast, data)
+func broadcast(data proto.IslbBroadcastMsg) (interface{}, *nprotoo.Error) {
+	broadcaster.Say(proto.IslbBroadcast, proto.IslbBroadcastMsg(data))
 	return struct{}{}, nil
 }
 
@@ -462,49 +334,39 @@ func handleRequest(rpcID string) {
 			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
 
 			switch method {
-			case proto.IslbFindService:
-				var msgData proto.FindServiceParams
+			case proto.IslbFindSfu:
+				var msgData proto.ToIslbFindSfuMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = findServiceNode(msgData)
+					result, err = findSfu(msgData)
 				}
-			case proto.IslbOnStreamAdd:
-				var msgData proto.StreamAddMsg
+			case proto.IslbPeerJoin:
+				var msgData proto.ToIslbPeerJoinMsg
+				if err = msg.Unmarshal(&msgData); err == nil {
+					result, err = peerJoin(msgData)
+				}
+			case proto.IslbPeerLeave:
+				var msgData proto.IslbPeerLeaveMsg
+				if err = msg.Unmarshal(&msgData); err == nil {
+					result, err = peerLeave(msgData)
+				}
+			case proto.IslbStreamAdd:
+				var msgData proto.ToIslbStreamAddMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = streamAdd(msgData)
-				}
-			case proto.IslbOnStreamRemove:
-				var msgData proto.StreamRemoveMsg
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = streamRemove(msgData)
-				}
-			case proto.IslbGetPubs:
-				var msgData proto.RoomInfo
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = getPubs(msgData)
-				}
-			case proto.IslbClientOnJoin:
-				var msgData proto.JoinMsg
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = clientJoin(msgData)
-				}
-			case proto.IslbClientOnLeave:
-				var msgData proto.RoomInfo
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = clientLeave(msgData)
-				}
-			case proto.IslbGetMediaInfo:
-				var msgData proto.MediaInfo
-				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = getMediaInfo(msgData)
 				}
 			// case proto.IslbRelay:
 			// 	result, err = relay(data)
 			// case proto.IslbUnrelay:
 			// 	result, err = unRelay(data)
-			case proto.IslbOnBroadcast:
-				var msgData proto.BroadcastMsg
+			case proto.IslbBroadcast:
+				var msgData proto.IslbBroadcastMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
 					result, err = broadcast(msgData)
+				}
+			case proto.IslbListMids:
+				var msgData proto.ToIslbListMids
+				if err = msg.Unmarshal(&msgData); err == nil {
+					result, err = listMids(msgData)
 				}
 			}
 

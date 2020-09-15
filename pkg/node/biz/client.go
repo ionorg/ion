@@ -123,89 +123,55 @@ func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.E
 		return nil, util.NewNpError(500, "IslbListMids failed")
 	}
 
-	return resp, nil
+	for _, mid := range fromIslbListMids.MIDs {
+		_, sfu, err := getRPCForSFU(msg.UID, msg.RID, mid)
+		if err != nil {
+			log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+			return nil, util.NewNpError(err.Code, err.Reason)
+		}
+
+		log.Warnf("Issuing leave %s", mid)
+		if _, err := sfu.SyncRequest(proto.SfuClientLeave, proto.ToSfuLeaveMsg{
+			UID: msg.UID, RID: msg.RID, MID: mid,
+		}); err != nil {
+			log.Errorf("SfuClientLeave failed %v", err.Error())
+			return nil, util.NewNpError(err.Code, err.Reason)
+		}
+	}
+	return nil, nil
 }
 
-func leave(msg proto.FromSignalLeaveMsg) (interface{}, *nprotoo.Error) {
+func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
+	if !signal.GetRoom(msg.RID).HasPeer(string(msg.UID)) {
+		return nil, nil
+	}
 	signal.DelPeer(msg.RID, string(msg.UID))
 
-	// TODO: This can perhaps be optimized a bit.
 	islb, found := getRPCForIslb()
 	if !found {
 		log.Errorf("islb node not found")
-		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
 	}); err != nil {
 		log.Errorf("IslbClientOnLeave failed %v", err.Error())
 	}
-	var fromIslbListMids proto.FromIslbListMids
-	if err := json.Unmarshal(resp, &fromIslbListMids); err != nil {
-		log.Errorf("IslbListMids failed %v", err)
-		return nil, util.NewNpError(500, "IslbListMids failed")
-	}
-	// Send getPubs => islb
-	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
-		func(result nprotoo.RawMessage) {
-			var resMsg proto.GetPubResp
-			if err := result.Unmarshal(&resMsg); err != nil {
-				log.Errorf("Unmarshal pub response %v", err)
-				return
-			}
-			log.Infof("IslbGetPubs: result=%v", resMsg)
-			for _, pub := range resMsg.Pubs {
-				if pub.MID == "" {
-					continue
-				}
-				notif := proto.StreamAddMsg(pub)
-				peer.Notify(proto.ClientOnStreamAdd, notif)
-			}
-		},
-		func(err *nprotoo.Error) {})
 
-	return emptyMap, nil
-}
-
-	_, sfu, err := getRPCForSFU(mid, msg.RID)
+	_, sfu, err := getRPCForSFU(msg.UID, msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	_, err = sfu.SyncRequest(proto.SfuClientOnOffer, util.Map("rid", msg.RID, "uid", msg.UID, "jsep", msg.Jsep))
-	if err != nil {
-		log.Errorf("SfuClientOnOffer failed %v", err.Error())
+
+	if _, err := sfu.SyncRequest(proto.SfuClientLeave, msg); err != nil {
+		log.Errorf("SfuClientLeave failed %v", err.Error())
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 	return nil, nil
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-func offer(peer *signal.Peer, msg proto.FromClientOfferMsg) (interface{}, *nprotoo.Error) {
-	_, sfu, err := getRPCForSFU(msg.RID)
-=======
-func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.unsubscribe peer.ID()=%s msg=%v", peer.ID(), msg)
-	mid := msg.MID
-
-	// Validate
-	if mid == "" {
-		return nil, midError
-	}
-
-	_, sfu, err := getRPCForSFU(mid, "")
-<<<<<<< HEAD
-=======
-	_, sfu, err := getRPCForSFU(msg.RID)
->>>>>>> Handle join with ion-sfu.
->>>>>>> Handle join with ion-sfu.
-=======
->>>>>>> Add offer/answer hooks.
-=======
 func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
 	_, sfu, err := getRPCForSFU(proto.UID(peer.ID()), msg.RID, msg.MID)
->>>>>>> Latest changes.
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -249,23 +215,7 @@ func trickle(peer *signal.Peer, msg proto.ClientTrickleMsg) (interface{}, *nprot
 		return nil, ridError
 	}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-	_, sfu, err := getRPCForSFU(mid, msg.RID)
-=======
-<<<<<<< HEAD
-	_, sfu, err := getRPCForSFU(mid, "")
-=======
-	_, sfu, err := getRPCForSFU(msg.RID)
->>>>>>> Handle join with ion-sfu.
->>>>>>> Handle join with ion-sfu.
-=======
-	_, sfu, err := getRPCForSFU(mid, "")
->>>>>>> Add offer/answer hooks.
-=======
 	_, sfu, err := getRPCForSFU(proto.UID(peer.ID()), msg.RID, msg.MID)
->>>>>>> Latest changes.
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

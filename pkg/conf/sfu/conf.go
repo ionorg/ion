@@ -15,9 +15,6 @@ const (
 var (
 	cfg     = config{}
 	Global  = &cfg.Global
-	Plugins = &cfg.Plugins
-	WebRTC  = &cfg.WebRTC
-	Rtp     = &cfg.Rtp
 	Log     = &cfg.Log
 	Etcd    = &cfg.Etcd
 	Nats    = &cfg.Nats
