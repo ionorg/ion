@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0
+	github.com/cloudwebrtc/go-protoo v0.0.0-20200926140535-79ecde67b906
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
