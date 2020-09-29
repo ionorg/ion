@@ -176,7 +176,7 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	_, err = sfu.SyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+	resp, err := sfu.SyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
 		UID:     proto.UID(peer.ID()),
 		RID:     msg.RID,
 		MID:     msg.MID,
@@ -186,7 +186,18 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 		log.Errorf("SfuClientOnOffer failed %v", err.Error())
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
-	return nil, nil
+
+	var answer proto.SfuNegotiationMsg
+	if err := json.Unmarshal(resp, &answer); err != nil {
+		log.Errorf("Parse answer failed %v", err.Error())
+		return nil, util.NewNpError(500, err.Error())
+	}
+
+	return proto.ClientNegotiationMsg{
+		RID:     answer.RID,
+		MID:     answer.MID,
+		RTCInfo: answer.RTCInfo,
+	}, nil
 }
 
 func broadcast(peer *signal.Peer, msg proto.FromClientBroadcastMsg) (interface{}, *nprotoo.Error) {
