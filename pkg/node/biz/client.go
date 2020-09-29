@@ -142,7 +142,13 @@ func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.E
 }
 
 func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
-	if !signal.GetRoom(msg.RID).HasPeer(string(msg.UID)) {
+	room := signal.GetRoom(msg.RID)
+	if room == nil {
+		log.Warnf("room not exits, %v", msg)
+		return nil, nil
+	}
+	if !room.HasPeer(string(msg.UID)) {
+		log.Warnf("peer not exits, %v", msg)
 		return nil, nil
 	}
 	signal.DelPeer(msg.RID, string(msg.UID))
