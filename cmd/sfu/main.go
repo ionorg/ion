@@ -10,6 +10,10 @@ import (
 	"github.com/pion/ion/pkg/node/sfu"
 )
 
+func init() {
+	log.Init(conf.Log.Level)
+}
+
 func main() {
 	log.Infof("--- Starting SFU Node ---")
 
