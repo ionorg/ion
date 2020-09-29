@@ -34,6 +34,7 @@ var server = sfu.NewSFU(sfu.Config{
 	},
 	Log: sfulog.Config{
 		Level: "debug",
+		Stats: true,
 	},
 })
 
