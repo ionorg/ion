@@ -14,7 +14,7 @@ import (
 
 const (
 	maxChanSize       = 100
-	IOSH264Fmtp       = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+	IOSH264Fmtp       = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
 	FireFoxH264Fmtp97 = "profile-level-id=42e01f;level-asymmetry-allowed=1"
 )
 
