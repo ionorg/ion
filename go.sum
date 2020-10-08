@@ -40,6 +40,7 @@ github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9/go.mod h1:2w
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0 h1:7lmqBSdb1ILwUJalqJdIoWPH0cnnQt4NshxXnVvrmx0=
 github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
+github.com/cloudwebrtc/go-protoo v0.0.0-20200926140535-79ecde67b906 h1:CXJrfUVNhSAKWnb+oSvd8MBCQJHK6+RS7jLvx2z3ba0=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de h1:yPvjphU5iEeYTOOPzSwU9TNoy0nOwtv5LYMZMVtOrPY=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de/go.mod h1:zwKwTqbrcBl9o2AHopHYlMh4KM3wMQHYeR6TrtoRCQ0=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=

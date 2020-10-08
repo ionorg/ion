@@ -102,6 +102,20 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 	if err != nil {
 		log.Errorf("IslbOnStreamRemove failed %v", err.Error())
 	}
+
+	// Unsubscribe from all remote streams
+	_, sfu, err := getRPCForSFU("", rid)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	_, err = sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("uid", uid))
+	if err != nil {
+		log.Warnf("unsubscribe: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
 	signal.DelPeer(rid, peer.ID())
 	return emptyMap, nil
 }
@@ -255,7 +269,7 @@ func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *npr
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	log.Infof("publish: result => %v", result)
+	log.Infof("unsubscribe: result => %v", result)
 	return result, nil
 }
 
