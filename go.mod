@@ -25,7 +25,7 @@ require (
 	github.com/shirou/gopsutil v2.20.8+incompatible
 	github.com/spf13/viper v1.7.1
 	github.com/tjfoc/gmsm v1.3.2 // indirect
-	github.com/xtaci/kcp-go v5.4.20+incompatible
+	github.com/xtaci/kcp-go v5.6.1+incompatible
 	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	sigs.k8s.io/yaml v1.2.0 // indirect
