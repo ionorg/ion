@@ -12,6 +12,7 @@ import (
 
 func init() {
 	log.Init(conf.Log.Level)
+	sfu.InitSFU(conf.WebRTC, conf.Receiver, conf.Log)
 }
 
 func main() {

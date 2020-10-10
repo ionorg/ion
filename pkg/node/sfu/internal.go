@@ -13,32 +13,20 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-var emptyMap = map[string]interface{}{}
+var (
+	server *sfu.SFU
+	peers  map[proto.MID]*sfu.WebRTCTransport
+)
 
-// TODO(kevmo314): Move to a config.toml.
-var server = sfu.NewSFU(sfu.Config{
-	WebRTC: sfu.WebRTCConfig{
-		ICEServers: []sfu.ICEServerConfig{
-			{URLs: []string{"stun:stun.l.google.com:19302"}},
-			{URLs: []string{"stun:stun.stunprotocol.org:3478"}},
-		},
-	},
-	Receiver: sfu.ReceiverConfig{
-		Video: sfu.WebRTCVideoReceiverConfig{
-			REMBCycle:     2,
-			PLICycle:      1,
-			TCCCycle:      1,
-			MaxBandwidth:  1000,
-			MaxBufferTime: 100,
-		},
-	},
-	Log: sfulog.Config{
-		Level: "debug",
-		Stats: true,
-	},
-})
-
-var peers = map[proto.MID]*sfu.WebRTCTransport{}
+// InitSFU init sfu server
+func InitSFU(webrtc *sfu.WebRTCConfig, receiver *sfu.ReceiverConfig, log *sfulog.Config) {
+	server = sfu.NewSFU(sfu.Config{
+		WebRTC:   *webrtc,
+		Receiver: *receiver,
+		Log:      *log,
+	})
+	peers = map[proto.MID]*sfu.WebRTCTransport{}
+}
 
 func handleRequest(rpcID string) {
 	log.Debugf("handleRequest: rpcID => [%v]", rpcID)

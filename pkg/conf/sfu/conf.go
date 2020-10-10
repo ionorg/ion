@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	sfu "github.com/pion/ion-sfu/pkg"
+	sfulog "github.com/pion/ion-sfu/pkg/log"
 	"github.com/spf13/viper"
 )
 
@@ -13,11 +15,13 @@ const (
 )
 
 var (
-	cfg     = config{}
-	Global  = &cfg.Global
-	Log     = &cfg.Log
-	Etcd    = &cfg.Etcd
-	Nats    = &cfg.Nats
+	cfg      = config{}
+	Global   = &cfg.Global
+	WebRTC   = &cfg.WebRTC
+	Receiver = &cfg.Receiver
+	Log      = &cfg.Log
+	Etcd     = &cfg.Etcd
+	Nats     = &cfg.Nats
 )
 
 func init() {
@@ -34,32 +38,6 @@ type global struct {
 	// TestIP []string `mapstructure:"testip"`
 }
 
-type JitterBuffer struct {
-	On            bool `mapstructure:"on"`
-	TCCOn         bool `mapstructure:"tccon"`
-	REMBCycle     int  `mapstructure:"rembcycle"`
-	PLICycle      int  `mapstructure:"plicycle"`
-	MaxBandwidth  int  `mapstructure:"maxbandwidth"`
-	MaxBufferTime int  `mapstructure:"maxbuffertime"`
-}
-
-type RTPForwarder struct {
-	On      bool   `mapstructure:"on"`
-	Addr    string `mapstructure:"addr"`
-	KcpKey  string `mapstructure:"kcpkey"`
-	KcpSalt string `mapstructure:"kcpsalt"`
-}
-
-type plugins struct {
-	On           bool         `mapstructure:"on"`
-	JitterBuffer JitterBuffer `mapstructure:"jitterbuffer"`
-	RTPForwarder RTPForwarder `mapstructure:"rtpforwarder"`
-}
-
-type log struct {
-	Level string `mapstructure:"level"`
-}
-
 type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
@@ -68,32 +46,14 @@ type nats struct {
 	URL string `mapstructure:"url"`
 }
 
-type iceserver struct {
-	URLs       []string `mapstructure:"urls"`
-	Username   string   `mapstructure:"username"`
-	Credential string   `mapstructure:"credential"`
-}
-
-type webrtc struct {
-	ICEPortRange []uint16    `mapstructure:"portrange"`
-	ICEServers   []iceserver `mapstructure:"iceserver"`
-}
-
-type rtp struct {
-	Port    int    `mapstructure:"port"`
-	KcpKey  string `mapstructure:"kcpkey"`
-	KcpSalt string `mapstructure:"kcpsalt"`
-}
-
 type config struct {
-	Global  global  `mapstructure:"global"`
-	Plugins plugins `mapstructure:"plugins"`
-	WebRTC  webrtc  `mapstructure:"webrtc"`
-	Rtp     rtp     `mapstructure:"rtp"`
-	Log     log     `mapstructure:"log"`
-	Etcd    etcd    `mapstructure:"etcd"`
-	Nats    nats    `mapstructure:"nats"`
-	CfgFile string
+	Global   global             `mapstructure:"global"`
+	WebRTC   sfu.WebRTCConfig   `mapstructure:"webrtc"`
+	Receiver sfu.ReceiverConfig `mapstructure:"receiver"`
+	Log      sfulog.Config      `mapstructure:"log"`
+	Etcd     etcd               `mapstructure:"etcd"`
+	Nats     nats               `mapstructure:"nats"`
+	CfgFile  string
 }
 
 func showHelp() {
