@@ -6,7 +6,6 @@ import (
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	sfu "github.com/pion/ion-sfu/pkg"
-	sfulog "github.com/pion/ion-sfu/pkg/log"
 	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -19,12 +18,8 @@ var (
 )
 
 // InitSFU init sfu server
-func InitSFU(webrtc *sfu.WebRTCConfig, receiver *sfu.ReceiverConfig, log *sfulog.Config) {
-	server = sfu.NewSFU(sfu.Config{
-		WebRTC:   *webrtc,
-		Receiver: *receiver,
-		Log:      *log,
-	})
+func InitSFU(config sfu.Config) {
+	server = sfu.NewSFU(config)
 	peers = map[proto.MID]*sfu.WebRTCTransport{}
 }
 

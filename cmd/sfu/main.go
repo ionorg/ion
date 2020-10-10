@@ -4,6 +4,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	_sfu "github.com/pion/ion-sfu/pkg"
 	conf "github.com/pion/ion/pkg/conf/sfu"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
@@ -12,7 +13,11 @@ import (
 
 func init() {
 	log.Init(conf.Log.Level)
-	sfu.InitSFU(conf.WebRTC, conf.Receiver, conf.Log)
+	sfu.InitSFU(_sfu.Config{
+		WebRTC: *conf.WebRTC,
+		Log:    *conf.Log,
+		Router: *conf.Router,
+	})
 }
 
 func main() {

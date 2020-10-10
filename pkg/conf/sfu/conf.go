@@ -6,7 +6,7 @@ import (
 	"os"
 
 	sfu "github.com/pion/ion-sfu/pkg"
-	sfulog "github.com/pion/ion-sfu/pkg/log"
+	"github.com/pion/ion-sfu/pkg/log"
 	"github.com/spf13/viper"
 )
 
@@ -15,13 +15,13 @@ const (
 )
 
 var (
-	cfg      = config{}
-	Global   = &cfg.Global
-	WebRTC   = &cfg.WebRTC
-	Receiver = &cfg.Receiver
-	Log      = &cfg.Log
-	Etcd     = &cfg.Etcd
-	Nats     = &cfg.Nats
+	cfg    = config{}
+	Global = &cfg.Global
+	WebRTC = &cfg.WebRTC
+	Router = &cfg.Router
+	Log    = &cfg.Log
+	Etcd   = &cfg.Etcd
+	Nats   = &cfg.Nats
 )
 
 func init() {
@@ -47,13 +47,13 @@ type nats struct {
 }
 
 type config struct {
-	Global   global             `mapstructure:"global"`
-	WebRTC   sfu.WebRTCConfig   `mapstructure:"webrtc"`
-	Receiver sfu.ReceiverConfig `mapstructure:"receiver"`
-	Log      sfulog.Config      `mapstructure:"log"`
-	Etcd     etcd               `mapstructure:"etcd"`
-	Nats     nats               `mapstructure:"nats"`
-	CfgFile  string
+	Global  global           `mapstructure:"global"`
+	WebRTC  sfu.WebRTCConfig `mapstructure:"webrtc"`
+	Router  sfu.RouterConfig `mapstructure:"router"`
+	Log     log.Config       `mapstructure:"log"`
+	Etcd    etcd             `mapstructure:"etcd"`
+	Nats    nats             `mapstructure:"nats"`
+	CfgFile string
 }
 
 func showHelp() {

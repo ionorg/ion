@@ -7,17 +7,27 @@ dc = "dc1"
 # internet ip
 addr = "127.0.0.1"
 
-[receiver.video]
+[router]
+# pass bandwidth feeback from subs to pubs
+subrembfeedback = false
+# Limit the remb bandwidth in kbps
+# zero means no limits
+maxbandwidth = 400
+# Rate limit nack packets from senders to 1 nack per maxNackTime in seconds
+# zero means no rate limit
+maxnacktime = 1
+
+[router.video]
 # the remb cycle sending to pub, this told the pub it's bandwidth
 rembcycle = 2
-# pli cycle sending to pub, and pub will send a key frame
-plicycle = 1
-# transport-cc cycle (experiment feature)
-tcccycle = 1
-# this limit the remb bandwidth
-maxbandwidth = 1000
+# transport-cc cycle in (ms) (experiment feature)
+tcccycle = 0
 # max buffer time by ms
 maxbuffertime = 1000
+
+[router.simulcast]
+# Prefer best quality initially
+bestqualityfirst = true
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
@@ -31,9 +41,21 @@ maxbuffertime = 1000
 # username = "awsome"
 # credential = "awsome"
 
+# In case you're deploying ion-sfu on a server which is configured with
+# a 1:1 NAT (e.g., Amazon EC2), you might want to also specify the public
+# address of the machine using the setting below. This will result in
+# all host candidates (which normally have a private IP address) to
+# be rewritten with the public address provided in the settings. As
+# such, use the option with caution and only if you know what you're doing.
+# Multiple public IP addresses can be specified as a comma separated list
+# if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
+# external users.
+# nat1to1 = ["1.2.3.4"]
+
 [log]
-level = "debug"
 stats = true
+level = "debug"
+fix = ["proc.go", "asm_amd64.s", "jsonrpc2.go"]
 
 [etcd]
 # ["ip:port", "ip:port"]
