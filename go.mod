@@ -2,9 +2,7 @@ module github.com/pion/ion
 
 go 1.13
 
-replace (
-	google.golang.org/grpc => google.golang.org/grpc v1.26.0
-)
+replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
@@ -19,12 +17,12 @@ require (
 	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v1.0.12
-	github.com/pion/ion-sfu v1.0.22
+	github.com/pion/ion-sfu v1.0.23
 	github.com/pion/rtcp v1.2.4
 	github.com/pion/rtp v1.6.1
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.1
-	github.com/pion/webrtc/v3 v3.0.0-beta.6
+	github.com/pion/webrtc/v3 v3.0.0-beta.7
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.8+incompatible
 	github.com/spf13/viper v1.7.1

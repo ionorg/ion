@@ -2,7 +2,6 @@ package sfu
 
 import (
 	"fmt"
-	"time"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	sfu "github.com/pion/ion-sfu/pkg"
@@ -14,13 +13,13 @@ import (
 
 var (
 	server *sfu.SFU
-	peers  map[proto.MID]*sfu.WebRTCTransport
+	peers  map[proto.MID]*sfu.Peer
 )
 
 // InitSFU init sfu server
 func InitSFU(config sfu.Config) {
 	server = sfu.NewSFU(config)
-	peers = map[proto.MID]*sfu.WebRTCTransport{}
+	peers = make(map[proto.MID]*sfu.Peer)
 }
 
 func handleRequest(rpcID string) {
@@ -75,104 +74,45 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
 
-	me := sfu.MediaEngine{}
-	if err := me.PopulateFromSDP(msg.Jsep); err != nil {
-		log.Errorf("join error: %v", err)
-		return nil, util.NewNpError(415, "join error")
-	}
+	peer := sfu.NewPeer(server)
+	peers[msg.MID] = &peer
 
-	peer, err := server.NewWebRTCTransport(string(msg.SID), me)
-	if err != nil {
-		log.Errorf("join error: %v", err)
-		return nil, util.NewNpError(415, "join error")
-	}
-	peers[msg.MID] = peer
+	log.Infof("peer %s join room %s", msg.MID, msg.RID)
 
-	log.Infof("peer %s join room %s", peer.ID(), msg.RID)
-
-	if err := peer.SetRemoteDescription(msg.Jsep); err != nil {
-		log.Errorf("join error: %v", err)
-		return nil, util.NewNpError(415, "join error")
-	}
-
-	answer, err := peer.CreateAnswer()
+	answer, err := peer.Join(string(msg.SID), msg.Jsep)
 	if err != nil {
 		log.Errorf("join error: %v", err)
 		return nil, util.NewNpError(415, "join error")
 	}
 
-	if err := peer.SetLocalDescription(answer); err != nil {
-		log.Errorf("join error: %v", err)
-		return nil, util.NewNpError(415, "join error")
+	peer.OnOffer = func(offer *webrtc.SessionDescription) {
+		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+			UID:     msg.UID,
+			RID:     msg.RID,
+			MID:     msg.MID,
+			RTCInfo: proto.RTCInfo{Jsep: *offer},
+		})
 	}
 
-	peer.OnICECandidate(func(c *webrtc.ICECandidate) {
-		if c == nil {
-			// Gathering done
-			return
-		}
+	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit) {
 		broadcaster.Say(proto.SfuTrickleICE, proto.SfuTrickleMsg{
 			UID:       msg.UID,
 			RID:       msg.RID,
 			MID:       msg.MID,
-			Candidate: c.ToJSON(),
+			Candidate: *candidate,
 		})
-	})
+	}
 
-	peer.OnNegotiationNeeded(func() {
-		log.Infof("on negotiation needed called")
-		offer, err := peer.CreateOffer()
-		if err != nil {
-			log.Errorf("CreateOffer error: %v", err)
-			return
-		}
+	// TODO: ion-sfu may need to provide an peer.OnClose to notify clients that a peer is closed.
+	// peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+	// 	if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
+	// 		broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
+	// 			RID: msg.RID, UID: msg.UID, MID: msg.MID,
+	// 		})
+	// 	}
+	// })
 
-		if err := peer.SetLocalDescription(offer); err != nil {
-			log.Errorf("SetLocalDescription error: %v", err)
-			return
-		}
-
-		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-			UID:     msg.UID,
-			RID:     msg.RID,
-			MID:     msg.MID,
-			RTCInfo: proto.RTCInfo{Jsep: offer},
-		})
-	})
-
-	peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
-			broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
-				RID: msg.RID, UID: msg.UID, MID: msg.MID,
-			})
-		}
-	})
-
-	// TODO: Remove once OnNegotiationNeeded is supported.
-	go func() {
-		time.Sleep(1000 * time.Millisecond)
-
-		log.Infof("on negotiation needed called")
-		offer, err := peer.CreateOffer()
-		if err != nil {
-			log.Errorf("CreateOffer error: %v", err)
-			return
-		}
-
-		if err := peer.SetLocalDescription(offer); err != nil {
-			log.Errorf("SetLocalDescription error: %v", err)
-			return
-		}
-
-		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-			UID:     msg.UID,
-			RID:     msg.RID,
-			MID:     msg.MID,
-			RTCInfo: proto.RTCInfo{Jsep: offer},
-		})
-	}()
-
-	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: answer}}
+	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: *answer}}
 	return resp, nil
 }
 
@@ -183,25 +123,15 @@ func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "peer not found")
 	}
 
-	if err := peer.SetRemoteDescription(msg.Jsep); err != nil {
-		log.Errorf("set remote description error: %v", err)
-		return nil, util.NewNpError(415, "set remote description error")
-	}
-
-	answer, err := peer.CreateAnswer()
+	answer, err := peer.Answer(msg.Jsep)
 	if err != nil {
-		log.Errorf("create answer error: %v", err)
-		return nil, util.NewNpError(415, "create answer error")
-	}
-
-	if err := peer.SetLocalDescription(answer); err != nil {
-		log.Errorf("set local description error: %v", err)
-		return nil, util.NewNpError(415, "set local description error")
+		log.Errorf("peer.Answer: %v", err)
+		return nil, util.NewNpError(415, "peer.Answer error")
 	}
 
 	resp := proto.SfuNegotiationMsg{
 		UID: msg.UID, RID: msg.RID, MID: msg.MID,
-		RTCInfo: proto.RTCInfo{Jsep: answer},
+		RTCInfo: proto.RTCInfo{Jsep: *answer},
 	}
 	return resp, nil
 }
@@ -242,7 +172,7 @@ func trickle(msg proto.SfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "peer not found")
 	}
 
-	if err := peer.AddICECandidate(msg.Candidate); err != nil {
+	if err := peer.Trickle(msg.Candidate); err != nil {
 		return nil, util.NewNpError(415, "error adding ice candidate")
 	}
 

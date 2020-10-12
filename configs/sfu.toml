@@ -26,6 +26,9 @@ maxbuffertime = 1000
 [router.simulcast]
 # Prefer best quality initially
 bestqualityfirst = true
+# EXPERIMENTAL enable temporal layer change is currently an experimental feature,
+# enable only for testing.
+enabletemporallayer = false
 
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
