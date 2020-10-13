@@ -11,15 +11,11 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-var (
-	server *sfu.SFU
-	peers  map[proto.MID]*sfu.Peer
-)
+var s *server
 
 // InitSFU init sfu server
-func InitSFU(config sfu.Config) {
-	server = sfu.NewSFU(config)
-	peers = make(map[proto.MID]*sfu.Peer)
+func InitSFU(config *sfu.Config) {
+	s = newServer(config)
 }
 
 func handleRequest(rpcID string) {
@@ -74,8 +70,7 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
 
-	peer := sfu.NewPeer(server)
-	peers[msg.MID] = &peer
+	peer := s.addPeer(msg.MID)
 
 	log.Infof("peer %s join room %s", msg.MID, msg.RID)
 
@@ -118,8 +113,9 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 
 func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("offer msg=%v", msg)
-	peer, ok := peers[msg.MID]
-	if !ok {
+	peer := s.getPeer(msg.MID)
+	if peer == nil {
+		log.Warnf("peer not found, mid=%s", msg.MID)
 		return nil, util.NewNpError(415, "peer not found")
 	}
 
@@ -138,12 +134,12 @@ func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 
 func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("leave msg=%v", msg)
-	peer, ok := peers[msg.MID]
-	if !ok {
-		log.Warnf("peers %v", peers)
+	peer := s.getPeer(msg.MID)
+	if peer == nil {
+		log.Warnf("peer not found, mid=%s", msg.MID)
 		return nil, util.NewNpError(415, "peer not found")
 	}
-	delete(peers, msg.MID)
+	s.delPeer(msg.MID)
 
 	if err := peer.Close(); err != nil {
 		return nil, util.NewNpError(415, "failed to close peer")
@@ -154,8 +150,9 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 
 func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("answer msg=%v", msg)
-	peer, ok := peers[msg.MID]
-	if !ok {
+	peer := s.getPeer(msg.MID)
+	if peer == nil {
+		log.Warnf("peer not found, mid=%s", msg.MID)
 		return nil, util.NewNpError(415, "peer not found")
 	}
 
@@ -168,8 +165,9 @@ func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 
 func trickle(msg proto.SfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
 	log.Infof("trickle msg=%v", msg)
-	peer, ok := peers[msg.MID]
-	if !ok {
+	peer := s.getPeer(msg.MID)
+	if peer == nil {
+		log.Warnf("peer not found, mid=%s", msg.MID)
 		return nil, util.NewNpError(415, "peer not found")
 	}
 

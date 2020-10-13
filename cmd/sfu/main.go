@@ -13,7 +13,7 @@ import (
 
 func init() {
 	log.Init(conf.Log.Level)
-	sfu.InitSFU(_sfu.Config{
+	sfu.InitSFU(&_sfu.Config{
 		WebRTC: *conf.WebRTC,
 		Log:    *conf.Log,
 		Router: *conf.Router,
