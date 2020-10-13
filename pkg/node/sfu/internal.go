@@ -23,11 +23,11 @@ func InitSFU(config sfu.Config) {
 }
 
 func handleRequest(rpcID string) {
-	log.Debugf("handleRequest: rpcID => [%v]", rpcID)
+	log.Infof("handleRequest: rpcID => [%v]", rpcID)
 	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
 		method := request.Method
 		data := request.Data
-		log.Debugf("handleRequest: method => %s, data => %v", method, data)
+		log.Infof("handleRequest: method => %s, data => %s", method, data)
 
 		var result interface{}
 		err := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
@@ -69,7 +69,7 @@ func handleRequest(rpcID string) {
 }
 
 func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
-	log.Debugf("join msg=%v", msg)
+	log.Infof("join msg=%v", msg)
 	if msg.Jsep.SDP == "" {
 		return nil, util.NewNpError(415, "publish: jsep invaild.")
 	}
@@ -117,7 +117,7 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 }
 
 func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
-	log.Debugf("offer msg=%v", msg)
+	log.Infof("offer msg=%v", msg)
 	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")
@@ -137,6 +137,7 @@ func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 }
 
 func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("leave msg=%v", msg)
 	peer, ok := peers[msg.MID]
 	if !ok {
 		log.Warnf("peers %v", peers)
@@ -152,7 +153,7 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 }
 
 func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
-	log.Debugf("answer msg=%v", msg)
+	log.Infof("answer msg=%v", msg)
 	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")
@@ -166,7 +167,7 @@ func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 }
 
 func trickle(msg proto.SfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
-	log.Debugf("trickle msg=%v", msg)
+	log.Infof("trickle msg=%v", msg)
 	peer, ok := peers[msg.MID]
 	if !ok {
 		return nil, util.NewNpError(415, "peer not found")

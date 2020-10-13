@@ -55,7 +55,7 @@ enabletemporallayer = false
 
 [log]
 stats = true
-level = "debug"
+level = "info"
 fix = ["proc.go", "asm_amd64.s", "jsonrpc2.go"]
 
 [etcd]

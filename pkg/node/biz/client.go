@@ -95,6 +95,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 
 // Handle a signal disconnection.
 func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
 	if !signal.HasPeer(msg.RID, peer) {
 		return nil, nil
 	}
@@ -142,6 +143,7 @@ func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.E
 }
 
 func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.leave msg=%v", msg)
 	room := signal.GetRoom(msg.RID)
 	if room == nil {
 		log.Warnf("room not exits, %v", msg)
@@ -177,6 +179,7 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 }
 
 func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.offer peer.ID()=%s msg=%v", peer.ID(), msg)
 	_, sfu, err := getRPCForSFU(proto.UID(peer.ID()), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)

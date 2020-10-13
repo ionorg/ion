@@ -13,7 +13,6 @@ import (
 	"github.com/pion/ion/pkg/util"
 )
 
-
 // WatchServiceNodes .
 func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
 	id := node.ID
@@ -328,7 +327,7 @@ func handleRequest(rpcID string) {
 		go func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
 			method := request.Method
 			msg := request.Data
-			log.Infof("method => %s", method)
+			log.Infof("handleRequest: method => %s, data => %s", method, msg)
 
 			var result interface{}
 			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))

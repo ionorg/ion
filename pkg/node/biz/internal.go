@@ -55,7 +55,7 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 
 func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 	go func(msg nprotoo.Notification) {
-		log.Infof("handleSFUBroadCast: method=%s, data=%v", msg.Method, msg)
+		log.Infof("handleSFUBroadCast: method=%s, data=%s", msg.Method, msg)
 
 		switch msg.Method {
 		case proto.SfuTrickleICE:
