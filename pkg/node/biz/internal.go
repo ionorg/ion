@@ -91,7 +91,8 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 						RTCInfo: msgData.RTCInfo,
 					}, func(answer json.RawMessage) {
 						var answerData proto.ClientNegotiationMsg
-						if err := ParseProtoo(answer, &answerData); err != nil {
+						// TODO: ParseProtoo instread of ParseProtooNoAuth
+						if err := ParseProtooNoAuth(answer, &answerData); err != nil {
 							log.Warnf("Failed to parse client answer %s", answer)
 							return
 						}
