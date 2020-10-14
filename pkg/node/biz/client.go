@@ -33,18 +33,31 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 		return nil, util.NewNpError(400, "Could not parse SDP")
 	}
 
-	//already joined this room
-	if signal.HasPeer(rid, peer) {
-		return emptyMap, nil
-	}
-	signal.AddPeer(rid, peer)
-
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-
 	uid := proto.UID(peer.ID())
+
+	//already joined this room
+	if signal.HasPeer(rid, peer) {
+		log.Infof("biz.join peer.ID()=%s already joined, removing old peer", peer.ID())
+
+		if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
+			RoomInfo: proto.RoomInfo{UID: uid, RID: msg.RID},
+		}); err != nil {
+			log.Errorf("IslbClientOnLeave failed %v", err.Error())
+		}
+
+		oldPeer := signal.GetPeer(rid, peer.ID())
+		if oldPeer != nil {
+			signal.DelPeer(rid, peer.ID())
+			oldPeer.Close()
+		}
+	}
+	log.Infof("biz.join adding new peer")
+	signal.AddPeer(rid, peer)
+
 	mid := proto.MID(uuid.New().String())
 	_, sfu, npErr := getRPCForSFU(uid, rid, mid)
 	if npErr != nil {

@@ -8,11 +8,15 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0
 	github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de
+	github.com/coreos/etcd v3.3.22+incompatible // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/uuid v1.1.2
+	github.com/gorilla/websocket v1.4.2
 	github.com/klauspost/reedsolomon v1.9.9 // indirect
 	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/notedit/sdp v0.0.4
@@ -23,6 +27,7 @@ require (
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.1
 	github.com/pion/webrtc/v3 v3.0.0-beta.7
+	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.19.0
 	github.com/shirou/gopsutil v2.20.8+incompatible
 	github.com/spf13/viper v1.7.1
@@ -32,7 +37,7 @@ require (
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
-	go.etcd.io/etcd v0.5.0-alpha.5.0.20200518003842-9bad82fee544
+	go.etcd.io/etcd v3.3.25+incompatible
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6 // indirect
 	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect

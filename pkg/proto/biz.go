@@ -6,6 +6,15 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
+type Authenticatable interface {
+	Room() RoomInfo
+	Token() string
+}
+
+type RoomToken struct {
+	Token string `json:"token,omitempty"`
+}
+
 type RoomInfo struct {
 	RID RID `json:"rid"`
 	UID UID `json:"uid"`
@@ -46,8 +55,13 @@ type TrackMap map[string][]TrackInfo
 
 type FromClientJoinMsg struct {
 	RID RID `json:"rid"`
+	RoomToken
 	RTCInfo
 	Info json.RawMessage `json:"info"`
+}
+
+func (j *FromClientJoinMsg) Token() string {
+	return j.RoomToken.Token
 }
 
 type ToClientJoinMsg struct {
