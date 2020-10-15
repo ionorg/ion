@@ -57,26 +57,19 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 	if err != nil {
 		log.Errorf("IslbClientOnJoin failed %v", err.Error())
 	}
-	// Send getPubs => islb
-	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
-		func(result nprotoo.RawMessage) {
-			var resMsg proto.GetPubResp
-			if err := result.Unmarshal(&resMsg); err != nil {
-				log.Errorf("Unmarshal pub response %v", err)
-				return
-			}
-			log.Infof("IslbGetPubs: result=%v", resMsg)
-			for _, pub := range resMsg.Pubs {
-				if pub.MID == "" {
-					continue
-				}
-				notif := proto.StreamAddMsg(pub)
-				peer.Notify(proto.ClientOnStreamAdd, notif)
-			}
-		},
-		func(err *nprotoo.Error) {})
 
-	return emptyMap, nil
+	result, err := islb.SyncRequest(proto.IslbGetPubs, msg.RoomInfo)
+	if err != nil {
+		log.Errorf("IslbGetPubs failed %v", err.Error())
+		return nil, util.NewNpError(500, err.Reason)
+	}
+	var resMsg proto.GetPubResp
+	if err := result.Unmarshal(&resMsg); err != nil {
+		log.Errorf("Unmarshal pub response %v", err)
+		return nil, util.NewNpError(500, err.Reason)
+	}
+	log.Infof("IslbGetPubs: result=%v", resMsg)
+	return resMsg, nil
 }
 
 func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) {
