@@ -21,7 +21,7 @@ require (
 	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v1.0.12
-	github.com/pion/ion-sfu v1.0.23
+	github.com/pion/ion-sfu v1.0.24
 	github.com/pion/rtcp v1.2.4
 	github.com/pion/rtp v1.6.1
 	github.com/pion/stun v0.3.5
