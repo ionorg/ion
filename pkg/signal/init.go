@@ -14,7 +14,7 @@ import (
 type AcceptFunc peer.AcceptFunc
 type RejectFunc peer.RejectFunc
 type RespondFunc peer.RespondFunc
-type BizEntry func(method string, peer *Peer, msg json.RawMessage, claims *Claims, accept RespondFunc, reject RejectFunc)
+type BizEntry func(method string, peer *Peer, msg json.RawMessage, accept RespondFunc, reject RejectFunc)
 
 const (
 	errInvalidMethod = "method not found"

@@ -37,23 +37,18 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
-	uid := proto.UID(peer.ID())
+	uid := peer.ID()
 
 	//already joined this room
-	if signal.HasPeer(rid, peer) {
-		log.Infof("biz.join peer.ID()=%s already joined, removing old peer", peer.ID())
+	if p := signal.GetPeer(rid, uid); p != nil {
+		log.Infof("biz.join peer.ID()=%s already joined, removing old peer", uid)
 
 		if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
 			RoomInfo: proto.RoomInfo{UID: uid, RID: msg.RID},
 		}); err != nil {
 			log.Errorf("IslbClientOnLeave failed %v", err.Error())
 		}
-
-		oldPeer := signal.GetPeer(rid, peer.ID())
-		if oldPeer != nil {
-			signal.DelPeer(rid, peer.ID())
-			oldPeer.Close()
-		}
+		p.Close()
 	}
 	log.Infof("biz.join adding new peer")
 	signal.AddPeer(rid, peer)
@@ -109,10 +104,12 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 // Handle a signal disconnection.
 func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
-	if !signal.HasPeer(msg.RID, peer) {
+	room := signal.GetRoom(msg.RID)
+	if room == nil {
+		log.Warnf("room not exits, rid=", msg.RID)
 		return nil, nil
 	}
-	signal.DelPeer(msg.RID, string(msg.UID))
+	room.DelPeer(msg.UID)
 
 	// TODO: This can perhaps be optimized a bit.
 	islb, found := getRPCForIslb()
@@ -159,14 +156,10 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.leave msg=%v", msg)
 	room := signal.GetRoom(msg.RID)
 	if room == nil {
-		log.Warnf("room not exits, %v", msg)
+		log.Warnf("room not exits, rid=", msg.RID)
 		return nil, nil
 	}
-	if !room.HasPeer(string(msg.UID)) {
-		log.Warnf("peer not exits, %v", msg)
-		return nil, nil
-	}
-	signal.DelPeer(msg.RID, string(msg.UID))
+	room.DelPeer(msg.UID)
 
 	islb, found := getRPCForIslb()
 	if !found {

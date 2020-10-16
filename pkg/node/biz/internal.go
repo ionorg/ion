@@ -30,7 +30,11 @@ func handleIslbBroadcast(msg nprotoo.Notification, subj string) {
 
 		log.Infof("OnIslbBroadcast: method=%s, data=%v", msg.Method, string(msg.Data))
 		if newMethod, ok := isblSignalTransformMap[msg.Method]; ok {
-			signal.NotifyAllWithoutID(data.RID, data.UID, newMethod, msg.Data)
+			if r := signal.GetRoom(data.RID); r != nil {
+				r.NotifyWithoutID(newMethod, msg.Data, data.UID)
+			} else {
+				log.Warnf("room not exits, rid=%s, uid=%, method=%s, msg=%s", data.RID, data.UID, newMethod, msg.Data)
+			}
 		}
 	}(msg)
 }
@@ -65,7 +69,7 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 				return
 			}
 			if room := signal.GetRoom(msgData.RID); room != nil {
-				if peer := room.GetPeer(string(msgData.UID)); peer != nil {
+				if peer := room.GetPeer(msgData.UID); peer != nil {
 					peer.Notify(proto.ClientTrickleICE, proto.ClientTrickleMsg{
 						RID:       msgData.RID,
 						MID:       msgData.MID,
@@ -84,15 +88,14 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 				return
 			}
 			if room := signal.GetRoom(msgData.RID); room != nil {
-				if peer := room.GetPeer(string(msgData.UID)); peer != nil {
+				if peer := room.GetPeer(msgData.UID); peer != nil {
 					peer.Request(proto.ClientOffer, proto.ClientNegotiationMsg{
 						RID:     msgData.RID,
 						MID:     msgData.MID,
 						RTCInfo: msgData.RTCInfo,
 					}, func(answer json.RawMessage) {
 						var answerData proto.ClientNegotiationMsg
-						// TODO: ParseProtoo instread of ParseProtooNoAuth
-						if err := ParseProtooNoAuth(answer, &answerData); err != nil {
+						if err := ParseProtoo(answer, peer.Claims(), &answerData); err != nil {
 							log.Warnf("Failed to parse client answer %s", answer)
 							return
 						}

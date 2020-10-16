@@ -1,47 +1,59 @@
 package signal
 
 import (
-	"encoding/json"
+	"sync"
 
 	"github.com/cloudwebrtc/go-protoo/peer"
 	"github.com/cloudwebrtc/go-protoo/transport"
-	"github.com/pion/ion/pkg/log"
+	"github.com/pion/ion/pkg/proto"
 )
 
-func newPeer(id string, t *transport.WebSocketTransport) *Peer {
+func newPeer(id proto.UID, t *transport.WebSocketTransport, claims *Claims) *Peer {
 	return &Peer{
-		Peer: *peer.NewPeer(id, t),
+		Peer:   *peer.NewPeer(string(id), t),
+		claims: claims,
 	}
 }
 
-// func getPeer(rid, id string) *peer.Peer {
-// 	room := getRoom(rid)
-// 	if room != nil {
-// 		return room.GetPeer(id)
-// 	}
-// 	return nil
-// }
-
+// Peer represents a peer
 type Peer struct {
+	sync.Mutex
 	peer.Peer
+	claims *Claims
+	closed bool
 }
 
-func (c *Peer) Request(method string, data interface{}) {
-	c.Peer.Request(method, data, accept, reject)
+// ID user/peer id
+func (p *Peer) ID() proto.UID {
+	return proto.UID(p.Peer.ID())
 }
 
-func (c *Peer) Close() {
-	c.Peer.Close()
+// Claims return the connection claims
+func (p *Peer) Claims() *Claims {
+	return p.claims
 }
 
-func accept(data json.RawMessage) {
-	log.Infof("peer accept data=%v", data)
+// Request to peer
+func (p *Peer) Request(method string, data interface{}, accept peer.AcceptFunc, reject peer.RejectFunc) {
+	p.Lock()
+	defer p.Unlock()
+	p.Peer.Request(method, data, accept, reject)
 }
 
-func emptyAccept(data interface{}) {
-	log.Infof("peer accept data=%v", data)
+// Notify a message to the peer
+func (p *Peer) Notify(method string, data interface{}) {
+	p.Lock()
+	defer p.Unlock()
+	p.Peer.Notify(method, data)
 }
 
-func reject(errorCode int, errorReason string) {
-	log.Infof("reject errorCode=%v errorReason=%v", errorCode, errorReason)
+// Close peer
+func (p *Peer) Close() {
+	p.Lock()
+	defer p.Unlock()
+	if p.closed {
+		return
+	}
+	p.closed = true
+	p.Peer.Close()
 }

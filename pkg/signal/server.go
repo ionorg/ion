@@ -14,6 +14,7 @@ import (
 	"github.com/pion/ion/pkg/log"
 )
 
+// WebSocketServerConfig represents websocket server configuration
 type WebSocketServerConfig struct {
 	Host          string
 	Port          int
@@ -24,6 +25,7 @@ type WebSocketServerConfig struct {
 	AuthConnection conf.AuthConfig
 }
 
+// MsgHandler type
 type MsgHandler func(ws *transport.WebSocketTransport, request *http.Request)
 
 type contextKey struct {
@@ -100,10 +102,10 @@ func NewWebSocketServer(cfg WebSocketServerConfig, msgHandler MsgHandler) error 
 	if cfg.CertFile == "" || cfg.KeyFile == "" {
 		logger.Infof("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
 		return http.ListenAndServe(cfg.Host+":"+strconv.Itoa(cfg.Port), nil)
-	} else {
-		logger.Infof("TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
-		return http.ListenAndServeTLS(cfg.Host+":"+strconv.Itoa(cfg.Port), cfg.CertFile, cfg.KeyFile, nil)
 	}
+
+	logger.Infof("TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
+	return http.ListenAndServeTLS(cfg.Host+":"+strconv.Itoa(cfg.Port), cfg.CertFile, cfg.KeyFile, nil)
 }
 
 // ForContext finds the request claims from the context.
