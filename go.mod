@@ -27,6 +27,6 @@ require (
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.etcd.io/etcd v3.3.22+incompatible
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
