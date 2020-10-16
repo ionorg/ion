@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/viper"
 )
 
@@ -40,11 +41,29 @@ type etcd struct {
 }
 
 type signal struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Cert string `mapstructure:"cert"`
-	Key  string `mapstructure:"key"`
-	AllowDisconnected bool `mapstructure:"allow_disconnected"`
+	Host              string `mapstructure:"host"`
+	Port              int    `mapstructure:"port"`
+	Cert              string `mapstructure:"cert"`
+	Key               string `mapstructure:"key"`
+	WebSocketPath     string `mapstructure:"path"`
+	AllowDisconnected bool   `mapstructure:"allow_disconnected"`
+
+	AuthConnection AuthConfig `mapstructure:"auth_connection"`
+	AuthRoom       AuthConfig `mapstructure:"auth_room"`
+}
+
+type AuthConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	Key     string `mapstructure:"key"`
+	KeyType string `mapstructure:"key_type"`
+}
+
+func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
+	switch a.KeyType {
+	//TODO: add more support for keytypes here
+	default:
+		return []byte(a.Key), nil
+	}
 }
 
 type nats struct {

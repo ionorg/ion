@@ -34,6 +34,7 @@ type RouterConfig struct {
 type Router struct {
 	pub           transport.Transport
 	subs          map[proto.MID]transport.Transport
+	userSubs      map[proto.UID]proto.MID
 	subLock       sync.RWMutex
 	stop          bool
 	liveTime      time.Time
@@ -48,6 +49,7 @@ func NewRouter(id proto.MID) *Router {
 	log.Infof("NewRouter id=%s", id)
 	return &Router{
 		subs:          make(map[proto.MID]transport.Transport),
+		userSubs:      make(map[proto.UID]proto.MID),
 		liveTime:      time.Now().Add(liveCycle),
 		pluginChain:   plugins.NewPluginChain(string(id)),
 		subChans:      make(map[proto.MID]chan *rtp.Packet),
@@ -158,6 +160,7 @@ func (r *Router) subWriteLoop(subID proto.MID, trans transport.Transport) {
 			// log.Errorf("wt.WriteRTP err=%v", err)
 			// del sub when err is increasing
 			if trans.WriteErrTotal() > maxWriteErr {
+				log.Errorf("Increased number of errors in writing to Sub, deleting sub %v", proto.MID(trans.ID()))
 				r.DelSub(proto.MID(trans.ID()))
 			}
 		}
@@ -271,7 +274,7 @@ func (r *Router) subFeedbackLoop(subID proto.MID, trans transport.Transport) {
 }
 
 // AddSub add a sub to router
-func (r *Router) AddSub(id proto.MID, t transport.Transport) transport.Transport {
+func (r *Router) AddSub(id proto.MID, t transport.Transport, uid proto.UID) transport.Transport {
 	//fix panic: assignment to entry in nil map
 	if r.stop {
 		return nil
@@ -279,6 +282,7 @@ func (r *Router) AddSub(id proto.MID, t transport.Transport) transport.Transport
 	r.subLock.Lock()
 	defer r.subLock.Unlock()
 	r.subs[id] = t
+	r.userSubs[uid] = id
 	r.subChans[id] = make(chan *rtp.Packet, 1000)
 	t.SetShutdownChan(r.subShutdownCh)
 	log.Infof("Router.AddSub id=%s t=%p", id, t)
@@ -325,8 +329,25 @@ func (r *Router) DelSub(id proto.MID) {
 	if r.subChans[id] != nil {
 		close(r.subChans[id])
 	}
+	for uid, mid := range r.userSubs {
+		if mid == id {
+			delete(r.userSubs, uid)
+			break
+		}
+	}
 	delete(r.subs, id)
 	delete(r.subChans, id)
+}
+
+// DelUserSub del subscription from user uid
+func (r *Router) DelUserSub(uid proto.UID) {
+	log.Infof("Router.DelUserSub uid=%s", uid)
+	r.subLock.RLock()
+	mid := r.userSubs[uid]
+	r.subLock.RUnlock()
+	if mid != "" {
+		r.DelSub(mid)
+	}
 }
 
 // DelSubs del all sub

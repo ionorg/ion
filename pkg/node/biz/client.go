@@ -25,43 +25,51 @@ func join(peer *signal.Peer, msg proto.JoinMsg) (interface{}, *nprotoo.Error) {
 		return nil, ridError
 	}
 
-	//already joined this room
-	if signal.HasPeer(rid, peer) {
-		return emptyMap, nil
-	}
-	signal.AddPeer(rid, peer)
-
 	islb, found := getRPCForIslb()
 	if !found {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
+	uid := peer.ID()
+
+	//already joined this room
+	if signal.HasPeer(rid, peer) {
+		log.Infof("biz.join peer.ID()=%s already joined, removing old peer", peer.ID())
+		islb.AsyncRequest(proto.IslbOnStreamRemove, util.Map("rid", rid, "uid", uid))
+
+		_, err := islb.SyncRequest(proto.IslbClientOnLeave, util.Map("rid", rid, "uid", uid))
+		if err != nil {
+			log.Errorf("IslbClientOnLeave failed %v", err.Error())
+		}
+
+		oldPeer := signal.GetPeer(rid, peer.ID())
+		if oldPeer != nil {
+			signal.DelPeer(rid, peer.ID())
+			oldPeer.Close()
+		}
+	}
+	log.Infof("biz.join adding new peer")
+	signal.AddPeer(rid, peer)
+
 	// Send join => islb
 	info := msg.Info
-	uid := peer.ID()
+
 	_, err := islb.SyncRequest(proto.IslbClientOnJoin, util.Map("rid", rid, "uid", uid, "info", info))
 	if err != nil {
 		log.Errorf("IslbClientOnJoin failed %v", err.Error())
 	}
-	// Send getPubs => islb
-	islb.AsyncRequest(proto.IslbGetPubs, msg.RoomInfo).Then(
-		func(result nprotoo.RawMessage) {
-			var resMsg proto.GetPubResp
-			if err := result.Unmarshal(&resMsg); err != nil {
-				log.Errorf("Unmarshal pub response %v", err)
-				return
-			}
-			log.Infof("IslbGetPubs: result=%v", resMsg)
-			for _, pub := range resMsg.Pubs {
-				if pub.MID == "" {
-					continue
-				}
-				notif := proto.StreamAddMsg(pub)
-				peer.Notify(proto.ClientOnStreamAdd, notif)
-			}
-		},
-		func(err *nprotoo.Error) {})
 
-	return emptyMap, nil
+	result, err := islb.SyncRequest(proto.IslbGetPubs, msg.RoomInfo)
+	if err != nil {
+		log.Errorf("IslbGetPubs failed %v", err.Error())
+		return nil, util.NewNpError(500, err.Reason)
+	}
+	var resMsg proto.GetPubResp
+	if err := result.Unmarshal(&resMsg); err != nil {
+		log.Errorf("Unmarshal pub response %v", err)
+		return nil, util.NewNpError(500, err.Reason)
+	}
+	log.Infof("IslbGetPubs: result=%v", resMsg)
+	return resMsg, nil
 }
 
 func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) {
@@ -87,6 +95,20 @@ func leave(peer *signal.Peer, msg proto.LeaveMsg) (interface{}, *nprotoo.Error) 
 	if err != nil {
 		log.Errorf("IslbOnStreamRemove failed %v", err.Error())
 	}
+
+	// Unsubscribe from all remote streams
+	_, sfu, err := getRPCForSFU("", rid)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	_, err = sfu.SyncRequest(proto.ClientUnSubscribe, util.Map("uid", uid))
+	if err != nil {
+		log.Warnf("unsubscribe: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
 	signal.DelPeer(rid, peer.ID())
 	return emptyMap, nil
 }
@@ -240,7 +262,7 @@ func unsubscribe(peer *signal.Peer, msg proto.UnsubscribeMsg) (interface{}, *npr
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
-	log.Infof("publish: result => %v", result)
+	log.Infof("unsubscribe: result => %v", result)
 	return result, nil
 }
 
