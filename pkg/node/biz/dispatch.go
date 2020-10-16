@@ -49,8 +49,8 @@ func ParseProtooNoAuth(msg json.RawMessage, msgType interface{}) *nprotoo.Error 
 func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, authenticatable proto.Authenticatable) *nprotoo.Error {
 	log.Debugf("authenticateRoom: checking claims on token %v", authenticatable.Token())
 	// Connection token has valid claim on this room, succeed early
-	if connectionClaims != nil && authenticatable.Room().RID == proto.RID(connectionClaims.RID) {
-		log.Debugf("authenticateRoom: Valid RID in connectionClaims %v", authenticatable.Room().RID)
+	if connectionClaims != nil && authenticatable.Room() == proto.RID(connectionClaims.RID) {
+		log.Debugf("authenticateRoom: Valid RID in connectionClaims %v", authenticatable.Room())
 		return nil
 	}
 
@@ -72,8 +72,8 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, auth
 	}
 
 	// Message token is valid, succeed
-	if msgClaims != nil && authenticatable.Room().RID == proto.RID(msgClaims.RID) {
-		log.Debugf("authenticateRoom: Valid RID in msgClaims %v", authenticatable.Room().RID)
+	if msgClaims != nil && authenticatable.Room() == proto.RID(msgClaims.RID) {
+		log.Debugf("authenticateRoom: Valid RID in msgClaims %v", authenticatable.Room())
 		return nil
 	}
 

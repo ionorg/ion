@@ -7,7 +7,7 @@ import (
 )
 
 type Authenticatable interface {
-	Room() RoomInfo
+	Room() RID
 	Token() string
 }
 
@@ -62,6 +62,9 @@ type FromClientJoinMsg struct {
 
 func (j *FromClientJoinMsg) Token() string {
 	return j.RoomToken.Token
+}
+func (j *FromClientJoinMsg) Room() RID {
+	return j.RID
 }
 
 type ToClientJoinMsg struct {
