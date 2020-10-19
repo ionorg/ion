@@ -241,7 +241,7 @@ func subscribe(msg proto.SFUSubscribeMsg) (interface{}, *nprotoo.Error) {
 		return nil, util.NewNpError(415, "Unsupported Media Type")
 	}
 
-	router.AddSub(subID, sub)
+	router.AddSub(subID, sub, msg.UID)
 
 	log.Infof("subscribe mid %s, answer = %v", subID, answer)
 	return util.Map("jsep", answer, "mid", subID), nil
@@ -251,15 +251,22 @@ func subscribe(msg proto.SFUSubscribeMsg) (interface{}, *nprotoo.Error) {
 func unsubscribe(msg proto.UnsubscribeMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("unsubscribe msg=%v", msg)
 	mid := msg.MID
+	uid := msg.UID
 	found := false
 	rtc.MapRouter(func(id proto.MID, r *rtc.Router) {
-		subs := r.GetSubs()
-		for sid := range subs {
-			if sid == mid {
-				r.DelSub(mid)
-				found = true
-				return
+		if mid != "" {
+			subs := r.GetSubs()
+			for sid := range subs {
+				if sid == mid {
+					r.DelSub(mid)
+					found = true
+					return
+				}
 			}
+		} else if uid != "" {
+			log.Infof("Remove user sub: %v", uid)
+			found = true
+			r.DelUserSub(uid)
 		}
 	})
 	if found {

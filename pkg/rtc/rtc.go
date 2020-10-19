@@ -170,14 +170,14 @@ func check() {
 				CleanChannel <- id
 				log.Infof("Stat delete %v", id)
 			}
-			info += "pub: " + string(id) + "\n"
+			info += "\npub: " + string(id) + "\n"
 			subs := router.GetSubs()
 			if len(subs) < 6 {
 				for id := range subs {
-					info += fmt.Sprintf("sub: %s\n\n", id)
+					info += fmt.Sprintf("sub: %s\n", id)
 				}
 			} else {
-				info += fmt.Sprintf("subs: %d\n\n", len(subs))
+				info += fmt.Sprintf("subs: %d\n", len(subs))
 			}
 		}
 		routerLock.Unlock()

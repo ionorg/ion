@@ -104,6 +104,15 @@ func HasPeer(rid proto.RID, peer *Peer) bool {
 	return room.GetPeer(peer.ID()) != nil
 }
 
+func GetPeer(rid proto.RID, id string) *peer.Peer {
+	log.Debugf("GetPeer rid=%s peer.ID=%s", rid, id)
+	room := getRoom(rid)
+	if room == nil {
+		return nil
+	}
+	return room.GetPeer(id)
+}
+
 func NotifyAllWithoutPeer(rid proto.RID, peer *Peer, method string, msg interface{}) {
 	log.Debugf("signal.NotifyAllWithoutPeer rid=%s peer.ID=%s method=%s msg=%v", rid, peer.ID(), method, msg)
 	room := getRoom(rid)

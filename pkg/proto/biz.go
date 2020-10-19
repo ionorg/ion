@@ -6,6 +6,11 @@ import (
 	"github.com/pion/webrtc/v2"
 )
 
+type Authenticatable interface {
+	Room() RoomInfo
+	Token() string
+}
+
 type ClientUserInfo struct {
 	Name string `json:"name"`
 }
@@ -16,6 +21,10 @@ func (m *ClientUserInfo) MarshalBinary() ([]byte, error) {
 
 func (m *ClientUserInfo) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, m)
+}
+
+type RoomToken struct {
+	Token string `json:"token,omitempty"`
 }
 
 type RoomInfo struct {
@@ -49,7 +58,15 @@ type TrackMap map[string][]TrackInfo
 
 type JoinMsg struct {
 	RoomInfo
+	RoomToken
 	Info ClientUserInfo `json:"info"`
+}
+
+func (j *JoinMsg) Token() string {
+	return j.RoomToken.Token
+}
+func (j *JoinMsg) Room() RoomInfo {
+	return j.RoomInfo
 }
 
 type LeaveMsg struct {
@@ -59,8 +76,16 @@ type LeaveMsg struct {
 
 type PublishMsg struct {
 	RoomInfo
+	RoomToken
 	RTCInfo
 	Options PublishOptions `json:"options"`
+}
+
+func (p *PublishMsg) Token() string {
+	return p.RoomToken.Token
+}
+func (p *PublishMsg) Room() RoomInfo {
+	return p.RoomInfo
 }
 
 type PublishResponseMsg struct {

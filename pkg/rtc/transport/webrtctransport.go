@@ -14,7 +14,7 @@ import (
 
 const (
 	maxChanSize       = 100
-	IOSH264Fmtp       = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+	IOSH264Fmtp       = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
 	FireFoxH264Fmtp97 = "profile-level-id=42e01f;level-asymmetry-allowed=1"
 )
 
@@ -236,9 +236,11 @@ func NewWebRTCTransport(id string, options RTCOptions) *WebRTCTransport {
 	w.pc.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		switch connectionState {
 		case webrtc.ICEConnectionStateDisconnected:
-			log.Errorf("webrtc ice disconnected")
+			log.Errorf("webrtc ice disconnected id=%v", id)
+			w.alive = false
+			w.shutdownChan <- id
 		case webrtc.ICEConnectionStateFailed:
-			log.Errorf("webrtc ice failed")
+			log.Errorf("webrtc ice failed id=%v", id)
 			w.alive = false
 			w.shutdownChan <- id
 		}

@@ -2,6 +2,7 @@ package biz
 
 import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/log"
 )
@@ -14,15 +15,17 @@ var (
 	protoo   *nprotoo.NatsProtoo
 	rpcs     map[string]*nprotoo.Requestor
 	services map[string]discovery.Node
+	roomAuth conf.AuthConfig
 )
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID string, natsURL string) {
+func Init(dcID, nodeID, rpcID, eventID string, natsURL string, authConf conf.AuthConfig) {
 	dc = dcID
 	nid = nodeID
 	services = make(map[string]discovery.Node)
 	rpcs = make(map[string]*nprotoo.Requestor)
 	protoo = nprotoo.NewNatsProtoo(natsURL)
+	roomAuth = authConf
 }
 
 // WatchServiceNodes .

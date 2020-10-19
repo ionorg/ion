@@ -9,7 +9,7 @@ type PubInfo struct {
 
 type GetPubResp struct {
 	RoomInfo
-	Pubs []PubInfo
+	Pubs []PubInfo `json:"pubs,omitempty"`
 }
 
 type GetMediaParams struct {

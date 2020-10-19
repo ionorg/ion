@@ -27,7 +27,18 @@ data:
     #listen ip port
     host = "0.0.0.0"
     port = "8443"
+    path = "/ws"
     #allow_disconnected = true
+
+    [signal.auth_connection]
+    enabled = {{ .Values.biz.auth.connection.enabled }} 
+    key_type = "HMAC"
+    key = "{{.Values.biz.auth.connection.hmac}}"
+
+    [signal.auth_room]
+    enabled = {{ .Values.biz.auth.room.enabled }} 
+    key_type = "HMAC"
+    key = "{{.Values.biz.auth.room.hmac}}"
 
     [nats]
     url = "nats://{{ .Release.Name }}-nats-client:4222"
@@ -71,11 +82,11 @@ data:
     [plugins.jitterbuffer]
     on = true
     # the remb cycle sending to pub, this told the pub it's bandwidth
-    rembcycle = 2
+    rembcycle = {{ .Values.sfu.jitterbuffer.rembcycle }} 
     # pli cycle sending to pub, and pub will send a key frame
-    plicycle = 1
+    plicycle = {{ .Values.sfu.jitterbuffer.plicycle }}
     # this limit the remb bandwidth
-    maxbandwidth = 1000
+    maxbandwidth = {{ .Values.sfu.jitterbuffer.maxbandwidth }}
     # max buffer time by ms
     maxbuffertime = 1000
 
