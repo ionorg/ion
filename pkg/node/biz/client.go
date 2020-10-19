@@ -186,13 +186,13 @@ func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
 
 func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.offer peer.ID()=%s msg=%v", peer.ID(), msg)
-	_, sfu, err := getRPCForSFU(proto.UID(peer.ID()), msg.RID, msg.MID)
+	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 	resp, err := sfu.SyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-		UID:     proto.UID(peer.ID()),
+		UID:     peer.ID(),
 		RID:     msg.RID,
 		MID:     msg.MID,
 		RTCInfo: proto.RTCInfo{Jsep: msg.Jsep},
@@ -215,6 +215,28 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 	}, nil
 }
 
+func answer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.answer peer.ID()=%s msg=%v", peer.ID(), msg)
+
+	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
+	if err != nil {
+		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	if _, err := sfu.SyncRequest(proto.SfuClientAnswer, proto.SfuNegotiationMsg{
+		UID:     peer.ID(),
+		RID:     msg.RID,
+		MID:     msg.MID,
+		RTCInfo: msg.RTCInfo,
+	}); err != nil {
+		log.Errorf("SfuClientOnAnswer failed %v", err.Error())
+		return nil, util.NewNpError(err.Code, err.Reason)
+	}
+
+	return nil, nil
+}
+
 func broadcast(peer *signal.Peer, msg proto.FromClientBroadcastMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.broadcast peer.ID()=%s msg=%v", peer.ID(), msg)
 
@@ -228,7 +250,7 @@ func broadcast(peer *signal.Peer, msg proto.FromClientBroadcastMsg) (interface{}
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	islb.AsyncRequest(proto.IslbBroadcast, proto.IslbBroadcastMsg{
-		RoomInfo: proto.RoomInfo{UID: proto.UID(peer.ID()), RID: msg.RID},
+		RoomInfo: proto.RoomInfo{UID: peer.ID(), RID: msg.RID},
 		Info:     msg.Info,
 	})
 	return emptyMap, nil
@@ -241,14 +263,14 @@ func trickle(peer *signal.Peer, msg proto.ClientTrickleMsg) (interface{}, *nprot
 		return nil, ridError
 	}
 
-	_, sfu, err := getRPCForSFU(proto.UID(peer.ID()), msg.RID, msg.MID)
+	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 
 	sfu.AsyncRequest(proto.ClientTrickleICE, proto.SfuTrickleMsg{
-		UID:       proto.UID(peer.ID()),
+		UID:       peer.ID(),
 		RID:       msg.RID,
 		MID:       msg.MID,
 		Candidate: msg.Candidate,

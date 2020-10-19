@@ -89,6 +89,11 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
 			result, topErr = offer(peer, msgData)
 		}
+	case proto.ClientAnswer:
+		var msgData proto.ClientNegotiationMsg
+		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
+			result, topErr = answer(peer, msgData)
+		}
 	case proto.ClientTrickleICE:
 		var msgData proto.ClientTrickleMsg
 		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {

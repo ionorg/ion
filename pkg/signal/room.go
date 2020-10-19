@@ -121,11 +121,27 @@ func AddPeer(rid proto.RID, peer *Peer) {
 
 // GetPeer get a peer in the room
 func GetPeer(rid proto.RID, uid proto.UID) *Peer {
-	log.Debugf("GetPeer rid=%s uid=%s", rid, uid)
+	log.Infof("GetPeer rid=%s uid=%s", rid, uid)
 	r := GetRoom(rid)
 	if r == nil {
-		log.Debugf("room not exits, rid=%s uid=%s", rid, uid)
+		log.Infof("room not exits, rid=%s uid=%s", rid, uid)
 		return nil
 	}
 	return r.GetPeer(uid)
+}
+
+// NotifyPeer send message to peer
+func NotifyPeer(method string, rid proto.RID, uid proto.UID, data interface{}) {
+	log.Infof("Notify rid=%s, uid=%s, data=%s", rid, uid, data)
+	room := GetRoom(rid)
+	if room == nil {
+		log.Errorf("room not exits, rid=%s, uid=%s, data=%s", rid, uid)
+		return
+	}
+	peer := room.GetPeer(uid)
+	if peer == nil {
+		log.Errorf("peer not exits, rid=%s, uid=%s, data=%s", rid, uid)
+		return
+	}
+	peer.Notify(method, data)
 }
