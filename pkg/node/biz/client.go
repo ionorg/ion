@@ -101,9 +101,8 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	}, nil
 }
 
-// Handle a signal disconnection.
-func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.close peer.ID()=%s msg=%v", peer.ID(), msg)
+func leave(peer *signal.Peer, msg proto.FromClientLeaveMsg) (interface{}, *nprotoo.Error) {
+	log.Infof("biz.leave msg=%v", msg)
 	room := signal.GetRoom(msg.RID)
 	if room == nil {
 		log.Warnf("room not exits, rid=", msg.RID)
@@ -118,69 +117,44 @@ func close(peer *signal.Peer, msg proto.SignalCloseMsg) (interface{}, *nprotoo.E
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 
-	islb.AsyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
-		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
-	})
-
-	resp, err := islb.SyncRequest(proto.IslbListMids, proto.ToIslbListMids{
-		UID: msg.UID, RID: msg.RID,
-	})
-	if err != nil {
-		log.Errorf("IslbClientOnLeave failed %v", err.Error())
-	}
-	var fromIslbListMids proto.FromIslbListMids
-	if err := json.Unmarshal(resp, &fromIslbListMids); err != nil {
-		log.Errorf("IslbListMids failed %v", err)
-		return nil, util.NewNpError(500, "IslbListMids failed")
-	}
-
-	for _, mid := range fromIslbListMids.MIDs {
-		_, sfu, err := getRPCForSFU(msg.UID, msg.RID, mid)
-		if err != nil {
-			log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-			return nil, util.NewNpError(err.Code, err.Reason)
-		}
-
-		log.Warnf("Issuing leave %s", mid)
-		if _, err := sfu.SyncRequest(proto.SfuClientLeave, proto.ToSfuLeaveMsg{
-			UID: msg.UID, RID: msg.RID, MID: mid,
-		}); err != nil {
-			log.Errorf("SfuClientLeave failed %v", err.Error())
-			return nil, util.NewNpError(err.Code, err.Reason)
-		}
-	}
-	return nil, nil
-}
-
-func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
-	log.Infof("biz.leave msg=%v", msg)
-	room := signal.GetRoom(msg.RID)
-	if room == nil {
-		log.Warnf("room not exits, rid=", msg.RID)
-		return nil, nil
-	}
-	room.DelPeer(msg.UID)
-
-	islb, found := getRPCForIslb()
-	if !found {
-		log.Errorf("islb node not found")
-	}
 	if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
 	}); err != nil {
-		log.Errorf("IslbClientOnLeave failed %v", err.Error())
+		log.Errorf("IslbPeerLeave error: %v", err.Error())
 	}
 
-	_, sfu, err := getRPCForSFU(msg.UID, msg.RID, msg.MID)
-	if err != nil {
-		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
-		return nil, util.NewNpError(err.Code, err.Reason)
+	var mids []proto.MID
+	if msg.MID == "" {
+		var fromIslbListMids proto.FromIslbListMids
+		if resp, err := islb.SyncRequest(proto.IslbListMids, proto.ToIslbListMids{
+			UID: msg.UID,
+			RID: msg.RID,
+		}); err == nil {
+			if err := json.Unmarshal(resp, &fromIslbListMids); err == nil {
+				mids = fromIslbListMids.MIDs
+			} else {
+				log.Errorf("json.Unmarshal error: %v", err)
+			}
+		} else {
+			log.Errorf("IslbListMids error: %v", err)
+		}
+	} else {
+		mids = append(mids, msg.MID)
+	}
+	for _, mid := range mids {
+		_, sfu, err := getRPCForSFU(msg.UID, msg.RID, mid)
+		if err != nil {
+			log.Errorf("Not found any sfu node: %d => %s", err.Code, err.Reason)
+			continue
+		}
+		if _, err := sfu.SyncRequest(proto.SfuClientLeave, proto.ToSfuLeaveMsg{
+			UID: msg.UID, RID: msg.RID, MID: mid,
+		}); err != nil {
+			log.Errorf("SfuClientLeave error %v", err.Error())
+			continue
+		}
 	}
 
-	if _, err := sfu.SyncRequest(proto.SfuClientLeave, msg); err != nil {
-		log.Errorf("SfuClientLeave failed %v", err.Error())
-		return nil, util.NewNpError(err.Code, err.Reason)
-	}
 	return nil, nil
 }
 

@@ -27,8 +27,6 @@ const (
 	ClientOnOffer        = "offer"
 	ClientOnAnswer       = "answer"
 
-	SignalClose = "signal-close"
-
 	// ion to islb
 	IslbFindSfu = "findSfu"
 	IslbRelay   = "relay"

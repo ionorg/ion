@@ -39,11 +39,6 @@ func handleRequest(rpcID string) {
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = offer(msgData)
 			}
-		case proto.SfuClientLeave:
-			var msgData proto.ToSfuLeaveMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = leave(msgData)
-			}
 		case proto.SfuClientAnswer:
 			var msgData proto.SfuNegotiationMsg
 			if err = data.Unmarshal(&msgData); err == nil {
@@ -53,6 +48,11 @@ func handleRequest(rpcID string) {
 			var msgData proto.SfuTrickleMsg
 			if err = data.Unmarshal(&msgData); err == nil {
 				result, err = trickle(msgData)
+			}
+		case proto.SfuClientLeave:
+			var msgData proto.ToSfuLeaveMsg
+			if err = data.Unmarshal(&msgData); err == nil {
+				result, err = leave(msgData)
 			}
 		}
 
@@ -97,15 +97,6 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 			Candidate: *candidate,
 		})
 	}
-
-	// TODO: ion-sfu may need to provide an peer.OnClose to notify clients that a peer is closed.
-	// peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-	// 	if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
-	// 		broadcaster.Say(proto.SfuClientLeave, proto.FromSfuLeaveMsg{
-	// 			RID: msg.RID, UID: msg.UID, MID: msg.MID,
-	// 		})
-	// 	}
-	// })
 
 	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: *answer}}
 	return resp, nil

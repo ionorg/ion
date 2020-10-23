@@ -101,11 +101,11 @@ func in(transport *transport.WebSocketTransport, request *http.Request) {
 			// only remove if its the same peer. If newer peer joined before the cleanup, leave it.
 			if r.GetPeer(peer.ID()) == peer {
 				if code > 1000 {
-					msg := proto.SignalCloseMsg{
-						RoomInfo: proto.RoomInfo{UID: proto.UID(peer.ID()), RID: r.ID()},
-					}
-					msgStr, _ := json.Marshal(msg)
-					bizCall(proto.SignalClose, peer, msgStr, accept, reject)
+					msgStr, _ := json.Marshal(proto.FromClientLeaveMsg{
+						UID: proto.UID(peer.ID()),
+						RID: r.ID(),
+					})
+					bizCall(proto.ClientLeave, peer, msgStr, accept, reject)
 				}
 				log.Infof("signal.in handleClose delete peer (%s) from room (%s)", peer.ID(), r.ID())
 				r.DelPeer(peer.ID())

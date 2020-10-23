@@ -84,16 +84,6 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 				MID:     msgData.MID,
 				RTCInfo: msgData.RTCInfo,
 			})
-		case proto.SfuClientLeave:
-			var msgData proto.FromSfuLeaveMsg
-			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
-				log.Errorf("handleSFUBroadCast failed to parse %v", err)
-				return
-			}
-			_, err := leave(proto.ToSfuLeaveMsg(msgData))
-			if err != nil {
-				log.Errorf("handleSFUBroadcast failed to leave :%v", err)
-			}
 		}
 	}(msg)
 }
