@@ -33,9 +33,10 @@ func WatchServiceNodes(service string, state discovery.NodeStateType, node disco
 	}
 }
 
-/*Find service nodes by name, such as sfu|mcu|sip-gateway|rtmp-gateway */
-func findSfu(data proto.ToIslbFindSfuMsg) (interface{}, *nprotoo.Error) {
-	service := "sfu"
+// Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
+func findNode(data proto.ToIslbFindNodeMsg) (interface{}, *nprotoo.Error) {
+	service := data.Service
+
 	if data.RID != "" && data.UID != "" && data.MID != "" {
 		mkey := proto.MediaInfo{
 			DC:  dc,
@@ -56,12 +57,44 @@ func findSfu(data proto.ToIslbFindSfuMsg) (interface{}, *nprotoo.Error) {
 				if service == node.Info["service"] && minfo.NID == id {
 					rpcID := discovery.GetRPCChannel(node)
 					eventID := discovery.GetEventChannel(node)
-					resp := proto.FromIslbFindSfuMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+					resp := proto.FromIslbFindNodeMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
 					log.Infof("findServiceNode: by node ID %s, [%s] %s => %s", minfo.NID, service, name, rpcID)
 					return resp, nil
 				}
 			}
 		}
+	}
+
+	// MID/RID Doesn't exist in Redis
+	// Find least packed SFU to return
+	nid := ""
+	minStreamCount := math.MaxInt32
+	for _, node := range services {
+		if service == node.Info["service"] {
+			// get stream count
+			sfuKey := proto.MediaInfo{
+				DC:  dc,
+				NID: node.Info["id"],
+			}.BuildKey()
+			streamCount := len(redis.Keys(sfuKey))
+
+			log.Infof("findServiceNode looking up sfu stream count [%s] = %v", sfuKey, streamCount)
+			if streamCount <= minStreamCount {
+				nid = node.ID
+				minStreamCount = streamCount
+			}
+		}
+	}
+	log.Infof("findServiceNode: selecting SFU [%s] = %v", nid, minStreamCount)
+	if node, ok := services[nid]; ok {
+		log.Infof("findServiceNode: found best candidate SFU [%s]", node)
+		rpcID := discovery.GetRPCChannel(node)
+		eventID := discovery.GetEventChannel(node)
+		name := node.Info["name"]
+		id := node.Info["id"]
+		resp := proto.FromIslbFindNodeMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+		log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
+		return resp, nil
 	}
 
 	// TODO: Add a load balancing algorithm.
@@ -71,43 +104,10 @@ func findSfu(data proto.ToIslbFindSfuMsg) (interface{}, *nprotoo.Error) {
 			eventID := discovery.GetEventChannel(node)
 			name := node.Info["name"]
 			id := node.Info["id"]
-			resp := proto.FromIslbFindSfuMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
+			resp := proto.FromIslbFindNodeMsg{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
 			log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
 			return resp, nil
 		}
-	}
-
-	// MID/RID Doesn't exist in Redis
-	// Find least packed SFU to return
-	sfuID := ""
-	minStreamCount := math.MaxInt32
-	for _, sfu := range services {
-		if service == sfu.Info["service"] {
-			// get stream count
-			sfuKey := proto.MediaInfo{
-				DC:  dc,
-				NID: sfu.Info["id"],
-			}.BuildKey()
-			streamCount := len(redis.Keys(sfuKey))
-
-			log.Infof("findServiceNode looking up sfu stream count [%s] = %v", sfuKey, streamCount)
-			if streamCount <= minStreamCount {
-				sfuID = sfu.ID
-				minStreamCount = streamCount
-			}
-		}
-	}
-	log.Infof("findServiceNode: selecting SFU [%s] = %v", sfuID, minStreamCount)
-
-	if node, ok := services[sfuID]; ok {
-		log.Infof("findServiceNode: found best candidate SFU [%s]", node)
-		rpcID := discovery.GetRPCChannel(node)
-		eventID := discovery.GetEventChannel(node)
-		name := node.Info["name"]
-		id := node.Info["id"]
-		resp := proto.GetSFURPCParams{Name: name, RPCID: rpcID, EventID: eventID, Service: service, ID: id}
-		log.Infof("findServiceNode: [%s] %s => %s", service, name, rpcID)
-		return resp, nil
 	}
 
 	return nil, util.NewNpError(404, fmt.Sprintf("Service node [%s] not found", service))
@@ -333,10 +333,10 @@ func handleRequest(rpcID string) {
 			err := util.NewNpError(400, fmt.Sprintf("Unkown method [%s]", method))
 
 			switch method {
-			case proto.IslbFindSfu:
-				var msgData proto.ToIslbFindSfuMsg
+			case proto.IslbFindNode:
+				var msgData proto.ToIslbFindNodeMsg
 				if err = msg.Unmarshal(&msgData); err == nil {
-					result, err = findSfu(msgData)
+					result, err = findNode(msgData)
 				}
 			case proto.IslbPeerJoin:
 				var msgData proto.ToIslbPeerJoinMsg

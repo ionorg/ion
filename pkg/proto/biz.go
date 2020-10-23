@@ -181,13 +181,14 @@ type FromIslbStreamAddMsg struct {
 	Stream Stream `json:"stream"`
 }
 
-type ToIslbFindSfuMsg struct {
-	UID UID `json:"uid"`
-	RID RID `json:"rid"`
-	MID MID `json:"mid"`
+type ToIslbFindNodeMsg struct {
+	Service string
+	UID     UID `json:"uid"`
+	RID     RID `json:"rid"`
+	MID     MID `json:"mid"`
 }
 
-type FromIslbFindSfuMsg struct {
+type FromIslbFindNodeMsg struct {
 	RPCID   string
 	EventID string
 	ID      string

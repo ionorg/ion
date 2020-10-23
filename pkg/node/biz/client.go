@@ -33,16 +33,15 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 		return nil, util.NewNpError(400, "Could not parse SDP")
 	}
 
-	islb, found := getRPCForIslb()
-	if !found {
+	islb := getRPCForIslb()
+	if islb == nil {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	uid := peer.ID()
 
-	//already joined this room
+	// already joined this room, removing old peer
 	if p := signal.GetPeer(rid, uid); p != nil {
 		log.Infof("biz.join peer.ID()=%s already joined, removing old peer", uid)
-
 		if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
 			RoomInfo: proto.RoomInfo{UID: uid, RID: msg.RID},
 		}); err != nil {
@@ -54,12 +53,13 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	signal.AddPeer(rid, peer)
 
 	mid := proto.MID(uuid.New().String())
-	_, sfu, npErr := getRPCForSFU(uid, rid, mid)
+	_, sfu, npErr := getRPCForNode("sfu", islb, uid, rid, mid)
 	if npErr != nil {
 		log.Errorf("error getting sfu: %v", npErr)
 		return nil, util.NewNpError(500, "Not found any node for sfu.")
 	}
 	info := msg.Info
+
 	// Send join => islb
 	resp, npErr := islb.SyncRequest(proto.IslbPeerJoin, proto.ToIslbPeerJoinMsg{
 		UID: uid, RID: rid, MID: mid, Info: info,
@@ -71,6 +71,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	if err := json.Unmarshal(resp, &fromIslbPeerJoinMsg); err != nil {
 		log.Errorf("IslbClientOnJoin failed %v", err)
 	}
+
 	// Send join => sfu
 	resp, npErr = sfu.SyncRequest(proto.SfuClientJoin, proto.ToSfuJoinMsg{
 		UID:     uid,
@@ -86,6 +87,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	if err := json.Unmarshal(resp, &fromSfuJoinMsg); err != nil {
 		log.Errorf("SfuClientOnJoin failed %v", err)
 	}
+
 	// Associate the stream in the SDP with the UID/RID/MID.
 	for key := range sdpInfo.GetStreams() {
 		islb.AsyncRequest(proto.IslbStreamAdd, proto.ToIslbStreamAddMsg{
@@ -110,11 +112,10 @@ func leave(peer *signal.Peer, msg proto.FromClientLeaveMsg) (interface{}, *nprot
 	}
 	room.DelPeer(msg.UID)
 
-	// TODO: This can perhaps be optimized a bit.
-	islb, found := getRPCForIslb()
-	if !found {
+	islb := getRPCForIslb()
+	if islb == nil {
 		log.Errorf("islb node not found")
-		return nil, util.NewNpError(500, "Not found any node for islb.")
+		return nil, util.NewNpError(500, "islb node not found")
 	}
 
 	if _, err := islb.SyncRequest(proto.IslbPeerLeave, proto.IslbPeerLeaveMsg{
@@ -142,7 +143,7 @@ func leave(peer *signal.Peer, msg proto.FromClientLeaveMsg) (interface{}, *nprot
 		mids = append(mids, msg.MID)
 	}
 	for _, mid := range mids {
-		_, sfu, err := getRPCForSFU(msg.UID, msg.RID, mid)
+		_, sfu, err := getRPCForNode("sfu", islb, msg.UID, msg.RID, mid)
 		if err != nil {
 			log.Errorf("Not found any sfu node: %d => %s", err.Code, err.Reason)
 			continue
@@ -160,7 +161,7 @@ func leave(peer *signal.Peer, msg proto.FromClientLeaveMsg) (interface{}, *nprot
 
 func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.offer peer.ID()=%s msg=%v", peer.ID(), msg)
-	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
+	_, sfu, err := getRPCForNode("sfu", nil, peer.ID(), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -192,7 +193,7 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 func answer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *nprotoo.Error) {
 	log.Infof("biz.answer peer.ID()=%s msg=%v", peer.ID(), msg)
 
-	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
+	_, sfu, err := getRPCForNode("sfu", nil, peer.ID(), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)
@@ -219,8 +220,8 @@ func broadcast(peer *signal.Peer, msg proto.FromClientBroadcastMsg) (interface{}
 		return nil, ridError
 	}
 
-	islb, found := getRPCForIslb()
-	if !found {
+	islb := getRPCForIslb()
+	if islb == nil {
 		return nil, util.NewNpError(500, "Not found any node for islb.")
 	}
 	islb.AsyncRequest(proto.IslbBroadcast, proto.IslbBroadcastMsg{
@@ -237,7 +238,7 @@ func trickle(peer *signal.Peer, msg proto.ClientTrickleMsg) (interface{}, *nprot
 		return nil, ridError
 	}
 
-	_, sfu, err := getRPCForSFU(peer.ID(), msg.RID, msg.MID)
+	_, sfu, err := getRPCForNode("sfu", nil, peer.ID(), msg.RID, msg.MID)
 	if err != nil {
 		log.Warnf("Not found any sfu node, reject: %d => %s", err.Code, err.Reason)
 		return nil, util.NewNpError(err.Code, err.Reason)

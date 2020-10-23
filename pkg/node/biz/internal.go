@@ -39,7 +39,7 @@ func handleIslbBroadcast(msg nprotoo.Notification, subj string) {
 	}(msg)
 }
 
-func getRPCForIslb() (*nprotoo.Requestor, bool) {
+func getRPCForIslb() *nprotoo.Requestor {
 	for _, item := range services {
 		if item.Info["service"] == "islb" {
 			id := item.Info["id"]
@@ -50,22 +50,22 @@ func getRPCForIslb() (*nprotoo.Requestor, bool) {
 				rpc = protoo.NewRequestor(rpcID)
 				rpcs[id] = rpc
 			}
-			return rpc, true
+			return rpc
 		}
 	}
 	log.Warnf("No islb node was found.")
-	return nil, false
+	return nil
 }
 
-func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
+func handleNodeBroadcast(msg nprotoo.Notification, subj string) {
 	go func(msg nprotoo.Notification) {
-		log.Infof("handleSFUBroadCast: method=%s, data=%s", msg.Method, msg)
+		log.Infof("handleNodeBroadcast: method=%s, data=%s", msg.Method, msg)
 
 		switch msg.Method {
 		case proto.SfuTrickleICE:
 			var msgData proto.SfuTrickleMsg
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
-				log.Errorf("handleSFUBroadCast failed to parse %v", err)
+				log.Errorf("handleNodeBroadcast failed to parse %v", err)
 				return
 			}
 			signal.NotifyPeer(proto.ClientTrickleICE, msgData.RID, msgData.UID, proto.ClientTrickleMsg{
@@ -76,7 +76,7 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 		case proto.SfuClientOffer:
 			var msgData proto.SfuNegotiationMsg
 			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
-				log.Errorf("handleSFUBroadCast failed to parse %v", err)
+				log.Errorf("handleNodeBroadcast failed to parse %v", err)
 				return
 			}
 			signal.NotifyPeer(proto.ClientOffer, msgData.RID, msgData.UID, proto.ClientNegotiationMsg{
@@ -88,32 +88,36 @@ func handleSfuBroadcast(msg nprotoo.Notification, subj string) {
 	}(msg)
 }
 
-func getRPCForSFU(uid proto.UID, rid proto.RID, mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
-	islb, found := getRPCForIslb()
-	if !found {
-		return "", nil, util.NewNpError(500, "Not found any node for islb.")
+func getRPCForNode(service string, islb *nprotoo.Requestor, uid proto.UID, rid proto.RID, mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
+	if islb == nil {
+		if islb = getRPCForIslb(); islb == nil {
+			return "", nil, util.NewNpError(500, "Not found islb.")
+		}
 	}
-	result, err := islb.SyncRequest(proto.IslbFindSfu, proto.ToIslbFindSfuMsg{
-		UID: uid,
-		RID: rid,
-		MID: mid,
+
+	result, err := islb.SyncRequest(proto.IslbFindNode, proto.ToIslbFindNodeMsg{
+		Service: service,
+		UID:     uid,
+		RID:     rid,
+		MID:     mid,
 	})
 	if err != nil {
-		return "", nil, err
+		return "", nil, util.NewNpError(500, "Not found "+service)
 	}
 
-	var answer proto.FromIslbFindSfuMsg
+	var answer proto.FromIslbFindNodeMsg
 	if err := json.Unmarshal(result, &answer); err != nil {
-		return "", nil, &nprotoo.Error{Code: 123, Reason: "Unmarshal error getRPCForSFU"}
+		return "", nil, &nprotoo.Error{Code: 123, Reason: "Unmarshal error getRPCForNode"}
 	}
+	log.Infof("IslbFindNode result => %v", answer)
 
-	log.Infof("SFU result => %v", answer)
 	rpcID := answer.RPCID
 	rpc, found := rpcs[rpcID]
 	if !found {
 		rpc = protoo.NewRequestor(rpcID)
-		protoo.OnBroadcast(answer.EventID, handleSfuBroadcast)
+		protoo.OnBroadcast(answer.EventID, handleNodeBroadcast)
 		rpcs[rpcID] = rpc
 	}
+
 	return answer.ID, rpc, nil
 }

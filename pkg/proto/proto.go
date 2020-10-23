@@ -28,9 +28,9 @@ const (
 	ClientOnAnswer       = "answer"
 
 	// ion to islb
-	IslbFindSfu = "findSfu"
-	IslbRelay   = "relay"
-	IslbUnrelay = "unRelay"
+	IslbFindNode = "find-node"
+	IslbRelay    = "relay"
+	IslbUnrelay  = "unRelay"
 
 	IslbKeepAlive = "keepAlive"
 	IslbPeerJoin  = ClientOnJoin
