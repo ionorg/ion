@@ -47,6 +47,9 @@ const (
 	SfuClientTrickle = ClientTrickleICE
 	SfuClientLeave   = ClientLeave
 
+	// avp
+	AvpProcess = "avp-process"
+
 	IslbID = "islb"
 )
 

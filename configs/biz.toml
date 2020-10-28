@@ -36,3 +36,6 @@ key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 [nats]
 url = "nats://127.0.0.1:4223"
+
+[avp]
+elements = ["webmsaver"]

@@ -53,7 +53,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	signal.AddPeer(rid, peer)
 
 	mid := proto.MID(uuid.New().String())
-	_, sfu, npErr := getRPCForNode("sfu", islb, uid, rid, mid)
+	sfuID, sfu, npErr := getRPCForNode("sfu", islb, uid, rid, mid)
 	if npErr != nil {
 		log.Errorf("error getting sfu: %v", npErr)
 		return nil, util.NewNpError(500, "Not found any node for sfu.")
@@ -93,6 +93,32 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 		islb.AsyncRequest(proto.IslbStreamAdd, proto.ToIslbStreamAddMsg{
 			UID: uid, RID: rid, MID: mid, StreamID: proto.StreamID(key),
 		})
+	}
+
+	// Send join => avp
+	if len(avpElements) > 0 {
+		_, avp, npErr := getRPCForNode("avp", islb, uid, rid, mid)
+		if npErr != nil {
+			log.Errorf("error getting avp: %v", npErr)
+		}
+		if avp != nil {
+			for _, stream := range sdpInfo.GetStreams() {
+				tracks := stream.GetTracks()
+				for _, track := range tracks {
+					resp, npErr = avp.SyncRequest(proto.AvpProcess, proto.ToAvpProcessMsg{
+						Addr:   sfuID,
+						PID:    string(fromIslbPeerJoinMsg.SID),
+						SID:    string(fromIslbPeerJoinMsg.SID),
+						TID:    track.GetID(),
+						EID:    avpElements,
+						Config: []byte{},
+					})
+					if npErr != nil {
+						log.Errorf("AvpClientJoin failed %v", npErr)
+					}
+				}
+			}
+		}
 	}
 
 	return proto.ToClientJoinMsg{

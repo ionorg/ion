@@ -16,6 +16,7 @@ var (
 	Etcd   = &cfg.Etcd
 	Nats   = &cfg.Nats
 	Signal = &cfg.Signal
+	Avp    = &cfg.Avp
 )
 
 func init() {
@@ -70,12 +71,17 @@ type nats struct {
 	URL string `mapstructure:"url"`
 }
 
+type avp struct {
+	Elements []string `mapstructure:"elements"`
+}
+
 type config struct {
 	Global  global `mapstructure:"global"`
 	Log     log    `mapstructure:"log"`
 	Etcd    etcd   `mapstructure:"etcd"`
 	Nats    nats   `mapstructure:"nats"`
 	Signal  signal `mapstructure:"signal"`
+	Avp     avp    `mapstructure:"avp"`
 	CfgFile string
 }
 

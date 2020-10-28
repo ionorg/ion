@@ -1,25 +1,47 @@
-[grpc]
+[global]
+pprof = ":6063"
+# data center id
+dc = "dc1"
 # internet ip
-port = ":50051"
+addr = "127.0.0.1"
 
-[pipeline.samplebuilder]
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["127.0.0.1:2389"]
+
+[nats]
+url = "nats://127.0.0.1:4223"
+
+[element.webmsaver]
+on = true
+# webm output path
+path = "./out/"
+
+[samplebuilder]
 # max late for audio rtp packets
 audiomaxlate = 100
 # max late for video rtp packets
 videomaxlate = 200
 
-[pipeline.webmsaver]
-enabled = true
-togglable = true
-defaulton = true
-# webm output path
-path = "./out/"
-
-[rtp]
-# listen port
-port = 6668
-
-# kcpkey = ""
-# kcpsalt = ""
 [log]
+stats = true
 level = "info"
+fix = ["proc.go", "asm_amd64.s", "jsonrpc2.go"]
+
+[webrtc]
+# PLI Cycle defines an interval (ms) on which the AVP will
+# request a keyframe. This PLI request will propogate to the
+# sender. It results in more bandwidth usage but will improve
+# recording quality.
+pliCycle = 1000
+
+# Range of ports that ion accepts WebRTC traffic on
+# Format: [min, max]   and max - min >= 100
+# portrange = [50000, 60000]
+# if sfu behind nat, set iceserver
+# [[webrtc.iceserver]]
+# urls = ["stun:stun.stunprotocol.org:3478"]
+# [[webrtc.iceserver]]
+# urls = ["turn:turn.awsome.org:3478"]
+# username = "awsome"
+# credential = "awsome"

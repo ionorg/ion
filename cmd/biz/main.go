@@ -45,7 +45,7 @@ func main() {
 
 	rpcID := serviceNode.GetRPCChannel()
 	eventID := serviceNode.GetEventChannel()
-	biz.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, conf.Nats.URL, conf.Signal.AuthRoom)
+	biz.Init(conf.Global.Dc, serviceNode.NodeInfo().ID, rpcID, eventID, conf.Nats.URL, conf.Signal.AuthRoom, conf.Avp.Elements)
 
 	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
 	go serviceWatcher.WatchServiceNode("islb", biz.WatchServiceNodes)

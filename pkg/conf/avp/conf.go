@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pion/ion/pkg/node/avp"
 	"github.com/spf13/viper"
 )
 
 var (
-	cfg      = Config{}
-	Global   = &cfg.Global
-	Pipeline = &cfg.Pipeline
-	Rtp      = &cfg.Rtp
-	Log      = &cfg.Log
-	Etcd     = &cfg.Etcd
-	Nats     = &cfg.Nats
-	CfgFile  = &cfg.CfgFile
+	cfg     = Config{}
+	Global  = &cfg.Global
+	Etcd    = &cfg.Etcd
+	Nats    = &cfg.Nats
+	Avp     = &cfg.Avp
+	Element = &cfg.Element
+	CfgFile = &cfg.CfgFile
 )
 
 func init() {
@@ -32,23 +32,6 @@ type global struct {
 	Dc    string `mapstructure:"dc"`
 }
 
-type samplebuilder struct {
-	AudioMaxLate uint16 `mapstructure:"audiomaxlate"`
-	VideoMaxLate uint16 `mapstructure:"videomaxlate"`
-}
-
-type pipeline struct {
-	SampleBuilder samplebuilder `mapstructure:"samplebuilder"`
-	WebmSaver     webmsaver     `mapstructure:"webmsaver"`
-}
-
-type webmsaver struct {
-	Enabled   bool   `mapstructure:"enabled"`
-	Togglable bool   `mapstructure:"togglable"`
-	DefaultOn bool   `mapstructure:"defaulton"`
-	Path      string `mapstructure:"path"`
-}
-
 type log struct {
 	Level string `mapstructure:"level"`
 }
@@ -61,27 +44,36 @@ type nats struct {
 	URL string `mapstructure:"url"`
 }
 
-type rtp struct {
-	Port    int    `mapstructure:"port"`
-	KcpKey  string `mapstructure:"kcpkey"`
-	KcpSalt string `mapstructure:"kcpsalt"`
+type webmsaver struct {
+	On   bool   `mapstructure:"on"`
+	Path string `mapstructure:"path"`
+}
+type element struct {
+	Webmsaver webmsaver `mapstructure:"webmsaver"`
 }
 
 // Config for base AVP
 type Config struct {
-	Global   global   `mapstructure:"global"`
-	Pipeline pipeline `mapstructure:"pipeline"`
-	Rtp      rtp      `mapstructure:"rtp"`
-	Log      log      `mapstructure:"log"`
-	Etcd     etcd     `mapstructure:"etcd"`
-	Nats     nats     `mapstructure:"nats"`
-	CfgFile  string
+	Global  global     `mapstructure:"global"`
+	Etcd    etcd       `mapstructure:"etcd"`
+	Nats    nats       `mapstructure:"nats"`
+	Avp     avp.Config `mapstructure:"avp"`
+	Element element    `mapstructure:"element"`
+	CfgFile string
 }
 
 func showHelp() {
 	fmt.Printf("Usage:%s {params}\n", os.Args[0])
 	fmt.Println("      -c {config file}")
 	fmt.Println("      -h (show help info)")
+}
+
+func (c *Config) unmarshal(rawVal interface{}) bool {
+	if err := viper.Unmarshal(rawVal); err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
+		return false
+	}
+	return true
 }
 
 func (c *Config) load() bool {
@@ -98,9 +90,7 @@ func (c *Config) load() bool {
 		fmt.Printf("config file %s read failed. %v\n", c.CfgFile, err)
 		return false
 	}
-	err = viper.GetViper().Unmarshal(c)
-	if err != nil {
-		fmt.Printf("config file %s loaded failed. %v\n", c.CfgFile, err)
+	if !c.unmarshal(&c) || !c.unmarshal(&c.Avp.Config) {
 		return false
 	}
 

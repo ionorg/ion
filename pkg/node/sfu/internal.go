@@ -2,10 +2,11 @@ package sfu
 
 import (
 	"fmt"
+	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	sfu "github.com/pion/ion-sfu/pkg"
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
+	isfu "github.com/pion/ion-sfu/pkg"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
@@ -14,7 +15,7 @@ import (
 var s *server
 
 // InitSFU init sfu server
-func InitSFU(config *sfu.Config) {
+func InitSFU(config *isfu.Config) {
 	s = newServer(config)
 }
 
@@ -81,19 +82,45 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 	}
 
 	peer.OnOffer = func(offer *webrtc.SessionDescription) {
+		log.Infof("OnOffer: %v", offer)
+		rpcID := string(msg.UID)
+		if strings.HasPrefix(rpcID, "rpc-") {
+			protoo.NewRequestor(rpcID).AsyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+				UID:     msg.UID,
+				RID:     msg.RID,
+				MID:     msg.MID,
+				SID:     msg.SID,
+				RTCInfo: proto.RTCInfo{Jsep: *offer},
+			})
+			return
+		}
 		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
 			UID:     msg.UID,
 			RID:     msg.RID,
 			MID:     msg.MID,
+			SID:     msg.SID,
 			RTCInfo: proto.RTCInfo{Jsep: *offer},
 		})
 	}
 
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit) {
+		log.Infof("OnIceCandidate: %v", candidate)
+		rpcID := string(msg.UID)
+		if strings.HasPrefix(rpcID, "rpc-") {
+			protoo.NewRequestor(rpcID).AsyncRequest(proto.SfuTrickleICE, proto.SfuTrickleMsg{
+				UID:       msg.UID,
+				RID:       msg.RID,
+				MID:       msg.MID,
+				SID:       msg.SID,
+				Candidate: *candidate,
+			})
+			return
+		}
 		broadcaster.Say(proto.SfuTrickleICE, proto.SfuTrickleMsg{
 			UID:       msg.UID,
 			RID:       msg.RID,
 			MID:       msg.MID,
+			SID:       msg.SID,
 			Candidate: *candidate,
 		})
 	}

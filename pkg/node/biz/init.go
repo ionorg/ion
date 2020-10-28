@@ -11,21 +11,23 @@ var (
 	//nolint:unused
 	dc = "default"
 	//nolint:unused
-	nid      = "biz-unkown-node-id"
-	protoo   *nprotoo.NatsProtoo
-	rpcs     map[string]*nprotoo.Requestor
-	services map[string]discovery.Node
-	roomAuth conf.AuthConfig
+	nid         = "biz-unkown-node-id"
+	protoo      *nprotoo.NatsProtoo
+	rpcs        map[string]*nprotoo.Requestor
+	services    map[string]discovery.Node
+	roomAuth    conf.AuthConfig
+	avpElements []string
 )
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID string, natsURL string, authConf conf.AuthConfig) {
+func Init(dcID, nodeID, rpcID, eventID string, natsURL string, authConf conf.AuthConfig, elements []string) {
 	dc = dcID
 	nid = nodeID
 	services = make(map[string]discovery.Node)
 	rpcs = make(map[string]*nprotoo.Requestor)
 	protoo = nprotoo.NewNatsProtoo(natsURL)
 	roomAuth = authConf
+	avpElements = elements
 }
 
 // WatchServiceNodes .

@@ -4,16 +4,18 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	_sfu "github.com/pion/ion-sfu/pkg"
+	log "github.com/pion/ion-log"
+	isfu "github.com/pion/ion-sfu/pkg"
 	conf "github.com/pion/ion/pkg/conf/sfu"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/sfu"
 )
 
 func init() {
-	log.Init(conf.Log.Level)
-	sfu.InitSFU(&_sfu.Config{
+	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
+	fixByFunc := []string{}
+	log.Init(conf.Log.Level, fixByFunc, fixByFile)
+	sfu.InitSFU(&isfu.Config{
 		WebRTC: *conf.WebRTC,
 		Log:    *conf.Log,
 		Router: *conf.Router,

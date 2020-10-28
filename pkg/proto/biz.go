@@ -132,6 +132,7 @@ type SfuTrickleMsg struct {
 	UID       UID                     `json:"uid"`
 	RID       RID                     `json:"rid"`
 	MID       MID                     `json:"mid"`
+	SID       SID                     `json:"sid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
 }
 
@@ -139,7 +140,20 @@ type SfuNegotiationMsg struct {
 	UID UID `json:"uid"`
 	RID RID `json:"rid"`
 	MID MID `json:"mid"`
+	SID SID `json:"sid"`
 	RTCInfo
+}
+
+// Biz to AVP
+
+// ToAvpProcessMsg .
+type ToAvpProcessMsg struct {
+	Addr   string   `json:"Addr"`
+	PID    string   `json:"pid"`
+	SID    string   `json:"sid"`
+	TID    string   `json:"tid"`
+	EID    []string `json:"eid"`
+	Config []byte   `json:"config"`
 }
 
 // Islb messages

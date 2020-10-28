@@ -34,7 +34,8 @@ enabled = false
 key_type = "HMAC"
 key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
-
 [nats]
 url = "nats://nats:4222"
 
+[avp]
+elements = ["webmsaver"]
