@@ -57,37 +57,6 @@ func getRPCForIslb() *nprotoo.Requestor {
 	return nil
 }
 
-func handleNodeBroadcast(msg nprotoo.Notification, subj string) {
-	go func(msg nprotoo.Notification) {
-		log.Infof("handleNodeBroadcast: method=%s, data=%s", msg.Method, msg)
-
-		switch msg.Method {
-		case proto.SfuTrickleICE:
-			var msgData proto.SfuTrickleMsg
-			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
-				log.Errorf("handleNodeBroadcast failed to parse %v", err)
-				return
-			}
-			signal.NotifyPeer(proto.ClientTrickleICE, msgData.RID, msgData.UID, proto.ClientTrickleMsg{
-				RID:       msgData.RID,
-				MID:       msgData.MID,
-				Candidate: msgData.Candidate,
-			})
-		case proto.SfuClientOffer:
-			var msgData proto.SfuNegotiationMsg
-			if err := json.Unmarshal(msg.Data, &msgData); err != nil {
-				log.Errorf("handleNodeBroadcast failed to parse %v", err)
-				return
-			}
-			signal.NotifyPeer(proto.ClientOffer, msgData.RID, msgData.UID, proto.ClientNegotiationMsg{
-				RID:     msgData.RID,
-				MID:     msgData.MID,
-				RTCInfo: msgData.RTCInfo,
-			})
-		}
-	}(msg)
-}
-
 func getRPCForNode(service string, islb *nprotoo.Requestor, uid proto.UID, rid proto.RID, mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
 	if islb == nil {
 		if islb = getRPCForIslb(); islb == nil {
@@ -115,7 +84,6 @@ func getRPCForNode(service string, islb *nprotoo.Requestor, uid proto.UID, rid p
 	rpc, found := rpcs[rpcID]
 	if !found {
 		rpc = protoo.NewRequestor(rpcID)
-		protoo.OnBroadcast(answer.EventID, handleNodeBroadcast)
 		rpcs[rpcID] = rpc
 	}
 

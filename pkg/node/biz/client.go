@@ -2,6 +2,7 @@ package biz
 
 import (
 	"encoding/json"
+	"fmt"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/google/uuid"
@@ -72,10 +73,11 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 		log.Errorf("IslbClientOnJoin failed %v", err)
 	}
 
+	rpcID := "rpc-" + nid + "-" + string(fromIslbPeerJoinMsg.SID) + "-" + string(uid)
+
 	// Send join => sfu
 	resp, npErr = sfu.SyncRequest(proto.SfuClientJoin, proto.ToSfuJoinMsg{
-		UID:     uid,
-		RID:     rid,
+		RPCID:   rpcID,
 		MID:     mid,
 		SID:     fromIslbPeerJoinMsg.SID,
 		RTCInfo: msg.RTCInfo,
@@ -87,6 +89,52 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 	if err := json.Unmarshal(resp, &fromSfuJoinMsg); err != nil {
 		log.Errorf("SfuClientOnJoin failed %v", err)
 	}
+
+	// handle sfu message
+	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
+		method := request.Method
+		data := request.Data
+		log.Infof("peer(%s) handle sfu message: method => %s, data => %s", uid, method, data)
+
+		var result interface{}
+		errResult := util.NewNpError(400, fmt.Sprintf("unknown method [%s]", method))
+
+		switch method {
+		case proto.SfuTrickleICE:
+			var msg proto.SfuTrickleMsg
+			if err := data.Unmarshal(&msg); err != nil {
+				log.Errorf("peer(%s) trickle message unmarshal error: %s", uid, err)
+				errResult = util.NewNpError(415, "trickle message unmarshal error")
+				break
+			}
+			signal.NotifyPeer(proto.ClientTrickleICE, rid, uid, proto.ClientTrickleMsg{
+				RID:       rid,
+				MID:       msg.MID,
+				Candidate: msg.Candidate,
+			})
+			errResult = nil
+		case proto.SfuClientOffer:
+			var msg proto.SfuNegotiationMsg
+			if err := data.Unmarshal(&msg); err != nil {
+				log.Errorf("peer(%s) offer message unmarshal error: %s", uid, err)
+				errResult = util.NewNpError(415, "offer message unmarshal error")
+				break
+			}
+			log.Infof("peer(%s) got remote description: %v", uid, msg.Jsep)
+			signal.NotifyPeer(proto.ClientOffer, rid, uid, proto.ClientNegotiationMsg{
+				RID:     rid,
+				MID:     msg.MID,
+				RTCInfo: msg.RTCInfo,
+			})
+			errResult = nil
+		}
+
+		if errResult != nil {
+			reject(errResult.Code, errResult.Reason)
+		} else {
+			accept(result)
+		}
+	})
 
 	// Associate the stream in the SDP with the UID/RID/MID.
 	for key := range sdpInfo.GetStreams() {
@@ -105,7 +153,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 			for _, stream := range sdpInfo.GetStreams() {
 				tracks := stream.GetTracks()
 				for _, track := range tracks {
-					resp, npErr = avp.SyncRequest(proto.AvpProcess, proto.ToAvpProcessMsg{
+					_, npErr = avp.SyncRequest(proto.AvpProcess, proto.ToAvpProcessMsg{
 						Addr:   sfuID,
 						PID:    stream.GetID(),
 						SID:    string(fromIslbPeerJoinMsg.SID),
@@ -175,7 +223,7 @@ func leave(peer *signal.Peer, msg proto.FromClientLeaveMsg) (interface{}, *nprot
 			continue
 		}
 		if _, err := sfu.SyncRequest(proto.SfuClientLeave, proto.ToSfuLeaveMsg{
-			UID: msg.UID, RID: msg.RID, MID: mid,
+			MID: mid,
 		}); err != nil {
 			log.Errorf("SfuClientLeave error %v", err.Error())
 			continue
@@ -193,8 +241,6 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 		return nil, util.NewNpError(err.Code, err.Reason)
 	}
 	resp, err := sfu.SyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-		UID:     peer.ID(),
-		RID:     msg.RID,
 		MID:     msg.MID,
 		RTCInfo: proto.RTCInfo{Jsep: msg.Jsep},
 	})
@@ -210,8 +256,8 @@ func offer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *npr
 	}
 
 	return proto.ClientNegotiationMsg{
-		RID:     answer.RID,
-		MID:     answer.MID,
+		RID:     msg.RID,
+		MID:     msg.MID,
 		RTCInfo: answer.RTCInfo,
 	}, nil
 }
@@ -226,8 +272,6 @@ func answer(peer *signal.Peer, msg proto.ClientNegotiationMsg) (interface{}, *np
 	}
 
 	if _, err := sfu.SyncRequest(proto.SfuClientAnswer, proto.SfuNegotiationMsg{
-		UID:     peer.ID(),
-		RID:     msg.RID,
 		MID:     msg.MID,
 		RTCInfo: msg.RTCInfo,
 	}); err != nil {
@@ -271,8 +315,6 @@ func trickle(peer *signal.Peer, msg proto.ClientTrickleMsg) (interface{}, *nprot
 	}
 
 	sfu.AsyncRequest(proto.ClientTrickleICE, proto.SfuTrickleMsg{
-		UID:       peer.ID(),
-		RID:       msg.RID,
 		MID:       msg.MID,
 		Candidate: msg.Candidate,
 	})

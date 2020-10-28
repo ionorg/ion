@@ -2,7 +2,6 @@ package sfu
 
 import (
 	"fmt"
-	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	log "github.com/pion/ion-log"
@@ -73,8 +72,6 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 
 	peer := s.addPeer(msg.MID)
 
-	log.Infof("peer %s join room %s", msg.MID, msg.RID)
-
 	answer, err := peer.Join(string(msg.SID), msg.Jsep)
 	if err != nil {
 		log.Errorf("join error: %v", err)
@@ -83,44 +80,16 @@ func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
 
 	peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		log.Infof("OnOffer: %v", offer)
-		rpcID := string(msg.UID)
-		if strings.HasPrefix(rpcID, "rpc-") {
-			protoo.NewRequestor(rpcID).AsyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-				UID:     msg.UID,
-				RID:     msg.RID,
-				MID:     msg.MID,
-				SID:     msg.SID,
-				RTCInfo: proto.RTCInfo{Jsep: *offer},
-			})
-			return
-		}
-		broadcaster.Say(proto.SfuClientOffer, proto.SfuNegotiationMsg{
-			UID:     msg.UID,
-			RID:     msg.RID,
+		protoo.NewRequestor(msg.RPCID).AsyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
 			MID:     msg.MID,
-			SID:     msg.SID,
 			RTCInfo: proto.RTCInfo{Jsep: *offer},
 		})
 	}
 
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit) {
 		log.Infof("OnIceCandidate: %v", candidate)
-		rpcID := string(msg.UID)
-		if strings.HasPrefix(rpcID, "rpc-") {
-			protoo.NewRequestor(rpcID).AsyncRequest(proto.SfuTrickleICE, proto.SfuTrickleMsg{
-				UID:       msg.UID,
-				RID:       msg.RID,
-				MID:       msg.MID,
-				SID:       msg.SID,
-				Candidate: *candidate,
-			})
-			return
-		}
-		broadcaster.Say(proto.SfuTrickleICE, proto.SfuTrickleMsg{
-			UID:       msg.UID,
-			RID:       msg.RID,
+		protoo.NewRequestor(msg.RPCID).AsyncRequest(proto.SfuTrickleICE, proto.SfuTrickleMsg{
 			MID:       msg.MID,
-			SID:       msg.SID,
 			Candidate: *candidate,
 		})
 	}
@@ -144,7 +113,7 @@ func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
 	}
 
 	resp := proto.SfuNegotiationMsg{
-		UID: msg.UID, RID: msg.RID, MID: msg.MID,
+		MID:     msg.MID,
 		RTCInfo: proto.RTCInfo{Jsep: *answer},
 	}
 	return resp, nil

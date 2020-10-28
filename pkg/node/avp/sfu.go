@@ -104,7 +104,7 @@ func (s *sfu) join(sid string) (*iavp.WebRTCTransport, error) {
 
 	log.Infof("Send offer:\n %s", offer)
 	resp, npErr := s.client.SyncRequest(proto.SfuClientJoin, proto.ToSfuJoinMsg{
-		UID:     proto.UID(rpcID),
+		RPCID:   rpcID,
 		MID:     s.mid,
 		SID:     proto.SID(sid),
 		RTCInfo: proto.RTCInfo{Jsep: offer},
@@ -135,6 +135,7 @@ func (s *sfu) join(sid string) (*iavp.WebRTCTransport, error) {
 		})
 	})
 
+	// handle sfu message
 	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
 		method := request.Method
 		data := request.Data
