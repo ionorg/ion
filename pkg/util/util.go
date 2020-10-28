@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 )
 
 var (

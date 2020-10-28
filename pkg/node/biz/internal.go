@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"

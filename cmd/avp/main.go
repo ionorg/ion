@@ -8,14 +8,16 @@ import (
 
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
+	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/avp"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/avp"
 )
 
 func init() {
-	log.Init(conf.Avp.Log.Level)
+	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
+	fixByFunc := []string{}
+	log.Init(conf.Avp.Log.Level, fixByFile, fixByFunc)
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cloudwebrtc/go-protoo/peer"
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 )
 

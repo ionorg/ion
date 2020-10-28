@@ -2,9 +2,9 @@ package biz
 
 import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 )
 
 var (

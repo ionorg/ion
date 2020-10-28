@@ -15,6 +15,7 @@ func init() {
 	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
 	fixByFunc := []string{}
 	log.Init(conf.Log.Level, fixByFunc, fixByFile)
+
 	sfu.InitSFU(&isfu.Config{
 		WebRTC: *conf.WebRTC,
 		Log:    *conf.Log,

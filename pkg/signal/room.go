@@ -3,7 +3,7 @@ package signal
 import (
 	"sync"
 
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 )
 

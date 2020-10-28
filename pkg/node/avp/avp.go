@@ -5,7 +5,6 @@ import (
 	"time"
 
 	iavp "github.com/pion/ion-avp/pkg"
-	log "github.com/pion/ion-avp/pkg/log"
 )
 
 const (
@@ -33,8 +32,6 @@ type avp struct {
 
 // newAVP creates a new avp instance
 func newAVP(conf *Config, elems map[string]iavp.ElementFun) *avp {
-	log.Init(conf.Log.Level)
-
 	a := &avp{
 		config:  *conf,
 		clients: make(map[string]*sfu),

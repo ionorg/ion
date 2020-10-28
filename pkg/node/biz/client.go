@@ -6,7 +6,7 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/google/uuid"
 	"github.com/notedit/sdp"
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
 	"github.com/pion/ion/pkg/util"

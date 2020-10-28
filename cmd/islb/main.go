@@ -4,15 +4,17 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/islb"
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/islb"
 )
 
 func init() {
-	log.Init(conf.Log.Level)
+	fixByFile := []string{"asm_amd64.s", "proc.go"}
+	fixByFunc := []string{}
+	log.Init(conf.Log.Level, fixByFile, fixByFunc)
 }
 
 func main() {

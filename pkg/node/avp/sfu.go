@@ -9,7 +9,7 @@ import (
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/google/uuid"
 	iavp "github.com/pion/ion-avp/pkg"
-	"github.com/pion/ion-avp/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"

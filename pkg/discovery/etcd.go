@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 	"go.etcd.io/etcd/clientv3"
 )
 

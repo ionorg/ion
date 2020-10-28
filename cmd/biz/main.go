@@ -4,15 +4,18 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/log"
 	"github.com/pion/ion/pkg/node/biz"
 	"github.com/pion/ion/pkg/signal"
 )
 
 func init() {
-	log.Init(conf.Log.Level)
+	fixByFile := []string{"asm_amd64.s", "proc.go"}
+	fixByFunc := []string{}
+	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+
 	signal.Init(signal.WebSocketServerConfig{
 		Host:           conf.Signal.Host,
 		Port:           conf.Signal.Port,

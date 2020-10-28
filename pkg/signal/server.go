@@ -10,8 +10,8 @@ import (
 	"github.com/cloudwebrtc/go-protoo/transport"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
+	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/biz"
-	"github.com/pion/ion/pkg/log"
 )
 
 // WebSocketServerConfig represents websocket server configuration

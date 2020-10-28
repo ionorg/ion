@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	nprotoo "github.com/cloudwebrtc/nats-protoo"
-	"github.com/pion/ion-avp/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )

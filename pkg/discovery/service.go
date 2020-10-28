@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pion/ion/pkg/log"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/util"
 )
 
