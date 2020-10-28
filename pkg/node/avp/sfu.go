@@ -25,7 +25,6 @@ type sfu struct {
 
 	addr string
 	mid  proto.MID
-	sid  proto.SID
 
 	onCloseFn  func()
 	transports map[string]*iavp.WebRTCTransport
@@ -152,7 +151,8 @@ func (s *sfu) join(sid string) (*iavp.WebRTCTransport, error) {
 				errResult = util.NewNpError(415, "trickle message unmarshal error")
 				break
 			}
-			if err = t.AddICECandidate(msg.Candidate); err != nil {
+
+			if err := t.AddICECandidate(msg.Candidate); err != nil {
 				log.Errorf("add ice candidate error: %s", err)
 				errResult = util.NewNpError(415, "add ice candidate error")
 				break
@@ -160,20 +160,20 @@ func (s *sfu) join(sid string) (*iavp.WebRTCTransport, error) {
 			errResult = nil
 		case proto.SfuClientOffer:
 			var msg proto.SfuNegotiationMsg
-			if err = data.Unmarshal(&msg); err == nil {
+			if err := data.Unmarshal(&msg); err != nil {
 				log.Errorf("offer message unmarshal error: %s", err)
 				errResult = util.NewNpError(415, "offer message unmarshal error")
 				break
 			}
 			log.Infof("got remote description: %v", msg.Jsep)
 
-			var err error
-			if err = t.SetRemoteDescription(msg.Jsep); err != nil {
+			if err := t.SetRemoteDescription(msg.Jsep); err != nil {
 				log.Errorf("set remote description error: ", err)
 				errResult = util.NewNpError(415, "set remote sdp error")
 				break
 			}
 
+			var err error
 			var answer webrtc.SessionDescription
 			if answer, err = t.CreateAnswer(); err != nil {
 				log.Errorf("create answer error: ", err)

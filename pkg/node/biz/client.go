@@ -107,7 +107,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *nprotoo
 				for _, track := range tracks {
 					resp, npErr = avp.SyncRequest(proto.AvpProcess, proto.ToAvpProcessMsg{
 						Addr:   sfuID,
-						PID:    string(fromIslbPeerJoinMsg.SID),
+						PID:    stream.GetID(),
 						SID:    string(fromIslbPeerJoinMsg.SID),
 						TID:    track.GetID(),
 						EID:    avpElements,
