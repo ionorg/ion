@@ -1,10 +1,43 @@
 package proto
 
 import (
+	"encoding/gob"
 	"encoding/json"
 
 	"github.com/pion/webrtc/v3"
 )
+
+func init() {
+	gob.Register(&FromClientJoinMsg{})
+	gob.Register(&ToClientJoinMsg{})
+	gob.Register(&ToClientPeerJoinMsg{})
+	gob.Register(&ClientOfferMsg{})
+	gob.Register(&ClientAnswerMsg{})
+	gob.Register(&ClientTrickleMsg{})
+	gob.Register(&FromClientLeaveMsg{})
+	gob.Register(&FromClientBroadcastMsg{})
+	gob.Register(&ToClientBroadcastMsg{})
+
+	gob.Register(&ToSfuJoinMsg{})
+	gob.Register(&FromSfuJoinMsg{})
+	gob.Register(&ToSfuLeaveMsg{})
+	gob.Register(&SfuTrickleMsg{})
+	gob.Register(&SfuOfferMsg{})
+	gob.Register(&SfuAnswerMsg{})
+
+	gob.Register(&ToAvpProcessMsg{})
+
+	gob.Register(&IslbBroadcastMsg{})
+	gob.Register(&ToIslbPeerJoinMsg{})
+	gob.Register(&FromIslbPeerJoinMsg{})
+	gob.Register(&IslbPeerLeaveMsg{})
+	gob.Register(&ToIslbStreamAddMsg{})
+	gob.Register(&FromIslbStreamAddMsg{})
+	gob.Register(&ToIslbFindNodeMsg{})
+	gob.Register(&FromIslbFindNodeMsg{})
+	gob.Register(&ToIslbListMids{})
+	gob.Register(&FromIslbListMids{})
+}
 
 type Authenticatable interface {
 	Room() RID
@@ -31,22 +64,6 @@ type Stream struct {
 
 type RTCInfo struct {
 	Jsep webrtc.SessionDescription `json:"jsep"`
-}
-
-type PublishOptions struct {
-	Codec       string `json:"codec"`
-	Resolution  string `json:"resolution"`
-	Bandwidth   int    `json:"bandwidth"`
-	Audio       bool   `json:"audio"`
-	Video       bool   `json:"video"`
-	Screen      bool   `json:"screen"`
-	TransportCC bool   `json:"transportCC,omitempty"`
-	Description string `json:"description,omitempty"`
-}
-
-type SubscribeOptions struct {
-	Bandwidth   int  `json:"bandwidth"`
-	TransportCC bool `json:"transportCC"`
 }
 
 type TrackMap map[string][]TrackInfo
@@ -80,7 +97,13 @@ type ToClientPeerJoinMsg struct {
 	Info json.RawMessage `json:"info"`
 }
 
-type ClientNegotiationMsg struct {
+type ClientOfferMsg struct {
+	RID RID `json:"rid"`
+	MID MID `json:"mid"`
+	RTCInfo
+}
+
+type ClientAnswerMsg struct {
 	RID RID `json:"rid"`
 	MID MID `json:"mid"`
 	RTCInfo
@@ -130,7 +153,12 @@ type SfuTrickleMsg struct {
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
 }
 
-type SfuNegotiationMsg struct {
+type SfuOfferMsg struct {
+	MID MID `json:"mid"`
+	RTCInfo
+}
+
+type SfuAnswerMsg struct {
 	MID MID `json:"mid"`
 	RTCInfo
 }
@@ -194,11 +222,7 @@ type ToIslbFindNodeMsg struct {
 }
 
 type FromIslbFindNodeMsg struct {
-	RPCID   string
-	EventID string
-	ID      string
-	Name    string
-	Service string
+	ID string
 }
 
 type ToIslbListMids struct {
@@ -210,10 +234,21 @@ type FromIslbListMids struct {
 	MIDs []MID `json:"mids"`
 }
 
-type GetSFURPCParams struct {
-	RPCID   string
-	EventID string
-	ID      string
-	Name    string
-	Service string
+// CandidateForJSON for json.Marshal() => browser
+func CandidateForJSON(c webrtc.ICECandidateInit) webrtc.ICECandidateInit {
+	if c.SDPMid == nil {
+		c.SDPMid = refString("0")
+	}
+	if c.SDPMLineIndex == nil {
+		c.SDPMLineIndex = refUint16(0)
+	}
+	return c
+}
+
+func refString(s string) *string {
+	return &s
+}
+
+func refUint16(i uint16) *uint16 {
+	return &i
 }

@@ -5,25 +5,23 @@ import (
 	"fmt"
 	"net/http"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
-	"github.com/pion/ion/pkg/util"
 )
 
 var (
-	errorTokenRequired          = util.NewNpError(http.StatusUnauthorized, "Authorization token required for access")
-	errorInvalidRoomToken       = util.NewNpError(http.StatusUnauthorized, "Invalid room token")
-	errorUnauthorizedRoomAccess = util.NewNpError(http.StatusForbidden, "Permission not sufficient for room")
+	errorTokenRequired          = newError(http.StatusUnauthorized, "Authorization token required for access")
+	errorInvalidRoomToken       = newError(http.StatusUnauthorized, "Invalid room token")
+	errorUnauthorizedRoomAccess = newError(http.StatusForbidden, "Permission not sufficient for room")
 )
 
 // ParseProtoo Unmarshals a protoo payload.
-func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType interface{}) *nprotoo.Error {
+func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType interface{}) *httpError {
 	if err := json.Unmarshal(msg, &msgType); err != nil {
 		log.Errorf("Biz.Entry parse error %v", err.Error())
-		return util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
+		return newError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
 	}
 
 	authenticatable, ok := msgType.(proto.Authenticatable)
@@ -37,7 +35,7 @@ func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType i
 
 // authenticateRoom checks both the connection token AND an optional message token for RID claims
 // returns nil for success and returns an error if there are no valid claims for the RID
-func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, authenticatable proto.Authenticatable) *nprotoo.Error {
+func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, authenticatable proto.Authenticatable) *httpError {
 	log.Debugf("authenticateRoom: checking claims on token %v", authenticatable.Token())
 	// Connection token has valid claim on this room, succeed early
 	if connectionClaims != nil && authenticatable.Room() == proto.RID(connectionClaims.RID) {
@@ -75,43 +73,43 @@ func authenticateRoom(msgType interface{}, connectionClaims *signal.Claims, auth
 // Entry is the biz entry
 func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.RespondFunc, reject signal.RejectFunc) {
 	var result interface{}
-	topErr := util.NewNpError(http.StatusBadRequest, fmt.Sprintf("Unkown method [%s]", method))
+	err := newError(http.StatusBadRequest, fmt.Sprintf("Unkown method [%s]", method))
 
 	switch method {
 	case proto.ClientJoin:
 		var msgData proto.FromClientJoinMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = join(peer, msgData)
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = join(peer, msgData)
 		}
 	case proto.ClientOffer:
-		var msgData proto.ClientNegotiationMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = offer(peer, msgData)
+		var msgData proto.ClientOfferMsg
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = offer(peer, msgData)
 		}
 	case proto.ClientAnswer:
-		var msgData proto.ClientNegotiationMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = answer(peer, msgData)
+		var msgData proto.ClientAnswerMsg
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = answer(peer, msgData)
 		}
 	case proto.ClientTrickleICE:
 		var msgData proto.ClientTrickleMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = trickle(peer, msgData)
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = trickle(peer, msgData)
 		}
 	case proto.ClientBroadcast:
 		var msgData proto.FromClientBroadcastMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = broadcast(peer, msgData)
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = broadcast(peer, msgData)
 		}
 	case proto.ClientLeave:
 		var msgData proto.FromClientLeaveMsg
-		if topErr = ParseProtoo(msg, peer.Claims(), &msgData); topErr == nil {
-			result, topErr = leave(peer, msgData)
+		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+			result, err = leave(peer, msgData)
 		}
 	}
 
-	if topErr != nil {
-		reject(topErr.Code, topErr.Reason)
+	if err != nil {
+		reject(err.Code, err.Reason)
 	} else {
 		accept(result)
 	}

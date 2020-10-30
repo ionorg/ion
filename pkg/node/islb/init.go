@@ -3,9 +3,10 @@ package islb
 import (
 	"time"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/discovery"
+	"github.com/pion/ion/pkg/proto"
 )
 
 const (
@@ -15,20 +16,40 @@ const (
 var (
 	dc = "default"
 	//nolint:unused
-	nid         = "islb-unkown-node-id"
-	protoo      *nprotoo.NatsProtoo
-	redis       *db.Redis
-	services    map[string]discovery.Node
-	broadcaster *nprotoo.Broadcaster
-	)
+	nid      = "islb-unkown-node-id"
+	bid      string
+	nrpc     *proto.NatsRPC
+	redis    *db.Redis
+	services map[string]discovery.Node
+)
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID string, redisCfg db.Config, etcd []string, natsURL string) {
+func Init(dcID, nodeID string, redisCfg db.Config, etcd []string, natsURL string) {
 	dc = dcID
 	nid = nodeID
+	bid = nodeID + "-event"
 	redis = db.NewRedis(redisCfg)
-	protoo = nprotoo.NewNatsProtoo(natsURL)
-	broadcaster = protoo.NewBroadcaster(eventID)
+	nrpc = proto.NewNatsRPC(natsURL)
 	services = make(map[string]discovery.Node)
-	handleRequest(rpcID)
+	handleRequest(nid)
+}
+
+// WatchServiceNodes .
+func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+	id := node.ID
+	if state == discovery.UP {
+		if _, found := services[id]; !found {
+			services[id] = node
+			service := node.Info["service"]
+			name := node.Info["name"]
+			log.Debugf("Service [%s] UP %s => %s", service, name, id)
+		}
+	} else if state == discovery.DOWN {
+		if _, found := services[id]; found {
+			service := node.Info["service"]
+			name := node.Info["name"]
+			log.Debugf("Service [%s] DOWN %s => %s", service, name, id)
+			delete(services, id)
+		}
+	}
 }

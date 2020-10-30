@@ -94,7 +94,7 @@ func decode(ds []byte) map[string]string {
 		var s map[string]string
 		err := json.Unmarshal(ds, &s)
 		if err != nil {
-			log.Errorf("service.decode err => %+v", err)
+			log.Errorf("service.decode err => %v", err)
 			return nil
 		}
 		return s

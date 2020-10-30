@@ -39,8 +39,6 @@ func main() {
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
 	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
 
-	rpcID := serviceNode.GetRPCChannel()
-	eventID := serviceNode.GetEventChannel()
-	sfu.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], rpcID, eventID, conf.Nats.URL)
+	sfu.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], conf.Nats.URL)
 	select {}
 }

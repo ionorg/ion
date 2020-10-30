@@ -1,21 +1,21 @@
 package sfu
 
 import (
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"github.com/pion/ion/pkg/proto"
 )
 
 var (
 	//nolint:unused
 	dc = "default"
 	//nolint:unused
-	nid    = "sfu-unkown-node-id"
-	protoo *nprotoo.NatsProtoo
+	nid  = "sfu-unkown-node-id"
+	nrpc *proto.NatsRPC
 )
 
 // Init func
-func Init(dcID, nodeID, rpcID, eventID, natsURL string) {
+func Init(dcID, nodeID, natsURL string) {
 	dc = dcID
 	nid = nodeID
-	protoo = nprotoo.NewNatsProtoo(natsURL)
-	handleRequest(rpcID)
+	nrpc = proto.NewNatsRPC(natsURL)
+	handleRequest(nodeID)
 }

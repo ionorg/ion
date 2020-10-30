@@ -1,10 +1,13 @@
 package biz
 
 import (
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
+	"sync"
+
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
+	"github.com/pion/ion/pkg/proto"
 )
 
 var (
@@ -12,59 +15,73 @@ var (
 	dc = "default"
 	//nolint:unused
 	nid         = "biz-unkown-node-id"
-	protoo      *nprotoo.NatsProtoo
-	rpcs        map[string]*nprotoo.Requestor
-	services    map[string]discovery.Node
+	subs        map[string]*nats.Subscription
+	nodeLock    sync.RWMutex
+	nodes       map[string]discovery.Node
 	roomAuth    conf.AuthConfig
 	avpElements []string
+	nrpc        *proto.NatsRPC
 )
 
-// Init func
-func Init(dcID, nodeID, rpcID, eventID string, natsURL string, authConf conf.AuthConfig, elements []string) {
+// Init biz
+func Init(dcID, nodeID, natsURL string, authConf conf.AuthConfig, elements []string) {
 	dc = dcID
 	nid = nodeID
-	services = make(map[string]discovery.Node)
-	rpcs = make(map[string]*nprotoo.Requestor)
-	protoo = nprotoo.NewNatsProtoo(natsURL)
+	nodes = make(map[string]discovery.Node)
+	subs = make(map[string]*nats.Subscription)
+	nrpc = proto.NewNatsRPC(natsURL)
 	roomAuth = authConf
 	avpElements = elements
 }
 
-// WatchServiceNodes .
-func WatchServiceNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+// Close nats rpc
+func Close() {
+	closeSubs()
+	nrpc.Close()
+}
+
+// WatchIslbNodes watch islb nodes up/down
+func WatchIslbNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+	nodeLock.Lock()
+	defer nodeLock.Unlock()
+
 	id := node.ID
 
 	if state == discovery.UP {
-
-		if _, found := services[id]; !found {
-			services[id] = node
+		if _, found := nodes[id]; !found {
+			nodes[id] = node
 		}
 
 		service := node.Info["service"]
 		name := node.Info["name"]
-		log.Debugf("Service [%s] %s => %s", service, name, id)
+		log.Debugf("service [%s] %s => %s", service, name, id)
 
-		_, found := rpcs[id]
+		_, found := subs[id]
 		if !found {
-			rpcID := discovery.GetRPCChannel(node)
-			eventID := discovery.GetEventChannel(node)
-
-			log.Infof("Create islb requestor: rpcID => [%s]", rpcID)
-			rpcs[id] = protoo.NewRequestor(rpcID)
-
-			log.Infof("handleIslbBroadCast: eventID => [%s]", eventID)
-			protoo.OnBroadcast(eventID, handleIslbBroadcast)
+			islb := node.Info["id"]
+			log.Infof("subscribe islb: %s", islb)
+			if sub, err := nrpc.Subscribe(islb+"-event", handleIslbBroadcast); err == nil {
+				subs[id] = sub
+			} else {
+				log.Errorf("subcribe error: %v", err)
+			}
 		}
-
 	} else if state == discovery.DOWN {
-		delete(rpcs, id)
-		delete(services, id)
+		delete(subs, id)
+		delete(nodes, id)
 	}
 }
 
-// Close func
-func Close() {
-	if protoo != nil {
-		protoo.Close()
+func getNodes() map[string]discovery.Node {
+	nodeLock.RLock()
+	defer nodeLock.RUnlock()
+	return nodes
+}
+
+func closeSubs() {
+	nodeLock.Lock()
+	defer nodeLock.Unlock()
+	for _, s := range subs {
+		s.Unsubscribe()
 	}
 }

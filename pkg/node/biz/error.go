@@ -27,8 +27,21 @@ var codeErr = map[int]string{
 	codePublishErr: "publish failed",
 }
 
+type httpError struct {
+	Code   int
+	Reason string
+}
+
 func codeStr(code int) string {
 	return codeErr[code]
 }
 
 var emptyMap = map[string]interface{}{}
+
+func newError(code int, reason string) *httpError {
+	err := httpError{
+		Code:   code,
+		Reason: reason,
+	}
+	return &err
+}

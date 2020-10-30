@@ -7,7 +7,6 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/cloudwebrtc/go-protoo v0.0.0-20200926140535-79ecde67b906
-	github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -16,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
+	github.com/nats-io/nats.go v1.10.0
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v1.0.39
 	github.com/pion/ion-log v0.0.0-20201024224650-e6b94dfeaf1d

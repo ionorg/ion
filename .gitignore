@@ -14,5 +14,7 @@ cmd/islb/islb
 cmd/avp/avp
 ./ion
 .idea
+.vscode
 node_modules/
 cover.out
+

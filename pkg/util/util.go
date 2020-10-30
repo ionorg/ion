@@ -6,7 +6,6 @@ import (
 	"runtime/debug"
 	"strings"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	log "github.com/pion/ion-log"
 )
 
@@ -52,11 +51,4 @@ func Recover(flag string) {
 		log.Errorf("[%s] Recover err => %v", flag, err)
 		debug.PrintStack()
 	}
-}
-func NewNpError(code int, reason string) *nprotoo.Error {
-	err := nprotoo.Error{
-		Code:   code,
-		Reason: reason,
-	}
-	return &err
 }

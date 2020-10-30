@@ -19,8 +19,9 @@ func newPeer(id proto.UID, t *transport.WebSocketTransport, claims *Claims) *Pee
 type Peer struct {
 	sync.Mutex
 	peer.Peer
-	claims *Claims
-	closed bool
+	claims     *Claims
+	closed     bool
+	onCloseFun func()
 }
 
 // ID user/peer id
@@ -55,5 +56,13 @@ func (p *Peer) Close() {
 		return
 	}
 	p.closed = true
+	if p.onCloseFun != nil {
+		p.onCloseFun()
+	}
 	p.Peer.Close()
+}
+
+// SetCloseFun sets a handler that is called when the peer close
+func (p *Peer) SetCloseFun(f func()) {
+	p.onCloseFun = f
 }

@@ -1,13 +1,11 @@
 package sfu
 
 import (
-	"fmt"
+	"errors"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	log "github.com/pion/ion-log"
 	isfu "github.com/pion/ion-sfu/pkg"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -19,147 +17,137 @@ func InitSFU(config *isfu.Config) {
 }
 
 func handleRequest(rpcID string) {
-	log.Infof("handleRequest: rpcID => [%v]", rpcID)
-	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
-		method := request.Method
-		data := request.Data
-		log.Infof("handleRequest: method => %s, data => %s", method, data)
+	log.Infof("handleRequest: rpcID => [%s]", rpcID)
 
-		var result interface{}
-		err := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
+	_, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+		log.Infof("handleRequest: %T, %+v", msg, msg)
 
-		switch method {
-		case proto.SfuClientJoin:
-			var msgData proto.ToSfuJoinMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = join(msgData)
-			}
-		case proto.SfuClientOffer:
-			var msgData proto.SfuNegotiationMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = offer(msgData)
-			}
-		case proto.SfuClientAnswer:
-			var msgData proto.SfuNegotiationMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = answer(msgData)
-			}
-		case proto.SfuClientTrickle:
-			var msgData proto.SfuTrickleMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = trickle(msgData)
-			}
-		case proto.SfuClientLeave:
-			var msgData proto.ToSfuLeaveMsg
-			if err = data.Unmarshal(&msgData); err == nil {
-				result, err = leave(msgData)
-			}
-		}
-
-		if err != nil {
-			reject(err.Code, err.Reason)
-		} else {
-			accept(result)
+		switch v := msg.(type) {
+		case *proto.ToSfuJoinMsg:
+			return join(v)
+		case *proto.SfuOfferMsg:
+			return offer(v)
+		case *proto.SfuAnswerMsg:
+			return answer(v)
+		case *proto.SfuTrickleMsg:
+			return trickle(v)
+		case *proto.ToSfuLeaveMsg:
+			return leave(v)
+		default:
+			return nil, errors.New("unkonw message")
 		}
 	})
+
+	if err != nil {
+		log.Errorf("nrpc subscribe error: %v", err)
+	}
 }
 
-func join(msg proto.ToSfuJoinMsg) (interface{}, *nprotoo.Error) {
+func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 	log.Infof("join msg=%v", msg)
-	if msg.Jsep.SDP == "" {
-		return nil, util.NewNpError(415, "publish: jsep invaild.")
-	}
 
 	peer := s.addPeer(msg.MID)
 
 	answer, err := peer.Join(string(msg.SID), msg.Jsep)
 	if err != nil {
 		log.Errorf("join error: %v", err)
-		return nil, util.NewNpError(415, "join error")
+		return nil, err
 	}
 
 	peer.OnOffer = func(offer *webrtc.SessionDescription) {
-		log.Infof("OnOffer: %v", offer)
-		protoo.NewRequestor(msg.RPCID).AsyncRequest(proto.SfuClientOffer, proto.SfuNegotiationMsg{
+		data := proto.SfuOfferMsg{
 			MID:     msg.MID,
 			RTCInfo: proto.RTCInfo{Jsep: *offer},
-		})
+		}
+		log.Infof("send offer to [%s]: %v", msg.RPCID, data)
+		if err := nrpc.Publish(msg.RPCID, data); err != nil {
+			log.Errorf("send offer: %v", err)
+		}
 	}
 
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit) {
-		log.Infof("OnIceCandidate: %v", candidate)
-		protoo.NewRequestor(msg.RPCID).AsyncRequest(proto.SfuTrickleICE, proto.SfuTrickleMsg{
+		data := proto.SfuTrickleMsg{
 			MID:       msg.MID,
 			Candidate: *candidate,
-		})
+		}
+		log.Infof("send candidate to [%s]: %v", msg.RPCID, data)
+		if err := nrpc.Publish(msg.RPCID, data); err != nil {
+			log.Errorf("send candidate to [%s] error: %v", msg.RPCID, err)
+		}
 	}
 
 	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: *answer}}
+
+	log.Infof("reply join: %v", resp)
+
 	return resp, nil
 }
 
-func offer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
+func offer(msg *proto.SfuOfferMsg) (interface{}, error) {
 	log.Infof("offer msg=%v", msg)
 	peer := s.getPeer(msg.MID)
 	if peer == nil {
 		log.Warnf("peer not found, mid=%s", msg.MID)
-		return nil, util.NewNpError(415, "peer not found")
+		return nil, errors.New("peer not found")
 	}
 
 	answer, err := peer.Answer(msg.Jsep)
 	if err != nil {
 		log.Errorf("peer.Answer: %v", err)
-		return nil, util.NewNpError(415, "peer.Answer error")
+		return nil, errors.New("peer.Answer error")
 	}
 
-	resp := proto.SfuNegotiationMsg{
+	resp := proto.SfuAnswerMsg{
 		MID:     msg.MID,
 		RTCInfo: proto.RTCInfo{Jsep: *answer},
 	}
+
+	log.Infof("reply answer: %v", resp)
+
 	return resp, nil
 }
 
-func leave(msg proto.ToSfuLeaveMsg) (interface{}, *nprotoo.Error) {
+func leave(msg *proto.ToSfuLeaveMsg) (interface{}, error) {
 	log.Infof("leave msg=%v", msg)
 	peer := s.getPeer(msg.MID)
 	if peer == nil {
 		log.Warnf("peer not found, mid=%s", msg.MID)
-		return nil, util.NewNpError(415, "peer not found")
+		return nil, errors.New("peer not found")
 	}
 	s.delPeer(msg.MID)
 
 	if err := peer.Close(); err != nil {
-		return nil, util.NewNpError(415, "failed to close peer")
+		return nil, errors.New("failed to close peer")
 	}
 
 	return nil, nil
 }
 
-func answer(msg proto.SfuNegotiationMsg) (interface{}, *nprotoo.Error) {
+func answer(msg *proto.SfuAnswerMsg) (interface{}, error) {
 	log.Infof("answer msg=%v", msg)
 	peer := s.getPeer(msg.MID)
 	if peer == nil {
 		log.Warnf("peer not found, mid=%s", msg.MID)
-		return nil, util.NewNpError(415, "peer not found")
+		return nil, errors.New("peer not found")
 	}
 
 	if err := peer.SetRemoteDescription(msg.Jsep); err != nil {
 		log.Errorf("set remote description error: %v", err)
-		return nil, util.NewNpError(415, "set remote description error")
+		return nil, errors.New("set remote description error")
 	}
 	return nil, nil
 }
 
-func trickle(msg proto.SfuTrickleMsg) (map[string]interface{}, *nprotoo.Error) {
+func trickle(msg *proto.SfuTrickleMsg) (map[string]interface{}, error) {
 	log.Infof("trickle msg=%v", msg)
 	peer := s.getPeer(msg.MID)
 	if peer == nil {
 		log.Warnf("peer not found, mid=%s", msg.MID)
-		return nil, util.NewNpError(415, "peer not found")
+		return nil, errors.New("peer not found")
 	}
 
 	if err := peer.Trickle(msg.Candidate); err != nil {
-		return nil, util.NewNpError(415, "error adding ice candidate")
+		return nil, errors.New("error adding ice candidate")
 	}
 
 	return nil, nil

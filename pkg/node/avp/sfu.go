@@ -2,16 +2,14 @@ package avp
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"sync"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -19,12 +17,11 @@ import (
 type sfu struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	client *nprotoo.Requestor
 	config iavp.Config
 	mu     sync.RWMutex
 
-	addr string
-	mid  proto.MID
+	client string
+	mid    proto.MID
 
 	onCloseFn  func()
 	transports map[string]*iavp.WebRTCTransport
@@ -34,18 +31,14 @@ type sfu struct {
 func newSFU(addr string, config iavp.Config) (*sfu, error) {
 	log.Infof("Connecting to sfu: %s", addr)
 
-	// Set up a connection to the sfu server.
-	client := protoo.NewRequestor("rpc-" + addr)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	return &sfu{
 		ctx:    ctx,
 		cancel: cancel,
-		client: client,
+		client: addr,
 		config: config,
 
-		addr: addr,
-		mid:  proto.MID(uuid.New().String()),
+		mid: proto.MID(uuid.New().String()),
 
 		transports: make(map[string]*iavp.WebRTCTransport),
 	}, nil
@@ -61,13 +54,15 @@ func (s *sfu) getTransport(sid string) (*iavp.WebRTCTransport, error) {
 	// no transport yet, create one
 	if t == nil {
 		var err error
-		if t, err = s.join(sid); err != nil {
+		var sub *nats.Subscription
+		if t, sub, err = s.join(sid); err != nil {
 			return nil, err
 		}
 		t.OnClose(func() {
 			s.mu.Lock()
 			defer s.mu.Unlock()
 			delete(s.transports, sid)
+			sub.Unsubscribe()
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
 				s.onCloseFn()
@@ -84,123 +79,112 @@ func (s *sfu) onClose(f func()) {
 	s.onCloseFn = f
 }
 
-func (s *sfu) join(sid string) (*iavp.WebRTCTransport, error) {
+func (s *sfu) join(sid string) (*iavp.WebRTCTransport, *nats.Subscription, error) {
 	log.Infof("Joining sfu session: %s", sid)
 
 	t := iavp.NewWebRTCTransport(sid, s.config)
 
+	// handle sfu message
+	rpcID := nid + "-" + sid
+	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+		log.Infof("handle sfu message: %+v", msg)
+
+		switch v := msg.(type) {
+		case *proto.SfuTrickleMsg:
+			log.Infof("got remote candidate: %v", v.Candidate)
+			if err := t.AddICECandidate(v.Candidate); err != nil {
+				log.Errorf("add ice candidate error: %s", err)
+				return nil, err
+			}
+		case *proto.SfuOfferMsg:
+			log.Infof("got remote description: %v", v.Jsep)
+			if err := t.SetRemoteDescription(v.Jsep); err != nil {
+				log.Errorf("set remote description error: ", err)
+				return nil, err
+			}
+
+			answer, err := t.CreateAnswer()
+			if err != nil {
+				log.Errorf("create answer error: ", err)
+				return nil, err
+			}
+
+			if err = t.SetLocalDescription(answer); err != nil {
+				log.Errorf("set local description error: ", err)
+				return nil, err
+			}
+
+			log.Infof("send description to [%s]: %v", s.client, answer)
+			if err := nrpc.Publish(s.client, proto.SfuAnswerMsg{
+				MID:     v.MID,
+				RTCInfo: proto.RTCInfo{Jsep: answer},
+			}); err != nil {
+				log.Errorf("send description to [%s] error: %v", s.client, err)
+				return nil, err
+			}
+		default:
+			return nil, errors.New("unkonw message")
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		log.Errorf("nrpc subscribe error: %v", err)
+	}
+
+	// join to sfu
 	offer, err := t.CreateOffer()
 	if err != nil {
 		log.Errorf("Error creating offer: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
-
 	if err = t.SetLocalDescription(offer); err != nil {
 		log.Errorf("Error setting local description: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
-
-	rpcID := "rpc-" + nid + "-" + sid
-
-	log.Infof("Send offer:\n %s", offer)
-	resp, npErr := s.client.SyncRequest(proto.SfuClientJoin, proto.ToSfuJoinMsg{
+	req := proto.ToSfuJoinMsg{
 		RPCID:   rpcID,
 		MID:     s.mid,
 		SID:     proto.SID(sid),
 		RTCInfo: proto.RTCInfo{Jsep: offer},
-	})
-	if npErr != nil {
-		log.Errorf("Error sending join request: %s, %v", resp, npErr)
-		return nil, err
 	}
-	var msg proto.FromSfuJoinMsg
-	if err := json.Unmarshal(resp, &msg); err != nil {
-		log.Errorf("SfuClientOnJoin failed %v", err)
+	log.Infof("join to [%s]: %v", s.client, req)
+	resp, err := nrpc.Request(s.client, req)
+	if err != nil {
+		log.Errorf("join to [%s] failed: %s", s.client, err)
+		return nil, nil, err
 	}
-	log.Infof("Join reply: %v", msg)
+	msg, ok := resp.(*proto.FromSfuJoinMsg)
+	if !ok {
+		log.Errorf("join reply msg parses failed")
+		return nil, nil, errors.New("join reply msg parses failed")
+	}
+	log.Infof("join reply: %v", msg)
 	if err := t.SetRemoteDescription(msg.Jsep); err != nil {
 		log.Errorf("Error set remote description: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
+	// send candidates to sfu
 	t.OnICECandidate(func(c *webrtc.ICECandidate) {
 		log.Errorf("OnICECandidate: %v", c)
 		if c == nil {
 			// Gathering done
 			return
 		}
-		s.client.AsyncRequest(proto.SfuClientTrickle, proto.SfuTrickleMsg{
+		data := proto.SfuTrickleMsg{
 			MID:       s.mid,
 			Candidate: c.ToJSON(),
-		})
-	})
-
-	// handle sfu message
-	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
-		method := request.Method
-		data := request.Data
-		log.Infof("handle sfu message: method => %s, data => %s", method, data)
-
-		var result interface{}
-		errResult := util.NewNpError(400, fmt.Sprintf("unknown method [%s]", method))
-
-		switch method {
-		case proto.SfuTrickleICE:
-			var msg proto.SfuTrickleMsg
-			if err := data.Unmarshal(&msg); err != nil {
-				log.Errorf("trickle message unmarshal error: %s", err)
-				errResult = util.NewNpError(415, "trickle message unmarshal error")
-				break
-			}
-
-			if err := t.AddICECandidate(msg.Candidate); err != nil {
-				log.Errorf("add ice candidate error: %s", err)
-				errResult = util.NewNpError(415, "add ice candidate error")
-				break
-			}
-			errResult = nil
-		case proto.SfuClientOffer:
-			var msg proto.SfuNegotiationMsg
-			if err := data.Unmarshal(&msg); err != nil {
-				log.Errorf("offer message unmarshal error: %s", err)
-				errResult = util.NewNpError(415, "offer message unmarshal error")
-				break
-			}
-			log.Infof("got remote description: %v", msg.Jsep)
-
-			if err := t.SetRemoteDescription(msg.Jsep); err != nil {
-				log.Errorf("set remote description error: ", err)
-				errResult = util.NewNpError(415, "set remote sdp error")
-				break
-			}
-
-			var err error
-			var answer webrtc.SessionDescription
-			if answer, err = t.CreateAnswer(); err != nil {
-				log.Errorf("create answer error: ", err)
-				errResult = util.NewNpError(415, "create answer error")
-			}
-
-			if err = t.SetLocalDescription(answer); err != nil {
-				log.Errorf("set local description error: ", err)
-				errResult = util.NewNpError(415, "create answer error")
-			}
-
-			log.Infof("create local description: %v", answer)
-
-			s.client.AsyncRequest(proto.SfuClientAnswer, proto.SfuNegotiationMsg{
-				MID:     msg.MID,
-				RTCInfo: proto.RTCInfo{Jsep: answer},
-			})
-			errResult = nil
 		}
-
-		if errResult != nil {
-			reject(errResult.Code, errResult.Reason)
-		} else {
-			accept(result)
+		log.Infof("send trickle to [%s]: %v", s.client, data)
+		if err := nrpc.Publish(s.client, data); err != nil {
+			log.Errorf("send trickle to [%s] error: %v", s.client, err)
 		}
 	})
 
-	return t, nil
+	if err != nil {
+		log.Errorf("nrpc subscribe error: %v", err)
+	}
+
+	return t, sub, nil
 }

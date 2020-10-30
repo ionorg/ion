@@ -124,7 +124,7 @@ func GetPeer(rid proto.RID, uid proto.UID) *Peer {
 	log.Infof("GetPeer rid=%s uid=%s", rid, uid)
 	r := GetRoom(rid)
 	if r == nil {
-		log.Infof("room not exits, rid=%s uid=%s", rid, uid)
+		//log.Infof("room not exits, rid=%s uid=%s", rid, uid)
 		return nil
 	}
 	return r.GetPeer(uid)

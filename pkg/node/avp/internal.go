@@ -1,40 +1,31 @@
 package avp
 
 import (
-	"fmt"
+	"errors"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/util"
 )
 
 func handleRequest(rpcID string) {
-	log.Infof("handleRequest: rpcID => [%v]", rpcID)
-	protoo.OnRequest(rpcID, func(request nprotoo.Request, accept nprotoo.RespondFunc, reject nprotoo.RejectFunc) {
-		method := request.Method
-		data := request.Data
-		log.Infof("handleRequest: method => %s, data => %s", method, data)
+	log.Infof("handleRequest: rpcID => [%s]", rpcID)
 
-		var result interface{}
-		errResult := util.NewNpError(400, fmt.Sprintf("Unknown method [%s]", method))
+	_, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+		log.Infof("handleRequest: %T, %+v", msg, msg)
 
-		switch method {
-		case proto.AvpProcess:
-			var msg proto.ToAvpProcessMsg
-			if errResult = data.Unmarshal(&msg); errResult != nil {
-				break
+		switch v := msg.(type) {
+		case *proto.ToAvpProcessMsg:
+			if err := s.Process(v.Addr, v.PID, v.SID, v.TID, v.EID, v.Config); err != nil {
+				return nil, err
 			}
-			if err := s.Process(msg.Addr, msg.PID, msg.SID, msg.TID, msg.EID, msg.Config); err != nil {
-				errResult = util.NewNpError(500, err.Error())
-			}
-			errResult = nil
+		default:
+			return nil, errors.New("unkonw message")
 		}
 
-		if errResult != nil {
-			reject(errResult.Code, errResult.Reason)
-		} else {
-			accept(result)
-		}
+		return nil, nil
 	})
+
+	if err != nil {
+		log.Errorf("nrpc subscribe error: %v", err)
+	}
 }

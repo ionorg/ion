@@ -1,91 +1,79 @@
 package biz
 
 import (
-	"encoding/json"
+	"errors"
 
-	nprotoo "github.com/cloudwebrtc/nats-protoo"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/signal"
-	"github.com/pion/ion/pkg/util"
 )
 
-func handleIslbBroadcast(msg nprotoo.Notification, subj string) {
-	var isblSignalTransformMap = map[string]string{
-		proto.IslbStreamAdd: proto.ClientOnStreamAdd,
-		proto.IslbPeerJoin:  proto.ClientOnJoin,
-		proto.IslbPeerLeave: proto.ClientOnLeave,
-		proto.IslbBroadcast: proto.ClientBroadcast,
-	}
-	go func(msg nprotoo.Notification) {
-		var data struct {
-			UID proto.UID `json:"uid"`
-			RID proto.RID `json:"rid"`
-		}
-		if err := msg.Data.Unmarshal(&data); err != nil {
-			log.Errorf("Error parsing message %v", err)
-			return
+func handleIslbBroadcast(msg interface{}) (interface{}, error) {
+	go func(msg interface{}) {
+		log.Infof("handle islb message: %v", msg)
+
+		var method string
+		var rid proto.RID
+		var uid proto.UID
+
+		switch v := msg.(type) {
+		case *proto.FromIslbStreamAddMsg:
+			method, rid, uid = proto.ClientOnStreamAdd, v.RID, v.UID
+		case *proto.ToClientPeerJoinMsg:
+			method, rid, uid = proto.ClientOnJoin, v.RID, v.UID
+		case *proto.IslbPeerLeaveMsg:
+			method, rid, uid = proto.ClientOnLeave, v.RID, v.UID
+		case *proto.IslbBroadcastMsg:
+			method, rid, uid = proto.ClientBroadcast, v.RID, v.UID
+		default:
+			log.Warnf("unkonw message: %v", msg)
 		}
 
-		log.Infof("OnIslbBroadcast: method=%s, data=%v", msg.Method, string(msg.Data))
-		if newMethod, ok := isblSignalTransformMap[msg.Method]; ok {
-			if r := signal.GetRoom(data.RID); r != nil {
-				r.NotifyWithoutID(newMethod, msg.Data, data.UID)
-			} else {
-				log.Warnf("room not exits, rid=%s, uid=%, method=%s, msg=%s", data.RID, data.UID, newMethod, msg.Data)
-			}
+		log.Infof("broadcast: method=%s, msg=%v", method, msg)
+		if r := signal.GetRoom(rid); r != nil {
+			r.NotifyWithoutID(method, msg, uid)
+		} else {
+			log.Warnf("room not exits, rid=%s, uid=%", rid, uid)
 		}
+
 	}(msg)
+
+	return nil, nil
 }
 
-func getRPCForIslb() *nprotoo.Requestor {
-	for _, item := range services {
+func getIslb() string {
+	nodes := getNodes()
+	for _, item := range nodes {
 		if item.Info["service"] == "islb" {
-			id := item.Info["id"]
-			rpc, found := rpcs[id]
-			if !found {
-				rpcID := discovery.GetRPCChannel(item)
-				log.Infof("Create rpc [%s] for islb", rpcID)
-				rpc = protoo.NewRequestor(rpcID)
-				rpcs[id] = rpc
-			}
-			return rpc
+			return item.Info["id"]
 		}
 	}
 	log.Warnf("No islb node was found.")
-	return nil
+	return ""
 }
 
-func getRPCForNode(service string, islb *nprotoo.Requestor, uid proto.UID, rid proto.RID, mid proto.MID) (string, *nprotoo.Requestor, *nprotoo.Error) {
-	if islb == nil {
-		if islb = getRPCForIslb(); islb == nil {
-			return "", nil, util.NewNpError(500, "Not found islb.")
+func getNode(service string, islb string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
+	if islb == "" {
+		if islb = getIslb(); islb == "" {
+			return "", errors.New("Not found islb")
 		}
 	}
 
-	result, err := islb.SyncRequest(proto.IslbFindNode, proto.ToIslbFindNodeMsg{
+	resp, err := nrpc.Request(islb, proto.ToIslbFindNodeMsg{
 		Service: service,
 		UID:     uid,
 		RID:     rid,
 		MID:     mid,
 	})
+
 	if err != nil {
-		return "", nil, util.NewNpError(500, "Not found "+service)
+		return "", err
 	}
 
-	var answer proto.FromIslbFindNodeMsg
-	if err := json.Unmarshal(result, &answer); err != nil {
-		return "", nil, &nprotoo.Error{Code: 123, Reason: "Unmarshal error getRPCForNode"}
-	}
-	log.Infof("IslbFindNode result => %v", answer)
-
-	rpcID := answer.RPCID
-	rpc, found := rpcs[rpcID]
-	if !found {
-		rpc = protoo.NewRequestor(rpcID)
-		rpcs[rpcID] = rpc
+	msg, ok := resp.(*proto.FromIslbFindNodeMsg)
+	if !ok {
+		return "", errors.New("parse islb-find-node msg error")
 	}
 
-	return answer.ID, rpc, nil
+	return msg.ID, nil
 }
