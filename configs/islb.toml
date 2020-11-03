@@ -9,12 +9,12 @@ level = "info"
 
 [etcd]
 # ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2389"]
+addrs = ["127.0.0.1:2379"]
 
 [nats]
-url = "nats://127.0.0.1:4223"
+url = "nats://127.0.0.1:4222"
 
 [redis]
-addrs = [":6380"]
+addrs = [":6379"]
 password = ""
 db = 0

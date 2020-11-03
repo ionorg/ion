@@ -13,7 +13,7 @@ level = "info"
 
 [etcd]
 # ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2389"]
+addrs = ["127.0.0.1:2379"]
 
 [signal]
 #listen ip port
@@ -35,7 +35,7 @@ key_type = "HMAC"
 key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 [nats]
-url = "nats://127.0.0.1:4223"
+url = "nats://127.0.0.1:4222"
 
 [avp]
 elements = ["webmsaver"]
