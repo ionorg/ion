@@ -135,7 +135,7 @@ type ToClientBroadcastMsg struct {
 
 type ToSfuJoinMsg struct {
 	RPCID string `json:"rpc"`
-	SID   SID    `json:"sid"`
+	RID   RID    `json:"rid"`
 	MID   MID    `json:"mid"`
 	RTCInfo
 }
@@ -169,7 +169,7 @@ type SfuAnswerMsg struct {
 type ToAvpProcessMsg struct {
 	Addr   string   `json:"Addr"`
 	PID    string   `json:"pid"`
-	SID    string   `json:"sid"`
+	RID    string   `json:"rid"`
 	TID    string   `json:"tid"`
 	EID    []string `json:"eid"`
 	Config []byte   `json:"config"`
@@ -192,7 +192,6 @@ type ToIslbPeerJoinMsg struct {
 type FromIslbPeerJoinMsg struct {
 	Peers   []Peer   `json:"peers"`
 	Streams []Stream `json:"streams"`
-	SID     SID      `json:"sid"`
 }
 
 type IslbPeerLeaveMsg struct {

@@ -24,7 +24,7 @@ type sfu struct {
 	mid    proto.MID
 
 	onCloseFn  func()
-	transports map[string]*iavp.WebRTCTransport
+	transports map[proto.RID]*iavp.WebRTCTransport
 }
 
 // newSFU intializes a new SFU client
@@ -40,35 +40,35 @@ func newSFU(addr string, config iavp.Config) (*sfu, error) {
 
 		mid: proto.MID(uuid.New().String()),
 
-		transports: make(map[string]*iavp.WebRTCTransport),
+		transports: make(map[proto.RID]*iavp.WebRTCTransport),
 	}, nil
 }
 
 // getTransport returns a webrtc transport for a session
-func (s *sfu) getTransport(sid string) (*iavp.WebRTCTransport, error) {
+func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	t := s.transports[sid]
+	t := s.transports[rid]
 
 	// no transport yet, create one
 	if t == nil {
 		var err error
 		var sub *nats.Subscription
-		if t, sub, err = s.join(sid); err != nil {
+		if t, sub, err = s.join(rid); err != nil {
 			return nil, err
 		}
 		t.OnClose(func() {
 			s.mu.Lock()
 			defer s.mu.Unlock()
-			delete(s.transports, sid)
+			delete(s.transports, rid)
 			sub.Unsubscribe()
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
 				s.onCloseFn()
 			}
 		})
-		s.transports[sid] = t
+		s.transports[rid] = t
 	}
 
 	return t, nil
@@ -79,13 +79,13 @@ func (s *sfu) onClose(f func()) {
 	s.onCloseFn = f
 }
 
-func (s *sfu) join(sid string) (*iavp.WebRTCTransport, *nats.Subscription, error) {
-	log.Infof("Joining sfu session: %s", sid)
+func (s *sfu) join(rid proto.RID) (*iavp.WebRTCTransport, *nats.Subscription, error) {
+	log.Infof("Joining sfu session: %s", rid)
 
-	t := iavp.NewWebRTCTransport(sid, s.config)
+	t := iavp.NewWebRTCTransport(string(rid), s.config)
 
 	// handle sfu message
-	rpcID := nid + "-" + sid
+	rpcID := nid + "-" + string(rid)
 	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
 		log.Infof("handle sfu message: %+v", msg)
 
@@ -145,7 +145,7 @@ func (s *sfu) join(sid string) (*iavp.WebRTCTransport, *nats.Subscription, error
 	req := proto.ToSfuJoinMsg{
 		RPCID:   rpcID,
 		MID:     s.mid,
-		SID:     proto.SID(sid),
+		RID:     rid,
 		RTCInfo: proto.RTCInfo{Jsep: offer},
 	}
 	log.Infof("join to [%s]: %v", s.client, req)

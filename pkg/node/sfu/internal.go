@@ -48,7 +48,7 @@ func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 
 	peer := s.addPeer(msg.MID)
 
-	answer, err := peer.Join(string(msg.SID), msg.Jsep)
+	answer, err := peer.Join(string(msg.RID), msg.Jsep)
 	if err != nil {
 		log.Errorf("join error: %v", err)
 		return nil, err

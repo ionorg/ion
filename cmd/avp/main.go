@@ -21,8 +21,8 @@ func init() {
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
-		elems["webmsaver"] = func(sid, pid, tid string, config []byte) iavp.Element {
-			filewriter := elements.NewFileWriter(path.Join(conf.Element.Webmsaver.Path, fmt.Sprintf("%s-%s.webm", sid, pid)))
+		elems["webmsaver"] = func(rid, pid, tid string, config []byte) iavp.Element {
+			filewriter := elements.NewFileWriter(path.Join(conf.Element.Webmsaver.Path, fmt.Sprintf("%s-%s.webm", rid, pid)))
 			webm := elements.NewWebmSaver()
 			webm.Attach(filewriter)
 			return webm

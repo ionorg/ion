@@ -71,7 +71,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 	}
 
 	// handle sfu message
-	rpcID := nid + "-" + string(fromIslbPeerJoinMsg.SID) + "-" + string(uid)
+	rpcID := nid + "-" + string(rid) + "-" + string(uid)
 	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
 		log.Infof("peer(%s) handle sfu message: %+v", uid, msg)
 		switch v := msg.(type) {
@@ -106,7 +106,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 	resp, err = nrpc.Request(sfu, proto.ToSfuJoinMsg{
 		RPCID:   rpcID,
 		MID:     mid,
-		SID:     fromIslbPeerJoinMsg.SID,
+		RID:     rid,
 		RTCInfo: msg.RTCInfo,
 	})
 	if err != nil {
@@ -125,11 +125,11 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 		})
 	}
 
-	// Send join => avp
+	// join to avp
 	if len(avpElements) > 0 {
 		avp, err := getNode("avp", islb, uid, rid, mid)
 		if err != nil {
-			log.Errorf("error getting avp: %v", err)
+			log.Errorf("get avp node error: %v", err)
 		}
 		if avp != "" {
 			for _, stream := range sdpInfo.GetStreams() {
@@ -138,13 +138,13 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 					err = nrpc.Publish(avp, proto.ToAvpProcessMsg{
 						Addr:   sfu,
 						PID:    stream.GetID(),
-						SID:    string(fromIslbPeerJoinMsg.SID),
+						RID:    string(rid),
 						TID:    track.GetID(),
 						EID:    avpElements,
 						Config: []byte{},
 					})
 					if err != nil {
-						log.Errorf("AvpClientJoin failed %v", err)
+						log.Errorf("avp process error: %v", err)
 					}
 				}
 			}

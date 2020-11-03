@@ -15,7 +15,7 @@ func handleRequest(rpcID string) {
 
 		switch v := msg.(type) {
 		case *proto.ToAvpProcessMsg:
-			if err := s.Process(v.Addr, v.PID, v.SID, v.TID, v.EID, v.Config); err != nil {
+			if err := s.Process(v.Addr, v.PID, v.RID, v.TID, v.EID, v.Config); err != nil {
 				return nil, err
 			}
 		default:

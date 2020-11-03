@@ -54,7 +54,6 @@ const (
 )
 
 type MID string
-type SID string
 type RID string
 type UID string
 

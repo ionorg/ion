@@ -5,6 +5,7 @@ import (
 	"time"
 
 	iavp "github.com/pion/ion-avp/pkg"
+	"github.com/pion/ion/pkg/proto"
 )
 
 const (
@@ -43,7 +44,7 @@ func newAVP(conf *Config, elems map[string]iavp.ElementFun) *avp {
 }
 
 // Process starts a process for a track.
-func (a *avp) Process(addr, pid, sid, tid string, eid []string, config []byte) error {
+func (a *avp) Process(addr, pid, rid, tid string, eid []string, config []byte) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -62,7 +63,7 @@ func (a *avp) Process(addr, pid, sid, tid string, eid []string, config []byte) e
 		a.clients[addr] = c
 	}
 
-	t, err := c.getTransport(sid)
+	t, err := c.getTransport(proto.RID(rid))
 	if err != nil {
 		return err
 	}

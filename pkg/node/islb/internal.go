@@ -3,8 +3,6 @@ package islb
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"hash/adler32"
 	"math"
 
 	log "github.com/pion/ion-log"
@@ -231,36 +229,9 @@ func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
 
-	// Get the SID for the room.
-	mkey := proto.MediaInfo{
-		DC:  dc,
-		RID: msg.RID,
-		UID: msg.UID,
-		MID: msg.MID,
-	}.BuildKey()
-	fields := redis.HGetAll(mkey)
-	var sid proto.SID
-	val, ok := fields["sid"]
-	if !ok {
-		// TODO: Generate SID based off some load balancing strategy.
-		adler := adler32.New()
-		_, err = adler.Write([]byte(msg.RID))
-		if err != nil {
-			log.Errorf("adler.Write err = %v", err)
-		}
-		sid = proto.SID(fmt.Sprintf("%d", adler.Sum32()))
-		err := redis.HSetTTL(mkey, "sid", sid, redisLongKeyTTL)
-		if err != nil {
-			log.Errorf("redis.HSetTTL err = %v", err)
-		}
-	} else {
-		sid = proto.SID(val)
-	}
-
 	return proto.FromIslbPeerJoinMsg{
 		Peers:   peers,
 		Streams: streams,
-		SID:     sid,
 	}, nil
 }
 
