@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"path"
 
 	iavp "github.com/pion/ion-avp/pkg"
@@ -21,6 +22,11 @@ func init() {
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
+		if _, err := os.Stat(conf.Element.Webmsaver.Path); os.IsNotExist(err) {
+			if err = os.MkdirAll(conf.Element.Webmsaver.Path, 0755); err != nil {
+				log.Errorf("make dir error: %v", err)
+			}
+		}
 		elems["webmsaver"] = func(rid, pid, tid string, config []byte) iavp.Element {
 			filewriter := elements.NewFileWriter(path.Join(conf.Element.Webmsaver.Path, fmt.Sprintf("%s-%s.webm", rid, pid)))
 			webm := elements.NewWebmSaver()
