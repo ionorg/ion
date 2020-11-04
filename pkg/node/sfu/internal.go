@@ -54,6 +54,7 @@ func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 		return nil, err
 	}
 
+	// Notify user of new ice candidate
 	peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		data := proto.SfuOfferMsg{
 			MID:     msg.MID,
@@ -65,6 +66,7 @@ func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 		}
 	}
 
+	// Notify user of new offer
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit) {
 		data := proto.SfuTrickleMsg{
 			MID:       msg.MID,
@@ -76,10 +78,9 @@ func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 		}
 	}
 
+	// return answer
 	resp := proto.FromSfuJoinMsg{RTCInfo: proto.RTCInfo{Jsep: *answer}}
-
 	log.Infof("reply join: %v", resp)
-
 	return resp, nil
 }
 

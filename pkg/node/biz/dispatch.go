@@ -17,8 +17,8 @@ var (
 	errorUnauthorizedRoomAccess = newError(http.StatusForbidden, "Permission not sufficient for room")
 )
 
-// ParseProtoo Unmarshals a protoo payload.
-func ParseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType interface{}) *httpError {
+// parseProtoo Unmarshals a protoo payload.
+func parseProtoo(msg json.RawMessage, connectionClaims *signal.Claims, msgType interface{}) *httpError {
 	if err := json.Unmarshal(msg, &msgType); err != nil {
 		log.Errorf("Biz.Entry parse error %v", err.Error())
 		return newError(http.StatusBadRequest, fmt.Sprintf("Error parsing request object %v", err.Error()))
@@ -78,32 +78,32 @@ func Entry(method string, peer *signal.Peer, msg json.RawMessage, accept signal.
 	switch method {
 	case proto.ClientJoin:
 		var msgData proto.FromClientJoinMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = join(peer, msgData)
 		}
 	case proto.ClientOffer:
 		var msgData proto.ClientOfferMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = offer(peer, msgData)
 		}
 	case proto.ClientAnswer:
 		var msgData proto.ClientAnswerMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = answer(peer, msgData)
 		}
 	case proto.ClientTrickleICE:
 		var msgData proto.ClientTrickleMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = trickle(peer, msgData)
 		}
 	case proto.ClientBroadcast:
 		var msgData proto.FromClientBroadcastMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = broadcast(peer, msgData)
 		}
 	case proto.ClientLeave:
 		var msgData proto.FromClientLeaveMsg
-		if err = ParseProtoo(msg, peer.Claims(), &msgData); err == nil {
+		if err = parseProtoo(msg, peer.Claims(), &msgData); err == nil {
 			result, err = leave(peer, msgData)
 		}
 	}
