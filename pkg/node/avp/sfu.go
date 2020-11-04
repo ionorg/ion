@@ -10,6 +10,7 @@ import (
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -84,6 +85,9 @@ func (s *sfu) join(rid proto.RID) (*iavp.WebRTCTransport, *nats.Subscription, er
 
 	t := iavp.NewWebRTCTransport(string(rid), s.config)
 
+	var pendingDescriptions []webrtc.ICECandidateInit
+	var hasRemoteDescription util.AtomicBool
+
 	// handle sfu message
 	rpcID := nid + "-" + string(rid)
 	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
@@ -92,9 +96,13 @@ func (s *sfu) join(rid proto.RID) (*iavp.WebRTCTransport, *nats.Subscription, er
 		switch v := msg.(type) {
 		case *proto.SfuTrickleMsg:
 			log.Infof("got remote candidate: %v", v.Candidate)
-			if err := t.AddICECandidate(v.Candidate); err != nil {
-				log.Errorf("add ice candidate error: %s", err)
-				return nil, err
+			if hasRemoteDescription.Get() {
+				if err := t.AddICECandidate(v.Candidate); err != nil {
+					log.Errorf("add ice candidate error: %s", err)
+					return nil, err
+				}
+			} else {
+				pendingDescriptions = append(pendingDescriptions, v.Candidate)
 			}
 		case *proto.SfuOfferMsg:
 			log.Infof("got remote description: %v", v.Jsep)
@@ -163,6 +171,13 @@ func (s *sfu) join(rid proto.RID) (*iavp.WebRTCTransport, *nats.Subscription, er
 	if err := t.SetRemoteDescription(msg.Jsep); err != nil {
 		log.Errorf("Error set remote description: %s", err)
 		return nil, nil, err
+	}
+
+	hasRemoteDescription.Set(true)
+	for _, c := range pendingDescriptions {
+		if err := t.AddICECandidate(c); err != nil {
+			log.Errorf("add ice candidate error: %s", err)
+		}
 	}
 
 	// send candidates to sfu

@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync/atomic"
 
 	log "github.com/pion/ion-log"
 )
@@ -51,4 +52,24 @@ func Recover(flag string) {
 		log.Errorf("[%s] Recover err => %v", flag, err)
 		debug.PrintStack()
 	}
+}
+
+// AtomicBool represents a atomic bool
+type AtomicBool struct {
+	val int32
+}
+
+// Set automic bool
+func (b *AtomicBool) Set(value bool) { // nolint: unparam
+	var i int32
+	if value {
+		i = 1
+	}
+
+	atomic.StoreInt32(&(b.val), i)
+}
+
+// Get automic bool
+func (b *AtomicBool) Get() bool {
+	return atomic.LoadInt32(&(b.val)) != 0
 }
