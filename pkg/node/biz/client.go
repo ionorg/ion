@@ -22,7 +22,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 	log.Infof("biz.join peer.ID()=%s msg=%v", peer.ID(), msg)
 	rid := msg.RID
 
-	// Validate
+	// validate
 	if msg.RID == "" {
 		return nil, ridError
 	}
@@ -53,7 +53,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 	mid := proto.MID(uuid.New().String())
 	sfu, err := getNode("sfu", islb, uid, rid, mid)
 	if err != nil {
-		log.Errorf("error getting sfu: %v", err)
+		log.Errorf("getting sfu-node: %v", err)
 		return nil, newError(500, "Not found any node for sfu.")
 	}
 	info := msg.Info
@@ -118,7 +118,7 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 		return nil, newError(500, "join reply msg parses failed")
 	}
 
-	// Associate the stream in the SDP with the UID/RID/MID.
+	// associate the stream in the SDP with the UID/RID/MID.
 	for key := range sdpInfo.GetStreams() {
 		nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
 			UID: uid, RID: rid, MID: mid, StreamID: proto.StreamID(key),
@@ -126,12 +126,14 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 	}
 
 	// join to avp
+	var avp string
 	if len(avpElements) > 0 {
-		avp, err := getNode("avp", islb, uid, rid, mid)
-		if err != nil {
-			log.Errorf("get avp node error: %v", err)
+		if avp, err = getNode("avp", islb, uid, rid, mid); err != nil {
+			log.Errorf("get avp-node error: %v", err)
 		}
-		if avp != "" {
+	}
+	if avp != "" {
+		for _, eid := range avpElements {
 			for _, stream := range sdpInfo.GetStreams() {
 				tracks := stream.GetTracks()
 				for _, track := range tracks {
@@ -140,11 +142,11 @@ func join(peer *signal.Peer, msg proto.FromClientJoinMsg) (interface{}, *httpErr
 						PID:    stream.GetID(),
 						RID:    string(rid),
 						TID:    track.GetID(),
-						EID:    avpElements,
+						EID:    eid,
 						Config: []byte{},
 					})
 					if err != nil {
-						log.Errorf("avp process error: %v", err)
+						log.Errorf("avp process failed %v", err)
 					}
 				}
 			}
@@ -264,7 +266,7 @@ func answer(peer *signal.Peer, msg proto.ClientAnswerMsg) (interface{}, *httpErr
 		return nil, newError(500, err.Error())
 	}
 
-	return nil, nil
+	return emptyMap, nil
 }
 
 func broadcast(peer *signal.Peer, msg proto.FromClientBroadcastMsg) (interface{}, *httpError) {

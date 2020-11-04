@@ -2,14 +2,9 @@ package avp
 
 import (
 	"sync"
-	"time"
 
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion/pkg/proto"
-)
-
-const (
-	statCycle = 5 * time.Second
 )
 
 var s *avp
@@ -44,7 +39,7 @@ func newAVP(conf *Config, elems map[string]iavp.ElementFun) *avp {
 }
 
 // Process starts a process for a track.
-func (a *avp) Process(addr, pid, rid, tid string, eid []string, config []byte) error {
+func (a *avp) Process(addr, pid, rid, tid, eid string, config []byte) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -68,11 +63,5 @@ func (a *avp) Process(addr, pid, rid, tid string, eid []string, config []byte) e
 		return err
 	}
 
-	for _, e := range eid {
-		if err := t.Process(pid, tid, e, config); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return t.Process(pid, tid, eid, config)
 }

@@ -167,12 +167,12 @@ type SfuAnswerMsg struct {
 
 // ToAvpProcessMsg .
 type ToAvpProcessMsg struct {
-	Addr   string   `json:"Addr"`
-	PID    string   `json:"pid"`
-	RID    string   `json:"rid"`
-	TID    string   `json:"tid"`
-	EID    []string `json:"eid"`
-	Config []byte   `json:"config"`
+	Addr   string `json:"Addr"`
+	PID    string `json:"pid"`
+	RID    string `json:"rid"`
+	TID    string `json:"tid"`
+	EID    string `json:"eid"`
+	Config []byte `json:"config"`
 }
 
 // Islb messages
