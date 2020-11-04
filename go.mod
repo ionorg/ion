@@ -17,10 +17,10 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/nats-io/nats.go v1.10.0
 	github.com/notedit/sdp v0.0.4
-	github.com/pion/ion-avp v1.0.40
-	github.com/pion/ion-log v0.0.0-20201024224650-e6b94dfeaf1d
-	github.com/pion/ion-sfu v1.0.42
-	github.com/pion/webrtc/v3 v3.0.0-beta.10.0.20201030205602-60db5090fc93
+	github.com/pion/ion-avp v1.1.0
+	github.com/pion/ion-log v1.0.0
+	github.com/pion/ion-sfu v1.1.2
+	github.com/pion/webrtc/v3 v3.0.0-beta.10.0.20201103052241-78f7c978fe51
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.20.10+incompatible
 	github.com/spf13/pflag v1.0.5 // indirect
