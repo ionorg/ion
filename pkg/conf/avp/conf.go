@@ -15,7 +15,6 @@ var (
 	Etcd    = &cfg.Etcd
 	Nats    = &cfg.Nats
 	Avp     = &cfg.Avp
-	Element = &cfg.Element
 	CfgFile = &cfg.CfgFile
 )
 
@@ -44,21 +43,12 @@ type nats struct {
 	URL string `mapstructure:"url"`
 }
 
-type webmsaver struct {
-	On   bool   `mapstructure:"on"`
-	Path string `mapstructure:"path"`
-}
-type element struct {
-	Webmsaver webmsaver `mapstructure:"webmsaver"`
-}
-
 // Config for base AVP
 type Config struct {
 	Global  global     `mapstructure:"global"`
 	Etcd    etcd       `mapstructure:"etcd"`
 	Nats    nats       `mapstructure:"nats"`
 	Avp     avp.Config `mapstructure:"avp"`
-	Element element    `mapstructure:"element"`
 	CfgFile string
 }
 
@@ -90,7 +80,7 @@ func (c *Config) load() bool {
 		fmt.Printf("config file %s read failed. %v\n", c.CfgFile, err)
 		return false
 	}
-	if !c.unmarshal(&c) || !c.unmarshal(&c.Avp.Config) {
+	if !c.unmarshal(&c) || !c.unmarshal(&c.Avp) || !c.unmarshal(&c.Avp.Config) {
 		return false
 	}
 
