@@ -14,8 +14,6 @@ func init() {
 	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
 	fixByFunc := []string{}
 	log.Init(conf.Avp.Log.Level, fixByFile, fixByFunc)
-
-	avp.InitAVP(conf.Avp)
 }
 
 func main() {
@@ -34,6 +32,7 @@ func main() {
 	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
 	serviceNode.RegisterNode("avp", "node-avp", "avp-channel-id")
 	avp.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], conf.Nats.URL)
+	avp.InitAVP(conf.Avp)
 
 	select {}
 }

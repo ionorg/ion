@@ -17,4 +17,5 @@ cmd/avp/avp
 .vscode
 node_modules/
 cover.out
+out
 
