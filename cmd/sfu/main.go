@@ -3,11 +3,13 @@ package main
 import (
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/pion/ion-log"
 	isfu "github.com/pion/ion-sfu/pkg"
 	conf "github.com/pion/ion/pkg/conf/sfu"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/node/sfu"
 )
 
@@ -36,9 +38,16 @@ func main() {
 		}()
 	}
 
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("sfu", "node-sfu", "sfu-channel-id")
+	if err := sfu.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL); err != nil {
+		log.Errorf("sfu init error: %v", err)
+	}
+	defer sfu.Close()
 
-	sfu.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], conf.Nats.URL)
-	select {}
+	// Press Ctrl+C to exit the process
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-ch:
+		return
+	}
 }

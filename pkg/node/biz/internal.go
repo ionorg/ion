@@ -44,8 +44,8 @@ func handleIslbBroadcast(msg interface{}) (interface{}, error) {
 func getIslb() string {
 	nodes := getNodes()
 	for _, item := range nodes {
-		if item.Info["service"] == "islb" {
-			return item.Info["id"]
+		if item.Service == "islb" {
+			return item.NID
 		}
 	}
 	log.Warnf("No islb node was found.")

@@ -3,14 +3,14 @@ package avp
 import (
 	"errors"
 
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 )
 
-func handleRequest(rpcID string) {
+func handleRequest(rpcID string) (*nats.Subscription, error) {
 	log.Infof("handleRequest: rpcID => [%s]", rpcID)
-
-	_, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+	return nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
 		log.Infof("handleRequest: %T, %+v", msg, msg)
 
 		switch v := msg.(type) {
@@ -24,8 +24,4 @@ func handleRequest(rpcID string) {
 
 		return nil, nil
 	})
-
-	if err != nil {
-		log.Errorf("nrpc subscribe error: %v", err)
-	}
 }

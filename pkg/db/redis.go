@@ -66,6 +66,15 @@ func NewRedis(c Config) *Redis {
 	return r
 }
 
+func (r *Redis) Close() {
+	if r.single != nil {
+		r.single.Close()
+	}
+	if r.cluster != nil {
+		r.cluster.Close()
+	}
+}
+
 func (r *Redis) Set(k, v string, t time.Duration) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()

@@ -14,8 +14,8 @@ import (
 
 var s *avp
 
-// InitAVP create a avp server
-func InitAVP(conf *Config) {
+// initAVP create a avp server
+func initAVP(conf *Config) {
 	elems := make(map[string]iavp.ElementFun)
 
 	if conf.Element.Webmsaver.On {

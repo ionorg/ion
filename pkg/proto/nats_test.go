@@ -12,7 +12,8 @@ import (
 )
 
 func TestRequestString(t *testing.T) {
-	n := NewNatsRPC(nats.DefaultURL)
+	n, err := NewNatsRPC(nats.DefaultURL)
+	assert.NoError(t, err)
 	defer n.Close()
 
 	sub, err := n.Subscribe("rpc-id", func(msg interface{}) (interface{}, error) {
@@ -32,7 +33,8 @@ func TestRequestString(t *testing.T) {
 }
 
 func TestRequestStruct(t *testing.T) {
-	n := NewNatsRPC(nats.DefaultURL)
+	n, err := NewNatsRPC(nats.DefaultURL)
+	assert.NoError(t, err)
 	defer n.Close()
 
 	type JoinReq struct {
@@ -67,7 +69,8 @@ func TestRequestStruct(t *testing.T) {
 }
 
 func TestPublish(t *testing.T) {
-	n := NewNatsRPC(nats.DefaultURL)
+	n, err := NewNatsRPC(nats.DefaultURL)
+	assert.NoError(t, err)
 	defer n.Close()
 
 	done := make(chan bool)
@@ -96,7 +99,8 @@ func TestPublish(t *testing.T) {
 }
 
 func TestRequestError(t *testing.T) {
-	n := NewNatsRPC(nats.DefaultURL)
+	n, err := NewNatsRPC(nats.DefaultURL)
+	assert.NoError(t, err)
 	defer n.Close()
 
 	sub, err := n.Subscribe("rpc-id", func(msg interface{}) (interface{}, error) {

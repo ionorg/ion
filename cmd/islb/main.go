@@ -3,11 +3,13 @@ package main
 import (
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/islb"
 	"github.com/pion/ion/pkg/db"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/node/islb"
 )
 
@@ -25,13 +27,10 @@ func main() {
 			log.Infof("Start pprof on %s", conf.Global.Pprof)
 			err := http.ListenAndServe(conf.Global.Pprof, nil)
 			if err != nil {
-				panic(err)
+				log.Errorf("http.ListenAndServe err=%v", err)
 			}
 		}()
 	}
-
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("islb", "node-islb", "islb-channel-id")
 
 	redisCfg := db.Config{
 		Addrs: conf.Redis.Addrs,
@@ -39,10 +38,16 @@ func main() {
 		DB:    conf.Redis.DB,
 	}
 
-	islb.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], redisCfg, conf.Etcd.Addrs, conf.Nats.URL)
+	if err := islb.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL, redisCfg); err != nil {
+		log.Errorf("islb init error: %v", err)
+	}
+	defer islb.Close()
 
-	serviceWatcher := discovery.NewServiceWatcher(conf.Etcd.Addrs, conf.Global.Dc)
-	go serviceWatcher.WatchServiceNode("", islb.WatchServiceNodes)
-
-	select {}
+	// Press Ctrl+C to exit the process
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-ch:
+		return
+	}
 }

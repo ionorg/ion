@@ -36,14 +36,14 @@ type NatsRPC struct {
 }
 
 // NewNatsRPC create a instanse and connect to nats server.
-func NewNatsRPC(urls string) *NatsRPC {
+func NewNatsRPC(urls string) (*NatsRPC, error) {
 	r := &NatsRPC{}
-	r.Connect(urls)
-	return r
+	err := r.Connect(urls)
+	return r, err
 }
 
 // Connect to nats server.
-func (r *NatsRPC) Connect(url string) {
+func (r *NatsRPC) Connect(url string) error {
 	// connect options
 	opts := []nats.Option{nats.Name("nats ion service")}
 	opts = r.setupConnOptions(opts)
@@ -51,8 +51,10 @@ func (r *NatsRPC) Connect(url string) {
 	// connect to nats server
 	var err error
 	if r.nc, err = nats.Connect(url, opts...); err != nil {
-		log.Errorf("connect nats error: %v", err)
+		return err
 	}
+
+	return nil
 }
 
 // Close the connection to the server.

@@ -1,11 +1,12 @@
 package util
 
 import (
+	"math/rand"
 	"net"
 	"runtime"
 	"runtime/debug"
 	"strings"
-	"sync/atomic"
+	"time"
 
 	log "github.com/pion/ion-log"
 )
@@ -14,6 +15,7 @@ var (
 	localIPPrefix = [...]string{"192.168", "10.0", "169.254", "172.16"}
 )
 
+// IsLocalIP check if local ip
 func IsLocalIP(ip string) bool {
 	for i := 0; i < len(localIPPrefix); i++ {
 		if strings.HasPrefix(ip, localIPPrefix[i]) {
@@ -23,7 +25,8 @@ func IsLocalIP(ip string) bool {
 	return false
 }
 
-func GetIntefaceIP() string {
+// GetInterfaceIP get interface ip
+func GetInterfaceIP() string {
 	addrs, _ := net.InterfaceAddrs()
 
 	// get internet ip first
@@ -45,6 +48,18 @@ func GetIntefaceIP() string {
 	return ""
 }
 
+// RandomString generate a random string
+func RandomString(n int) string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+// Recover print stack
 func Recover(flag string) {
 	_, _, l, _ := runtime.Caller(1)
 	if err := recover(); err != nil {
@@ -52,24 +67,4 @@ func Recover(flag string) {
 		log.Errorf("[%s] Recover err => %v", flag, err)
 		debug.PrintStack()
 	}
-}
-
-// AtomicBool represents a atomic bool
-type AtomicBool struct {
-	val int32
-}
-
-// Set automic bool
-func (b *AtomicBool) Set(value bool) { // nolint: unparam
-	var i int32
-	if value {
-		i = 1
-	}
-
-	atomic.StoreInt32(&(b.val), i)
-}
-
-// Get automic bool
-func (b *AtomicBool) Get() bool {
-	return atomic.LoadInt32(&(b.val)) != 0
 }

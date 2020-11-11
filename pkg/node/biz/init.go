@@ -11,62 +11,71 @@ import (
 )
 
 var (
-	//nolint:unused
-	dc = "default"
-	//nolint:unused
-	nid         = "biz-unkown-node-id"
+	dc          string
+	nid         string
 	subs        map[string]*nats.Subscription
-	nodeLock    sync.RWMutex
-	nodes       map[string]discovery.Node
 	roomAuth    conf.AuthConfig
 	avpElements []string
 	nrpc        *proto.NatsRPC
+	nodeLock    sync.RWMutex
+	nodes       map[string]discovery.Node
+	serv        *discovery.Service
 )
 
 // Init biz
-func Init(dcID, nodeID, natsURL string, authConf conf.AuthConfig, elements []string) {
+func Init(dcID string, etcdAddrs []string, natsURLs string, authConf conf.AuthConfig, elements []string) error {
+	var err error
+
 	dc = dcID
-	nid = nodeID
-	nodes = make(map[string]discovery.Node)
-	subs = make(map[string]*nats.Subscription)
-	nrpc = proto.NewNatsRPC(natsURL)
 	roomAuth = authConf
 	avpElements = elements
+	nodes = make(map[string]discovery.Node)
+	subs = make(map[string]*nats.Subscription)
+
+	if nrpc, err = proto.NewNatsRPC(natsURLs); err != nil {
+		return err
+	}
+
+	if serv, err = discovery.NewService("biz", dcID, etcdAddrs); err != nil {
+		return err
+	}
+	nid = serv.NID()
+	serv.Watch("islb", watchIslbNodes)
+	serv.KeepAlive()
+
+	return nil
 }
 
-// Close nats rpc
+// Close all
 func Close() {
 	closeSubs()
-	nrpc.Close()
+	if nrpc != nil {
+		nrpc.Close()
+	}
+	if serv != nil {
+		serv.Close()
+	}
 }
 
-// WatchIslbNodes watch islb nodes up/down
-func WatchIslbNodes(service string, state discovery.NodeStateType, node discovery.Node) {
+// watchNodes watch islb nodes up/down
+func watchIslbNodes(state discovery.State, node discovery.Node) {
 	nodeLock.Lock()
 	defer nodeLock.Unlock()
 
-	id := node.ID
-
-	if state == discovery.UP {
+	id := node.ID()
+	if state == discovery.NodeUp {
 		if _, found := nodes[id]; !found {
 			nodes[id] = node
 		}
-
-		service := node.Info["service"]
-		name := node.Info["name"]
-		log.Debugf("service [%s] %s => %s", service, name, id)
-
-		_, found := subs[id]
-		if !found {
-			islb := node.Info["id"]
-			log.Infof("subscribe islb: %s", islb)
-			if sub, err := nrpc.Subscribe(islb+"-event", handleIslbBroadcast); err == nil {
+		if _, found := subs[id]; !found {
+			log.Infof("subscribe islb: %s", node.NID)
+			if sub, err := nrpc.Subscribe(node.NID+"-event", handleIslbBroadcast); err == nil {
 				subs[id] = sub
 			} else {
 				log.Errorf("subcribe error: %v", err)
 			}
 		}
-	} else if state == discovery.DOWN {
+	} else if state == discovery.NodeDown {
 		delete(subs, id)
 		delete(nodes, id)
 	}
@@ -75,12 +84,14 @@ func WatchIslbNodes(service string, state discovery.NodeStateType, node discover
 func getNodes() map[string]discovery.Node {
 	nodeLock.RLock()
 	defer nodeLock.RUnlock()
+
 	return nodes
 }
 
 func closeSubs() {
 	nodeLock.Lock()
 	defer nodeLock.Unlock()
+
 	for _, s := range subs {
 		s.Unsubscribe()
 	}

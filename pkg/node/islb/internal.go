@@ -5,14 +5,14 @@ import (
 	"errors"
 	"math"
 
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 )
 
-func handleRequest(rpcID string) {
+func handleRequest(rpcID string) (*nats.Subscription, error) {
 	log.Infof("handleRequest: rpcID => [%s]", rpcID)
-
-	_, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+	return nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
 		log.Infof("handleRequest: %T, %+v", msg, msg)
 
 		switch v := msg.(type) {
@@ -32,15 +32,12 @@ func handleRequest(rpcID string) {
 			return nil, errors.New("unkonw message")
 		}
 	})
-
-	if err != nil {
-		log.Errorf("nrpc subscribe error: %v", err)
-	}
 }
 
 // Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
 func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := data.Service
+	nodes := getNodes()
 
 	if data.RID != "" && data.UID != "" && data.MID != "" {
 		mkey := proto.MediaInfo{
@@ -57,11 +54,10 @@ func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 				log.Warnf("parse media info error: %v", key)
 				continue
 			}
-			for _, node := range services {
-				id := node.Info["id"]
-				if service == node.Info["service"] && minfo.NID == id {
+			for _, node := range nodes {
+				if service == node.Service && minfo.NID == node.NID {
 					log.Infof("found node by rid=% & uid=%s & mid=%s : %v", data.RID, data.UID, data.MID, node)
-					return proto.FromIslbFindNodeMsg{ID: id}, nil
+					return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 				}
 			}
 		}
@@ -69,35 +65,35 @@ func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 
 	// MID/RID Doesn't exist in Redis
 	// Find least packed node to return
-	nid := ""
+	nodeID := ""
 	minStreamCount := math.MaxInt32
-	for _, node := range services {
-		if service == node.Info["service"] {
+	for _, node := range nodes {
+		if service == node.Service {
 			// get stream count
 			nkey := proto.MediaInfo{
 				DC:  dc,
-				NID: node.Info["id"],
+				NID: node.NID,
 			}.BuildKey()
 			streamCount := len(redis.Keys(nkey))
 
 			log.Infof("looking up node stream count: [%s] = %v", nkey, streamCount)
 			if streamCount <= minStreamCount {
-				nid = node.ID
+				nodeID = node.NID
 				minStreamCount = streamCount
 			}
 		}
 	}
-	log.Infof("selecting node: [%s] = %v", nid, minStreamCount)
-	if node, ok := services[nid]; ok {
+	log.Infof("selecting node: [%s] = %v", nodeID, minStreamCount)
+	if node, ok := nodes[nodeID]; ok {
 		log.Infof("found best node: %v", node)
-		return proto.FromIslbFindNodeMsg{ID: node.Info["id"]}, nil
+		return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 	}
 
 	// TODO: Add a load balancing algorithm.
-	for _, node := range services {
-		if service == node.Info["service"] {
+	for _, node := range nodes {
+		if service == node.Service {
 			log.Infof("found node: %v", node)
-			return proto.FromIslbFindNodeMsg{ID: node.Info["id"]}, nil
+			return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 		}
 	}
 

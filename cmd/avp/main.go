@@ -3,10 +3,12 @@ package main
 import (
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/avp"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/node/avp"
 )
 
@@ -29,10 +31,16 @@ func main() {
 		}()
 	}
 
-	serviceNode := discovery.NewServiceNode(conf.Etcd.Addrs, conf.Global.Dc)
-	serviceNode.RegisterNode("avp", "node-avp", "avp-channel-id")
-	avp.Init(conf.Global.Dc, serviceNode.NodeInfo().Info["id"], conf.Nats.URL)
-	avp.InitAVP(conf.Avp)
+	if err := avp.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL, conf.Avp); err != nil {
+		log.Errorf("avp init error: %v", err)
+	}
+	defer avp.Close()
 
-	select {}
+	// Press Ctrl+C to exit the process
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-ch:
+		return
+	}
 }
