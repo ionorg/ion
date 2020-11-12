@@ -1,28 +1,15 @@
 [global]
 pprof = ":6062"
-
 # data center id
 dc = "dc1"
-
 # internet ip
 addr = "127.0.0.1"
 
 [router]
-# pass bandwidth feeback from subs to pubs
-subrembfeedback = false
 # Limit the remb bandwidth in kbps
 # zero means no limits
-maxbandwidth = 400
-# Rate limit nack packets from senders to 1 nack per maxNackTime in seconds
-# zero means no rate limit
-maxnacktime = 1
-
-[router.video]
-# the remb cycle sending to pub, this told the pub it's bandwidth
-rembcycle = 2
-# transport-cc cycle in (ms) (experiment feature)
-tcccycle = 0
-# max buffer time by ms
+maxbandwidth = 1500
+# max buffer time by ms for video tracks
 maxbuffertime = 1000
 
 [router.simulcast]
@@ -56,9 +43,7 @@ enabletemporallayer = false
 # nat1to1 = ["1.2.3.4"]
 
 [log]
-stats = true
-level = "debug"
-fix = ["proc.go", "asm_amd64.s", "jsonrpc2.go"]
+level = "info"
 
 [etcd]
 # ["ip:port", "ip:port"]
