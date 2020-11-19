@@ -39,6 +39,10 @@ func Init(dcID string, etcdAddrs []string, natsURLs string, authConf conf.AuthCo
 	if serv, err = discovery.NewService("biz", dcID, etcdAddrs); err != nil {
 		return err
 	}
+	if err := serv.GetNodes("islb", nodes); err != nil {
+		return err
+	}
+	log.Infof("nodes up: %+v", nodes)
 	nid = serv.NID()
 	serv.Watch("islb", watchIslbNodes)
 	serv.KeepAlive()
@@ -58,14 +62,13 @@ func Close() {
 }
 
 // watchNodes watch islb nodes up/down
-func watchIslbNodes(state discovery.State, node discovery.Node) {
+func watchIslbNodes(state discovery.State, id string, node *discovery.Node) {
 	nodeLock.Lock()
 	defer nodeLock.Unlock()
 
-	id := node.ID()
 	if state == discovery.NodeUp {
 		if _, found := nodes[id]; !found {
-			nodes[id] = node
+			nodes[id] = *node
 		}
 		if _, found := subs[id]; !found {
 			log.Infof("subscribe islb: %s", node.NID)

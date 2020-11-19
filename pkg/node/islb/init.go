@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
@@ -42,6 +43,10 @@ func Init(dcID string, etcdAddrs []string, natsURLs string, redisConf db.Config)
 	if serv, err = discovery.NewService("islb", dcID, etcdAddrs); err != nil {
 		return err
 	}
+	if err := serv.GetNodes("", nodes); err != nil {
+		return err
+	}
+	log.Infof("nodes up: %+v", nodes)
 	nid = serv.NID()
 	bid = nid + "-event"
 	serv.Watch("", watchNodes)
@@ -55,14 +60,13 @@ func Init(dcID string, etcdAddrs []string, natsURLs string, redisConf db.Config)
 }
 
 // watchNodes watch nodes
-func watchNodes(state discovery.State, node discovery.Node) {
+func watchNodes(state discovery.State, id string, node *discovery.Node) {
 	nodeLock.Lock()
 	defer nodeLock.Unlock()
 
-	id := node.ID()
 	if state == discovery.NodeUp {
 		if _, found := nodes[id]; !found {
-			nodes[id] = node
+			nodes[id] = *node
 		}
 	} else if state == discovery.NodeDown {
 		if _, found := nodes[id]; found {
