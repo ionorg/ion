@@ -89,7 +89,8 @@ For dev and more options see the wiki
 
 ## Roadmap
 
-[Roadmap to 1.0](https://github.com/pion/ion/projects/2)
+![arch](https://github.com/pion/ion/raw/master/docs/imgs/ion-roadmap.png)
+
 
 ## Maintainers
 
