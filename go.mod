@@ -24,7 +24,7 @@ require (
 	github.com/pion/transport v0.10.1
 	github.com/pion/webrtc/v2 v2.2.26
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.19.0
+	github.com/rs/zerolog v1.20.0
 	github.com/shirou/gopsutil v2.20.8+incompatible
 	github.com/spf13/viper v1.7.1
 	github.com/tjfoc/gmsm v1.3.2 // indirect
