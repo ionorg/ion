@@ -40,7 +40,6 @@ github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9/go.mod h1:2w
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0 h1:7lmqBSdb1ILwUJalqJdIoWPH0cnnQt4NshxXnVvrmx0=
 github.com/cloudwebrtc/go-protoo v0.0.0-20200602160428-0a199e23f7e0/go.mod h1:Q0DiItmsD5iCBdeID9Xu03ok8bemc78XJ+0rYATQbuQ=
-github.com/cloudwebrtc/go-protoo v0.0.0-20200926140535-79ecde67b906 h1:CXJrfUVNhSAKWnb+oSvd8MBCQJHK6+RS7jLvx2z3ba0=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de h1:yPvjphU5iEeYTOOPzSwU9TNoy0nOwtv5LYMZMVtOrPY=
 github.com/cloudwebrtc/nats-protoo v0.0.0-20200604135451-87b43396e8de/go.mod h1:zwKwTqbrcBl9o2AHopHYlMh4KM3wMQHYeR6TrtoRCQ0=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
@@ -256,6 +255,8 @@ github.com/pion/randutil v0.1.0 h1:CFG1UdESneORglEsnimhUjf33Rwjubwj6xfiOXBa3mA=
 github.com/pion/randutil v0.1.0/go.mod h1:XcJrSMMbbMRhASFVOlj/5hQial/Y8oH/HVo7TBZq+j8=
 github.com/pion/rtcp v1.2.3 h1:2wrhKnqgSz91Q5nzYTO07mQXztYPtxL8a0XOss4rJqA=
 github.com/pion/rtcp v1.2.3/go.mod h1:zGhIv0RPRF0Z1Wiij22pUt5W/c9fevqSzT4jje/oK7I=
+github.com/pion/rtcp v1.2.4 h1:NT3H5LkUGgaEapvp0HGik+a+CpflRF7KTD7H+o7OWIM=
+github.com/pion/rtcp v1.2.4/go.mod h1:52rMNPWFsjr39z9B9MhnkqhPLoeHTv1aN63o/42bWE0=
 github.com/pion/rtp v1.5.4/go.mod h1:bg60AL5GotNOlYZsqycbhDtEV3TkfbpXG0KBiUq29Mg=
 github.com/pion/rtp v1.5.5 h1:WTqWdmBuIj+luh8Wg6XVX+w7OytZHAIgtC7uSvgEl9Y=
 github.com/pion/rtp v1.5.5/go.mod h1:bg60AL5GotNOlYZsqycbhDtEV3TkfbpXG0KBiUq29Mg=

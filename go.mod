@@ -18,7 +18,7 @@ require (
 	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v0.0.0-20200628194531-b7b82b17ae83
 	github.com/pion/ion-sfu v0.0.0-20200628194606-99b1a0028619 // indirect
-	github.com/pion/rtcp v1.2.3
+	github.com/pion/rtcp v1.2.4
 	github.com/pion/rtp v1.6.1
 	github.com/pion/stun v0.3.5
 	github.com/pion/transport v0.10.1
