@@ -89,7 +89,15 @@ func (r *NatsRPC) setupConnOptions(opts []nats.Option) []nats.Option {
 // Subscribe will express interest in the given subject.
 // Messages will be delivered to the associated MsgHandler.
 func (r *NatsRPC) Subscribe(subj string, handle MsgHandler) (*nats.Subscription, error) {
-	return r.nc.Subscribe(subj, func(msg *nats.Msg) {
+	return r.QueueSubscribe(subj, "", handle)
+}
+
+// QueueSubscribe creates an asynchronous queue subscriber on the given subject.
+// All subscribers with the same queue name will form the queue group and
+// only one member of the group will be selected to receive any given
+// message asynchronously.
+func (r *NatsRPC) QueueSubscribe(subj, queue string, handle MsgHandler) (*nats.Subscription, error) {
+	return r.nc.QueueSubscribe(subj, queue, func(msg *nats.Msg) {
 		var got rpcmsg
 		if err := Unmarshal(msg.Data, &got); err != nil {
 			log.Errorf("decode msg error: %v", err)
