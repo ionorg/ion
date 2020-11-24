@@ -68,6 +68,27 @@ func TestRequestStruct(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestRequestNil(t *testing.T) {
+	n, err := NewNatsRPC(nats.DefaultURL)
+	assert.NoError(t, err)
+	defer n.Close()
+
+	sub, err := n.Subscribe("rpc-id", func(msg interface{}) (interface{}, error) {
+		fmt.Printf("request: %+v\n", msg)
+		assert.Equal(t, msg, nil)
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	resp, err := n.Request("rpc-id", nil)
+	fmt.Printf("request: resp=%+v, err=%+v\n", resp, err)
+	assert.NoError(t, err)
+	assert.Equal(t, resp, nil)
+
+	err = sub.Unsubscribe()
+	assert.NoError(t, err)
+}
+
 func TestPublish(t *testing.T) {
 	n, err := NewNatsRPC(nats.DefaultURL)
 	assert.NoError(t, err)
