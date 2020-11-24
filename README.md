@@ -23,6 +23,12 @@
 + **ION** is a community effort and relies on volunteers like you and me!
 
 
+## Roadmap
+
+**NOV24 STATUS UPDATE**: The `ion` project has been undergoing a major restructuring for a few months! If you want to build on top of `ion` today, you should start with `ion-sfu`! You can still deploy `ion:0.4.6` as a ready-to-go conference demonstration.
+
+![arch](https://github.com/pion/ion/raw/master/docs/imgs/ion-roadmap.png)
+
 ## ❤️Sponsor to help this awsome project go faster！🚀
 (https://opencollective.com/pion-ion)
 
@@ -86,11 +92,6 @@ For dev and more options see the wiki
 
 ## Architecture
 ![arch](https://github.com/pion/ion/raw/master/docs/imgs/arch.png)
-
-## Roadmap
-
-![arch](https://github.com/pion/ion/raw/master/docs/imgs/ion-roadmap.png)
-
 
 ## Maintainers
 
