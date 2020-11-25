@@ -5,7 +5,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 )
@@ -14,20 +13,19 @@ var (
 	dc          string
 	nid         string
 	subs        map[string]*nats.Subscription
-	roomAuth    conf.AuthConfig
 	avpElements []string
 	nrpc        *proto.NatsRPC
 	nodeLock    sync.RWMutex
 	nodes       map[string]discovery.Node
 	serv        *discovery.Service
+	signal      *server
 )
 
 // Init biz
-func Init(dcID string, etcdAddrs []string, natsURLs string, authConf conf.AuthConfig, elements []string) error {
+func Init(dcID string, etcdAddrs []string, natsURLs string, signalConf *Config, elements []string) error {
 	var err error
 
 	dc = dcID
-	roomAuth = authConf
 	avpElements = elements
 	nodes = make(map[string]discovery.Node)
 	subs = make(map[string]*nats.Subscription)
@@ -47,12 +45,17 @@ func Init(dcID string, etcdAddrs []string, natsURLs string, authConf conf.AuthCo
 	serv.Watch("islb", watchIslbNodes)
 	serv.KeepAlive()
 
+	signal = newServer(signalConf)
+
 	return nil
 }
 
 // Close all
 func Close() {
 	closeSubs()
+	if signal != nil {
+		signal.close()
+	}
 	if nrpc != nil {
 		nrpc.Close()
 	}

@@ -10,22 +10,12 @@ import (
 	log "github.com/pion/ion-log"
 	conf "github.com/pion/ion/pkg/conf/biz"
 	"github.com/pion/ion/pkg/node/biz"
-	"github.com/pion/ion/pkg/signal"
 )
 
 func init() {
 	fixByFile := []string{"asm_amd64.s", "proc.go"}
 	fixByFunc := []string{}
 	log.Init(conf.Log.Level, fixByFile, fixByFunc)
-
-	signal.Init(signal.WebSocketServerConfig{
-		Host:           conf.Signal.Host,
-		Port:           conf.Signal.Port,
-		CertFile:       conf.Signal.Cert,
-		KeyFile:        conf.Signal.Key,
-		WebSocketPath:  conf.Signal.WebSocketPath,
-		AuthConnection: conf.Signal.AuthConnection,
-	}, conf.Signal.AllowDisconnected, biz.Entry)
 }
 
 func main() {
@@ -41,7 +31,7 @@ func main() {
 		}()
 	}
 
-	if err := biz.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL, conf.Signal.AuthRoom, conf.Avp.Elements); err != nil {
+	if err := biz.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL, conf.Signal, conf.Avp.Elements); err != nil {
 		log.Errorf("biz init error: %v", err)
 	}
 	defer biz.Close()

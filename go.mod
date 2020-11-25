@@ -5,7 +5,6 @@ go 1.13
 replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
-	github.com/cloudwebrtc/go-protoo v1.0.0
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v7 v7.4.0
@@ -19,7 +18,7 @@ require (
 	github.com/pion/ion-log v1.0.0
 	github.com/pion/ion-sfu v1.2.0
 	github.com/pion/webrtc/v3 v3.0.0-beta.12
-	github.com/pkg/errors v0.9.1
+	github.com/sourcegraph/jsonrpc2 v0.0.0-20200429184054-15c2290dcb37
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1

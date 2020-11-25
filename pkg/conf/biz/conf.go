@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/pion/ion/pkg/node/biz"
 	"github.com/spf13/viper"
 )
 
@@ -40,33 +40,6 @@ type log struct {
 type etcd struct {
 	Addrs []string `mapstructure:"addrs"`
 }
-
-type signal struct {
-	Host              string `mapstructure:"host"`
-	Port              int    `mapstructure:"port"`
-	Cert              string `mapstructure:"cert"`
-	Key               string `mapstructure:"key"`
-	WebSocketPath     string `mapstructure:"path"`
-	AllowDisconnected bool   `mapstructure:"allow_disconnected"`
-
-	AuthConnection AuthConfig `mapstructure:"auth_connection"`
-	AuthRoom       AuthConfig `mapstructure:"auth_room"`
-}
-
-type AuthConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Key     string `mapstructure:"key"`
-	KeyType string `mapstructure:"key_type"`
-}
-
-func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
-	switch a.KeyType {
-	//TODO: add more support for keytypes here
-	default:
-		return []byte(a.Key), nil
-	}
-}
-
 type nats struct {
 	URL string `mapstructure:"url"`
 }
@@ -76,12 +49,12 @@ type avp struct {
 }
 
 type config struct {
-	Global  global `mapstructure:"global"`
-	Log     log    `mapstructure:"log"`
-	Etcd    etcd   `mapstructure:"etcd"`
-	Nats    nats   `mapstructure:"nats"`
-	Signal  signal `mapstructure:"signal"`
-	Avp     avp    `mapstructure:"avp"`
+	Global  global     `mapstructure:"global"`
+	Log     log        `mapstructure:"log"`
+	Etcd    etcd       `mapstructure:"etcd"`
+	Nats    nats       `mapstructure:"nats"`
+	Signal  biz.Config `mapstructure:"signal"`
+	Avp     avp        `mapstructure:"avp"`
 	CfgFile string
 }
 

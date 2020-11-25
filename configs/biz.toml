@@ -22,7 +22,6 @@ port = "8443"
 # cert= "configs/certs/cert.pem"
 # key= "configs/certs/key.pem"
 path = "/ws"
-allow_disconnected = false
 
 [signal.auth_connection]
 enabled = false 

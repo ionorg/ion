@@ -5,7 +5,6 @@ import (
 
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/signal"
 )
 
 func handleIslbBroadcast(msg interface{}) (interface{}, error) {
@@ -30,7 +29,7 @@ func handleIslbBroadcast(msg interface{}) (interface{}, error) {
 		}
 
 		log.Infof("broadcast: method=%s, msg=%v", method, msg)
-		if r := signal.GetRoom(rid); r != nil {
+		if r := getRoom(rid); r != nil {
 			r.NotifyWithoutID(method, msg, uid)
 		} else {
 			log.Warnf("room not exits, rid=%s, uid=%", rid, uid)
