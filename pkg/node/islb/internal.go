@@ -26,8 +26,6 @@ func handleRequest(rpcID string) (*nats.Subscription, error) {
 			return streamAdd(v)
 		case *proto.IslbBroadcastMsg:
 			return broadcast(v)
-		case *proto.ToIslbListMids:
-			return listMids(v)
 		default:
 			return nil, errors.New("unkonw message")
 		}
@@ -137,25 +135,6 @@ func streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	})
 
 	return nil, err
-}
-
-func listMids(data *proto.ToIslbListMids) (interface{}, error) {
-	mkey := proto.MediaInfo{
-		DC:  dc,
-		RID: data.RID,
-		UID: data.UID,
-	}.BuildKey()
-
-	mids := make([]proto.MID, 0)
-	for _, key := range redis.Keys(mkey) {
-		mediaInfo, err := proto.ParseMediaInfo(key)
-		if err != nil {
-			log.Errorf("Failed to parse media info %v", err)
-			continue
-		}
-		mids = append(mids, mediaInfo.MID)
-	}
-	return proto.FromIslbListMids{MIDs: mids}, nil
 }
 
 func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {

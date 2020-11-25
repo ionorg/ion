@@ -38,45 +38,45 @@ func (r *room) ID() proto.RID {
 	return r.id
 }
 
-// AddPeer add a peer to room
-func (r *room) AddPeer(p *peer) {
+// addPeer add a peer to room
+func (r *room) addPeer(p *peer) {
 	r.Lock()
 	defer r.Unlock()
 	r.peers[p.id] = p
 }
 
-// GetPeer get a peer by peer id
-func (r *room) GetPeer(uid proto.UID) *peer {
+// getPeer get a peer by peer id
+func (r *room) getPeer(uid proto.UID) *peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers[uid]
 }
 
-// GetPeers get peers in the room
-func (r *room) GetPeers() map[proto.UID]*peer {
+// getPeers get peers in the room
+func (r *room) getPeers() map[proto.UID]*peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers
 }
 
-// DelPeer delete a peer in the room
-func (r *room) DelPeer(uid proto.UID) {
+// delPeer delete a peer in the room
+func (r *room) delPeer(uid proto.UID) {
 	r.Lock()
 	defer r.Unlock()
 	delete(r.peers, uid)
 }
 
-// Notify notify a message to peers without one peer
-func (r *room) Notify(method string, data interface{}) {
-	peers := r.GetPeers()
+// notify notify a message to peers without one peer
+func (r *room) notify(method string, data interface{}) {
+	peers := r.getPeers()
 	for _, p := range peers {
 		p.notify(method, data)
 	}
 }
 
-// NotifyWithoutID notify a message to peers without one peer
-func (r *room) NotifyWithoutID(method string, data interface{}, withoutID proto.UID) {
-	peers := r.GetPeers()
+// notifyWithoutID notify a message to peers without one peer
+func (r *room) notifyWithoutID(method string, data interface{}, withoutID proto.UID) {
+	peers := r.getPeers()
 	for id, p := range peers {
 		if id != withoutID {
 			p.notify(method, data)
@@ -98,7 +98,7 @@ func getRoomsByPeer(uid proto.UID) []*room {
 	roomLock.RLock()
 	defer roomLock.RUnlock()
 	for _, r := range rooms {
-		if p := r.GetPeer(uid); p != nil {
+		if p := r.getPeer(uid); p != nil {
 			result = append(result, r)
 		}
 	}
@@ -110,7 +110,7 @@ func delPeer(rid proto.RID, uid proto.UID) {
 	log.Infof("AddPeer rid=%s uid=%s", rid, uid)
 	room := getRoom(rid)
 	if room != nil {
-		room.DelPeer(uid)
+		room.delPeer(uid)
 	}
 }
 
@@ -121,7 +121,7 @@ func addPeer(rid proto.RID, peer *peer) {
 	if room == nil {
 		room = newRoom(rid)
 	}
-	room.AddPeer(peer)
+	room.addPeer(peer)
 }
 
 // getPeer get a peer in the room
@@ -132,7 +132,7 @@ func getPeer(rid proto.RID, uid proto.UID) *peer {
 		//log.Infof("room not exits, rid=%s uid=%s", rid, uid)
 		return nil
 	}
-	return r.GetPeer(uid)
+	return r.getPeer(uid)
 }
 
 // notifyPeer send message to peer
@@ -143,7 +143,7 @@ func notifyPeer(method string, rid proto.RID, uid proto.UID, data interface{}) {
 		log.Errorf("room not exits, rid=%s, uid=%s, data=%s", rid, uid)
 		return
 	}
-	peer := room.GetPeer(uid)
+	peer := room.getPeer(uid)
 	if peer == nil {
 		log.Errorf("peer not exits, rid=%s, uid=%s, data=%s", rid, uid)
 		return

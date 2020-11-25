@@ -207,8 +207,8 @@ func (s *server) stat() {
 		var info string
 		roomLock.RLock()
 		for rid, room := range rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.GetPeers()))
-			if len(room.GetPeers()) == 0 {
+			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.getPeers()))
+			if len(room.getPeers()) == 0 {
 				delete(rooms, rid)
 			}
 		}

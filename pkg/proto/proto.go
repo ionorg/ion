@@ -15,7 +15,7 @@ const (
 	ClientSubscribe   = "subscribe"
 	ClientUnSubscribe = "unsubscribe"
 	ClientBroadcast   = "broadcast"
-	ClientTrickleICE  = "trickle"
+	ClientTrickle     = "trickle"
 	ClientOffer       = "offer"
 	ClientAnswer      = "answer"
 
@@ -35,16 +35,15 @@ const (
 	IslbKeepAlive = "keepAlive"
 	IslbPeerJoin  = ClientOnJoin
 	IslbPeerLeave = ClientOnLeave
-	IslbListMids  = "list-mids"
 	IslbStreamAdd = ClientOnStreamAdd
 	IslbBroadcast = ClientBroadcast
 
 	// SFU Endpoints
-	SfuTrickleICE    = ClientTrickleICE
+	SfuTrickleICE    = ClientTrickle
 	SfuClientJoin    = ClientJoin
 	SfuClientOffer   = ClientOnOffer
 	SfuClientAnswer  = ClientOnAnswer
-	SfuClientTrickle = ClientTrickleICE
+	SfuClientTrickle = ClientTrickle
 	SfuClientLeave   = ClientLeave
 
 	// avp

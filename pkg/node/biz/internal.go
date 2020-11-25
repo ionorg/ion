@@ -9,7 +9,7 @@ import (
 
 func handleIslbBroadcast(msg interface{}) (interface{}, error) {
 	go func(msg interface{}) {
-		log.Infof("handle islb message: %v", msg)
+		log.Infof("handle islb message: %T, %+v", msg, msg)
 
 		var method string
 		var rid proto.RID
@@ -30,7 +30,7 @@ func handleIslbBroadcast(msg interface{}) (interface{}, error) {
 
 		log.Infof("broadcast: method=%s, msg=%v", method, msg)
 		if r := getRoom(rid); r != nil {
-			r.NotifyWithoutID(method, msg, uid)
+			r.notifyWithoutID(method, msg, uid)
 		} else {
 			log.Warnf("room not exits, rid=%s, uid=%", rid, uid)
 		}

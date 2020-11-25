@@ -51,7 +51,7 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 	}
 
 	switch req.Method {
-	case "join":
+	case proto.ClientJoin:
 		var msg proto.FromClientJoinMsg
 		if err := p.unmarshal(*req.Params, &msg); err != nil {
 			log.Errorf("error parsing offer: %v", err)
@@ -65,7 +65,7 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 		}
 		_ = conn.Reply(ctx, req.ID, answer)
 
-	case "offer":
+	case proto.ClientOffer:
 		var msg proto.ClientOfferMsg
 		if err := p.unmarshal(*req.Params, &msg); err != nil {
 			log.Errorf("error parsing trickle: %v", err)
@@ -78,7 +78,7 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 		}
 		_ = conn.Reply(ctx, req.ID, answer)
 
-	case "answer":
+	case proto.ClientAnswer:
 		var msg proto.ClientAnswerMsg
 		if err := p.unmarshal(*req.Params, &msg); err != nil {
 			log.Errorf("error parsing trickle: %v", err)
@@ -89,7 +89,7 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 			replyError(err)
 		}
 
-	case "trickle":
+	case proto.ClientTrickle:
 		var msg proto.ClientTrickleMsg
 		if err := p.unmarshal(*req.Params, &msg); err != nil {
 			log.Errorf("error parsing trickle: %v", err)
@@ -100,7 +100,7 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 			replyError(err)
 		}
 
-	case "leave":
+	case proto.ClientLeave:
 		var msg proto.FromClientLeaveMsg
 		if err := p.unmarshal(*req.Params, &msg); err != nil {
 			log.Errorf("error parsing leave: %v", err)
@@ -174,10 +174,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	if err != nil {
 		log.Errorf("IslbClientOnJoin failed %v", err)
 	}
-	fromIslbPeerJoinMsg, ok := resp.(*proto.FromIslbPeerJoinMsg)
-	if !ok {
-		log.Errorf("IslbClientOnJoin failed %v", fromIslbPeerJoinMsg)
-	}
+	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
 
 	// handle sfu message
 	rpcID := string(uid)
@@ -195,7 +192,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 			}
 		case *proto.SfuTrickleMsg:
 			log.Infof("peer(%s) got a remote candidate: %s", uid, v.Candidate)
-			if err := p.notify(proto.ClientTrickleICE, proto.ClientTrickleMsg{
+			if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
 				RID:       rid,
 				MID:       v.MID,
 				Candidate: proto.CandidateForJSON(v.Candidate),
@@ -225,10 +222,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	fromSfuJoinMsg, ok := resp.(*proto.FromSfuJoinMsg)
-	if !ok {
-		return nil, errors.New("join reply msg parses failed")
-	}
+	fromSfuJoinMsg := resp.(*proto.FromSfuJoinMsg)
 
 	// associate the stream in the SDP with the UID/RID/MID.
 	for key := range sdpInfo.GetStreams() {
@@ -288,19 +282,14 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 		RTCInfo: proto.RTCInfo{Jsep: msg.Jsep},
 	})
 	if err != nil {
-		log.Errorf("SfuClientOnOffer failed %v", err.Error())
+		log.Errorf("offer %s failed %v", sfu, err.Error())
 		return nil, err
-	}
-	answer, ok := resp.(*proto.SfuAnswerMsg)
-	if !ok {
-		log.Errorf("parse answer failed")
-		return nil, errors.New("parse answer failed")
 	}
 
 	return proto.ClientAnswerMsg{
 		RID:     msg.RID,
 		MID:     msg.MID,
-		RTCInfo: answer.RTCInfo,
+		RTCInfo: resp.(*proto.SfuAnswerMsg).RTCInfo,
 	}, nil
 }
 
@@ -318,7 +307,7 @@ func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
 		MID:     msg.MID,
 		RTCInfo: msg.RTCInfo,
 	}); err != nil {
-		log.Errorf("SfuAnswerMsg failed %v", err.Error())
+		log.Errorf("answer %s error: %v", sfu, err.Error())
 		return err
 	}
 
@@ -344,7 +333,7 @@ func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 		Candidate: msg.Candidate,
 	})
 	if err != nil {
-		log.Errorf("send trickle to sfu error: %s", err.Error())
+		log.Errorf("trickle %s error: %s", sfu, err.Error())
 		return err
 	}
 
@@ -353,7 +342,7 @@ func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 
 // leave client leave the room
 func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
-	log.Infof("peer leave: msg=%v", p.id, msg)
+	log.Infof("peer leave: uid=%s, msg=%v", p.id, msg)
 
 	// leave room
 	p.roomLook.Lock()
@@ -364,7 +353,7 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 		log.Warnf("room not exits, rid=", msg.RID)
 		return errors.New("room not found")
 	}
-	room.DelPeer(msg.UID)
+	room.delPeer(msg.UID)
 
 	islb := getIslb()
 	if islb == "" {
@@ -375,39 +364,17 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	if _, err := nrpc.Request(islb, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
 	}); err != nil {
-		log.Errorf("IslbPeerLeave error: %v", err.Error())
+		log.Errorf("leave %s error: %v", islb, err.Error())
 	}
 
-	var mids []proto.MID
-	if msg.MID == "" {
-		if resp, err := nrpc.Request(islb, proto.ToIslbListMids{
-			UID: msg.UID,
-			RID: msg.RID,
-		}); err == nil {
-			if v, ok := resp.(*proto.FromIslbListMids); ok {
-				mids = v.MIDs
-			} else {
-				log.Errorf("json.Unmarshal error: %v", err)
-			}
-		} else {
-			log.Errorf("IslbListMids error: %v", err)
-		}
-	} else {
-		mids = append(mids, msg.MID)
+	sfu, err := getNode("sfu", islb, msg.UID, msg.RID, msg.MID)
+	if err != nil {
+		log.Errorf("sfu-node not found: %s", err)
 	}
-
-	for _, mid := range mids {
-		sfu, err := getNode("sfu", islb, msg.UID, msg.RID, mid)
-		if err != nil {
-			log.Errorf("sfu-node not found: %s", err)
-			continue
-		}
-		if _, err := nrpc.Request(sfu, proto.ToSfuLeaveMsg{
-			MID: mid,
-		}); err != nil {
-			log.Errorf("SfuClientLeave error: %v", err.Error())
-			continue
-		}
+	if _, err := nrpc.Request(sfu, proto.ToSfuLeaveMsg{
+		MID: msg.MID,
+	}); err != nil {
+		log.Errorf("leave %s error: %v", sfu, err.Error())
 	}
 
 	return nil

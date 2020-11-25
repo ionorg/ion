@@ -35,7 +35,6 @@ func init() {
 	gob.Register(&FromIslbStreamAddMsg{})
 	gob.Register(&ToIslbFindNodeMsg{})
 	gob.Register(&FromIslbFindNodeMsg{})
-	gob.Register(&ToIslbListMids{})
 	gob.Register(&FromIslbListMids{})
 }
 
@@ -222,11 +221,6 @@ type ToIslbFindNodeMsg struct {
 
 type FromIslbFindNodeMsg struct {
 	ID string
-}
-
-type ToIslbListMids struct {
-	UID UID `json:"uid"`
-	RID RID `json:"rid"`
 }
 
 type FromIslbListMids struct {
