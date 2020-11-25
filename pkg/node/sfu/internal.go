@@ -135,7 +135,7 @@ func answer(msg *proto.SfuAnswerMsg) (interface{}, error) {
 	return nil, nil
 }
 
-func trickle(msg *proto.SfuTrickleMsg) (map[string]interface{}, error) {
+func trickle(msg *proto.SfuTrickleMsg) (interface{}, error) {
 	log.Infof("trickle msg=%v", msg)
 	peer := s.getPeer(msg.MID)
 	if peer == nil {
