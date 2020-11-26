@@ -22,9 +22,7 @@ audiomaxlate = 100
 videomaxlate = 200
 
 [log]
-stats = true
 level = "info"
-fix = ["proc.go", "asm_amd64.s", "jsonrpc2.go"]
 
 [webrtc]
 # PLI Cycle defines an interval (ms) on which the AVP will
