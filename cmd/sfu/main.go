@@ -1,45 +1,104 @@
 package main
 
 import (
-	"net/http"
+	"flag"
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 
 	log "github.com/pion/ion-log"
-	isfu "github.com/pion/ion-sfu/pkg"
-	conf "github.com/pion/ion/pkg/conf/sfu"
 	"github.com/pion/ion/pkg/node/sfu"
+	"github.com/spf13/viper"
 )
 
-func init() {
+const (
+	portRangeLimit = 100
+)
+
+var (
+	conf = sfu.Config{}
+	file string
+)
+
+func showHelp() {
+	fmt.Printf("Usage:%s {params}\n", os.Args[0])
+	fmt.Println("      -c {config file}")
+	fmt.Println("      -h (show help info)")
+}
+
+func unmarshal(rawVal interface{}) bool {
+	if err := viper.Unmarshal(rawVal); err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", file, err)
+		return false
+	}
+	return true
+}
+
+func load() bool {
+	_, err := os.Stat(file)
+	if err != nil {
+		return false
+	}
+
+	viper.SetConfigFile(file)
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		fmt.Printf("config file %s read failed. %v\n", file, err)
+		return false
+	}
+
+	if !unmarshal(&conf) || !unmarshal(&conf.Config) {
+		return false
+	}
+
+	if len(conf.WebRTC.ICEPortRange) > 2 {
+		fmt.Printf("config file %s loaded failed. range port must be [min,max]\n", file)
+		return false
+	}
+
+	if len(conf.WebRTC.ICEPortRange) != 0 && conf.WebRTC.ICEPortRange[1]-conf.WebRTC.ICEPortRange[0] < portRangeLimit {
+		fmt.Printf("config file %s loaded failed. range port must be [min, max] and max - min >= %d\n", file, portRangeLimit)
+		return false
+	}
+
+	fmt.Printf("config %s load ok!\n", file)
+	return true
+}
+
+func parse() bool {
+	flag.StringVar(&file, "c", "conf/conf.toml", "config file")
+	help := flag.Bool("h", false, "help info")
+	flag.Parse()
+	if !load() {
+		return false
+	}
+
+	if *help {
+		showHelp()
+		return false
+	}
+	return true
+}
+
+func main() {
+	if !parse() {
+		showHelp()
+		os.Exit(-1)
+	}
+
 	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
 	fixByFunc := []string{}
 	log.Init(conf.Log.Level, fixByFunc, fixByFile)
 
-	sfu.InitSFU(&isfu.Config{
-		WebRTC: *conf.WebRTC,
-		Log:    *conf.Log,
-		Router: *conf.Router,
-	})
-}
+	log.Infof("--- starting sfu node ---")
 
-func main() {
-	log.Infof("--- Starting SFU Node ---")
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
-
-	if err := sfu.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL); err != nil {
+	if err := sfu.Init(conf); err != nil {
 		log.Errorf("sfu init error: %v", err)
+		os.Exit(-1)
 	}
 	defer sfu.Close()
 

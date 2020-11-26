@@ -2,8 +2,16 @@
 pprof = ":6062"
 # data center id
 dc = "dc1"
-# internet ip
-addr = "127.0.0.1"
+
+[log]
+level = "info"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["etcd:2379"]
+
+[nats]
+url = "nats://nats:4222"
 
 [router]
 # Limit the remb bandwidth in kbps
@@ -41,13 +49,3 @@ enabletemporallayer = false
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
 # nat1to1 = ["1.2.3.4"]
-
-[log]
-level = "info"
-
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["etcd:2379"]
-
-[nats]
-url = "nats://nats:4222"

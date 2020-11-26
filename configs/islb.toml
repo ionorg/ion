@@ -1,6 +1,5 @@
 [global]
 pprof = ":6061"
-
 # data center id
 dc = "dc1"
 

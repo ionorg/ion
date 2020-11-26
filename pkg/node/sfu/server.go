@@ -13,9 +13,9 @@ type server struct {
 	mu    sync.RWMutex
 }
 
-func newServer(config *sfu.Config) *server {
+func newServer(config sfu.Config) *server {
 	return &server{
-		sfu:   sfu.NewSFU(*config),
+		sfu:   sfu.NewSFU(config),
 		peers: make(map[proto.MID]*sfu.Peer),
 	}
 }

@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/nats-io/nats.go"
@@ -21,23 +22,66 @@ var (
 	signal      *server
 )
 
-// Init biz
-func Init(dcID string, etcdAddrs []string, natsURLs string, signalConf *Config, elements []string) error {
+type global struct {
+	Pprof string `mapstructure:"pprof"`
+	Dc    string `mapstructure:"dc"`
+}
+
+type logConf struct {
+	Level string `mapstructure:"level"`
+}
+
+type etcdConf struct {
+	Addrs []string `mapstructure:"addrs"`
+}
+type natsConf struct {
+	URL string `mapstructure:"url"`
+}
+
+type avp struct {
+	Elements []string `mapstructure:"elements"`
+}
+
+// Config for biz node
+type Config struct {
+	Global global     `mapstructure:"global"`
+	Log    logConf    `mapstructure:"log"`
+	Etcd   etcdConf   `mapstructure:"etcd"`
+	Nats   natsConf   `mapstructure:"nats"`
+	Signal signalConf `mapstructure:"signal"`
+	Avp    avp        `mapstructure:"avp"`
+}
+
+// Init biz node
+func Init(conf Config) error {
 	var err error
 
-	dc = dcID
-	avpElements = elements
+	dc = conf.Global.Dc
+	avpElements = conf.Avp.Elements
 	nodes = make(map[string]discovery.Node)
 	subs = make(map[string]*nats.Subscription)
 
-	if nrpc, err = proto.NewNatsRPC(natsURLs); err != nil {
+	if conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", conf.Global.Pprof)
+			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	if nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+		Close()
 		return err
 	}
 
-	if serv, err = discovery.NewService("biz", dcID, etcdAddrs); err != nil {
+	if serv, err = discovery.NewService("biz", conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+		Close()
 		return err
 	}
 	if err := serv.GetNodes("islb", nodes); err != nil {
+		Close()
 		return err
 	}
 	log.Infof("nodes up: %+v", nodes)
@@ -45,7 +89,7 @@ func Init(dcID string, etcdAddrs []string, natsURLs string, signalConf *Config, 
 	serv.Watch("islb", watchIslbNodes)
 	serv.KeepAlive()
 
-	signal = newServer(signalConf)
+	signal = newServer(conf.Signal)
 
 	return nil
 }

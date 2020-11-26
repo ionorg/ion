@@ -77,8 +77,8 @@ func authenticateRoom(connClaims *claims, keyFunc jwt.Keyfunc, msg proto.Authent
 	return errors.New("permission not sufficient for room")
 }
 
-// Config represents signaling server configuration
-type Config struct {
+// SignalConfig represents signaling server configuration
+type signalConf struct {
 	Host           string     `mapstructure:"host"`
 	Port           int        `mapstructure:"port"`
 	Cert           string     `mapstructure:"cert"`
@@ -94,7 +94,7 @@ type server struct {
 }
 
 // newServer create signal server instance
-func newServer(conf *Config) *server {
+func newServer(conf signalConf) *server {
 	s := &server{
 		closed: make(chan bool),
 	}
@@ -104,7 +104,7 @@ func newServer(conf *Config) *server {
 }
 
 // start signal server
-func (s *server) start(conf *Config) {
+func (s *server) start(conf signalConf) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true

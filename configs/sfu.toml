@@ -2,8 +2,19 @@
 pprof = ":6062"
 # data center id
 dc = "dc1"
-# internet ip
-addr = "127.0.0.1"
+
+[etcd]
+# ["ip:port", "ip:port"]
+addrs = ["127.0.0.1:2379"]
+
+[nats]
+url = "nats://127.0.0.1:4222"
+
+[sfu]
+# Ballast size in MiB, will allocate memory to reduce the GC trigger upto 2x the
+# size of ballast. Be aware that the ballast should be less than the half of memory
+# available.
+ballast = 0
 
 [router]
 # Limit the remb bandwidth in kbps
@@ -31,6 +42,13 @@ enabletemporallayer = false
 # username = "awsome"
 # credential = "awsome"
 
+# sdp semantics:
+# "unified-plan"
+# "plan-b"
+# "unified-plan-with-fallback"
+sdpsemantics = "unified-plan"
+
+[webrtc.candidates]
 # In case you're deploying ion-sfu on a server which is configured with
 # a 1:1 NAT (e.g., Amazon EC2), you might want to also specify the public
 # address of the machine using the setting below. This will result in
@@ -41,13 +59,7 @@ enabletemporallayer = false
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
 # nat1to1 = ["1.2.3.4"]
+# icelite = true
 
 [log]
 level = "info"
-
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2379"]
-
-[nats]
-url = "nats://127.0.0.1:4222"

@@ -1,6 +1,7 @@
 package islb
 
 import (
+	"net/http"
 	"sync"
 	"time"
 
@@ -27,23 +28,63 @@ var (
 	serv     *discovery.Service
 )
 
+type global struct {
+	Pprof string `mapstructure:"pprof"`
+	Dc    string `mapstructure:"dc"`
+}
+
+type logConf struct {
+	Level string `mapstructure:"level"`
+}
+
+type etcdConf struct {
+	Addrs []string `mapstructure:"addrs"`
+}
+
+type natsConf struct {
+	URL string `mapstructure:"url"`
+}
+
+// Config for islb node
+type Config struct {
+	Global  global    `mapstructure:"global"`
+	Log     logConf   `mapstructure:"log"`
+	Etcd    etcdConf  `mapstructure:"etcd"`
+	Nats    natsConf  `mapstructure:"nats"`
+	Redis   db.Config `mapstructure:"redis"`
+	CfgFile string
+}
+
 // Init islb
-func Init(dcID string, etcdAddrs []string, natsURLs string, redisConf db.Config) error {
+func Init(conf Config) error {
 	var err error
 
-	dc = dcID
+	dc = conf.Global.Dc
 	nodes = make(map[string]discovery.Node)
 
-	if nrpc, err = proto.NewNatsRPC(natsURLs); err != nil {
+	if conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", conf.Global.Pprof)
+			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	if nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+		Close()
 		return err
 	}
 
-	redis = db.NewRedis(redisConf)
+	redis = db.NewRedis(conf.Redis)
 
-	if serv, err = discovery.NewService("islb", dcID, etcdAddrs); err != nil {
+	if serv, err = discovery.NewService("islb", dc, conf.Etcd.Addrs); err != nil {
+		Close()
 		return err
 	}
 	if err := serv.GetNodes("", nodes); err != nil {
+		Close()
 		return err
 	}
 	log.Infof("nodes up: %+v", nodes)

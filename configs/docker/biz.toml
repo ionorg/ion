@@ -1,9 +1,5 @@
 [global]
 pprof = ":6060"
-
-# internet ip
-addr = "127.0.0.1"
-
 # data center id
 dc = "dc1"
 
@@ -14,6 +10,9 @@ level = "info"
 [etcd]
 # ["ip:port", "ip:port"]
 addrs = ["etcd:2379"]
+
+[nats]
+url = "nats://nats:4222"
 
 [signal]
 #listen ip port
@@ -32,9 +31,6 @@ key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 enabled = false
 key_type = "HMAC"
 key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
-
-[nats]
-url = "nats://nats:4222"
 
 [avp]
 elements = ["webmsaver"]

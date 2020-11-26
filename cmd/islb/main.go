@@ -1,44 +1,81 @@
 package main
 
 import (
-	"net/http"
+	"flag"
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 
 	log "github.com/pion/ion-log"
-	conf "github.com/pion/ion/pkg/conf/islb"
-	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/node/islb"
+	"github.com/spf13/viper"
 )
 
-func init() {
-	fixByFile := []string{"asm_amd64.s", "proc.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+var (
+	conf = islb.Config{}
+	file string
+)
+
+func showHelp() {
+	fmt.Printf("Usage:%s {params}\n", os.Args[0])
+	fmt.Println("      -c {config file}")
+	fmt.Println("      -h (show help info)")
+}
+
+func load() bool {
+	_, err := os.Stat(file)
+	if err != nil {
+		return false
+	}
+
+	viper.SetConfigFile(file)
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		fmt.Printf("config file %s read failed. %v\n", file, err)
+		return false
+	}
+	err = viper.UnmarshalExact(&conf)
+	if err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", file, err)
+		return false
+	}
+	fmt.Printf("config %s load ok!\n", file)
+	return true
+}
+
+func parse() bool {
+	flag.StringVar(&file, "c", "conf/conf.toml", "config file")
+	help := flag.Bool("h", false, "help info")
+	flag.Parse()
+	if !load() {
+		return false
+	}
+
+	if *help {
+		showHelp()
+		return false
+	}
+	return true
 }
 
 func main() {
-	log.Infof("--- Starting ISLB Node ---")
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("Start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
+	if !parse() {
+		showHelp()
+		os.Exit(-1)
 	}
+	fmt.Println("conf.init() ok")
 
-	redisCfg := db.Config{
-		Addrs: conf.Redis.Addrs,
-		Pwd:   conf.Redis.Pwd,
-		DB:    conf.Redis.DB,
-	}
+	fixByFile := []string{"asm_amd64.s", "proc.go"}
+	fixByFunc := []string{}
+	log.Init(conf.Log.Level, fixByFile, fixByFunc)
 
-	if err := islb.Init(conf.Global.Dc, conf.Etcd.Addrs, conf.Nats.URL, redisCfg); err != nil {
+	log.Infof("--- starting islb node ---")
+
+	if err := islb.Init(conf); err != nil {
 		log.Errorf("islb init error: %v", err)
 	}
 	defer islb.Close()

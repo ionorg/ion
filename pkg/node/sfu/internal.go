@@ -5,17 +5,9 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	isfu "github.com/pion/ion-sfu/pkg"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
 )
-
-var s *server
-
-// InitSFU init sfu server
-func InitSFU(config *isfu.Config) {
-	s = newServer(config)
-}
 
 func handleRequest(rpcID string) (*nats.Subscription, error) {
 	log.Infof("handleRequest: rpcID => [%s]", rpcID)

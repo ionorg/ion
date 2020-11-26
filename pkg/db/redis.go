@@ -12,9 +12,9 @@ import (
 )
 
 type Config struct {
-	Addrs []string
-	Pwd   string
-	DB    int
+	Addrs []string `mapstructure:"addrs"`
+	Pwd   string   `mapstructure:"password"`
+	DB    int      `mapstructure:"db"`
 }
 
 type Redis struct {
