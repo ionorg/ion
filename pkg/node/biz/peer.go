@@ -17,7 +17,7 @@ import (
 	websocketjsonrpc2 "github.com/sourcegraph/jsonrpc2/websocket"
 )
 
-// peer represents a peer
+// peer represents a peer for client
 type peer struct {
 	id         proto.UID
 	conn       *jsonrpc2.Conn

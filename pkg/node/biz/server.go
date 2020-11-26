@@ -17,15 +17,15 @@ const (
 	statCycle = time.Second * 3
 )
 
-// AuthConfig auth config
-type AuthConfig struct {
+// authConfig auth config
+type authConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Key     string `mapstructure:"key"`
 	KeyType string `mapstructure:"key_type"`
 }
 
 // KeyFunc auth key types
-func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
+func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 	switch a.KeyType {
 	//TODO: add more support for keytypes here
 	default:
@@ -84,8 +84,8 @@ type signalConf struct {
 	Cert           string     `mapstructure:"cert"`
 	Key            string     `mapstructure:"key"`
 	WebSocketPath  string     `mapstructure:"path"`
-	AuthConnection AuthConfig `mapstructure:"auth_connection"`
-	AuthRoom       AuthConfig `mapstructure:"auth_room"`
+	AuthConnection authConfig `mapstructure:"auth_connection"`
+	AuthRoom       authConfig `mapstructure:"auth_room"`
 }
 
 // server represents signal server

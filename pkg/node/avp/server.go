@@ -17,14 +17,14 @@ type server struct {
 
 // newServer creates a new avp server instance
 func newServer(conf iavp.Config, elems map[string]iavp.ElementFun) *server {
-	a := &server{
+	s := &server{
 		config:  conf,
 		clients: make(map[string]*sfu),
 	}
 
 	iavp.Init(elems)
 
-	return a
+	return s
 }
 
 // Process starts a process for a track.
