@@ -77,6 +77,7 @@ func main() {
 
 	if err := islb.Init(conf); err != nil {
 		log.Errorf("islb init error: %v", err)
+		os.Exit(-1)
 	}
 	defer islb.Close()
 
