@@ -20,18 +20,15 @@ func newServer(config sfu.Config) *server {
 	}
 }
 
-func (s *server) addPeer(mid proto.MID) *sfu.Peer {
-	p := sfu.NewPeer(s.sfu)
+func (s *server) getPeer(mid proto.MID) *sfu.Peer {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.peers[mid] = &p
-	return &p
-}
-
-func (s *server) getPeer(mid proto.MID) *sfu.Peer {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.peers[mid]
+	p := s.peers[mid]
+	if p == nil {
+		p = sfu.NewPeer(s.sfu)
+		s.peers[mid] = p
+	}
+	return p
 }
 
 func (s *server) delPeer(mid proto.MID) {

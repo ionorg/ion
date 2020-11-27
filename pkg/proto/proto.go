@@ -18,6 +18,7 @@ const (
 	ClientTrickle     = "trickle"
 	ClientOffer       = "offer"
 	ClientAnswer      = "answer"
+	ClientPeers       = "peers"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -19,23 +18,25 @@ import (
 
 // peer represents a peer for client
 type peer struct {
-	id         proto.UID
+	uid        proto.UID
+	mid        proto.MID
+	rid        proto.RID
+	info       []byte
 	conn       *jsonrpc2.Conn
 	ctx        context.Context
 	closed     util.AtomicBool
 	onCloseFun func()
-	rooms      map[proto.RID]proto.MID
-	roomLook   sync.Mutex
 	auth       func(proto.Authenticatable) error
 }
 
 // newPeer create peer instance for client
-func newPeer(ctx context.Context, c *websocket.Conn, id proto.UID, auth func(proto.Authenticatable) error) *peer {
+func newPeer(ctx context.Context, c *websocket.Conn, auth func(proto.Authenticatable) error) *peer {
+	id := uuid.New().String()
 	p := &peer{
-		ctx:   ctx,
-		id:    id,
-		rooms: make(map[proto.RID]proto.MID),
-		auth:  auth,
+		ctx:  ctx,
+		uid:  proto.UID(id), // TODO: may be improve
+		mid:  proto.MID(id),
+		auth: auth,
 	}
 	p.conn = jsonrpc2.NewConn(ctx, websocketjsonrpc2.NewObjectStream(c), p)
 	return p
@@ -127,75 +128,69 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 	}
 }
 
-// join client join the room
-func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
-	log.Infof("peer join: uid=%s, msg=%v", p.id, msg)
-
-	rid := proto.RID(msg.RID)
-	uid := p.id
-
-	// validate
-	if rid == "" {
-		return nil, errors.New("room not found")
-	}
-	sdpInfo, err := sdp.Parse(msg.Jsep.SDP)
-	if err != nil {
-		return nil, errors.New("sdp not found")
-	}
-
-	// join room
-	p.roomLook.Lock()
-	mid, joined := p.rooms[rid]
-	if !joined {
-		mid = proto.MID(uuid.New().String())
-		p.rooms[rid] = mid
-	}
-	p.roomLook.Unlock()
-	if joined {
-		return nil, errors.New("peer already exists")
-	}
-	addPeer(rid, p)
-
-	// get islb and sfu node
-	islb := getIslb()
-	if islb == "" {
-		return nil, errors.New("islb-node not found")
-	}
-	sfu, err := getNode("sfu", islb, uid, rid, mid)
-	if err != nil {
-		log.Errorf("getting sfu-node: %v", err)
-		return nil, errors.New("sfu-node not found")
-	}
-
-	// join to islb
-	resp, err := nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
-		UID: uid, RID: rid, MID: mid, Info: msg.Info,
-	})
-	if err != nil {
-		log.Errorf("IslbClientOnJoin failed %v", err)
-	}
-	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
-
-	// handle sfu message
-	rpcID := string(uid)
-	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
-		log.Infof("peer(%s) handle sfu message: %+v", uid, msg)
+// handleSFURequest handle sfu request
+func (p *peer) handleSFURequest(islb, sfu string) {
+	sub, err := nrpc.Subscribe(string(p.mid), func(msg interface{}) (interface{}, error) {
+		log.Infof("peer(%s) handle sfu message: %T, %+v", p.uid, msg, msg)
 		switch v := msg.(type) {
 		case *proto.SfuOfferMsg:
-			log.Infof("peer(%s) got remote description: %s", uid, v.Jsep)
-			if err := p.notify(proto.ClientOffer, proto.ClientOfferMsg{
-				RID:     rid,
-				MID:     v.MID,
-				RTCInfo: v.RTCInfo,
+			log.Infof("peer(%s) got remote description: %s", p.uid, v.Desc)
+
+			// join to islb
+			resp, err := nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
+				UID: p.uid, RID: p.rid, MID: p.mid, Info: p.info,
+			})
+			if err != nil {
+				log.Errorf("IslbClientOnJoin failed %v", err)
+			}
+			fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
+			if err := p.notify(proto.ClientPeers, proto.ToClientPeersMsg{
+				Peers:   fromIslbPeerJoinMsg.Peers,
+				Streams: fromIslbPeerJoinMsg.Streams,
 			}); err != nil {
 				log.Errorf("error sending offer %s", err)
 			}
+
+			// join to avp
+			var avp string
+			if len(avpElements) > 0 {
+				if avp, err = getNode("avp", islb, p.uid, p.rid, p.mid); err != nil {
+					log.Errorf("get avp-node error: %v", err)
+				}
+			}
+			if avp != "" {
+				sdpInfo, err := sdp.Parse(v.Desc.SDP)
+				if err != nil {
+					log.Errorf("parse sdp error: %v", err)
+				}
+				for _, eid := range avpElements {
+					for _, stream := range sdpInfo.GetStreams() {
+						tracks := stream.GetTracks()
+						for _, track := range tracks {
+							err = nrpc.Publish(avp, proto.ToAvpProcessMsg{
+								Addr:   sfu,
+								PID:    stream.GetID(),
+								RID:    string(p.rid),
+								TID:    track.GetID(),
+								EID:    eid,
+								Config: []byte{},
+							})
+							if err != nil {
+								log.Errorf("avp process failed %v", err)
+							}
+						}
+					}
+				}
+			}
+
+			if err := p.notify(proto.ClientOffer, v.Desc); err != nil {
+				log.Errorf("error sending offer %s", err)
+			}
 		case *proto.SfuTrickleMsg:
-			log.Infof("peer(%s) got a remote candidate: %s", uid, v.Candidate)
+			log.Infof("peer(%s) got a remote candidate: %s", p.uid, v.Candidate)
 			if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
-				RID:       rid,
-				MID:       v.MID,
 				Candidate: proto.CandidateForJSON(v.Candidate),
+				Target:    v.Target,
 			}); err != nil {
 				log.Errorf("error sending ice candidate %s", err)
 			}
@@ -206,106 +201,107 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	})
 	if err != nil {
 		log.Errorf("subscribe sfu failed: %v", err)
-		return nil, errors.New("subscribe sfu failed")
 	}
+
 	p.setCloseFun(func() {
 		sub.Unsubscribe()
 	})
+}
+
+// join client join the room
+func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
+	log.Infof("peer join: uid=%s, msg=%v", p.uid, msg)
+
+	p.rid = msg.RID
+	p.info = msg.Info
+
+	// validate
+	if p.rid == "" {
+		return nil, errors.New("room not found")
+	}
+
+	// join room
+	addPeer(p.rid, p)
+
+	// get islb and sfu node
+	islb := getIslb()
+	if islb == "" {
+		return nil, errors.New("islb-node not found")
+	}
+	sfu, err := getNode("sfu", islb, p.uid, p.rid, p.mid)
+	if err != nil {
+		log.Errorf("getting sfu-node: %v", err)
+		return nil, errors.New("sfu-node not found")
+	}
+
+	// handle sfu message
+	p.handleSFURequest(islb, sfu)
 
 	// join to sfu
-	resp, err = nrpc.Request(sfu, proto.ToSfuJoinMsg{
-		RPCID:   rpcID,
-		MID:     mid,
-		RID:     rid,
-		RTCInfo: msg.RTCInfo,
+	resp, err := nrpc.Request(sfu, proto.ToSfuJoinMsg{
+		MID:   p.mid,
+		RID:   p.rid,
+		Offer: msg.Offer,
 	})
 	if err != nil {
 		return nil, err
 	}
 	fromSfuJoinMsg := resp.(*proto.FromSfuJoinMsg)
 
-	// associate the stream in the SDP with the UID/RID/MID.
-	for key := range sdpInfo.GetStreams() {
-		nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
-			UID: uid, RID: rid, MID: mid, StreamID: proto.StreamID(key),
-		})
-	}
-
-	// join to avp
-	var avp string
-	if len(avpElements) > 0 {
-		if avp, err = getNode("avp", islb, uid, rid, mid); err != nil {
-			log.Errorf("get avp-node error: %v", err)
-		}
-	}
-	if avp != "" {
-		for _, eid := range avpElements {
-			for _, stream := range sdpInfo.GetStreams() {
-				tracks := stream.GetTracks()
-				for _, track := range tracks {
-					err = nrpc.Publish(avp, proto.ToAvpProcessMsg{
-						Addr:   sfu,
-						PID:    stream.GetID(),
-						RID:    string(rid),
-						TID:    track.GetID(),
-						EID:    eid,
-						Config: []byte{},
-					})
-					if err != nil {
-						log.Errorf("avp process failed %v", err)
-					}
-				}
-			}
-		}
-	}
-
-	return proto.ToClientJoinMsg{
-		Peers:   fromIslbPeerJoinMsg.Peers,
-		Streams: fromIslbPeerJoinMsg.Streams,
-		MID:     mid,
-		RTCInfo: fromSfuJoinMsg.RTCInfo,
-	}, nil
+	return fromSfuJoinMsg.Answer, nil
 }
 
 // offer client send offer to biz
 func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
-	log.Infof("peer offer: uid=%s, msg=%v", p.id, msg)
+	log.Infof("peer offer: uid=%s, msg=%v", p.uid, msg)
 
-	sfu, err := getNode("sfu", "", p.id, msg.RID, msg.MID)
+	islb := getIslb()
+	if islb == "" {
+		return nil, errors.New("islb-node not found")
+	}
+
+	// associate the stream in the SDP with the UID/RID/MID.
+	sdpInfo, err := sdp.Parse(msg.Desc.SDP)
+	if err != nil {
+		log.Errorf("parse sdp error: %v", err)
+	}
+	for key := range sdpInfo.GetStreams() {
+		nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
+			UID: p.uid, RID: p.rid, MID: p.mid, StreamID: proto.StreamID(key),
+		})
+	}
+
+	sfu, err := getNode("sfu", islb, p.uid, p.rid, p.mid)
 	if err != nil {
 		log.Warnf("sfu-node not found, %s", err.Error())
 		return nil, err
 	}
 
 	resp, err := nrpc.Request(sfu, proto.SfuOfferMsg{
-		MID:     msg.MID,
-		RTCInfo: proto.RTCInfo{Jsep: msg.Jsep},
+		MID:  p.mid,
+		Desc: msg.Desc,
 	})
 	if err != nil {
 		log.Errorf("offer %s failed %v", sfu, err.Error())
 		return nil, err
 	}
 
-	return proto.ClientAnswerMsg{
-		RID:     msg.RID,
-		MID:     msg.MID,
-		RTCInfo: resp.(*proto.SfuAnswerMsg).RTCInfo,
-	}, nil
+	return resp.(*proto.SfuAnswerMsg).Desc, nil
 }
 
 // answer received answer of client
 func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
-	log.Infof("peer answer:  uid=%s, msg=%v", p.id, msg)
+	log.Infof("peer answer:  uid=%s, msg=%v", p.uid, msg)
 
-	sfu, err := getNode("sfu", "", p.id, msg.RID, msg.MID)
+	sfu, err := getNode("sfu", "", p.uid, p.rid, p.mid)
 	if err != nil {
 		log.Warnf("sfu-node not found, %s", err.Error())
 		return err
 	}
 
 	if _, err := nrpc.Request(sfu, proto.SfuAnswerMsg{
-		MID:     msg.MID,
-		RTCInfo: msg.RTCInfo,
+		MID:  p.mid,
+		Desc: msg.Desc,
 	}); err != nil {
 		log.Errorf("answer %s error: %v", sfu, err.Error())
 		return err
@@ -316,21 +312,18 @@ func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
 
 // trickle received candidate of client
 func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
-	log.Infof("peer trickle: uid=%s, msg=%v", p.id, msg)
+	log.Infof("peer trickle: uid=%s, msg=%v", p.uid, msg)
 
-	if msg.RID == "" {
-		return errors.New("room not found")
-	}
-
-	sfu, err := getNode("sfu", "", p.id, msg.RID, msg.MID)
+	sfu, err := getNode("sfu", "", p.uid, p.rid, p.mid)
 	if err != nil {
 		log.Warnf("sfu-node not found, %s", err.Error())
 		return err
 	}
 
 	_, err = nrpc.Request(sfu, proto.SfuTrickleMsg{
-		MID:       msg.MID,
+		MID:       p.mid,
 		Candidate: msg.Candidate,
+		Target:    msg.Target,
 	})
 	if err != nil {
 		log.Errorf("trickle %s error: %s", sfu, err.Error())
@@ -342,18 +335,15 @@ func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 
 // leave client leave the room
 func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
-	log.Infof("peer leave: uid=%s, msg=%v", p.id, msg)
+	log.Infof("peer leave: uid=%s, msg=%v", p.uid, msg)
 
 	// leave room
-	p.roomLook.Lock()
-	delete(p.rooms, msg.RID)
-	p.roomLook.Unlock()
 	room := getRoom(msg.RID)
 	if room == nil {
 		log.Warnf("room not exits, rid=", msg.RID)
 		return errors.New("room not found")
 	}
-	room.delPeer(msg.UID)
+	room.delPeer(p.uid)
 
 	islb := getIslb()
 	if islb == "" {
@@ -362,17 +352,17 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	}
 
 	if _, err := nrpc.Request(islb, proto.IslbPeerLeaveMsg{
-		RoomInfo: proto.RoomInfo{UID: msg.UID, RID: msg.RID},
+		RoomInfo: proto.RoomInfo{UID: p.uid, RID: msg.RID},
 	}); err != nil {
 		log.Errorf("leave %s error: %v", islb, err.Error())
 	}
 
-	sfu, err := getNode("sfu", islb, msg.UID, msg.RID, msg.MID)
+	sfu, err := getNode("sfu", islb, p.uid, msg.RID, p.mid)
 	if err != nil {
 		log.Errorf("sfu-node not found: %s", err)
 	}
 	if _, err := nrpc.Request(sfu, proto.ToSfuLeaveMsg{
-		MID: msg.MID,
+		MID: p.mid,
 	}); err != nil {
 		log.Errorf("leave %s error: %v", sfu, err.Error())
 	}
@@ -382,7 +372,7 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 
 // Broadcast peer send message to peers of room
 func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
-	log.Infof("peer broadcast: uid=%s, msg=%v", p.id, msg)
+	log.Infof("peer broadcast: uid=%s, msg=%v", p.uid, msg)
 
 	// Validate
 	if msg.RID == "" {
@@ -396,7 +386,7 @@ func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
 
 	// TODO: nrpc.Publish(roomID, ...
 	err := nrpc.Publish(islb, proto.IslbBroadcastMsg{
-		RoomInfo: proto.RoomInfo{UID: p.id, RID: msg.RID},
+		RoomInfo: proto.RoomInfo{UID: p.uid, RID: msg.RID},
 		Info:     msg.Info,
 	})
 	if err != nil {
@@ -444,16 +434,7 @@ func (p *peer) close() {
 	p.closed.Set(true)
 
 	// leave all rooms
-	p.roomLook.Lock()
-	rooms := p.rooms
-	p.roomLook.Unlock()
-	for rid, mid := range rooms {
-		p.leave(&proto.FromClientLeaveMsg{
-			UID: p.id,
-			RID: rid,
-			MID: mid,
-		})
-	}
+	p.leave(&proto.FromClientLeaveMsg{RID: p.rid})
 
 	if p.onCloseFun != nil {
 		p.onCloseFun()

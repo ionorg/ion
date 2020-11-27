@@ -42,7 +42,7 @@ func (r *room) ID() proto.RID {
 func (r *room) addPeer(p *peer) {
 	r.Lock()
 	defer r.Unlock()
-	r.peers[p.id] = p
+	r.peers[p.uid] = p
 }
 
 // getPeer get a peer by peer id
@@ -116,7 +116,7 @@ func delPeer(rid proto.RID, uid proto.UID) {
 
 // addPeer add a peer to room
 func addPeer(rid proto.RID, peer *peer) {
-	log.Infof("AddPeer rid=%s uid=%s", rid, peer.id)
+	log.Infof("AddPeer rid=%s uid=%s", rid, peer.uid)
 	room := getRoom(rid)
 	if room == nil {
 		room = newRoom(rid)

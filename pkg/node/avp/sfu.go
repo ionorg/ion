@@ -88,48 +88,36 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 
 	t := iavp.NewWebRTCTransport(string(rid), s.config)
 
-	var pendingDescriptions []webrtc.ICECandidateInit
+	var pendingDescriptions []*proto.SfuTrickleMsg
 	var hasRemoteDescription util.AtomicBool
 
 	// handle sfu message
-	rpcID := nid + "-" + string(rid)
-	sub, err := nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
+	sub, err := nrpc.Subscribe(string(mid), func(msg interface{}) (interface{}, error) {
 		log.Infof("handle sfu message: %T, %+v", msg, msg)
 
 		switch v := msg.(type) {
 		case *proto.SfuTrickleMsg:
 			log.Infof("got remote candidate: %v", v.Candidate)
 			if hasRemoteDescription.Get() {
-				if err := t.AddICECandidate(v.Candidate); err != nil {
+				if err := t.AddICECandidate(v.Candidate, v.Target); err != nil {
 					log.Errorf("add ice candidate error: %s", err)
 					return nil, err
 				}
 			} else {
 				log.Infof("pending remote candidate: %v", v.Candidate)
-				pendingDescriptions = append(pendingDescriptions, v.Candidate)
+				pendingDescriptions = append(pendingDescriptions, v)
 			}
 		case *proto.SfuOfferMsg:
-			log.Infof("got remote description: %v", v.Jsep)
-			if err := t.SetRemoteDescription(v.Jsep); err != nil {
-				log.Errorf("set remote description error: ", err)
-				return nil, err
-			}
-
-			answer, err := t.CreateAnswer()
+			log.Infof("got remote description: %v", v.Desc)
+			answer, err := t.Answer(v.Desc)
 			if err != nil {
 				log.Errorf("create answer error: ", err)
 				return nil, err
 			}
-
-			if err = t.SetLocalDescription(answer); err != nil {
-				log.Errorf("set local description error: ", err)
-				return nil, err
-			}
-
 			log.Infof("send description to [%s]: %v", s.client, answer)
 			if err := nrpc.Publish(s.client, proto.SfuAnswerMsg{
-				MID:     mid,
-				RTCInfo: proto.RTCInfo{Jsep: answer},
+				MID:  mid,
+				Desc: answer,
 			}); err != nil {
 				log.Errorf("send description to [%s] error: %v", s.client, err)
 				return nil, err
@@ -150,15 +138,10 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 		log.Errorf("creating offer error: %v", err)
 		return nil, nil, err
 	}
-	if err = t.SetLocalDescription(offer); err != nil {
-		log.Errorf("set local description error: %v", err)
-		return nil, nil, err
-	}
 	req := proto.ToSfuJoinMsg{
-		RPCID:   rpcID,
-		MID:     mid,
-		RID:     rid,
-		RTCInfo: proto.RTCInfo{Jsep: offer},
+		MID:   mid,
+		RID:   rid,
+		Offer: offer,
 	}
 	log.Infof("join to [%s]: %v", s.client, req)
 	resp, err := nrpc.Request(s.client, req)
@@ -172,20 +155,20 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 		return nil, nil, errors.New("join reply msg parses failed")
 	}
 	log.Infof("join reply: %v", msg)
-	if err := t.SetRemoteDescription(msg.Jsep); err != nil {
+	if err := t.SetRemoteDescription(msg.Answer); err != nil {
 		log.Errorf("Error set remote description: %s", err)
 		return nil, nil, err
 	}
 
 	hasRemoteDescription.Set(true)
 	for _, c := range pendingDescriptions {
-		if err := t.AddICECandidate(c); err != nil {
+		if err := t.AddICECandidate(c.Candidate, c.Target); err != nil {
 			log.Errorf("add ice candidate error: %s", err)
 		}
 	}
 
 	// send candidates to sfu
-	t.OnICECandidate(func(c *webrtc.ICECandidate) {
+	t.OnICECandidate(func(c *webrtc.ICECandidate, target int) {
 		if c == nil {
 			log.Infof("candidates gathering done")
 			return
@@ -193,6 +176,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 		data := proto.SfuTrickleMsg{
 			MID:       mid,
 			Candidate: c.ToJSON(),
+			Target:    target,
 		}
 		log.Infof("send trickle to [%s]: %v", s.client, data)
 		if err := nrpc.Publish(s.client, data); err != nil {

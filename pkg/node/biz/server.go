@@ -114,21 +114,10 @@ func (s *server) start(conf signalConf) {
 	}
 
 	http.Handle(conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// get user id
-		parms := r.URL.Query()
-		id := parms["id"]
-		if id == nil || len(id) < 1 {
-			log.Errorf("invalid id")
-			http.Error(w, "invalid id", http.StatusForbidden)
-			return
-		}
-		uid := proto.UID(id[0])
-		log.Infof("peer connected, uid=%s", uid)
-
 		// authenticate connection
 		var cc *claims
 		if conf.AuthConnection.Enabled {
-			if token := parms["token"]; token != nil && len(token) > 0 {
+			if token := r.URL.Query()["token"]; token != nil && len(token) > 0 {
 				// passing nil for keyFunc, since token is expected to be already verified (by a proxy)
 				t, err := jwt.ParseWithClaims(token[0], &claims{}, conf.AuthConnection.KeyFunc)
 				if err != nil {
@@ -158,16 +147,16 @@ func (s *server) start(conf signalConf) {
 		defer ws.Close()
 
 		// create a peer
-		p := newPeer(r.Context(), ws, uid, auth)
+		p := newPeer(r.Context(), ws, auth)
 		defer p.close()
 
 		// wait the peer disconnecting
 		select {
 		case <-p.disconnectNotify():
-			log.Infof("peer disconnected, uid=%s", p.id)
+			log.Infof("peer disconnected, uid=%s", p.uid)
 			break
 		case <-s.closed:
-			log.Infof("server closed, disconnect peer, uid=%s", p.id)
+			log.Infof("server closed, disconnect peer, uid=%s", p.uid)
 			break
 		}
 	}))

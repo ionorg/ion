@@ -10,6 +10,7 @@ import (
 func init() {
 	gob.Register(&FromClientJoinMsg{})
 	gob.Register(&ToClientJoinMsg{})
+	gob.Register(&ToClientPeersMsg{})
 	gob.Register(&ToClientPeerJoinMsg{})
 	gob.Register(&ClientOfferMsg{})
 	gob.Register(&ClientAnswerMsg{})
@@ -61,18 +62,14 @@ type Stream struct {
 	UID      UID      `json:"uid"`
 }
 
-type RTCInfo struct {
-	Jsep webrtc.SessionDescription `json:"jsep"`
-}
-
 type TrackMap map[string][]TrackInfo
 
 // Client <-> Biz messages.
 
 type FromClientJoinMsg struct {
-	RID RID `json:"rid"`
+	RID   RID                       `json:"sid"`
+	Offer webrtc.SessionDescription `json:"offer"`
 	RoomToken
-	RTCInfo
 	Info json.RawMessage `json:"info"`
 }
 
@@ -84,10 +81,12 @@ func (j *FromClientJoinMsg) Room() RID {
 }
 
 type ToClientJoinMsg struct {
+	Answer webrtc.SessionDescription `json:"answer"`
+}
+
+type ToClientPeersMsg struct {
 	Peers   []Peer   `json:"peers"`
 	Streams []Stream `json:"streams"`
-	MID     MID      `json:"mid"`
-	RTCInfo
 }
 
 type ToClientPeerJoinMsg struct {
@@ -97,27 +96,20 @@ type ToClientPeerJoinMsg struct {
 }
 
 type ClientOfferMsg struct {
-	RID RID `json:"rid"`
-	MID MID `json:"mid"`
-	RTCInfo
+	Desc webrtc.SessionDescription `json:"desc"`
 }
 
 type ClientAnswerMsg struct {
-	RID RID `json:"rid"`
-	MID MID `json:"mid"`
-	RTCInfo
+	Desc webrtc.SessionDescription `json:"desc"`
 }
 
 type ClientTrickleMsg struct {
-	RID       RID                     `json:"rid"`
-	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
+	Target    int                     `json:"target"`
 }
 
 type FromClientLeaveMsg struct {
-	UID UID `json:"uid"`
 	RID RID `json:"rid"`
-	MID MID `json:"mid"`
 }
 
 type FromClientBroadcastMsg struct {
@@ -133,33 +125,32 @@ type ToClientBroadcastMsg struct {
 // Biz to SFU
 
 type ToSfuJoinMsg struct {
-	RPCID string `json:"rpc"`
-	RID   RID    `json:"rid"`
-	MID   MID    `json:"mid"`
-	RTCInfo
+	RID   RID                       `json:"rid"`
+	MID   MID                       `json:"mid"`
+	Offer webrtc.SessionDescription `json:"offer"`
 }
 
 type FromSfuJoinMsg struct {
-	RTCInfo
+	Answer webrtc.SessionDescription `json:"answer"`
 }
 
 type ToSfuLeaveMsg struct {
 	MID MID `json:"mid"`
 }
-
 type SfuTrickleMsg struct {
 	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
+	Target    int                     `json:"target"`
 }
 
 type SfuOfferMsg struct {
-	MID MID `json:"mid"`
-	RTCInfo
+	MID  MID                       `json:"mid"`
+	Desc webrtc.SessionDescription `json:"offer"`
 }
 
 type SfuAnswerMsg struct {
-	MID MID `json:"mid"`
-	RTCInfo
+	MID  MID                       `json:"mid"`
+	Desc webrtc.SessionDescription `json:"answer"`
 }
 
 // Biz to AVP
