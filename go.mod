@@ -25,11 +25,12 @@ require (
 	github.com/pion/webrtc/v2 v2.2.26
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.19.0
-	github.com/shirou/gopsutil v2.20.8+incompatible
+	github.com/shirou/gopsutil v3.20.10+incompatible
 	github.com/spf13/viper v1.7.1
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/xtaci/kcp-go v5.4.20+incompatible
 	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	golang.org/x/sys v0.0.0-20201024232916-9f70ab9862d5 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
