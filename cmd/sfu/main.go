@@ -92,7 +92,7 @@ func main() {
 
 	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
 	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFunc, fixByFile)
+	log.Init(conf.Log.Level, fixByFile, fixByFunc)
 
 	log.Infof("--- starting sfu node ---")
 
