@@ -32,6 +32,6 @@ run:
 
 test: go_deps start-services
 	go test \
-		-timeout 300s \
+		-timeout 120s \
 		-coverpkg=${GO_COVERPKGS} -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
