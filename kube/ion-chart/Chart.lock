@@ -4,9 +4,9 @@ dependencies:
   version: 5.0.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 10.7.5
+  version: 10.9.0
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
   version: 5.2.1
-digest: sha256:0b0647daeb5ea9688a1a8eda74245e2c96fd7004107ad9c3ae1378808385b3a0
-generated: "2020-11-30T02:44:16.051285741Z"
+digest: sha256:e38f2b7cff06448ed48fe5eda93901a6b40399aae1a861a9f617e3bf82bd12f4
+generated: "2020-11-30T02:48:55.128501221Z"
