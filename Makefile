@@ -27,7 +27,7 @@ stop-services:
 run:
 	docker-compose up --build
 
-test:
+test: start-services
 	go test \
 		-timeout 120s \
 		-coverprofile=cover.out -covermode=atomic \
