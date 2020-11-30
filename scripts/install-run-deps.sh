@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eux
 
 export ROOT_DIR=$(cd `dirname $0`/../; pwd)
 
