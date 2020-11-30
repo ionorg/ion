@@ -1,6 +1,6 @@
 GO_LDFLAGS = -ldflags "-s -w"
 GO_VERSION = 1.14
-GO_TESTPKGS:=$(shell go list ./... | grep -v cmd | grep -v conf | grep -v node)
+GO_TESTPKGS:=$(shell go list ./... | grep -v cmd | grep -v conf | grep -v node | grep -v util)
 GO_COVERPKGS:=$(shell echo $(GO_TESTPKGS) | paste -s -d ',')
 TEST_UID:=$(shell id -u)
 TEST_GID:=$(shell id -g)
@@ -32,6 +32,6 @@ run:
 
 test: go_deps start-services
 	go test \
-		-timeout 120s \
-		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
+		-timeout 300s \
+		-coverpkg=${GO_COVERPKGS} -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
