@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	dc          string
-	nid         string
+	dc          string // nolint: unused
+	nid         string // nolint: unused
 	subs        map[string]*nats.Subscription
 	avpElements []string
 	nrpc        *proto.NatsRPC
@@ -142,7 +142,9 @@ func closeSubs() {
 	nodeLock.Lock()
 	defer nodeLock.Unlock()
 
-	for _, s := range subs {
-		s.Unsubscribe()
+	for id, s := range subs {
+		if err := s.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", id, err)
+		}
 	}
 }

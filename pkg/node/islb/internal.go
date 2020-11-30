@@ -54,7 +54,7 @@ func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 			}
 			for _, node := range nodes {
 				if service == node.Service && minfo.NID == node.NID {
-					log.Infof("found node by rid=% & uid=%s & mid=%s : %v", data.RID, data.UID, data.MID, node)
+					log.Infof("found node by rid=%s & uid=%s & mid=%s : %v", data.RID, data.UID, data.MID, node)
 					return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 				}
 			}

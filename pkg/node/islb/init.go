@@ -110,9 +110,7 @@ func watchNodes(state discovery.State, id string, node *discovery.Node) {
 			nodes[id] = *node
 		}
 	} else if state == discovery.NodeDown {
-		if _, found := nodes[id]; found {
-			delete(nodes, id)
-		}
+		delete(nodes, id)
 	}
 }
 
@@ -126,7 +124,9 @@ func getNodes() map[string]discovery.Node {
 // Close all
 func Close() {
 	if sub != nil {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", nid, err)
+		}
 	}
 	if nrpc != nil {
 		nrpc.Close()

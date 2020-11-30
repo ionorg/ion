@@ -64,7 +64,9 @@ func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
 				log.Errorf("send leave msg to sfu error: %v", err.Error())
 			}
 			delete(s.transports, rid)
-			sub.Unsubscribe()
+			if err := sub.Unsubscribe(); err != nil {
+				log.Errorf("unsubscribe %s error: %v", mid, err)
+			}
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
 				s.onCloseFn()
@@ -111,7 +113,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 			log.Infof("got remote description: %v", v.Desc)
 			answer, err := t.Answer(v.Desc)
 			if err != nil {
-				log.Errorf("create answer error: ", err)
+				log.Errorf("create answer error: %v", err)
 				return nil, err
 			}
 			log.Infof("send description to [%s]: %v", s.client, answer)

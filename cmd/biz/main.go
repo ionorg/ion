@@ -84,10 +84,7 @@ func main() {
 	defer biz.Close()
 
 	// Press Ctrl+C to exit the process
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	sig.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	select {
-	case <-ch:
-		return
-	}
+	<-ch
 }

@@ -26,6 +26,7 @@ type authConfig struct {
 
 // KeyFunc auth key types
 func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
+	// nolint: gocritic
 	switch a.KeyType {
 	//TODO: add more support for keytypes here
 	default:
@@ -117,7 +118,7 @@ func (s *server) start(conf signalConf) {
 		// authenticate connection
 		var cc *claims
 		if conf.AuthConnection.Enabled {
-			if token := r.URL.Query()["token"]; token != nil && len(token) > 0 {
+			if token := r.URL.Query()["token"]; len(token) > 0 {
 				// passing nil for keyFunc, since token is expected to be already verified (by a proxy)
 				t, err := jwt.ParseWithClaims(token[0], &claims{}, conf.AuthConnection.KeyFunc)
 				if err != nil {

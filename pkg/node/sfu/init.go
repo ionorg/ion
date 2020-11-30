@@ -81,7 +81,9 @@ func Init(conf Config) error {
 // Close all
 func Close() {
 	if sub != nil {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", nid, err)
+		}
 	}
 	if nrpc != nil {
 		nrpc.Close()

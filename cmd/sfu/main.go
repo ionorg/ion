@@ -103,10 +103,7 @@ func main() {
 	defer sfu.Close()
 
 	// Press Ctrl+C to exit the process
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	select {
-	case <-ch:
-		return
-	}
+	<-ch
 }

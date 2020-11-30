@@ -1,0 +1,23 @@
+name: lint all
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Generate
+        run: go generate ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: v1.29

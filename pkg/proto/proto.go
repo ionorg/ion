@@ -57,21 +57,23 @@ type MID string
 type RID string
 type UID string
 
-/*
-media
-dc/${nid}/${rid}/${uid}/media/pub/${mid}
-
-node1 origin
-node2 shadow
-msid  [{ssrc: 1234, pt: 111, type:audio}]
-msid  [{ssrc: 5678, pt: 96, type:video}]
-*/
+// MediaInfo media detailed information
+// dc/${nid}/${rid}/${uid}/media/pub/${mid}
+// node1 origin
+// node2 shadow
+// msid  [{ssrc: 1234, pt: 111, type:audio}]
+// msid  [{ssrc: 5678, pt: 96, type:video}]
 type MediaInfo struct {
-	DC  string `json:"dc,omitempty"`  //Data Center ID
-	NID string `json:"nid,omitempty"` //Node ID
-	RID RID    `json:"rid,omitempty"` //Room ID
-	UID UID    `json:"uid,omitempty"` //User ID
-	MID MID    `json:"mid,omitempty"` //Media ID
+	// DC data center id
+	DC string `json:"dc,omitempty"`
+	// NID node id
+	NID string `json:"nid,omitempty"`
+	// RID room id
+	RID RID `json:"rid,omitempty"`
+	// UID user id
+	UID UID `json:"uid,omitempty"`
+	// MID media id
+	MID MID `json:"mid,omitempty"`
 }
 
 func (m MediaInfo) BuildKey() string {

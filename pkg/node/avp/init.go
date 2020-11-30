@@ -29,10 +29,6 @@ type global struct {
 	Dc    string `mapstructure:"dc"`
 }
 
-type logConf struct {
-	Level string `mapstructure:"level"`
-}
-
 type etcdConf struct {
 	Addrs []string `mapstructure:"addrs"`
 }
@@ -113,7 +109,9 @@ func Init(conf Config) error {
 // Close all
 func Close() {
 	if sub != nil {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", nid, err)
+		}
 	}
 	if nrpc != nil {
 		nrpc.Close()

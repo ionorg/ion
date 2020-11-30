@@ -20,11 +20,9 @@ const (
 	// NodeDown node shutdown
 	NodeDown State = 1
 
-	defautlWatchInterval    = 2 * time.Second
 	defaultDialTimeout      = 5 * time.Second
 	defaultGrantTimeout     = 5
 	defaultOperationTimeout = 5 * time.Second
-	defaultWatchRetryDelay  = 2 * time.Second
 	defaultKeepRetryDelay   = 2 * time.Second
 )
 
@@ -188,13 +186,13 @@ func (s *Service) Watch(service string, onStateChange func(state State, id strin
 // watch the service nodes
 func (s *Service) watch(service string, onStateChange func(state State, id string, node *Node)) {
 	go func(key string) {
-		s.wg.Add(1)
 		defer func() {
 			id := s.node.ID()
 			log.Infof("node down: %s", id)
 			onStateChange(NodeDown, id, nil)
 			s.wg.Done()
 		}()
+		s.wg.Add(1)
 
 		log.Infof("start watching: %s", key)
 		defer log.Infof("stop watching: %s", key)

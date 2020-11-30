@@ -32,7 +32,7 @@ func handleIslbBroadcast(msg interface{}) (interface{}, error) {
 		if r := getRoom(rid); r != nil {
 			r.notifyWithoutID(method, msg, uid)
 		} else {
-			log.Warnf("room not exits, rid=%s, uid=%", rid, uid)
+			log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
 		}
 
 	}(msg)

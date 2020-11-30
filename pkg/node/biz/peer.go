@@ -134,7 +134,7 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 		log.Infof("peer(%s) handle sfu message: %T, %+v", p.uid, msg, msg)
 		switch v := msg.(type) {
 		case *proto.SfuOfferMsg:
-			log.Infof("peer(%s) got remote description: %s", p.uid, v.Desc)
+			log.Infof("peer(%s) got remote description: %v", p.uid, v.Desc)
 
 			// join to islb
 			resp, err := nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
@@ -187,7 +187,7 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 				log.Errorf("error sending offer %s", err)
 			}
 		case *proto.SfuTrickleMsg:
-			log.Infof("peer(%s) got a remote candidate: %s", p.uid, v.Candidate)
+			log.Infof("peer(%s) got a remote candidate: %v", p.uid, v.Candidate)
 			if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
 				Candidate: proto.CandidateForJSON(v.Candidate),
 				Target:    v.Target,
@@ -204,7 +204,9 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 	}
 
 	p.setCloseFun(func() {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", p.mid, err)
+		}
 	})
 }
 
@@ -266,9 +268,11 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 		log.Errorf("parse sdp error: %v", err)
 	}
 	for key := range sdpInfo.GetStreams() {
-		nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
+		if err := nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
 			UID: p.uid, RID: p.rid, MID: p.mid, StreamID: proto.StreamID(key),
-		})
+		}); err != nil {
+			log.Errorf("send stream-add to %s error: %v", islb, err)
+		}
 	}
 
 	sfu, err := getNode("sfu", islb, p.uid, p.rid, p.mid)
@@ -340,7 +344,7 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	// leave room
 	room := getRoom(msg.RID)
 	if room == nil {
-		log.Warnf("room not exits, rid=", msg.RID)
+		log.Warnf("room not exits, rid=%s", msg.RID)
 		return errors.New("room not found")
 	}
 	room.delPeer(p.uid)
@@ -410,10 +414,10 @@ func (p *peer) unmarshal(data json.RawMessage, result interface{}) error {
 	return nil
 }
 
-// request send msg to message and waits for the response
-func (p *peer) request(method string, params, result interface{}) error {
-	return p.conn.Call(p.ctx, method, params, result)
-}
+// // request send msg to message and waits for the response
+// func (p *peer) request(method string, params, result interface{}) error {
+// 	return p.conn.Call(p.ctx, method, params, result)
+// }
 
 // notify send a message to the peer
 func (p *peer) notify(method string, params interface{}) error {
@@ -434,7 +438,7 @@ func (p *peer) close() {
 	p.closed.Set(true)
 
 	// leave all rooms
-	p.leave(&proto.FromClientLeaveMsg{RID: p.rid})
+	_ = p.leave(&proto.FromClientLeaveMsg{RID: p.rid})
 
 	if p.onCloseFun != nil {
 		p.onCloseFun()

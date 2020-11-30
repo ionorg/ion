@@ -278,6 +278,7 @@ github.com/pion/ion-log v1.0.0 h1:2lJLImCmfCWCR38hLWsjQfBWe6NFz/htbqiYHwvOP/Q=
 github.com/pion/ion-log v1.0.0/go.mod h1:jwcla9KoB9bB/4FxYDSRJPcPYSLp5XiUUMnOLaqwl4E=
 github.com/pion/ion-sfu v1.5.0 h1:97yQxc/V8kBGGw5rN5/0YGxFSy2ILKSB5JrAZ4vNw9A=
 github.com/pion/ion-sfu v1.5.0/go.mod h1:AHnKv6zXtnBZqTXmARKtUg27lhH5dQHlfjf1TZoWSAY=
+github.com/pion/ion-sfu v1.5.1 h1:h56NtLfvXLAbmzPqpzxi9QADEwyasIQWCSpqXVY7TWU=
 github.com/pion/ion-sfu v1.5.1/go.mod h1:AHnKv6zXtnBZqTXmARKtUg27lhH5dQHlfjf1TZoWSAY=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
 github.com/pion/logging v0.2.2/go.mod h1:k0/tDVsRCX2Mb2ZEmTqNa7CWsQPc+YYCB7Q+5pahoms=

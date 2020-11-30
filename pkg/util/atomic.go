@@ -8,7 +8,7 @@ type AtomicBool struct {
 }
 
 // Set atomic bool
-func (b *AtomicBool) Set(value bool) { // nolint: unparam
+func (b *AtomicBool) Set(value bool) {
 	var i int32
 	if value {
 		i = 1
