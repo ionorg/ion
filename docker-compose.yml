@@ -1,8 +1,22 @@
 version: "3.7"
 
 services:
+  islb:
+    image: pionwebrtc/ion/islb:latest
+    build:
+      dockerfile: ./docker/islb.Dockerfile
+      context: .
+    volumes:
+      - "./configs/docker/islb.toml:/configs/islb.toml"
+    depends_on:
+      - nats
+      - etcd
+      - redis
+    networks:
+      - ionnet
+
   sfu:
-    image: pionwebrtc/ion-sfu:latest
+    image: pionwebrtc/ion/sfu:latest
     build:
       dockerfile: ./docker/sfu.Dockerfile
       context: .
@@ -16,37 +30,8 @@ services:
     networks:
       - ionnet
 
-  biz:
-    image: pionwebrtc/ion-biz:latest
-    build:
-      dockerfile: ./docker/biz.Dockerfile
-      context: .
-    volumes:
-      - "./configs/docker/biz.toml:/configs/biz.toml"
-    ports:
-      - 8443:8443
-    networks:
-      - ionnet
-    depends_on:
-      - nats
-      - etcd
-
-  islb:
-    image: pionwebrtc/ion-islb:latest
-    build:
-      dockerfile: ./docker/islb.Dockerfile
-      context: .
-    volumes:
-      - "./configs/docker/islb.toml:/configs/islb.toml"
-    depends_on:
-      - nats
-      - etcd
-      - redis
-    networks:
-      - ionnet
-
   avp:
-    image: pionwebrtc/ion-avp:latest
+    image: pionwebrtc/ion/avp:latest
     build:
       dockerfile: ./docker/avp.Dockerfile
       context: .
@@ -59,10 +44,25 @@ services:
     networks:
       - ionnet
 
+  biz:
+    image: pionwebrtc/ion/biz:latest
+    build:
+      dockerfile: ./docker/biz.Dockerfile
+      context: .
+    volumes:
+      - "./configs/docker/biz.toml:/configs/biz.toml"
+    ports:
+      - 8443:8443
+    depends_on:
+      - nats
+      - etcd
+    networks:
+      - ionnet
+
   nats:
     image: nats
     ports:
-      - 4223:4222
+      - 4222:4222
     networks:
       - ionnet
 
@@ -71,14 +71,14 @@ services:
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
     ports:
-      - 2389:2379
+      - 2379:2379
     networks:
       - ionnet
 
   redis:
-    image: redis:5.0.10
+    image: redis:6.0.9
     ports:
-      - 6380:6379
+      - 6379:6379
     networks:
       - ionnet
 

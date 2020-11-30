@@ -1,8 +1,20 @@
 version: "3.7"
 
 services:
+  biz:
+    image: pionwebrtc/ion/biz:v1.5.1
+    volumes:
+      - "./configs/certs:/configs/certs"
+    ports:
+      - 8443:8443
+    depends_on:
+      - nats
+      - etcd
+    networks:
+      - ionnet
+
   sfu:
-    image: pionwebrtc/ion-sfu:v0.4.6
+    image: pionwebrtc/ion/sfu:v1.5.1
     ports:
       - "5000-5200:5000-5200/udp"
     depends_on:
@@ -11,20 +23,17 @@ services:
     networks:
       - ionnet
 
-  biz:
-    image: pionwebrtc/ion-biz:v0.4.6
-    volumes:
-      - "./configs/certs:/configs/certs"
-    ports:
-      - 8443:8443
-    networks:
-      - ionnet
+  avp:
+    image: pionwebrtc/ion/avp:v1.5.1
     depends_on:
       - nats
       - etcd
+    networks:
+      - ionnet
+
 
   islb:
-    image: pionwebrtc/ion-islb:v0.4.6
+    image: pionwebrtc/ion/islb:v1.5.1
     depends_on:
       - nats
       - etcd
@@ -34,8 +43,6 @@ services:
 
   nats:
     image: nats
-    ports:
-      - 4223:4222
     networks:
       - ionnet
 
@@ -43,15 +50,11 @@ services:
     image: gcr.io/etcd-development/etcd:v3.4.14
     entrypoint: "/usr/local/bin/etcd"
     command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
-    ports:
-      - 2389:2379
     networks:
       - ionnet
 
   redis:
-    image: redis:5.0.10
-    ports:
-      - 6380:6379
+    image: redis:6.0.9
     networks:
       - ionnet
 

@@ -5,34 +5,33 @@ GO_COVERPKGS:=$(shell echo $(GO_TESTPKGS) | paste -s -d ',')
 TEST_UID:=$(shell id -u)
 TEST_GID:=$(shell id -g)
 
-all: nodes
-
-deps:
-	./scripts/install-run-deps.sh
-
-go_deps:
-	go mod download
+all: build
 
 clean:
 	rm -rf bin
 
-upx:
-	upx -9 bin/*
+go_deps:
+	go mod download
+	go generate ./...
 
-example:
-	go build -o bin/service-node $(GO_LDFLAGS) examples/service/service-node.go
-	go build -o bin/service-watch $(GO_LDFLAGS) examples/watch/service-watch.go
-
-nodes: go_deps
+build: go_deps
 	go build -o bin/biz $(GO_LDFLAGS) cmd/biz/main.go
 	go build -o bin/islb $(GO_LDFLAGS) cmd/islb/main.go
 	go build -o bin/sfu $(GO_LDFLAGS) cmd/sfu/main.go
+	go build -o bin/avp $(GO_LDFLAGS) cmd/avp/main.go
 
-start_test_services:
+start-services:
 	docker network create ionnet || true
-	docker-compose -f docker-compose.stable.yml up -d redis nats etcd
+	docker-compose -f docker-compose.yml up -d redis nats etcd
 
-test: nodes start_test_services
+stop-services:
+	docker-compose -f docker-compose.yml stop redis nats etcd
+
+run:
+	docker-compose up --build
+
+test: go_deps start-services
 	go test \
+		-timeout 120s \
 		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
 		-v -race ${GO_TESTPKGS}

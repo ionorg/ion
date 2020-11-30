@@ -1,0 +1,23 @@
+name: test
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: test
+        run: make test
+    
+      - uses: codecov/codecov-action@v1
+        with:
+          file: ./cover.out
+          name: codecov-umbrella
+          fail_ci_if_error: true

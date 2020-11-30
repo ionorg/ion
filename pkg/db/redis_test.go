@@ -42,7 +42,7 @@ var (
 
 func init() {
 	cfg := Config{
-		Addrs: []string{":6380"},
+		Addrs: []string{":6379"},
 		Pwd:   "",
 		DB:    0,
 	}
