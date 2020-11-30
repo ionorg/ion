@@ -1,9 +1,6 @@
 GO_LDFLAGS = -ldflags "-s -w"
 GO_VERSION = 1.14
-GO_TESTPKGS:=$(shell go list ./... | grep -v cmd | grep -v conf | grep -v node)
-GO_COVERPKGS:=$(shell echo $(GO_TESTPKGS) | paste -s -d ',')
-TEST_UID:=$(shell id -u)
-TEST_GID:=$(shell id -g)
+GO_TESTPKGS:=$(shell go list ./... | grep -v cmd | grep -v conf | grep -v node | grep -v util)
 
 all: build
 
@@ -30,8 +27,8 @@ stop-services:
 run:
 	docker-compose up --build
 
-test: go_deps start-services
+test:
 	go test \
 		-timeout 120s \
-		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
-		-v -race ${GO_TESTPKGS}
+		-coverprofile=cover.out -covermode=atomic \
+		-v -race ${GO_TESTPKGS} 
