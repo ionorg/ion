@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	etcdAddr = "127.0.0.1:2379"
+	etcdAddr = "http://127.0.0.1:2379"
 )
 
 func init() {

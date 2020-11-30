@@ -106,8 +106,8 @@ func (s *Service) KeepAlive() {
 
 // keepAlive service keepalive
 func (s *Service) keepAlive(node Node) {
-	s.wg.Add(1)
 	defer s.wg.Done()
+	s.wg.Add(1)
 
 	id := node.ID()
 	log.Infof("start keepalive: %s", id)
