@@ -49,7 +49,7 @@ services:
       - ionnet
 
   redis:
-    image: redis:5.0.9
+    image: redis:5.0.10
     ports:
       - 6380:6379
     networks:
