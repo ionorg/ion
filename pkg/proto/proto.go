@@ -18,11 +18,11 @@ const (
 	ClientTrickle     = "trickle"
 	ClientOffer       = "offer"
 	ClientAnswer      = "answer"
-	ClientPeers       = "peers"
 
 	// ion to client
 	ClientOnJoin         = "peer-join"
 	ClientOnLeave        = "peer-leave"
+	ClientOnList         = "peer-list"
 	ClientOnStreamAdd    = "stream-add"
 	ClientOnStreamRemove = "stream-remove"
 	ClientOnOffer        = "offer"

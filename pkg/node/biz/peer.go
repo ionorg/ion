@@ -138,54 +138,6 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 		switch v := msg.(type) {
 		case *proto.SfuOfferMsg:
 			log.Infof("peer(%s) got remote description: %v", p.uid, v.Desc)
-
-			// join to islb
-			resp, err := nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
-				UID: p.uid, RID: p.rid, MID: p.mid, Info: p.info,
-			})
-			if err != nil {
-				log.Errorf("IslbClientOnJoin failed %v", err)
-			}
-			fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
-			if err := p.notify(proto.ClientPeers, proto.ToClientPeersMsg{
-				Peers:   fromIslbPeerJoinMsg.Peers,
-				Streams: fromIslbPeerJoinMsg.Streams,
-			}); err != nil {
-				log.Errorf("error sending offer %s", err)
-			}
-
-			// join to avp
-			var avp string
-			if len(avpElements) > 0 {
-				if avp, err = getNode("avp", islb, p.uid, p.rid, p.mid); err != nil {
-					log.Errorf("get avp-node error: %v", err)
-				}
-			}
-			if avp != "" {
-				sdpInfo, err := sdp.Parse(v.Desc.SDP)
-				if err != nil {
-					log.Errorf("parse sdp error: %v", err)
-				}
-				for _, eid := range avpElements {
-					for _, stream := range sdpInfo.GetStreams() {
-						tracks := stream.GetTracks()
-						for _, track := range tracks {
-							err = nrpc.Publish(avp, proto.ToAvpProcessMsg{
-								Addr:   sfu,
-								PID:    stream.GetID(),
-								RID:    string(p.rid),
-								TID:    track.GetID(),
-								EID:    eid,
-								Config: []byte{},
-							})
-							if err != nil {
-								log.Errorf("avp process failed %v", err)
-							}
-						}
-					}
-				}
-			}
-
 			if err := p.notify(proto.ClientOffer, v.Desc); err != nil {
 				log.Errorf("error sending offer %s", err)
 			}
@@ -205,7 +157,7 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 			case webrtc.ICEConnectionStateClosed:
 				p.leaveOnce.Do(func() {
 					if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
-						log.Infof("peer(%s) leave % error: %v", p.rid, err)
+						log.Infof("peer(%s) leave %s error: %v", p.rid, nid, err)
 					}
 				})
 			}
@@ -265,6 +217,23 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	}
 	fromSfuJoinMsg := resp.(*proto.FromSfuJoinMsg)
 
+	// join to islb
+	resp, err = nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
+		UID: p.uid, RID: p.rid, MID: p.mid, Info: p.info,
+	})
+	if err != nil {
+		log.Errorf("send peer-join to %s error: %v", islb, err)
+	}
+	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
+	func(peerlist proto.ToClientPeersMsg) {
+		if err := p.notify(proto.ClientOnList, peerlist); err != nil {
+			log.Errorf("notify peer-list to clients error: %v", err)
+		}
+	}(proto.ToClientPeersMsg{
+		Peers:   fromIslbPeerJoinMsg.Peers,
+		Streams: fromIslbPeerJoinMsg.Streams,
+	})
+
 	return fromSfuJoinMsg.Answer, nil
 }
 
@@ -275,6 +244,21 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 	islb := getIslb()
 	if islb == "" {
 		return nil, errors.New("islb-node not found")
+	}
+
+	// send offer to sfu
+	sfu, err := getNode("sfu", islb, p.uid, p.rid, p.mid)
+	if err != nil {
+		log.Warnf("sfu-node not found, %s", err.Error())
+		return nil, err
+	}
+	resp, err := nrpc.Request(sfu, proto.SfuOfferMsg{
+		MID:  p.mid,
+		Desc: msg.Desc,
+	})
+	if err != nil {
+		log.Errorf("offer %s failed %v", sfu, err.Error())
+		return nil, err
 	}
 
 	// associate the stream in the SDP with the UID/RID/MID.
@@ -290,19 +274,35 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 		}
 	}
 
-	sfu, err := getNode("sfu", islb, p.uid, p.rid, p.mid)
-	if err != nil {
-		log.Warnf("sfu-node not found, %s", err.Error())
-		return nil, err
+	// avp sub streams
+	var avp string
+	if len(avpElements) > 0 {
+		if avp, err = getNode("avp", islb, p.uid, p.rid, p.mid); err != nil {
+			log.Errorf("get avp-node error: %v", err)
+		}
 	}
-
-	resp, err := nrpc.Request(sfu, proto.SfuOfferMsg{
-		MID:  p.mid,
-		Desc: msg.Desc,
-	})
-	if err != nil {
-		log.Errorf("offer %s failed %v", sfu, err.Error())
-		return nil, err
+	if avp != "" {
+		if err != nil {
+			log.Errorf("parse sdp error: %v", err)
+		}
+		for _, eid := range avpElements {
+			for _, stream := range sdpInfo.GetStreams() {
+				tracks := stream.GetTracks()
+				for _, track := range tracks {
+					err = nrpc.Publish(avp, proto.ToAvpProcessMsg{
+						Addr:   sfu,
+						PID:    stream.GetID(),
+						RID:    string(p.rid),
+						TID:    track.GetID(),
+						EID:    eid,
+						Config: []byte{},
+					})
+					if err != nil {
+						log.Errorf("avp process failed %v", err)
+					}
+				}
+			}
+		}
 	}
 
 	return resp.(*proto.SfuAnswerMsg).Desc, nil
@@ -454,7 +454,7 @@ func (p *peer) close() {
 
 	// leave all rooms
 	if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
-		log.Infof("peer(%s) leave % error: %v", p.rid, err)
+		log.Infof("peer(%s) leave %s error: %v", p.rid, nid, err)
 	}
 
 	if p.onCloseFun != nil {
