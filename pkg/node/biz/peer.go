@@ -345,7 +345,7 @@ func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 		Target:    msg.Target,
 	})
 	if err != nil {
-		log.Errorf("trickle %s error: %s", sfu, err.Error())
+		log.Errorf("trickle to %s error: %s", sfu, err.Error())
 		return err
 	}
 

@@ -92,7 +92,7 @@ func offer(msg *proto.SfuOfferMsg) (interface{}, error) {
 	answer, err := peer.Answer(msg.Desc)
 	if err != nil {
 		log.Errorf("peer.Answer: %v", err)
-		return nil, errors.New("peer.Answer error")
+		return nil, err
 	}
 
 	resp := proto.SfuAnswerMsg{
@@ -114,7 +114,7 @@ func leave(msg *proto.ToSfuLeaveMsg) (interface{}, error) {
 	s.delPeer(msg.MID)
 
 	if err := peer.Close(); err != nil {
-		return nil, errors.New("failed to close peer")
+		return nil, err
 	}
 
 	return nil, nil
@@ -129,7 +129,7 @@ func answer(msg *proto.SfuAnswerMsg) (interface{}, error) {
 
 	if err := peer.SetRemoteDescription(msg.Desc); err != nil {
 		log.Errorf("set remote description error: %v", err)
-		return nil, errors.New("set remote description error")
+		return nil, err
 	}
 	return nil, nil
 }
@@ -142,7 +142,7 @@ func trickle(msg *proto.SfuTrickleMsg) (interface{}, error) {
 	}
 
 	if err := peer.Trickle(msg.Candidate, msg.Target); err != nil {
-		return nil, errors.New("error adding ice candidate")
+		return nil, err
 	}
 
 	return nil, nil
