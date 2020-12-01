@@ -328,7 +328,7 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
-    <script src="https://unpkg.com/ion-sdk-js@1.5.0/dist/ion-sdk.min.js"></script>
+    <script src="https://unpkg.com/ion-sdk-js@1.5.1/dist/ion-sdk.min.js"></script>
     <script>
       const localVideo = document.getElementById("local-video");
       const remoteVideo = document.getElementById("remote-video");
@@ -357,11 +357,13 @@
         "ws://localhost:8443/ws"
       );
 
-      const clientLocal = new IonSDK.Client("test session", signalLocal);
-      const clientRemote = new IonSDK.Client("test session", signalRemote);
+      const clientLocal = new IonSDK.Client(signalLocal);
+      const clientRemote = new IonSDK.Client(signalRemote);
 
       let localStream;
       const start = (sc) => {
+        clientLocal.join("room1");
+        clientRemote.join("room1");
         simulcast = sc;
         IonSDK.LocalStream.getUserMedia({
           resolution: "hd",
