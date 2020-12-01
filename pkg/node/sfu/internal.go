@@ -65,6 +65,17 @@ func join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 		}
 	}
 
+	peer.OnICEConnectionStateChange = func(state webrtc.ICEConnectionState) {
+		data := proto.SfuICEConnectionStateMsg{
+			MID:   msg.MID,
+			State: state,
+		}
+		log.Infof("send ice connection state to [%s]: %v", msg.MID, data)
+		if err := nrpc.Publish(string(msg.MID), data); err != nil {
+			log.Errorf("send candidate to [%s] error: %v", msg.MID, err)
+		}
+	}
+
 	// return answer
 	resp := proto.FromSfuJoinMsg{Answer: *answer}
 	log.Infof("reply join: %v", resp)

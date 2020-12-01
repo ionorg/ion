@@ -25,6 +25,7 @@ func init() {
 	gob.Register(&SfuTrickleMsg{})
 	gob.Register(&SfuOfferMsg{})
 	gob.Register(&SfuAnswerMsg{})
+	gob.Register(&SfuICEConnectionStateMsg{})
 
 	gob.Register(&ToAvpProcessMsg{})
 
@@ -137,6 +138,7 @@ type FromSfuJoinMsg struct {
 type ToSfuLeaveMsg struct {
 	MID MID `json:"mid"`
 }
+
 type SfuTrickleMsg struct {
 	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
@@ -151,6 +153,11 @@ type SfuOfferMsg struct {
 type SfuAnswerMsg struct {
 	MID  MID                       `json:"mid"`
 	Desc webrtc.SessionDescription `json:"answer"`
+}
+
+type SfuICEConnectionStateMsg struct {
+	MID   MID                       `json:"mid"`
+	State webrtc.ICEConnectionState `json:"state"`
 }
 
 // Biz to AVP

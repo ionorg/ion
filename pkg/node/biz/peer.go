@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -12,6 +13,7 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	"github.com/pion/webrtc/v3"
 	"github.com/sourcegraph/jsonrpc2"
 	websocketjsonrpc2 "github.com/sourcegraph/jsonrpc2/websocket"
 )
@@ -24,6 +26,7 @@ type peer struct {
 	info       []byte
 	conn       *jsonrpc2.Conn
 	ctx        context.Context
+	leaveOnce  sync.Once
 	closed     util.AtomicBool
 	onCloseFun func()
 	auth       func(proto.Authenticatable) error
@@ -193,6 +196,18 @@ func (p *peer) handleSFURequest(islb, sfu string) {
 				Target:    v.Target,
 			}); err != nil {
 				log.Errorf("error sending ice candidate %s", err)
+			}
+		case *proto.SfuICEConnectionStateMsg:
+			log.Infof("peer(%s) got ice connection state: %v", p.uid, v.State)
+			switch v.State {
+			case webrtc.ICEConnectionStateFailed:
+				fallthrough
+			case webrtc.ICEConnectionStateClosed:
+				p.leaveOnce.Do(func() {
+					if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
+						log.Infof("peer(%s) leave % error: %v", p.rid, err)
+					}
+				})
 			}
 		default:
 			return nil, errors.New("unkonw message")
@@ -374,11 +389,11 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	return nil
 }
 
-// Broadcast peer send message to peers of room
+// broadcast peer send message to peers of room
 func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
 	log.Infof("peer broadcast: uid=%s, msg=%v", p.uid, msg)
 
-	// Validate
+	// validate
 	if msg.RID == "" {
 		return errors.New("room not found")
 	}
@@ -438,7 +453,9 @@ func (p *peer) close() {
 	p.closed.Set(true)
 
 	// leave all rooms
-	_ = p.leave(&proto.FromClientLeaveMsg{RID: p.rid})
+	if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
+		log.Infof("peer(%s) leave % error: %v", p.rid, err)
+	}
 
 	if p.onCloseFun != nil {
 		p.onCloseFun()
