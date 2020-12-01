@@ -178,13 +178,8 @@ func (s *Service) keepAlive(node Node) {
 	}
 }
 
-// Watch nodes
+// Watch the service nodes
 func (s *Service) Watch(service string, onStateChange func(state State, id string, node *Node)) {
-	go s.watch(service, onStateChange)
-}
-
-// watch the service nodes
-func (s *Service) watch(service string, onStateChange func(state State, id string, node *Node)) {
 	go func(key string) {
 		defer func() {
 			id := s.node.ID()

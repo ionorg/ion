@@ -86,6 +86,11 @@ func Init(conf Config) error {
 	}
 	log.Infof("nodes up: %+v", nodes)
 	nid = serv.NID()
+	for _, n := range nodes {
+		if n.Service == "islb" {
+			subIslbBroadcast(&n)
+		}
+	}
 	serv.Watch("islb", watchIslbNodes)
 	serv.KeepAlive()
 
@@ -108,6 +113,15 @@ func Close() {
 	}
 }
 
+func subIslbBroadcast(node *discovery.Node) {
+	log.Infof("subscribe islb broadcast: %s", node.NID)
+	if sub, err := nrpc.Subscribe(node.NID+"-event", handleIslbBroadcast); err == nil {
+		subs[node.ID()] = sub
+	} else {
+		log.Errorf("subcribe error: %v", err)
+	}
+}
+
 // watchNodes watch islb nodes up/down
 func watchIslbNodes(state discovery.State, id string, node *discovery.Node) {
 	nodeLock.Lock()
@@ -118,14 +132,12 @@ func watchIslbNodes(state discovery.State, id string, node *discovery.Node) {
 			nodes[id] = *node
 		}
 		if _, found := subs[id]; !found {
-			log.Infof("subscribe islb: %s", node.NID)
-			if sub, err := nrpc.Subscribe(node.NID+"-event", handleIslbBroadcast); err == nil {
-				subs[id] = sub
-			} else {
-				log.Errorf("subcribe error: %v", err)
-			}
+			subIslbBroadcast(node)
 		}
 	} else if state == discovery.NodeDown {
+		if sub := subs[id]; sub != nil {
+			sub.Unsubscribe()
+		}
 		delete(subs, id)
 		delete(nodes, id)
 	}
