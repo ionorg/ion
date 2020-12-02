@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
     
       - name: build
-        run: docker build --tag pionwebrtc/ion/sfu:latest -f docker/sfu.Dockerfile .
+        run: docker build --tag pionwebrtc/ion:latest-sfu -f docker/sfu.Dockerfile .
 
       - name: login
         if: github.event_name == 'release'
@@ -25,10 +25,10 @@ jobs:
 
       - name: tag
         if: github.event_name == 'release'
-        run: docker tag pionwebrtc/ion/sfu:latest pionwebrtc/ion/sfu:"$TAG"
+        run: docker tag pionwebrtc/ion:latest-sfu pionwebrtc/ion:"$TAG"-sfu
         env:
           TAG: ${{ github.event.release.tag_name }}
 
       - name: push
         if: github.event_name == 'release'
-        run: docker push pionwebrtc/ion/sfu
+        run: docker push pionwebrtc/ion

@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
     
       - name: build
-        run: docker build --tag pionwebrtc/ion/biz:latest -f docker/biz.Dockerfile .
+        run: docker build --tag pionwebrtc/ion:latest-biz -f docker/biz.Dockerfile .
 
       - name: login
         if: github.event_name == 'release'
@@ -25,10 +25,10 @@ jobs:
 
       - name: tag
         if: github.event_name == 'release'
-        run: docker tag pionwebrtc/ion/biz:latest pionwebrtc/ion/biz:"$TAG"
+        run: docker tag pionwebrtc/ion:latest-biz pionwebrtc/ion:"$TAG"-biz
         env:
           TAG: ${{ github.event.release.tag_name }}
 
       - name: push
         if: github.event_name == 'release'
-        run: docker push pionwebrtc/ion/biz
+        run: docker push pionwebrtc/ion
