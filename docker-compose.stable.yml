@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   biz:
-    image: pionwebrtc/ion/biz:v1.5.2
+    image: pionwebrtc/ion:v1.5.2-biz
     volumes:
       - "./configs/certs:/configs/certs"
     ports:
@@ -14,7 +14,7 @@ services:
       - ionnet
 
   sfu:
-    image: pionwebrtc/ion/sfu:v1.5.2
+    image: pionwebrtc/ion:v1.5.2-sfu
     ports:
       - "5000-5200:5000-5200/udp"
     depends_on:
@@ -24,7 +24,7 @@ services:
       - ionnet
 
   avp:
-    image: pionwebrtc/ion/avp:v1.5.2
+    image: pionwebrtc/ion:v1.5.2-avp
     depends_on:
       - nats
       - etcd
@@ -33,7 +33,7 @@ services:
 
 
   islb:
-    image: pionwebrtc/ion/islb:v1.5.2
+    image: pionwebrtc/ion:v1.5.2-islb
     depends_on:
       - nats
       - etcd
