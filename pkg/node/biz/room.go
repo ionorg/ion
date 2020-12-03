@@ -45,12 +45,12 @@ func (r *room) addPeer(p *peer) {
 	r.peers[p.uid] = p
 }
 
-// // getPeer get a peer by peer id
-// func (r *room) getPeer(uid proto.UID) *peer {
-// 	r.RLock()
-// 	defer r.RUnlock()
-// 	return r.peers[uid]
-// }
+// getPeer get a peer by peer id
+func (r *room) getPeer(uid proto.UID) *peer {
+	r.RLock()
+	defer r.RUnlock()
+	return r.peers[uid]
+}
 
 // getPeers get peers in the room
 func (r *room) getPeers() map[proto.UID]*peer {

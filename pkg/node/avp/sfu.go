@@ -6,11 +6,9 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -23,11 +21,12 @@ type sfu struct {
 	client     string
 	onCloseFn  func()
 	transports map[proto.RID]*iavp.WebRTCTransport
+	nid        string
 	nrpc       *proto.NatsRPC
 }
 
 // newSFU intializes a new SFU client
-func newSFU(addr string, config iavp.Config, nrpc *proto.NatsRPC) (*sfu, error) {
+func newSFU(addr string, config iavp.Config, nid string, nrpc *proto.NatsRPC) (*sfu, error) {
 	log.Infof("connecting to sfu: %s", addr)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,6 +36,7 @@ func newSFU(addr string, config iavp.Config, nrpc *proto.NatsRPC) (*sfu, error) 
 		client:     addr,
 		config:     config,
 		transports: make(map[proto.RID]*iavp.WebRTCTransport),
+		nid:        nid,
 		nrpc:       nrpc,
 	}, nil
 }
@@ -51,9 +51,8 @@ func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
 	// no transport yet, create one
 	if t == nil {
 		var err error
-		var sub *nats.Subscription
 		mid := proto.MID(uuid.New().String())
-		if t, sub, err = s.join(rid, mid); err != nil {
+		if t, err = s.join(rid, mid); err != nil {
 			return nil, err
 		}
 		t.OnClose(func() {
@@ -66,9 +65,6 @@ func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
 				log.Errorf("send leave msg to sfu error: %v", err.Error())
 			}
 			delete(s.transports, rid)
-			if err := sub.Unsubscribe(); err != nil {
-				log.Errorf("unsubscribe %s error: %v", sub.Subject, err)
-			}
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
 				s.onCloseFn()
@@ -87,88 +83,39 @@ func (s *sfu) onClose(f func()) {
 	s.onCloseFn = f
 }
 
-func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.Subscription, error) {
+func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, error) {
 	log.Infof("joining sfu session: %s", rid)
 
 	t := iavp.NewWebRTCTransport(string(rid), s.config)
-
-	var pendingDescriptions []*proto.SfuTrickleMsg
-	var hasRemoteDescription util.AtomicBool
-
-	// handle sfu message
-	sub, err := s.nrpc.Subscribe(string(mid), func(msg interface{}) (interface{}, error) {
-		log.Infof("handle sfu message: %T, %+v", msg, msg)
-
-		switch v := msg.(type) {
-		case *proto.SfuTrickleMsg:
-			log.Infof("got remote candidate: %v", v.Candidate)
-			if hasRemoteDescription.Get() {
-				if err := t.AddICECandidate(v.Candidate, v.Target); err != nil {
-					log.Errorf("add ice candidate error: %s", err)
-					return nil, err
-				}
-			} else {
-				log.Infof("pending remote candidate: %v", v.Candidate)
-				pendingDescriptions = append(pendingDescriptions, v)
-			}
-		case *proto.SfuOfferMsg:
-			log.Infof("got remote description: %v", v.Desc)
-			answer, err := t.Answer(v.Desc)
-			if err != nil {
-				log.Errorf("create answer error: %v", err)
-				return nil, err
-			}
-			log.Infof("send description to [%s]: %v", s.client, answer)
-			if err := s.nrpc.Publish(s.client, proto.SfuAnswerMsg{
-				MID:  mid,
-				Desc: answer,
-			}); err != nil {
-				log.Errorf("send description to [%s] error: %v", s.client, err)
-				return nil, err
-			}
-		default:
-			return nil, errors.New("unkonw message")
-		}
-
-		return nil, nil
-	})
-	if err != nil {
-		log.Errorf("nrpc subscribe error: %v", err)
-	}
 
 	// join to sfu
 	offer, err := t.CreateOffer()
 	if err != nil {
 		log.Errorf("creating offer error: %v", err)
-		return nil, nil, err
+		return nil, err
 	}
 	req := proto.ToSfuJoinMsg{
-		MID:   mid,
+		RPC:   s.nid,
 		RID:   rid,
+		UID:   proto.UID(s.client),
+		MID:   mid,
 		Offer: offer,
 	}
 	log.Infof("join to [%s]: %v", s.client, req)
 	resp, err := s.nrpc.Request(s.client, req)
 	if err != nil {
 		log.Errorf("join to [%s] failed: %s", s.client, err)
-		return nil, nil, err
+		return nil, err
 	}
 	msg, ok := resp.(*proto.FromSfuJoinMsg)
 	if !ok {
 		log.Errorf("join reply msg parses failed")
-		return nil, nil, errors.New("join reply msg parses failed")
+		return nil, errors.New("join reply msg parses failed")
 	}
 	log.Infof("join reply: %v", msg)
 	if err := t.SetRemoteDescription(msg.Answer); err != nil {
 		log.Errorf("Error set remote description: %s", err)
-		return nil, nil, err
-	}
-
-	hasRemoteDescription.Set(true)
-	for _, c := range pendingDescriptions {
-		if err := t.AddICECandidate(c.Candidate, c.Target); err != nil {
-			log.Errorf("add ice candidate error: %s", err)
-		}
+		return nil, err
 	}
 
 	// send candidates to sfu
@@ -192,5 +139,41 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 		log.Errorf("nrpc subscribe error: %v", err)
 	}
 
-	return t, sub, nil
+	return t, nil
+}
+
+func (s *sfu) handleSFUMessage(msg interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	switch v := msg.(type) {
+	case *proto.SfuTrickleMsg:
+		log.Infof("got remote candidate: %v", v.Candidate)
+		t := s.transports[v.RID]
+		if t == nil {
+			log.Warnf("not found transport: %s", v.RID)
+			break
+		}
+		if err := t.AddICECandidate(v.Candidate, v.Target); err != nil {
+			log.Errorf("add ice candidate error: %s", err)
+		}
+	case *proto.SfuOfferMsg:
+		log.Infof("got remote description: %v", v.Desc)
+		t := s.transports[v.RID]
+		if t == nil {
+			log.Warnf("not found transport: %s", v.RID)
+			break
+		}
+		answer, err := t.Answer(v.Desc)
+		if err != nil {
+			log.Errorf("create answer error: %v", err)
+		}
+		log.Infof("send description to [%s]: %v", s.client, answer)
+		if err := s.nrpc.Publish(s.client, proto.SfuAnswerMsg{
+			MID:  v.MID,
+			Desc: answer,
+		}); err != nil {
+			log.Errorf("send description to [%s] error: %v", s.client, err)
+		}
+	}
 }

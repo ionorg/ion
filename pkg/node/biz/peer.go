@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -133,50 +134,35 @@ func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 	}
 }
 
-// handleSFURequest handle sfu request
-func (p *peer) handleSFURequest(islb, sfu string) {
-	sub, err := p.s.nrpc.Subscribe(string(p.mid), func(msg interface{}) (interface{}, error) {
-		log.Infof("peer(%s) handle sfu message: %T, %+v", p.uid, msg, msg)
-		switch v := msg.(type) {
-		case *proto.SfuOfferMsg:
-			log.Infof("peer(%s) got remote description: %v", p.uid, v.Desc)
-			if err := p.notify(proto.ClientOffer, v.Desc); err != nil {
-				log.Errorf("error sending offer %s", err)
-			}
-		case *proto.SfuTrickleMsg:
-			log.Infof("peer(%s) got a remote candidate: %v", p.uid, v.Candidate)
-			if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
-				Candidate: proto.CandidateForJSON(v.Candidate),
-				Target:    v.Target,
-			}); err != nil {
-				log.Errorf("error sending ice candidate %s", err)
-			}
-		case *proto.SfuICEConnectionStateMsg:
-			log.Infof("peer(%s) got ice connection state: %v", p.uid, v.State)
-			switch v.State {
-			case webrtc.ICEConnectionStateFailed:
-				fallthrough
-			case webrtc.ICEConnectionStateClosed:
-				p.leaveOnce.Do(func() {
-					if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
-						log.Infof("peer(%s) leave error: %v", p.rid, err)
-					}
-				})
-			}
-		default:
-			return nil, errors.New("unkonw message")
+// handleSFUMessage handle sfu message
+func (p *peer) handleSFUMessage(msg interface{}) {
+	switch v := msg.(type) {
+	case *proto.SfuOfferMsg:
+		log.Infof("peer(%s) got remote description: %v", p.uid, v.Desc)
+		if err := p.notify(proto.ClientOffer, v.Desc); err != nil {
+			log.Errorf("error sending offer %s", err)
 		}
-		return nil, nil
-	})
-	if err != nil {
-		log.Errorf("subscribe sfu failed: %v", err)
+	case *proto.SfuTrickleMsg:
+		log.Infof("peer(%s) got a remote candidate: %v", p.uid, v.Candidate)
+		if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
+			Candidate: proto.CandidateForJSON(v.Candidate),
+			Target:    v.Target,
+		}); err != nil {
+			log.Errorf("error sending ice candidate %s", err)
+		}
+	case *proto.SfuICEConnectionStateMsg:
+		log.Infof("peer(%s) got ice connection state: %v", p.uid, v.State)
+		switch v.State {
+		case webrtc.ICEConnectionStateFailed:
+			fallthrough
+		case webrtc.ICEConnectionStateClosed:
+			p.leaveOnce.Do(func() {
+				if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
+					log.Infof("peer(%s) leave error: %v", p.rid, err)
+				}
+			})
+		}
 	}
-
-	p.setCloseFun(func() {
-		if err := sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", sub.Subject, err)
-		}
-	})
 }
 
 // join client join the room
@@ -205,12 +191,11 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		return nil, errors.New("sfu-node not found")
 	}
 
-	// handle sfu message
-	p.handleSFURequest(islb, sfu)
-
 	// join to sfu
 	resp, err := p.s.nrpc.Request(sfu, proto.ToSfuJoinMsg{
+		RPC:   p.s.nid,
 		MID:   p.mid,
+		UID:   p.uid,
 		RID:   p.rid,
 		Offer: msg.Offer,
 	})
@@ -227,7 +212,8 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		log.Errorf("send peer-join to %s error: %v", islb, err)
 	}
 	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
-	func(peerlist proto.ToClientPeersMsg) {
+	go func(peerlist proto.ToClientPeersMsg) {
+		time.Sleep(100 * time.Millisecond)
 		if err := p.notify(proto.ClientOnList, peerlist); err != nil {
 			log.Errorf("notify peer-list to clients error: %v", err)
 		}

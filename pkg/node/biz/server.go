@@ -57,9 +57,32 @@ func (s *server) close() {
 
 func (s *server) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handle incoming message: %T, %+v", msg, msg)
-	// TODO: handle incoming message
+
+	switch v := msg.(type) {
+	case *proto.SfuOfferMsg:
+		go s.handleSFUMessage(v.RID, v.UID, msg)
+	case *proto.SfuTrickleMsg:
+		go s.handleSFUMessage(v.RID, v.UID, msg)
+	case *proto.SfuICEConnectionStateMsg:
+		go s.handleSFUMessage(v.RID, v.UID, msg)
+	default:
+		log.Warnf("unkonw message: %v", msg)
+		return nil, nil
+	}
 
 	return nil, nil
+}
+
+func (s *server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{}) {
+	if r := getRoom(rid); r != nil {
+		if p := r.getPeer(uid); p != nil {
+			p.handleSFUMessage(msg)
+		} else {
+			log.Warnf("peer not exits, rid=%s, uid=%s", rid, uid)
+		}
+	} else {
+		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+	}
 }
 
 func (s *server) broadcast(msg interface{}) (interface{}, error) {

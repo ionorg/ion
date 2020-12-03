@@ -51,18 +51,36 @@ func (s *server) close() {
 }
 
 func (s *server) handle(msg interface{}) (interface{}, error) {
-	log.Infof("handleRequest: %T, %+v", msg, msg)
+	log.Infof("handle incoming message: %T, %+v", msg, msg)
 
 	switch v := msg.(type) {
 	case *proto.ToAvpProcessMsg:
 		if err := s.process(v.Addr, v.PID, v.RID, v.TID, v.EID, v.Config); err != nil {
 			return nil, err
 		}
+	case *proto.SfuOfferMsg:
+		go s.handleSFUMessage(string(v.UID), msg)
+	case *proto.SfuTrickleMsg:
+		go s.handleSFUMessage(string(v.UID), msg)
+	case *proto.SfuICEConnectionStateMsg:
+		go s.handleSFUMessage(string(v.UID), msg)
 	default:
 		return nil, errors.New("unkonw message")
 	}
 
 	return nil, nil
+}
+
+func (s *server) handleSFUMessage(addr string, msg interface{}) {
+	s.mu.Lock()
+	client := s.clients[addr]
+	s.mu.Unlock()
+
+	if client != nil {
+		client.handleSFUMessage(msg)
+	} else {
+		log.Warnf("not found sfu client, addr=%s", addr)
+	}
 }
 
 // process starts a process for a track.
@@ -75,7 +93,7 @@ func (s *server) process(addr, pid, rid, tid, eid string, config []byte) error {
 	if c == nil {
 		var err error
 		log.Infof("create a sfu client, addr=%s", addr)
-		if c, err = newSFU(addr, s.config, s.nrpc); err != nil {
+		if c, err = newSFU(addr, s.config, s.nid, s.nrpc); err != nil {
 			return err
 		}
 		c.onClose(func() {

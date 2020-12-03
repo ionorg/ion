@@ -126,7 +126,9 @@ type ToClientBroadcastMsg struct {
 // Biz to SFU
 
 type ToSfuJoinMsg struct {
+	RPC   string                    `json:"rpc"`
 	RID   RID                       `json:"rid"`
+	UID   UID                       `json:"uid"`
 	MID   MID                       `json:"mid"`
 	Offer webrtc.SessionDescription `json:"offer"`
 }
@@ -140,12 +142,16 @@ type ToSfuLeaveMsg struct {
 }
 
 type SfuTrickleMsg struct {
+	RID       RID                     `json:"rid"`
+	UID       UID                     `json:"uid"`
 	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
 	Target    int                     `json:"target"`
 }
 
 type SfuOfferMsg struct {
+	RID  RID                       `json:"rid"`
+	UID  UID                       `json:"uid"`
 	MID  MID                       `json:"mid"`
 	Desc webrtc.SessionDescription `json:"offer"`
 }
@@ -156,6 +162,8 @@ type SfuAnswerMsg struct {
 }
 
 type SfuICEConnectionStateMsg struct {
+	RID   RID                       `json:"rid"`
+	UID   UID                       `json:"uid"`
 	MID   MID                       `json:"mid"`
 	State webrtc.ICEConnectionState `json:"state"`
 }
