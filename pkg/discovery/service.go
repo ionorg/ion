@@ -11,14 +11,14 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
-// State define the node state type
-type State int32
+// NodeState define the node state type
+type NodeState int32
 
 const (
-	// NodeUp node starting up
-	NodeUp State = 0
-	// NodeDown node shutdown
-	NodeDown State = 1
+	// NodeStateUp node starting up
+	NodeStateUp NodeState = 0
+	// NodeStateDown node shutdown
+	NodeStateDown NodeState = 1
 
 	defaultDialTimeout      = 5 * time.Second
 	defaultGrantTimeout     = 5
@@ -92,6 +92,11 @@ func (s *Service) Close() {
 	s.cancel()
 	s.wg.Wait()
 	s.client.Close()
+}
+
+// DC return node dc
+func (s *Service) DC() string {
+	return s.node.DC
 }
 
 // NID return node id
@@ -179,12 +184,12 @@ func (s *Service) keepAlive(node Node) {
 }
 
 // Watch the service nodes
-func (s *Service) Watch(service string, onStateChange func(state State, id string, node *Node)) {
+func (s *Service) Watch(service string, onStateChange func(state NodeState, id string, node *Node)) {
 	go func(key string) {
 		defer func() {
 			id := s.node.ID()
 			log.Infof("node down: %s", id)
-			onStateChange(NodeDown, id, nil)
+			onStateChange(NodeStateDown, id, nil)
 			s.wg.Done()
 		}()
 		s.wg.Add(1)
@@ -216,10 +221,10 @@ func (s *Service) Watch(service string, onStateChange func(state State, id strin
 						continue
 					}
 					log.Infof("node up: %s, %+v", id, node)
-					onStateChange(NodeUp, id, &node)
+					onStateChange(NodeStateUp, id, &node)
 				case clientv3.EventTypeDelete:
 					log.Infof("node down: %s", id)
-					onStateChange(NodeDown, id, nil)
+					onStateChange(NodeStateDown, id, nil)
 				}
 			}
 		}

@@ -3,20 +3,10 @@ package sfu
 import (
 	"net/http"
 
-	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	isfu "github.com/pion/ion-sfu/pkg"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
-)
-
-var (
-	dc   string
-	nid  string
-	nrpc *proto.NatsRPC
-	sub  *nats.Subscription
-	serv *discovery.Service
-	s    *server
 )
 
 type global struct {
@@ -40,11 +30,21 @@ type Config struct {
 	isfu.Config
 }
 
-// Init sfu node
-func Init(conf Config) error {
-	var err error
+// SFU represents a sfu node
+type SFU struct {
+	nrpc    *proto.NatsRPC
+	service *discovery.Service
+	s       *server
+}
 
-	dc = conf.Global.Dc
+// NewSFU create a sfu node instance
+func NewSFU() *SFU {
+	return &SFU{}
+}
+
+// Start sfu node
+func (s *SFU) Start(conf Config) error {
+	var err error
 
 	if conf.Global.Pprof != "" {
 		go func() {
@@ -56,22 +56,19 @@ func Init(conf Config) error {
 		}()
 	}
 
-	s = newServer(conf.Config)
-
-	if nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
-		Close()
+	if s.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+		s.Close()
 		return err
 	}
 
-	if serv, err = discovery.NewService("sfu", dc, conf.Etcd.Addrs); err != nil {
-		Close()
+	if s.service, err = discovery.NewService(proto.ServiceSFU, conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+		s.Close()
 		return err
 	}
-	nid = serv.NID()
-	serv.KeepAlive()
+	s.service.KeepAlive()
 
-	if sub, err = handleRequest(nid); err != nil {
-		Close()
+	s.s = newServer(conf.Config, s.service.NID(), s.nrpc)
+	if err := s.s.start(); err != nil {
 		return err
 	}
 
@@ -79,16 +76,14 @@ func Init(conf Config) error {
 }
 
 // Close all
-func Close() {
-	if sub != nil {
-		if err := sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", nid, err)
-		}
+func (s *SFU) Close() {
+	if s.s != nil {
+		s.s.close()
 	}
-	if nrpc != nil {
-		nrpc.Close()
+	if s.nrpc != nil {
+		s.nrpc.Close()
 	}
-	if serv != nil {
-		serv.Close()
+	if s.service != nil {
+		s.service.Close()
 	}
 }

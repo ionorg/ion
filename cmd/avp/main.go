@@ -82,11 +82,12 @@ func main() {
 
 	log.Infof("--- starting avp node ---")
 
-	if err := avp.Init(conf); err != nil {
+	node := avp.NewAVP()
+	if err := node.Start(conf); err != nil {
 		log.Errorf("avp init error: %v", err)
 		os.Exit(-1)
 	}
-	defer avp.Close()
+	defer node.Close()
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

@@ -7,45 +7,84 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/db"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 )
 
-func handleRequest(rpcID string) (*nats.Subscription, error) {
-	log.Infof("handleRequest: rpcID => [%s]", rpcID)
-	return nrpc.Subscribe(rpcID, func(msg interface{}) (interface{}, error) {
-		log.Infof("handleRequest: %T, %+v", msg, msg)
+type server struct {
+	dc       string
+	nid      string
+	bid      string
+	nrpc     *proto.NatsRPC
+	sub      *nats.Subscription
+	redis    *db.Redis
+	getNodes func() map[string]discovery.Node
+}
 
-		switch v := msg.(type) {
-		case *proto.ToIslbFindNodeMsg:
-			return findNode(v)
-		case *proto.ToIslbPeerJoinMsg:
-			return peerJoin(v)
-		case *proto.IslbPeerLeaveMsg:
-			return peerLeave(v)
-		case *proto.ToIslbStreamAddMsg:
-			return streamAdd(v)
-		case *proto.IslbBroadcastMsg:
-			return broadcast(v)
-		default:
-			return nil, errors.New("unkonw message")
+func newServer(dc, nid string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
+	return &server{
+		dc:       dc,
+		nid:      nid,
+		bid:      nid + "-event",
+		nrpc:     nrpc,
+		getNodes: getNodes,
+	}
+}
+
+func (s *server) start(conf db.Config) error {
+	var err error
+	s.redis = db.NewRedis(conf)
+	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *server) close() {
+	if s.sub != nil {
+		if err := s.sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
 		}
-	})
+	}
+	if s.redis != nil {
+		s.redis.Close()
+	}
+}
+
+func (s *server) handle(msg interface{}) (interface{}, error) {
+	log.Infof("handleRequest: %T, %+v", msg, msg)
+
+	switch v := msg.(type) {
+	case *proto.ToIslbFindNodeMsg:
+		return s.findNode(v)
+	case *proto.ToIslbPeerJoinMsg:
+		return s.peerJoin(v)
+	case *proto.IslbPeerLeaveMsg:
+		return s.peerLeave(v)
+	case *proto.ToIslbStreamAddMsg:
+		return s.streamAdd(v)
+	case *proto.IslbBroadcastMsg:
+		return s.broadcast(v)
+	default:
+		return nil, errors.New("unkonw message")
+	}
 }
 
 // Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
-func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
+func (s *server) findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := data.Service
-	nodes := getNodes()
+	nodes := s.getNodes()
 
 	if data.RID != "" && data.UID != "" && data.MID != "" {
 		mkey := proto.MediaInfo{
-			DC:  dc,
+			DC:  s.dc,
 			RID: data.RID,
 			UID: data.UID,
 			MID: data.MID,
 		}.BuildKey()
 		log.Infof("find mids by mkey: %s", mkey)
-		for _, key := range redis.Keys(mkey + "*") {
+		for _, key := range s.redis.Keys(mkey + "*") {
 			log.Infof("got: key => %s", key)
 			minfo, err := proto.ParseMediaInfo(key)
 			if err != nil {
@@ -69,10 +108,10 @@ func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 		if service == node.Service {
 			// get stream count
 			nkey := proto.MediaInfo{
-				DC:  dc,
+				DC:  s.dc,
 				NID: node.NID,
 			}.BuildKey()
-			streamCount := len(redis.Keys(nkey))
+			streamCount := len(s.redis.Keys(nkey))
 
 			log.Infof("looking up node stream count: [%s] = %v", nkey, streamCount)
 			if streamCount <= minStreamCount {
@@ -98,23 +137,23 @@ func findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	return nil, errors.New("service node not found")
 }
 
-func streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
+func (s *server) streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	mkey := proto.MediaInfo{
-		DC:  dc,
+		DC:  s.dc,
 		RID: data.RID,
 		UID: data.UID,
 		MID: data.MID,
 	}.BuildKey()
 
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
-		Name: nid,
-		ID:   nid,
+		Name: s.nid,
+		ID:   s.nid,
 		Type: "origin",
 	})
 	if err != nil {
 		log.Errorf("Set: %v ", err)
 	}
-	err = redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
+	err = s.redis.HSetTTL(mkey, field, value, redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("Set: %v ", err)
 	}
@@ -122,13 +161,13 @@ func streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	field = "track/" + string(data.StreamID)
 	// The value here actually doesn't matter, so just store the associated MID in case it's useful in the future.
 	log.Infof("stores track: mkey, field, value = %s, %s, %s", mkey, field, data.MID)
-	err = redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
+	err = s.redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
 
 	log.Infof("broadcast: [stream-add] => %v", data)
-	err = nrpc.Publish(bid, proto.FromIslbStreamAddMsg{
+	err = s.nrpc.Publish(s.bid, proto.FromIslbStreamAddMsg{
 		RID:    data.RID,
 		UID:    data.UID,
 		Stream: proto.Stream{UID: data.UID, StreamID: data.StreamID},
@@ -137,16 +176,16 @@ func streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	return nil, err
 }
 
-func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
+func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
-		DC:  dc,
+		DC:  s.dc,
 		RID: msg.RID,
 		UID: msg.UID,
 	}.BuildKey()
 	log.Infof("clientJoin: set %s => %v", ukey, string(msg.Info))
 
 	// Tell everyone about the new peer.
-	if err := nrpc.Publish(bid, proto.ToClientPeerJoinMsg{
+	if err := s.nrpc.Publish(s.bid, proto.ToClientPeerJoinMsg{
 		UID: msg.UID, RID: msg.RID, Info: msg.Info,
 	}); err != nil {
 		log.Errorf("broadcast peer-join error: %v", err)
@@ -155,15 +194,15 @@ func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 
 	// Tell the new peer about everyone currently in the room.
 	searchKey := proto.UserInfo{
-		DC:  dc,
+		DC:  s.dc,
 		RID: msg.RID,
 	}.BuildKey()
-	keys := redis.Keys(searchKey)
+	keys := s.redis.Keys(searchKey)
 
 	peers := make([]proto.Peer, 0)
 	streams := make([]proto.Stream, 0)
 	for _, key := range keys {
-		fields := redis.HGetAll(key)
+		fields := s.redis.HGetAll(key)
 		parsedUserKey, err := proto.ParseUserInfo(key)
 		if err != nil {
 			log.Errorf("redis.HGetAll err = %v", err)
@@ -179,13 +218,13 @@ func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 		}
 
 		mkey := proto.MediaInfo{
-			DC:  dc,
+			DC:  s.dc,
 			RID: msg.RID,
 			UID: parsedUserKey.UID,
 		}.BuildKey()
-		mediaKeys := redis.Keys(mkey)
+		mediaKeys := s.redis.Keys(mkey)
 		for _, mediaKey := range mediaKeys {
-			mediaFields := redis.HGetAll(mediaKey)
+			mediaFields := s.redis.HGetAll(mediaKey)
 			for mediaField := range mediaFields {
 				log.Warnf("Received media field %s for key %s", mediaField, mediaKey)
 				if len(mediaField) > 6 && mediaField[:6] == "track/" {
@@ -199,7 +238,7 @@ func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	}
 
 	// Write the user info to redis.
-	err := redis.HSetTTL(ukey, "info", string(msg.Info), redisLongKeyTTL)
+	err := s.redis.HSetTTL(ukey, "info", string(msg.Info), redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
@@ -210,19 +249,19 @@ func peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	}, nil
 }
 
-func peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
+func (s *server) peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
-		DC:  dc,
+		DC:  s.dc,
 		RID: data.RID,
 		UID: data.UID,
 	}.BuildKey()
 	log.Infof("clientLeave: remove key => %s", ukey)
-	err := redis.Del(ukey)
+	err := s.redis.Del(ukey)
 	if err != nil {
 		log.Errorf("redis.Del err = %v", err)
 	}
 
-	if err := nrpc.Publish(bid, data); err != nil {
+	if err := s.nrpc.Publish(s.bid, data); err != nil {
 		log.Errorf("broadcast peer-leave error: %v", err)
 		return nil, err
 	}
@@ -230,8 +269,8 @@ func peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	return nil, nil
 }
 
-func broadcast(data *proto.IslbBroadcastMsg) (interface{}, error) {
-	if err := nrpc.Publish(bid, data); err != nil {
+func (s *server) broadcast(data *proto.IslbBroadcastMsg) (interface{}, error) {
+	if err := s.nrpc.Publish(s.bid, data); err != nil {
 		log.Errorf("broadcast message error: %v", err)
 	}
 

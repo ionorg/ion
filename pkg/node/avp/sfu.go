@@ -23,10 +23,11 @@ type sfu struct {
 	client     string
 	onCloseFn  func()
 	transports map[proto.RID]*iavp.WebRTCTransport
+	nrpc       *proto.NatsRPC
 }
 
 // newSFU intializes a new SFU client
-func newSFU(addr string, config iavp.Config) (*sfu, error) {
+func newSFU(addr string, config iavp.Config, nrpc *proto.NatsRPC) (*sfu, error) {
 	log.Infof("connecting to sfu: %s", addr)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -36,6 +37,7 @@ func newSFU(addr string, config iavp.Config) (*sfu, error) {
 		client:     addr,
 		config:     config,
 		transports: make(map[proto.RID]*iavp.WebRTCTransport),
+		nrpc:       nrpc,
 	}, nil
 }
 
@@ -58,14 +60,14 @@ func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
 			s.mu.Lock()
 			defer s.mu.Unlock()
 			log.Infof("transport close, rid=%s", rid)
-			if _, err := nrpc.Request(s.client, proto.ToSfuLeaveMsg{
+			if _, err := s.nrpc.Request(s.client, proto.ToSfuLeaveMsg{
 				MID: mid,
 			}); err != nil {
 				log.Errorf("send leave msg to sfu error: %v", err.Error())
 			}
 			delete(s.transports, rid)
 			if err := sub.Unsubscribe(); err != nil {
-				log.Errorf("unsubscribe %s error: %v", mid, err)
+				log.Errorf("unsubscribe %s error: %v", sub.Subject, err)
 			}
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
@@ -94,7 +96,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 	var hasRemoteDescription util.AtomicBool
 
 	// handle sfu message
-	sub, err := nrpc.Subscribe(string(mid), func(msg interface{}) (interface{}, error) {
+	sub, err := s.nrpc.Subscribe(string(mid), func(msg interface{}) (interface{}, error) {
 		log.Infof("handle sfu message: %T, %+v", msg, msg)
 
 		switch v := msg.(type) {
@@ -117,7 +119,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 				return nil, err
 			}
 			log.Infof("send description to [%s]: %v", s.client, answer)
-			if err := nrpc.Publish(s.client, proto.SfuAnswerMsg{
+			if err := s.nrpc.Publish(s.client, proto.SfuAnswerMsg{
 				MID:  mid,
 				Desc: answer,
 			}); err != nil {
@@ -146,7 +148,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 		Offer: offer,
 	}
 	log.Infof("join to [%s]: %v", s.client, req)
-	resp, err := nrpc.Request(s.client, req)
+	resp, err := s.nrpc.Request(s.client, req)
 	if err != nil {
 		log.Errorf("join to [%s] failed: %s", s.client, err)
 		return nil, nil, err
@@ -181,7 +183,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, *nats.S
 			Target:    target,
 		}
 		log.Infof("send trickle to [%s]: %v", s.client, data)
-		if err := nrpc.Publish(s.client, data); err != nil {
+		if err := s.nrpc.Publish(s.client, data); err != nil {
 			log.Errorf("send trickle to [%s] error: %v", s.client, err)
 		}
 	})

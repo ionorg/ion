@@ -75,11 +75,12 @@ func main() {
 
 	log.Infof("--- starting islb node ---")
 
-	if err := islb.Init(conf); err != nil {
+	node := islb.NewISLB()
+	if err := node.Start(conf); err != nil {
 		log.Errorf("islb init error: %v", err)
 		os.Exit(-1)
 	}
-	defer islb.Close()
+	defer node.Close()
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

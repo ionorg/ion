@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,14 +20,14 @@ func init() {
 func TestWatch(t *testing.T) {
 	var wg sync.WaitGroup
 
-	s, err := NewService("sfu", "dc1", []string{etcdAddr})
+	s, err := NewService(proto.ServiceSFU, "dc1", []string{etcdAddr})
 	assert.NoError(t, err)
 
-	s.Watch("sfu", func(state State, id string, node *Node) {
-		if state == NodeUp {
+	s.Watch(proto.ServiceSFU, func(state NodeState, id string, node *Node) {
+		if state == NodeStateUp {
 			assert.Equal(t, s.node, *node)
 			wg.Done()
-		} else if state == NodeDown {
+		} else if state == NodeStateDown {
 			assert.Equal(t, s.node.ID(), id)
 			wg.Done()
 		}
@@ -44,16 +45,16 @@ func TestWatch(t *testing.T) {
 func TestGetNodes(t *testing.T) {
 	var wg sync.WaitGroup
 
-	islb, err := NewService("islb", "dc1", []string{etcdAddr})
+	islb, err := NewService(proto.ServiceISLB, "dc1", []string{etcdAddr})
 	assert.NoError(t, err)
 
-	biz, err := NewService("biz", "dc1", []string{etcdAddr})
+	biz, err := NewService(proto.ServiceBIZ, "dc1", []string{etcdAddr})
 	assert.NoError(t, err)
 
-	islb.Watch("", func(state State, id string, node *Node) {
-		if state == NodeUp {
+	islb.Watch("", func(state NodeState, id string, node *Node) {
+		if state == NodeStateUp {
 			wg.Done()
-		} else if state == NodeDown {
+		} else if state == NodeStateDown {
 			wg.Done()
 		}
 	})

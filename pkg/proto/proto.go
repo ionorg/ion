@@ -50,7 +50,10 @@ const (
 	// avp
 	AvpProcess = "avp-process"
 
-	IslbID = "islb"
+	ServiceISLB = "islb"
+	ServiceBIZ  = "biz"
+	ServiceSFU  = "sfu"
+	ServiceAVP  = "avp"
 )
 
 type MID string

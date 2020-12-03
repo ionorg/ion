@@ -96,11 +96,12 @@ func main() {
 
 	log.Infof("--- starting sfu node ---")
 
-	if err := sfu.Init(conf); err != nil {
+	node := sfu.NewSFU()
+	if err := node.Start(conf); err != nil {
 		log.Errorf("sfu init error: %v", err)
 		os.Exit(-1)
 	}
-	defer sfu.Close()
+	defer node.Close()
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

@@ -6,21 +6,11 @@ import (
 	"os"
 	"path"
 
-	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
-)
-
-var (
-	dc   string
-	nid  string
-	nrpc *proto.NatsRPC
-	sub  *nats.Subscription
-	serv *discovery.Service
-	s    *server
 )
 
 type global struct {
@@ -54,10 +44,20 @@ type Config struct {
 	iavp.Config `mapstructure:"avp"`
 }
 
-// Init avp node
-func Init(conf Config) error {
-	dc = conf.Global.Dc
+// AVP represents avp node
+type AVP struct {
+	nrpc    *proto.NatsRPC
+	service *discovery.Service
+	s       *server
+}
 
+// NewAVP create a avp node instance
+func NewAVP() *AVP {
+	return &AVP{}
+}
+
+// Start avp node
+func (a *AVP) Start(conf Config) error {
 	var err error
 
 	if conf.Global.Pprof != "" {
@@ -70,22 +70,16 @@ func Init(conf Config) error {
 		}()
 	}
 
-	if nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
-		Close()
+	if a.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+		a.Close()
 		return err
 	}
 
-	if serv, err = discovery.NewService("avp", dc, conf.Etcd.Addrs); err != nil {
-		Close()
+	if a.service, err = discovery.NewService("avp", conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+		a.Close()
 		return err
 	}
-	nid = serv.NID()
-	serv.KeepAlive()
-
-	if sub, err = handleRequest(nid); err != nil {
-		Close()
-		return err
-	}
+	a.service.KeepAlive()
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
@@ -101,22 +95,24 @@ func Init(conf Config) error {
 			return webm
 		}
 	}
-	s = newServer(conf.Config, elems)
+	a.s = newServer(conf.Config, elems, a.service.NID(), a.nrpc)
+	if err = a.s.start(); err != nil {
+		a.Close()
+		return err
+	}
 
 	return nil
 }
 
 // Close all
-func Close() {
-	if sub != nil {
-		if err := sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", nid, err)
-		}
+func (a *AVP) Close() {
+	if a.s != nil {
+		a.s.close()
 	}
-	if nrpc != nil {
-		nrpc.Close()
+	if a.nrpc != nil {
+		a.nrpc.Close()
 	}
-	if serv != nil {
-		serv.Close()
+	if a.service != nil {
+		a.service.Close()
 	}
 }

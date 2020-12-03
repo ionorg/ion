@@ -77,11 +77,12 @@ func main() {
 
 	log.Infof("--- starting biz node ---")
 
-	if err := biz.Init(conf); err != nil {
+	node := biz.NewBIZ()
+	if err := node.Start(conf); err != nil {
 		log.Errorf("biz init error: %v", err)
 		os.Exit(-1)
 	}
-	defer biz.Close()
+	defer node.Close()
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

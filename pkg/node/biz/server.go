@@ -2,209 +2,131 @@ package biz
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
-	"strconv"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/websocket"
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 )
 
-const (
-	statCycle = time.Second * 3
-)
-
-// authConfig auth config
-type authConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Key     string `mapstructure:"key"`
-	KeyType string `mapstructure:"key_type"`
-}
-
-// KeyFunc auth key types
-func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
-	// nolint: gocritic
-	switch a.KeyType {
-	//TODO: add more support for keytypes here
-	default:
-		return []byte(a.Key), nil
-	}
-}
-
-// claims supported in JWT
-type claims struct {
-	UID string `json:"uid"`
-	RID string `json:"rid"`
-	*jwt.StandardClaims
-}
-
-// authenticateRoom checks both the connection token AND an optional message token for RID claims
-// returns nil for success and returns an error if there are no valid claims for the RID
-func authenticateRoom(connClaims *claims, keyFunc jwt.Keyfunc, msg proto.Authenticatable) error {
-	log.Debugf("authenticateRoom: checking claims on token %v", msg.Token())
-	// connection token has valid claim on this room, succeed early
-	if connClaims != nil && msg.Room() == proto.RID(connClaims.RID) {
-		log.Debugf("authenticateRoom: valid rid in connection claims %v", msg.Room())
-		return nil
-	}
-
-	// check for a message level proto.RoomToken
-	var msgClaims *claims = nil
-	if t := msg.Token(); t != "" {
-		token, err := jwt.ParseWithClaims(t, &claims{}, keyFunc)
-		if err != nil {
-			log.Debugf("authenticateRoom: error parsing token: %v", err)
-			return errors.New("invalid room token")
-		}
-		log.Debugf("authenticateRoom: Got Token %#v", token)
-		msgClaims = token.Claims.(*claims)
-	}
-
-	// no tokens were passed in
-	if connClaims == nil && msgClaims == nil {
-		return errors.New("authorization token required for access")
-	}
-
-	// message token is valid, succeed
-	if msgClaims != nil && msg.Room() == proto.RID(msgClaims.RID) {
-		log.Debugf("authenticateRoom: valid rid in msg claims %v", msg.Room())
-		return nil
-	}
-
-	// if this is reached, a token was passed but it did not have a valid RID claim
-	return errors.New("permission not sufficient for room")
-}
-
-// SignalConfig represents signaling server configuration
-type signalConf struct {
-	Host           string     `mapstructure:"host"`
-	Port           int        `mapstructure:"port"`
-	Cert           string     `mapstructure:"cert"`
-	Key            string     `mapstructure:"key"`
-	WebSocketPath  string     `mapstructure:"path"`
-	AuthConnection authConfig `mapstructure:"auth_connection"`
-	AuthRoom       authConfig `mapstructure:"auth_room"`
-}
-
-// server represents signal server
+// server represents an server instance
 type server struct {
-	closed chan bool
+	nid      string
+	elements []string
+	sub      *nats.Subscription
+	sig      *signal
+	nrpc     *proto.NatsRPC
+	getNodes func() map[string]discovery.Node
 }
 
-// newServer create signal server instance
-func newServer(conf signalConf) *server {
-	s := &server{
-		closed: make(chan bool),
+// newServer creates a new avp server instance
+func newServer(nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
+	return &server{
+		nid:      nid,
+		nrpc:     nrpc,
+		elements: elements,
+		getNodes: getNodes,
 	}
-	go s.stat()
-	go s.start(conf)
-	return s
 }
 
-// start signal server
-func (s *server) start(conf signalConf) {
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	http.Handle(conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// authenticate connection
-		var cc *claims
-		if conf.AuthConnection.Enabled {
-			if token := r.URL.Query()["token"]; len(token) > 0 {
-				// passing nil for keyFunc, since token is expected to be already verified (by a proxy)
-				t, err := jwt.ParseWithClaims(token[0], &claims{}, conf.AuthConnection.KeyFunc)
-				if err != nil {
-					log.Errorf("invalid token: %v", err)
-					http.Error(w, "invalid token", http.StatusForbidden)
-					return
-				}
-				cc = t.Claims.(*claims)
-			}
-		}
-
-		// authenticate message
-		var auth func(msg proto.Authenticatable) error
-		if conf.AuthRoom.Enabled {
-			auth = func(msg proto.Authenticatable) error {
-				return authenticateRoom(cc, conf.AuthRoom.KeyFunc, msg)
-			}
-		}
-
-		// upgrade to websocket connection
-		ws, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Errorf("upgrade websocket error: %v", err)
-			http.Error(w, "upgrade websocket error", http.StatusForbidden)
-			return
-		}
-		defer ws.Close()
-
-		// create a peer
-		p := newPeer(r.Context(), ws, auth)
-		defer p.close()
-
-		// wait the peer disconnecting
-		select {
-		case <-p.disconnectNotify():
-			log.Infof("peer disconnected, uid=%s", p.uid)
-			break
-		case <-s.closed:
-			log.Infof("server closed, disconnect peer, uid=%s", p.uid)
-			break
-		}
-	}))
-
-	// start web server
+func (s *server) start(conf signalConf) error {
 	var err error
-	if conf.Cert == "" || conf.Key == "" {
-		log.Infof("non-TLS WebSocketServer listening on: %s:%d", conf.Host, conf.Port)
-		err = http.ListenAndServe(conf.Host+":"+strconv.Itoa(conf.Port), nil)
-	} else {
-		log.Infof("TLS WebSocketServer listening on: %s:%d", conf.Host, conf.Port)
-		err = http.ListenAndServeTLS(conf.Host+":"+strconv.Itoa(conf.Port), conf.Cert, conf.Key, nil)
+
+	s.sig = newSignal(s)
+	if err = s.sig.start(conf); err != nil {
+		return err
 	}
-	if err != nil {
-		log.Errorf("http serve error: %v", err)
+
+	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-// close signal server
 func (s *server) close() {
-	close(s.closed)
-}
-
-// stat peers
-func (s *server) stat() {
-	t := time.NewTicker(statCycle)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			break
-		case <-s.closed:
-			log.Infof("stop stat")
-			return
-		}
-
-		var info string
-		roomLock.RLock()
-		for rid, room := range rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.getPeers()))
-			if len(room.getPeers()) == 0 {
-				delete(rooms, rid)
-			}
-		}
-		roomLock.RUnlock()
-		if len(info) > 0 {
-			log.Infof("\n----------------signal-----------------\n" + info)
+	if s.sub != nil {
+		if err := s.sub.Unsubscribe(); err != nil {
+			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
 		}
 	}
+	if s.sig != nil {
+		s.sig.close()
+	}
+}
+
+func (s *server) handle(msg interface{}) (interface{}, error) {
+	log.Infof("handle incoming message: %T, %+v", msg, msg)
+	// TODO: handle incoming message
+
+	return nil, nil
+}
+
+func (s *server) broadcast(msg interface{}) (interface{}, error) {
+	log.Infof("handle islb message: %T, %+v", msg, msg)
+
+	var method string
+	var rid proto.RID
+	var uid proto.UID
+
+	switch v := msg.(type) {
+	case *proto.FromIslbStreamAddMsg:
+		method, rid, uid = proto.ClientOnStreamAdd, v.RID, v.UID
+	case *proto.ToClientPeerJoinMsg:
+		method, rid, uid = proto.ClientOnJoin, v.RID, v.UID
+	case *proto.IslbPeerLeaveMsg:
+		method, rid, uid = proto.ClientOnLeave, v.RID, v.UID
+	case *proto.IslbBroadcastMsg:
+		method, rid, uid = proto.ClientBroadcast, v.RID, v.UID
+	default:
+		log.Warnf("unkonw message: %v", msg)
+	}
+
+	log.Infof("broadcast: method=%s, msg=%v", method, msg)
+	if r := getRoom(rid); r != nil {
+		go func(method string, msg interface{}, uid proto.UID) {
+			r.notifyWithoutID(method, msg, uid)
+		}(method, msg, uid)
+	} else {
+		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+	}
+
+	return nil, nil
+}
+
+func (s *server) getIslb() string {
+	nodes := s.getNodes()
+	for _, item := range nodes {
+		if item.Service == proto.ServiceISLB {
+			return item.NID
+		}
+	}
+	log.Warnf("not found islb")
+	return ""
+}
+
+func (s *server) getNode(service string, islb string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
+	if islb == "" {
+		if islb = s.getIslb(); islb == "" {
+			return "", errors.New("not found islb")
+		}
+	}
+
+	resp, err := s.nrpc.Request(islb, proto.ToIslbFindNodeMsg{
+		Service: service,
+		UID:     uid,
+		RID:     rid,
+		MID:     mid,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	msg, ok := resp.(*proto.FromIslbFindNodeMsg)
+	if !ok {
+		return "", errors.New("parse islb-find-node msg error")
+	}
+
+	return msg.ID, nil
 }
