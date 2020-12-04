@@ -2,19 +2,13 @@ package biz
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-)
-
-const (
-	statCycle = time.Second * 3
 )
 
 // authConfig auth config
@@ -104,11 +98,8 @@ func newSignal(s *server) *signal {
 }
 
 // start signal server
-func (s *signal) start(conf signalConf) error {
-	go s.stat()
+func (s *signal) start(conf signalConf) {
 	go s.serve(conf)
-
-	return nil
 }
 
 // start signal server
@@ -186,32 +177,4 @@ func (s *signal) serve(conf signalConf) {
 // close signal server
 func (s *signal) close() {
 	close(s.closed)
-}
-
-// stat peers
-func (s *signal) stat() {
-	t := time.NewTicker(statCycle)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			break
-		case <-s.closed:
-			log.Infof("stop stat")
-			return
-		}
-
-		var info string
-		roomLock.Lock()
-		for rid, room := range rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.peers))
-			if len(room.peers) == 0 {
-				delete(rooms, rid)
-			}
-		}
-		roomLock.Unlock()
-		if len(info) > 0 {
-			log.Infof("\n----------------signal-----------------\n" + info)
-		}
-	}
 }

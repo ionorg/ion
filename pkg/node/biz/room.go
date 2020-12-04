@@ -7,11 +7,6 @@ import (
 	"github.com/pion/ion/pkg/proto"
 )
 
-var (
-	roomLock sync.RWMutex
-	rooms    = make(map[proto.RID]*room)
-)
-
 // room represents a room which manage peers
 type room struct {
 	sync.RWMutex
@@ -25,11 +20,6 @@ func newRoom(id proto.RID) *room {
 		id:    id,
 		peers: make(map[proto.UID]*peer),
 	}
-
-	roomLock.Lock()
-	defer roomLock.Unlock()
-	rooms[id] = r
-
 	return r
 }
 
@@ -60,10 +50,18 @@ func (r *room) getPeers() map[proto.UID]*peer {
 }
 
 // delPeer delete a peer in the room
-func (r *room) delPeer(uid proto.UID) {
+func (r *room) delPeer(uid proto.UID) int {
 	r.Lock()
 	defer r.Unlock()
 	delete(r.peers, uid)
+	return len(r.peers)
+}
+
+// count return count of peers in room
+func (r *room) count() int {
+	r.RLock()
+	defer r.RUnlock()
+	return len(r.peers)
 }
 
 // // notify notify a message to peers without one peer
@@ -87,70 +85,3 @@ func (r *room) notifyWithoutID(method string, data interface{}, withoutID proto.
 		}
 	}
 }
-
-// getRoom get a room by id
-func getRoom(id proto.RID) *room {
-	roomLock.RLock()
-	defer roomLock.RUnlock()
-	r := rooms[id]
-	return r
-}
-
-// // getRoomsByPeer a peer in many room
-// func getRoomsByPeer(uid proto.UID) []*room {
-// 	var result []*room
-// 	roomLock.RLock()
-// 	defer roomLock.RUnlock()
-// 	for _, r := range rooms {
-// 		if p := r.getPeer(uid); p != nil {
-// 			result = append(result, r)
-// 		}
-// 	}
-// 	return result
-// }
-
-// delPeer delete a peer in the room
-func delPeer(rid proto.RID, uid proto.UID) {
-	log.Infof("AddPeer rid=%s uid=%s", rid, uid)
-	room := getRoom(rid)
-	if room != nil {
-		room.delPeer(uid)
-	}
-}
-
-// addPeer add a peer to room
-func addPeer(rid proto.RID, peer *peer) {
-	log.Infof("AddPeer rid=%s uid=%s", rid, peer.uid)
-	room := getRoom(rid)
-	if room == nil {
-		room = newRoom(rid)
-	}
-	room.addPeer(peer)
-}
-
-// // getPeer get a peer in the room
-// func getPeer(rid proto.RID, uid proto.UID) *peer {
-// 	log.Infof("GetPeer rid=%s uid=%s", rid, uid)
-// 	r := getRoom(rid)
-// 	if r == nil {
-// 		//log.Infof("room not exits, rid=%s uid=%s", rid, uid)
-// 		return nil
-// 	}
-// 	return r.getPeer(uid)
-// }
-
-// // notifyPeer send message to peer
-// func notifyPeer(method string, rid proto.RID, uid proto.UID, data interface{}) {
-// 	log.Infof("Notify rid=%s, uid=%s, data=%s", rid, uid, data)
-// 	room := getRoom(rid)
-// 	if room == nil {
-// 		log.Errorf("room not exits, rid=%s, uid=%s, data=%s", rid, uid)
-// 		return
-// 	}
-// 	peer := room.getPeer(uid)
-// 	if peer == nil {
-// 		log.Errorf("peer not exits, rid=%s, uid=%s, data=%s", rid, uid)
-// 		return
-// 	}
-// 	peer.notify(method, data)
-// }

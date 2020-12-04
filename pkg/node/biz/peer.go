@@ -21,17 +21,16 @@ import (
 
 // peer represents a peer for client
 type peer struct {
-	uid        proto.UID
-	mid        proto.MID
-	rid        proto.RID
-	info       []byte
-	conn       *jsonrpc2.Conn
-	ctx        context.Context
-	leaveOnce  sync.Once
-	closed     util.AtomicBool
-	onCloseFun func()
-	s          *server
-	auth       func(proto.Authenticatable) error
+	uid       proto.UID
+	mid       proto.MID
+	rid       proto.RID
+	info      []byte
+	conn      *jsonrpc2.Conn
+	ctx       context.Context
+	leaveOnce sync.Once
+	closed    util.AtomicBool
+	s         *server
+	auth      func(proto.Authenticatable) error
 }
 
 // newPeer create peer instance for client
@@ -178,13 +177,13 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	}
 
 	// join room
-	addPeer(p.rid, p)
+	p.s.addPeer(p.rid, p)
 	log.Errorf("[%s] join to room %s", p.uid, p.rid)
 
 	// get sfu node
 	sfu, err := p.sfu()
 	if err != nil {
-		delPeer(p.rid, p.uid)
+		p.s.delPeer(p.rid, p.uid)
 		log.Errorf("[%s] sfu not found: %v", p.uid, err)
 		return nil, errors.New("sfu not found")
 	}
@@ -198,7 +197,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		Offer: msg.Offer,
 	})
 	if err != nil {
-		delPeer(p.rid, p.uid)
+		p.s.delPeer(p.rid, p.uid)
 		log.Errorf("[%s] join to %s error: %v", p.uid, sfu, err)
 		return nil, errors.New("join to sfu error")
 	}
@@ -214,7 +213,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		}); err != nil {
 			log.Errorf("[%s] leave %s error: %v", p.uid, sfu, err.Error())
 		}
-		delPeer(p.rid, p.uid)
+		p.s.delPeer(p.rid, p.uid)
 		log.Errorf("[%s] join to %s error: %v", p.uid, p.s.islb, err)
 		return nil, errors.New("join to sfu error")
 	}
@@ -348,12 +347,7 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	log.Infof("peer leave: uid=%s, msg=%v", p.uid, msg)
 
 	// leave room
-	room := getRoom(msg.RID)
-	if room == nil {
-		log.Warnf("room not exits, rid=%s", msg.RID)
-		return errors.New("room not found")
-	}
-	room.delPeer(p.uid)
+	p.s.delPeer(msg.RID, p.uid)
 
 	if _, err := p.s.nrpc.Request(p.s.islb, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: p.uid, RID: msg.RID},
@@ -436,15 +430,6 @@ func (p *peer) close() {
 	if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
 		log.Infof("peer(%s) leave error: %v", p.rid, err)
 	}
-
-	if p.onCloseFun != nil {
-		p.onCloseFun()
-	}
-}
-
-// setCloseFun sets a handler that is called when the peer close
-func (p *peer) setCloseFun(f func()) {
-	p.onCloseFun = f
 }
 
 func (p *peer) sfu() (string, error) {

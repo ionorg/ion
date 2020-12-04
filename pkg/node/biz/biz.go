@@ -124,11 +124,15 @@ func (b *BIZ) Close() {
 
 func (b *BIZ) subIslbBroadcast(node discovery.Node) {
 	log.Infof("subscribe islb broadcast: %s", node.NID)
-	if sub, err := b.nrpc.Subscribe(node.NID+"-event", b.s.broadcast); err == nil {
+	if sub, err := b.nrpc.Subscribe(node.NID+"-event", b.handleIslbBroadcast); err == nil {
 		b.subs[node.ID()] = sub
 	} else {
 		log.Errorf("subcribe error: %v", err)
 	}
+}
+
+func (b *BIZ) handleIslbBroadcast(msg interface{}) (interface{}, error) {
+	return b.s.broadcast(msg)
 }
 
 // watchNodes watch islb nodes up/down
