@@ -95,7 +95,7 @@ func (b *BIZ) Start(conf Config) error {
 	b.service.Watch(proto.ServiceISLB, b.watchIslbNodes)
 	b.service.KeepAlive()
 
-	b.s = newServer(b.service.NID(), conf.Avp.Elements, b.nrpc, b.getNodes)
+	b.s = newServer(conf.Global.Dc, b.service.NID(), conf.Avp.Elements, b.nrpc, b.getNodes)
 	if err = b.s.start(conf.Signal); err != nil {
 		return err
 	}

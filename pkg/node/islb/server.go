@@ -35,7 +35,7 @@ func newServer(dc, nid string, nrpc *proto.NatsRPC, getNodes func() map[string]d
 func (s *server) start(conf db.Config) error {
 	var err error
 	s.redis = db.NewRedis(conf)
-	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
+	if s.sub, err = s.nrpc.QueueSubscribe(proto.ISLB(s.dc), s.dc, s.handle); err != nil {
 		return err
 	}
 	return nil
@@ -249,11 +249,11 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	}, nil
 }
 
-func (s *server) peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
+func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
-		RID: data.RID,
-		UID: data.UID,
+		RID: msg.RID,
+		UID: msg.UID,
 	}.BuildKey()
 	log.Infof("clientLeave: remove key => %s", ukey)
 	err := s.redis.Del(ukey)
@@ -261,7 +261,7 @@ func (s *server) peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
 		log.Errorf("redis.Del err = %v", err)
 	}
 
-	if err := s.nrpc.Publish(s.bid, data); err != nil {
+	if err := s.nrpc.Publish(s.bid, msg); err != nil {
 		log.Errorf("broadcast peer-leave error: %v", err)
 		return nil, err
 	}
@@ -269,8 +269,8 @@ func (s *server) peerLeave(data *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *server) broadcast(data *proto.IslbBroadcastMsg) (interface{}, error) {
-	if err := s.nrpc.Publish(s.bid, data); err != nil {
+func (s *server) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
+	if err := s.nrpc.Publish(s.bid, msg); err != nil {
 		log.Errorf("broadcast message error: %v", err)
 	}
 

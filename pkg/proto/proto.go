@@ -212,3 +212,8 @@ func GetPubMediaPath(rid, mid string, ssrc uint32) string {
 func GetPubMediaPathKey(rid string) string {
 	return rid + "/media/pub/"
 }
+
+// ISLB return islb subject
+func ISLB(dc string) string {
+	return "/" + dc + "/" + ServiceISLB
+}

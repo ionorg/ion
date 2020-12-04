@@ -11,20 +11,24 @@ import (
 
 // server represents an server instance
 type server struct {
+	dc       string
 	nid      string
 	elements []string
 	sub      *nats.Subscription
 	sig      *signal
 	nrpc     *proto.NatsRPC
+	islb     string
 	getNodes func() map[string]discovery.Node
 }
 
 // newServer creates a new avp server instance
-func newServer(nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
+func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
 	return &server{
+		dc:       dc,
 		nid:      nid,
 		nrpc:     nrpc,
 		elements: elements,
+		islb:     proto.ISLB(dc),
 		getNodes: getNodes,
 	}
 }
@@ -112,25 +116,8 @@ func (s *server) notifyRoom(method string, rid proto.RID, withoutID proto.UID, m
 	}
 }
 
-func (s *server) getIslb() string {
-	nodes := s.getNodes()
-	for _, item := range nodes {
-		if item.Service == proto.ServiceISLB {
-			return item.NID
-		}
-	}
-	log.Warnf("not found islb")
-	return ""
-}
-
-func (s *server) getNode(service string, islb string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
-	if islb == "" {
-		if islb = s.getIslb(); islb == "" {
-			return "", errors.New("not found islb")
-		}
-	}
-
-	resp, err := s.nrpc.Request(islb, proto.ToIslbFindNodeMsg{
+func (s *server) getNode(service string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
+	resp, err := s.nrpc.Request(s.islb, proto.ToIslbFindNodeMsg{
 		Service: service,
 		UID:     uid,
 		RID:     rid,

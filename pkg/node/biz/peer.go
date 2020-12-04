@@ -180,12 +180,8 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	// join room
 	addPeer(p.rid, p)
 
-	// get islb and sfu node
-	islb := p.s.getIslb()
-	if islb == "" {
-		return nil, errors.New("islb-node not found")
-	}
-	sfu, err := p.s.getNode(proto.ServiceSFU, islb, p.uid, p.rid, p.mid)
+	// get sfu node
+	sfu, err := p.sfu()
 	if err != nil {
 		log.Errorf("getting sfu-node: %v", err)
 		return nil, errors.New("sfu-node not found")
@@ -205,11 +201,11 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	fromSfuJoinMsg := resp.(*proto.FromSfuJoinMsg)
 
 	// join to islb
-	resp, err = p.s.nrpc.Request(islb, proto.ToIslbPeerJoinMsg{
+	resp, err = p.s.nrpc.Request(p.s.islb, proto.ToIslbPeerJoinMsg{
 		UID: p.uid, RID: p.rid, MID: p.mid, Info: p.info,
 	})
 	if err != nil {
-		log.Errorf("send peer-join to %s error: %v", islb, err)
+		log.Errorf("send peer-join to %s error: %v", p.s.islb, err)
 	}
 	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
 	go func(peerlist proto.ToClientPeersMsg) {
@@ -229,15 +225,9 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 	log.Infof("peer offer: uid=%s, msg=%v", p.uid, msg)
 
-	islb := p.s.getIslb()
-	if islb == "" {
-		return nil, errors.New("islb-node not found")
-	}
-
 	// send offer to sfu
-	sfu, err := p.s.getNode(proto.ServiceSFU, islb, p.uid, p.rid, p.mid)
+	sfu, err := p.sfu()
 	if err != nil {
-		log.Warnf("sfu-node not found, %s", err.Error())
 		return nil, err
 	}
 	resp, err := p.s.nrpc.Request(sfu, proto.SfuOfferMsg{
@@ -255,17 +245,17 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 		log.Errorf("parse sdp error: %v", err)
 	}
 	for key := range sdpInfo.GetStreams() {
-		if err := p.s.nrpc.Publish(islb, proto.ToIslbStreamAddMsg{
+		if err := p.s.nrpc.Publish(p.s.islb, proto.ToIslbStreamAddMsg{
 			UID: p.uid, RID: p.rid, MID: p.mid, StreamID: proto.StreamID(key),
 		}); err != nil {
-			log.Errorf("send stream-add to %s error: %v", islb, err)
+			log.Errorf("send stream-add to %s error: %v", p.s.islb, err)
 		}
 	}
 
 	// avp sub streams
 	var avp string
 	if len(p.s.elements) > 0 {
-		if avp, err = p.s.getNode(proto.ServiceAVP, islb, p.uid, p.rid, p.mid); err != nil {
+		if avp, err = p.avp(); err != nil {
 			log.Errorf("get avp-node error: %v", err)
 		}
 	}
@@ -300,7 +290,7 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
 	log.Infof("peer answer:  uid=%s, msg=%v", p.uid, msg)
 
-	sfu, err := p.s.getNode(proto.ServiceSFU, "", p.uid, p.rid, p.mid)
+	sfu, err := p.sfu()
 	if err != nil {
 		log.Warnf("sfu-node not found, %s", err.Error())
 		return err
@@ -321,7 +311,7 @@ func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
 func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 	log.Infof("peer trickle: uid=%s, msg=%v", p.uid, msg)
 
-	sfu, err := p.s.getNode(proto.ServiceSFU, "", p.uid, p.rid, p.mid)
+	sfu, err := p.sfu()
 	if err != nil {
 		log.Warnf("sfu-node not found, %s", err.Error())
 		return err
@@ -352,19 +342,13 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	}
 	room.delPeer(p.uid)
 
-	islb := p.s.getIslb()
-	if islb == "" {
-		log.Errorf("islb-node not found")
-		return errors.New("islb-node not found")
-	}
-
-	if _, err := p.s.nrpc.Request(islb, proto.IslbPeerLeaveMsg{
+	if _, err := p.s.nrpc.Request(p.s.islb, proto.IslbPeerLeaveMsg{
 		RoomInfo: proto.RoomInfo{UID: p.uid, RID: msg.RID},
 	}); err != nil {
-		log.Errorf("leave %s error: %v", islb, err.Error())
+		log.Errorf("leave %s error: %v", p.s.islb, err.Error())
 	}
 
-	sfu, err := p.s.getNode(proto.ServiceSFU, islb, p.uid, msg.RID, p.mid)
+	sfu, err := p.sfu()
 	if err != nil {
 		log.Errorf("sfu-node not found: %s", err)
 	}
@@ -386,13 +370,8 @@ func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
 		return errors.New("room not found")
 	}
 
-	islb := p.s.getIslb()
-	if islb == "" {
-		return errors.New("islb-node not found")
-	}
-
 	// TODO: nrpc.Publish(roomID, ...
-	err := p.s.nrpc.Publish(islb, proto.IslbBroadcastMsg{
+	err := p.s.nrpc.Publish(p.s.islb, proto.IslbBroadcastMsg{
 		RoomInfo: proto.RoomInfo{UID: p.uid, RID: msg.RID},
 		Info:     msg.Info,
 	})
@@ -453,4 +432,12 @@ func (p *peer) close() {
 // setCloseFun sets a handler that is called when the peer close
 func (p *peer) setCloseFun(f func()) {
 	p.onCloseFun = f
+}
+
+func (p *peer) sfu() (string, error) {
+	return p.s.getNode(proto.ServiceSFU, p.uid, p.rid, p.mid)
+}
+
+func (p *peer) avp() (string, error) {
+	return p.s.getNode(proto.ServiceAVP, p.uid, p.rid, p.mid)
 }
