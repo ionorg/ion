@@ -60,14 +60,13 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 
 	switch v := msg.(type) {
 	case *proto.SfuOfferMsg:
-		go s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.RID, v.UID, msg)
 	case *proto.SfuTrickleMsg:
-		go s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.RID, v.UID, msg)
 	case *proto.SfuICEConnectionStateMsg:
-		go s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.RID, v.UID, msg)
 	default:
 		log.Warnf("unkonw message: %v", msg)
-		return nil, nil
 	}
 
 	return nil, nil
@@ -88,33 +87,29 @@ func (s *server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{})
 func (s *server) broadcast(msg interface{}) (interface{}, error) {
 	log.Infof("handle islb message: %T, %+v", msg, msg)
 
-	var method string
-	var rid proto.RID
-	var uid proto.UID
-
 	switch v := msg.(type) {
 	case *proto.FromIslbStreamAddMsg:
-		method, rid, uid = proto.ClientOnStreamAdd, v.RID, v.UID
+		s.notifyRoom(proto.ClientOnStreamAdd, v.RID, v.UID, msg)
 	case *proto.ToClientPeerJoinMsg:
-		method, rid, uid = proto.ClientOnJoin, v.RID, v.UID
+		s.notifyRoom(proto.ClientOnJoin, v.RID, v.UID, msg)
 	case *proto.IslbPeerLeaveMsg:
-		method, rid, uid = proto.ClientOnLeave, v.RID, v.UID
+		s.notifyRoom(proto.ClientOnLeave, v.RID, v.UID, msg)
 	case *proto.IslbBroadcastMsg:
-		method, rid, uid = proto.ClientBroadcast, v.RID, v.UID
+		s.notifyRoom(proto.ClientBroadcast, v.RID, v.UID, msg)
 	default:
 		log.Warnf("unkonw message: %v", msg)
 	}
 
+	return nil, nil
+}
+
+func (s *server) notifyRoom(method string, rid proto.RID, withoutID proto.UID, msg interface{}) {
 	log.Infof("broadcast: method=%s, msg=%v", method, msg)
 	if r := getRoom(rid); r != nil {
-		go func(method string, msg interface{}, uid proto.UID) {
-			r.notifyWithoutID(method, msg, uid)
-		}(method, msg, uid)
+		r.notifyWithoutID(method, msg, withoutID)
 	} else {
-		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+		log.Warnf("room not exits, rid=%s, uid=%s", rid, withoutID)
 	}
-
-	return nil, nil
 }
 
 func (s *server) getIslb() string {

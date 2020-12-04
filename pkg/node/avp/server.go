@@ -1,7 +1,6 @@
 package avp
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/nats-io/nats.go"
@@ -59,13 +58,13 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 			return nil, err
 		}
 	case *proto.SfuOfferMsg:
-		go s.handleSFUMessage(string(v.UID), msg)
+		s.handleSFUMessage(string(v.UID), msg)
 	case *proto.SfuTrickleMsg:
-		go s.handleSFUMessage(string(v.UID), msg)
+		s.handleSFUMessage(string(v.UID), msg)
 	case *proto.SfuICEConnectionStateMsg:
-		go s.handleSFUMessage(string(v.UID), msg)
+		s.handleSFUMessage(string(v.UID), msg)
 	default:
-		return nil, errors.New("unkonw message")
+		log.Warnf("unkonw message: %v", msg)
 	}
 
 	return nil, nil

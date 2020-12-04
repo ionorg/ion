@@ -99,7 +99,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 			Desc: *offer,
 		}
 		log.Infof("send offer to [%s]: %v", msg.MID, data)
-		if _, err := s.nrpc.Request(msg.RPC, data); err != nil {
+		if err := s.nrpc.Publish(msg.RPC, data); err != nil {
 			log.Errorf("send offer: %v", err)
 		}
 	}
@@ -114,7 +114,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 			Target:    target,
 		}
 		log.Infof("send candidate to [%s]: %v", msg.MID, data)
-		if _, err := s.nrpc.Request(msg.RPC, data); err != nil {
+		if err := s.nrpc.Publish(msg.RPC, data); err != nil {
 			log.Errorf("send candidate to [%s] error: %v", msg.MID, err)
 		}
 	}
@@ -127,7 +127,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 			State: state,
 		}
 		log.Infof("send ice connection state to [%s]: %v", msg.MID, data)
-		if _, err := s.nrpc.Request(msg.RPC, data); err != nil {
+		if err := s.nrpc.Publish(msg.RPC, data); err != nil {
 			log.Errorf("send candidate to [%s] error: %v", msg.MID, err)
 		}
 	}
