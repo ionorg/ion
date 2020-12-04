@@ -34,7 +34,12 @@ func newServer(dc, nid string, nrpc *proto.NatsRPC, getNodes func() map[string]d
 
 func (s *server) start(conf db.Config) error {
 	var err error
+
 	s.redis = db.NewRedis(conf)
+	if s.redis == nil {
+		return errors.New("new redis error")
+	}
+
 	if s.sub, err = s.nrpc.QueueSubscribe(proto.ISLB(s.dc), s.dc, s.handle); err != nil {
 		return err
 	}
