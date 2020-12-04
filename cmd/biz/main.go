@@ -79,7 +79,7 @@ func main() {
 
 	node := biz.NewBIZ()
 	if err := node.Start(conf); err != nil {
-		log.Errorf("biz init error: %v", err)
+		log.Errorf("biz start error: %v", err)
 		os.Exit(-1)
 	}
 	defer node.Close()

@@ -98,7 +98,7 @@ func main() {
 
 	node := sfu.NewSFU()
 	if err := node.Start(conf); err != nil {
-		log.Errorf("sfu init error: %v", err)
+		log.Errorf("sfu init start: %v", err)
 		os.Exit(-1)
 	}
 	defer node.Close()

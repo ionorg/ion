@@ -84,7 +84,7 @@ func main() {
 
 	node := avp.NewAVP()
 	if err := node.Start(conf); err != nil {
-		log.Errorf("avp init error: %v", err)
+		log.Errorf("avp start error: %v", err)
 		os.Exit(-1)
 	}
 	defer node.Close()

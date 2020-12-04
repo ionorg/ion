@@ -67,7 +67,6 @@ func main() {
 		showHelp()
 		os.Exit(-1)
 	}
-	fmt.Println("conf.init() ok")
 
 	fixByFile := []string{"asm_amd64.s", "proc.go"}
 	fixByFunc := []string{}
@@ -77,7 +76,7 @@ func main() {
 
 	node := islb.NewISLB()
 	if err := node.Start(conf); err != nil {
-		log.Errorf("islb init error: %v", err)
+		log.Errorf("islb start error: %v", err)
 		os.Exit(-1)
 	}
 	defer node.Close()
