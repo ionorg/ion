@@ -179,12 +179,14 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 
 	// join room
 	addPeer(p.rid, p)
+	log.Errorf("[%s] join to room %s", p.uid, p.rid)
 
 	// get sfu node
 	sfu, err := p.sfu()
 	if err != nil {
-		log.Errorf("getting sfu-node: %v", err)
-		return nil, errors.New("sfu-node not found")
+		delPeer(p.rid, p.uid)
+		log.Errorf("[%s] sfu not found: %v", p.uid, err)
+		return nil, errors.New("sfu not found")
 	}
 
 	// join to sfu
@@ -196,7 +198,9 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		Offer: msg.Offer,
 	})
 	if err != nil {
-		return nil, err
+		delPeer(p.rid, p.uid)
+		log.Errorf("[%s] join to %s error: %v", p.uid, sfu, err)
+		return nil, errors.New("join to sfu error")
 	}
 	fromSfuJoinMsg := resp.(*proto.FromSfuJoinMsg)
 
@@ -205,13 +209,22 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 		UID: p.uid, RID: p.rid, MID: p.mid, Info: p.info,
 	})
 	if err != nil {
-		log.Errorf("send peer-join to %s error: %v", p.s.islb, err)
+		if _, err := p.s.nrpc.Request(sfu, proto.ToSfuLeaveMsg{
+			MID: p.mid,
+		}); err != nil {
+			log.Errorf("[%s] leave %s error: %v", p.uid, sfu, err.Error())
+		}
+		delPeer(p.rid, p.uid)
+		log.Errorf("[%s] join to %s error: %v", p.uid, p.s.islb, err)
+		return nil, errors.New("join to sfu error")
 	}
+
+	// send peer-list to clients
 	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
 	go func(peerlist proto.ToClientPeersMsg) {
 		time.Sleep(100 * time.Millisecond)
 		if err := p.notify(proto.ClientOnList, peerlist); err != nil {
-			log.Errorf("notify peer-list to clients error: %v", err)
+			log.Errorf("[%s] send peer-list to clients error: %v", p.uid, err)
 		}
 	}(proto.ToClientPeersMsg{
 		Peers:   fromIslbPeerJoinMsg.Peers,

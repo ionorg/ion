@@ -202,14 +202,14 @@ func (s *signal) stat() {
 		}
 
 		var info string
-		roomLock.RLock()
+		roomLock.Lock()
 		for rid, room := range rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.getPeers()))
-			if len(room.getPeers()) == 0 {
+			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, len(room.peers))
+			if len(room.peers) == 0 {
 				delete(rooms, rid)
 			}
 		}
-		roomLock.RUnlock()
+		roomLock.Unlock()
 		if len(info) > 0 {
 			log.Infof("\n----------------signal-----------------\n" + info)
 		}

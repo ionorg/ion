@@ -109,14 +109,14 @@ func getRoom(id proto.RID) *room {
 // 	return result
 // }
 
-// // delPeer delete a peer in the room
-// func delPeer(rid proto.RID, uid proto.UID) {
-// 	log.Infof("AddPeer rid=%s uid=%s", rid, uid)
-// 	room := getRoom(rid)
-// 	if room != nil {
-// 		room.delPeer(uid)
-// 	}
-// }
+// delPeer delete a peer in the room
+func delPeer(rid proto.RID, uid proto.UID) {
+	log.Infof("AddPeer rid=%s uid=%s", rid, uid)
+	room := getRoom(rid)
+	if room != nil {
+		room.delPeer(uid)
+	}
+}
 
 // addPeer add a peer to room
 func addPeer(rid proto.RID, peer *peer) {
