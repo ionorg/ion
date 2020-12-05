@@ -10,7 +10,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-// key  the [signal.auth_connection] of configs/biz.toml
+// key under [signal.auth_connection] of configs/biz.toml
 const key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 type result struct {
