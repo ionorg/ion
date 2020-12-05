@@ -77,16 +77,16 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 }
 
 // Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
-func (s *server) findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
-	service := data.Service
+func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
+	service := msg.Service
 	nodes := s.getNodes()
 
-	if data.RID != "" && data.UID != "" && data.MID != "" {
+	if msg.RID != "" && msg.UID != "" && msg.MID != "" {
 		mkey := proto.MediaInfo{
 			DC:  s.dc,
-			RID: data.RID,
-			UID: data.UID,
-			MID: data.MID,
+			RID: msg.RID,
+			UID: msg.UID,
+			MID: msg.MID,
 		}.BuildKey()
 		log.Infof("find mids by mkey: %s", mkey)
 		for _, key := range s.redis.Keys(mkey + "*") {
@@ -98,7 +98,7 @@ func (s *server) findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 			}
 			for _, node := range nodes {
 				if service == node.Service && minfo.NID == node.NID {
-					log.Infof("found node by rid=%s & uid=%s & mid=%s : %v", data.RID, data.UID, data.MID, node)
+					log.Infof("found node by rid=%s & uid=%s & mid=%s : %v", msg.RID, msg.UID, msg.MID, node)
 					return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 				}
 			}
@@ -142,12 +142,12 @@ func (s *server) findNode(data *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	return nil, errors.New("service node not found")
 }
 
-func (s *server) streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) {
+func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	mkey := proto.MediaInfo{
 		DC:  s.dc,
-		RID: data.RID,
-		UID: data.UID,
-		MID: data.MID,
+		RID: msg.RID,
+		UID: msg.UID,
+		MID: msg.MID,
 	}.BuildKey()
 
 	field, value, err := proto.MarshalNodeField(proto.NodeInfo{
@@ -163,19 +163,19 @@ func (s *server) streamAdd(data *proto.ToIslbStreamAddMsg) (interface{}, error) 
 		log.Errorf("Set: %v ", err)
 	}
 
-	field = "track/" + string(data.StreamID)
+	field = "track/" + string(msg.StreamID)
 	// The value here actually doesn't matter, so just store the associated MID in case it's useful in the future.
-	log.Infof("stores track: mkey, field, value = %s, %s, %s", mkey, field, data.MID)
-	err = s.redis.HSetTTL(mkey, field, string(data.MID), redisLongKeyTTL)
+	log.Infof("stores track: mkey, field, value = %s, %s, %s", mkey, field, msg.MID)
+	err = s.redis.HSetTTL(mkey, field, string(msg.MID), redisLongKeyTTL)
 	if err != nil {
 		log.Errorf("redis.HSetTTL err = %v", err)
 	}
 
-	log.Infof("broadcast: [stream-add] => %v", data)
+	log.Infof("broadcast: [stream-add] => %v", msg)
 	err = s.nrpc.Publish(s.bid, proto.FromIslbStreamAddMsg{
-		RID:    data.RID,
-		UID:    data.UID,
-		Stream: proto.Stream{UID: data.UID, StreamID: data.StreamID},
+		RID:    msg.RID,
+		UID:    msg.UID,
+		Stream: proto.Stream{UID: msg.UID, StreamID: msg.StreamID},
 	})
 
 	return nil, err

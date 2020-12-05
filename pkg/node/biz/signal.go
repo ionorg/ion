@@ -28,7 +28,7 @@ func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 	}
 }
 
-// claims supported in JWT
+// claims custom claims type for jwt
 type claims struct {
 	UID string `json:"uid"`
 	RID string `json:"rid"`
@@ -114,17 +114,17 @@ func (s *signal) serve(conf signalConf) {
 
 	http.Handle(conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// authenticate connection
-		var cc *claims
+		var connClaims *claims
 		if conf.AuthConnection.Enabled {
 			if token := r.URL.Query()["token"]; len(token) > 0 {
-				// passing nil for keyFunc, since token is expected to be already verified (by a proxy)
+				// parsing and validating a token
 				t, err := jwt.ParseWithClaims(token[0], &claims{}, conf.AuthConnection.KeyFunc)
 				if err != nil {
 					log.Errorf("invalid token: %v", err)
 					http.Error(w, "invalid token", http.StatusForbidden)
 					return
 				}
-				cc = t.Claims.(*claims)
+				connClaims = t.Claims.(*claims)
 			}
 		}
 
@@ -132,7 +132,7 @@ func (s *signal) serve(conf signalConf) {
 		var auth func(msg proto.Authenticatable) error
 		if conf.AuthRoom.Enabled {
 			auth = func(msg proto.Authenticatable) error {
-				return authenticateRoom(cc, conf.AuthRoom.KeyFunc, msg)
+				return authenticateRoom(connClaims, conf.AuthRoom.KeyFunc, msg)
 			}
 		}
 
