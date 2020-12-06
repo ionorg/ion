@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/pkg/grpc/biz";
+
+package biz;
+
+service BIZ {
+    rpc Signal(stream Client) returns (stream Server) {}
+}
+
+message Client {
+    string rid = 1;
+    oneof payload {
+        JoinRequest join = 2;
+        LeaveRequest leave = 3;
+        Offer offer = 4;
+        Answer answer = 5;
+        Trickle trickle = 6;
+        Broadcast broadcast = 7;
+    }
+}
+
+message Server {
+    string id = 1;
+    oneof payload {
+        JoinReply join = 2;
+        Offer offer = 3;
+        Answer answer = 4;
+
+        Trickle trickleEvent = 5;
+        PeersEvent peersEvent = 6;
+        JoinEvent joinEvent = 7;
+        Broadcast broadcastEvent = 8;
+    }
+}
+
+message JoinRequest {
+    string sid = 1;
+    bytes offer = 2;
+    string token = 3;
+    bytes info = 4;
+}
+
+message LeaveRequest{
+
+}
+
+message BroadcastRequest{
+    bytes info = 1;
+}
+
+message Offer{
+    bytes desc = 1;
+}
+
+message Answer{
+    bytes desc = 1;
+}
+
+message Trickle {
+    enum Target {
+        PUBLISHER = 0;
+        SUBSCRIBER = 1;
+    }
+    Target target = 1;
+    string candidate = 2;
+}
+
+message Broadcast{
+    string rid = 1;
+    string uid = 2;
+    bytes info = 3;
+}
+
+message JoinReply {
+    bytes answer = 1;
+}
+
+message Peer {
+    string uid = 1;
+    bytes info = 2;
+}
+
+message Stream {
+    string sid = 1;
+    string uid = 2;
+}
+
+message PeersEvent{
+    repeated Peer peers = 1;
+    repeated Stream streams = 2;
+}
+
+message JoinEvent{
+    string uid = 1;
+    string rid = 2;
+    bytes info = 3;
+}
+
