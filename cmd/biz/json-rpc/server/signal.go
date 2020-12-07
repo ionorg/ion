@@ -1,4 +1,4 @@
-package biz
+package server
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/node/biz"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -32,7 +33,7 @@ func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 type claims struct {
 	UID string `json:"uid"`
 	RID string `json:"rid"`
-	*jwt.StandardClaims
+	jwt.StandardClaims
 }
 
 // authenticateRoom checks both the connection token AND an optional message token for RID claims
@@ -83,27 +84,29 @@ type signalConf struct {
 	AuthRoom       authConfig `mapstructure:"auth_room"`
 }
 
-// signal represents signal server
-type signal struct {
-	s      *server
+// Signal represents Signal server
+type Signal struct {
+	conf   signalConf
 	closed chan bool
+	bs     *biz.Server
 }
 
 // newSignal create signal server instance
-func newSignal(s *server) *signal {
-	return &signal{
-		s:      s,
+func newSignal(conf signalConf) *Signal {
+	return &Signal{
+		conf:   conf,
 		closed: make(chan bool),
 	}
 }
 
-// start signal server
-func (s *signal) start(conf signalConf) {
-	go s.serve(conf)
+// Start signal server
+func (s *Signal) Start(bs *biz.Server) {
+	s.bs = bs
+	go s.serve()
 }
 
 // start signal server
-func (s *signal) serve(conf signalConf) {
+func (s *Signal) serve() {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -112,13 +115,13 @@ func (s *signal) serve(conf signalConf) {
 		WriteBufferSize: 1024,
 	}
 
-	http.Handle(conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle(s.conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// authenticate connection
 		var connClaims *claims
-		if conf.AuthConnection.Enabled {
+		if s.conf.AuthConnection.Enabled {
 			if token := r.URL.Query()["token"]; len(token) > 0 {
 				// parsing and validating a token
-				t, err := jwt.ParseWithClaims(token[0], &claims{}, conf.AuthConnection.KeyFunc)
+				t, err := jwt.ParseWithClaims(token[0], &claims{}, s.conf.AuthConnection.KeyFunc)
 				if err != nil {
 					log.Errorf("invalid token: %v", err)
 					http.Error(w, "invalid token", http.StatusForbidden)
@@ -130,9 +133,9 @@ func (s *signal) serve(conf signalConf) {
 
 		// authenticate message
 		var auth func(msg proto.Authenticatable) error
-		if conf.AuthRoom.Enabled {
+		if s.conf.AuthRoom.Enabled {
 			auth = func(msg proto.Authenticatable) error {
-				return authenticateRoom(connClaims, conf.AuthRoom.KeyFunc, msg)
+				return authenticateRoom(connClaims, s.conf.AuthRoom.KeyFunc, msg)
 			}
 		}
 
@@ -146,28 +149,29 @@ func (s *signal) serve(conf signalConf) {
 		defer ws.Close()
 
 		// create a peer
-		p := newPeer(r.Context(), ws, s.s, auth)
-		defer p.close()
+		p := newPeer(r.Context(), ws, s.bs, auth)
+		defer p.Close()
+		log.Infof("new peer: %s, %s", r.RemoteAddr, p.UID())
 
 		// wait the peer disconnecting
 		select {
-		case <-p.disconnectNotify():
-			log.Infof("peer disconnected, uid=%s", p.uid)
+		case <-p.conn.DisconnectNotify():
+			log.Infof("peer disconnected: %s, %s", r.RemoteAddr, p.UID())
 			break
 		case <-s.closed:
-			log.Infof("server closed, disconnect peer, uid=%s", p.uid)
+			log.Infof("server closed: disconnect peer, %s, %s", r.RemoteAddr, p.UID())
 			break
 		}
 	}))
 
 	// start web server
 	var err error
-	if conf.Cert == "" || conf.Key == "" {
-		log.Infof("non-TLS WebSocketServer listening on: %s:%d", conf.Host, conf.Port)
-		err = http.ListenAndServe(conf.Host+":"+strconv.Itoa(conf.Port), nil)
+	if s.conf.Cert == "" || s.conf.Key == "" {
+		log.Infof("non-TLS WebSocketServer listening on: %s:%d", s.conf.Host, s.conf.Port)
+		err = http.ListenAndServe(s.conf.Host+":"+strconv.Itoa(s.conf.Port), nil)
 	} else {
-		log.Infof("TLS WebSocketServer listening on: %s:%d", conf.Host, conf.Port)
-		err = http.ListenAndServeTLS(conf.Host+":"+strconv.Itoa(conf.Port), conf.Cert, conf.Key, nil)
+		log.Infof("TLS WebSocketServer listening on: %s:%d", s.conf.Host, s.conf.Port)
+		err = http.ListenAndServeTLS(s.conf.Host+":"+strconv.Itoa(s.conf.Port), s.conf.Cert, s.conf.Key, nil)
 	}
 	if err != nil {
 		log.Errorf("http serve error: %v", err)
@@ -175,6 +179,6 @@ func (s *signal) serve(conf signalConf) {
 }
 
 // close signal server
-func (s *signal) close() {
+func (s *Signal) close() {
 	close(s.closed)
 }

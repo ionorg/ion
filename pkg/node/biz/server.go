@@ -16,13 +16,12 @@ const (
 	statCycle = time.Second * 3
 )
 
-// server represents an server instance
-type server struct {
+// Server represents an Server instance
+type Server struct {
 	dc       string
 	nid      string
 	elements []string
 	sub      *nats.Subscription
-	sig      *signal
 	nrpc     *proto.NatsRPC
 	islb     string
 	getNodes func() map[string]discovery.Node
@@ -32,8 +31,8 @@ type server struct {
 }
 
 // newServer creates a new avp server instance
-func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
-	return &server{
+func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *Server {
+	return &Server{
 		dc:       dc,
 		nid:      nid,
 		nrpc:     nrpc,
@@ -45,11 +44,8 @@ func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, ge
 	}
 }
 
-func (s *server) start(conf signalConf) error {
+func (s *Server) start() error {
 	var err error
-
-	s.sig = newSignal(s)
-	s.sig.start(conf)
 
 	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
 		return err
@@ -60,7 +56,7 @@ func (s *server) start(conf signalConf) error {
 	return nil
 }
 
-func (s *server) close() {
+func (s *Server) close() {
 	close(s.closed)
 
 	if s.sub != nil {
@@ -68,13 +64,9 @@ func (s *server) close() {
 			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
 		}
 	}
-
-	if s.sig != nil {
-		s.sig.close()
-	}
 }
 
-func (s *server) handle(msg interface{}) (interface{}, error) {
+func (s *Server) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handle incoming message: %T, %+v", msg, msg)
 
 	switch v := msg.(type) {
@@ -91,7 +83,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{}) {
+func (s *Server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{}) {
 	if r := s.getRoom(rid); r != nil {
 		if p := r.getPeer(uid); p != nil {
 			p.handleSFUMessage(msg)
@@ -103,26 +95,35 @@ func (s *server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{})
 	}
 }
 
-func (s *server) broadcast(msg interface{}) (interface{}, error) {
+func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 	log.Infof("handle islb message: %T, %+v", msg, msg)
+
+	var rid proto.RID
+	var uid proto.UID
 
 	switch v := msg.(type) {
 	case *proto.FromIslbStreamAddMsg:
-		s.notifyRoomWithoutID(proto.ClientOnStreamAdd, v.RID, v.UID, msg)
+		rid, uid = v.RID, v.UID
 	case *proto.ToClientPeerJoinMsg:
-		s.notifyRoomWithoutID(proto.ClientOnJoin, v.RID, v.UID, msg)
+		rid, uid = v.RID, v.UID
 	case *proto.IslbPeerLeaveMsg:
-		s.notifyRoomWithoutID(proto.ClientOnLeave, v.RID, v.UID, msg)
+		rid, uid = v.RID, v.UID
 	case *proto.IslbBroadcastMsg:
-		s.notifyRoomWithoutID(proto.ClientBroadcast, v.RID, v.UID, msg)
+		rid, uid = v.RID, v.UID
 	default:
 		log.Warnf("unkonw message: %v", msg)
+	}
+
+	if r := s.getRoom(rid); r != nil {
+		r.send(msg, uid)
+	} else {
+		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
 	}
 
 	return nil, nil
 }
 
-func (s *server) getNode(service string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
+func (s *Server) getNode(service string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
 	resp, err := s.nrpc.Request(s.islb, proto.ToIslbFindNodeMsg{
 		Service: service,
 		UID:     uid,
@@ -143,7 +144,7 @@ func (s *server) getNode(service string, uid proto.UID, rid proto.RID, mid proto
 }
 
 // getRoom get a room by id
-func (s *server) getRoom(id proto.RID) *room {
+func (s *Server) getRoom(id proto.RID) *room {
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
 	r := s.rooms[id]
@@ -164,7 +165,7 @@ func (s *server) getRoom(id proto.RID) *room {
 // }
 
 // delPeer delete a peer in the room
-func (s *server) delPeer(rid proto.RID, uid proto.UID) {
+func (s *Server) delPeer(rid proto.RID, uid proto.UID) {
 	log.Infof("delPeer rid=%s uid=%s", rid, uid)
 	room := s.getRoom(rid)
 	if room == nil {
@@ -179,7 +180,7 @@ func (s *server) delPeer(rid proto.RID, uid proto.UID) {
 }
 
 // addPeer add a peer to room
-func (s *server) addPeer(rid proto.RID, peer *peer) {
+func (s *Server) addPeer(rid proto.RID, peer *Peer) {
 	log.Infof("addPeer rid=%s uid=%s", rid, peer.uid)
 	room := s.getRoom(rid)
 	if room == nil {
@@ -202,36 +203,8 @@ func (s *server) addPeer(rid proto.RID, peer *peer) {
 // 	return r.getPeer(uid)
 // }
 
-// // notifyPeer send message to peer
-// func (s *server) notifyPeer(method string, rid proto.RID, uid proto.UID, data interface{}) {
-// 	log.Infof("notifyPeer rid=%s, uid=%s, data=%s", rid, uid, data)
-// 	room := s.getRoom(rid)
-// 	if room == nil {
-// 		log.Warnf("room not exits, rid=%s, uid=%s, data=%s", rid, uid, data)
-// 		return
-// 	}
-// 	peer := room.getPeer(uid)
-// 	if peer == nil {
-// 		log.Warnf("peer not exits, rid=%s, uid=%s, data=%v", rid, uid, data)
-// 		return
-// 	}
-// 	if err := peer.notify(method, data); err != nil {
-// 		log.Errorf("notify peer error: %s, rid=%s, uid=%s, data=%v", err, rid, uid, data)
-// 	}
-// }
-
-// notifyRoomWithoutID notify room
-func (s *server) notifyRoomWithoutID(method string, rid proto.RID, withoutID proto.UID, msg interface{}) {
-	log.Infof("broadcast: method=%s, msg=%v", method, msg)
-	if r := s.getRoom(rid); r != nil {
-		r.notifyWithoutID(method, msg, withoutID)
-	} else {
-		log.Warnf("room not exits, rid=%s, uid=%s", rid, withoutID)
-	}
-}
-
 // stat peers
-func (s *server) stat() {
+func (s *Server) stat() {
 	t := time.NewTicker(statCycle)
 	defer t.Stop()
 	for {

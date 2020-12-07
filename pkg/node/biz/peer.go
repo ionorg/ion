@@ -2,148 +2,56 @@ package biz
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/notedit/sdp"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
-	"github.com/sourcegraph/jsonrpc2"
-	websocketjsonrpc2 "github.com/sourcegraph/jsonrpc2/websocket"
 )
 
-// peer represents a peer for client
-type peer struct {
+// Peer represents a peer for client
+type Peer struct {
 	uid       proto.UID
 	mid       proto.MID
 	rid       proto.RID
 	info      []byte
-	conn      *jsonrpc2.Conn
 	ctx       context.Context
 	leaveOnce sync.Once
 	closed    util.AtomicBool
-	s         *server
-	auth      func(proto.Authenticatable) error
+	s         *Server
+	send      func(msg interface{}) error
 }
 
-// newPeer create peer instance for client
-func newPeer(ctx context.Context, c *websocket.Conn, s *server, auth func(proto.Authenticatable) error) *peer {
+// NewPeer create peer instance for client
+func NewPeer(s *Server, send func(msg interface{}) error) *Peer {
 	id := uuid.New().String()
-	p := &peer{
-		ctx:  ctx,
+	p := &Peer{
 		uid:  proto.UID(id), // TODO: may be improve
 		mid:  proto.MID(id),
-		auth: auth,
 		s:    s,
+		send: send,
 	}
-	p.conn = jsonrpc2.NewConn(ctx, websocketjsonrpc2.NewObjectStream(c), p)
 	return p
 }
 
-// Handle incoming RPC call events, implement jsonrpc2.Handler
-func (p *peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
-	replyError := func(err error) {
-		_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
-			Code:    500,
-			Message: fmt.Sprintf("%s", err),
-		})
-	}
-
-	switch req.Method {
-	case proto.ClientJoin:
-		var msg proto.FromClientJoinMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing offer: %v", err)
-			replyError(err)
-			break
-		}
-		answer, err := p.join(&msg)
-		if err != nil {
-			replyError(err)
-			break
-		}
-		_ = conn.Reply(ctx, req.ID, answer)
-
-	case proto.ClientOffer:
-		var msg proto.ClientOfferMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing trickle: %v", err)
-			replyError(err)
-		}
-		answer, err := p.offer(&msg)
-		if err != nil {
-			replyError(err)
-			break
-		}
-		_ = conn.Reply(ctx, req.ID, answer)
-
-	case proto.ClientAnswer:
-		var msg proto.ClientAnswerMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing trickle: %v", err)
-			replyError(err)
-			break
-		}
-		if err := p.answer(&msg); err != nil {
-			replyError(err)
-		}
-
-	case proto.ClientTrickle:
-		var msg proto.ClientTrickleMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing trickle: %v", err)
-			replyError(err)
-			break
-		}
-		if err := p.trickle(&msg); err != nil {
-			replyError(err)
-		}
-
-	case proto.ClientLeave:
-		var msg proto.FromClientLeaveMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing leave: %v", err)
-			replyError(err)
-			break
-		}
-		if err := p.leave(&msg); err != nil {
-			replyError(err)
-		}
-
-	case proto.ClientBroadcast:
-		var msg proto.FromClientBroadcastMsg
-		if err := p.unmarshal(*req.Params, &msg); err != nil {
-			log.Errorf("error parsing trickle: %v", err)
-			replyError(err)
-			break
-		}
-		if err := p.broadcast(&msg); err != nil {
-			replyError(err)
-		}
-
-	default:
-		replyError(errors.New("unknown message"))
-	}
-}
-
 // handleSFUMessage handle sfu message
-func (p *peer) handleSFUMessage(msg interface{}) {
+func (p *Peer) handleSFUMessage(msg interface{}) {
 	switch v := msg.(type) {
 	case *proto.SfuOfferMsg:
 		log.Infof("peer(%s) got remote description: %v", p.uid, v.Desc)
-		if err := p.notify(proto.ClientOffer, v.Desc); err != nil {
+		if err := p.send(&proto.ClientOfferMsg{
+			Desc: v.Desc,
+		}); err != nil {
 			log.Errorf("error sending offer %s", err)
 		}
 	case *proto.SfuTrickleMsg:
 		log.Infof("peer(%s) got a remote candidate: %v", p.uid, v.Candidate)
-		if err := p.notify(proto.ClientTrickle, proto.ClientTrickleMsg{
+		if err := p.send(&proto.ClientTrickleMsg{
 			Candidate: proto.CandidateForJSON(v.Candidate),
 			Target:    v.Target,
 		}); err != nil {
@@ -156,7 +64,7 @@ func (p *peer) handleSFUMessage(msg interface{}) {
 			fallthrough
 		case webrtc.ICEConnectionStateClosed:
 			p.leaveOnce.Do(func() {
-				if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
+				if err := p.Leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
 					log.Infof("peer(%s) leave error: %v", p.rid, err)
 				}
 			})
@@ -164,8 +72,8 @@ func (p *peer) handleSFUMessage(msg interface{}) {
 	}
 }
 
-// join client join the room
-func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
+// Join client Join the room
+func (p *Peer) Join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	log.Infof("peer join: uid=%s, msg=%v", p.uid, msg)
 
 	p.rid = msg.RID
@@ -222,7 +130,7 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	fromIslbPeerJoinMsg := resp.(*proto.FromIslbPeerJoinMsg)
 	go func(peerlist proto.ToClientPeersMsg) {
 		time.Sleep(100 * time.Millisecond)
-		if err := p.notify(proto.ClientOnList, peerlist); err != nil {
+		if err := p.send(&peerlist); err != nil {
 			log.Errorf("[%s] send peer-list to clients error: %v", p.uid, err)
 		}
 	}(proto.ToClientPeersMsg{
@@ -233,8 +141,8 @@ func (p *peer) join(msg *proto.FromClientJoinMsg) (interface{}, error) {
 	return fromSfuJoinMsg.Answer, nil
 }
 
-// offer client send offer to biz
-func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
+// Offer client send Offer to biz
+func (p *Peer) Offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 	log.Infof("peer offer: uid=%s, msg=%v", p.uid, msg)
 
 	// send offer to sfu
@@ -298,8 +206,8 @@ func (p *peer) offer(msg *proto.ClientOfferMsg) (interface{}, error) {
 	return resp.(*proto.SfuAnswerMsg).Desc, nil
 }
 
-// answer received answer of client
-func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
+// Answer received Answer of client
+func (p *Peer) Answer(msg *proto.ClientAnswerMsg) error {
 	log.Infof("peer answer:  uid=%s, msg=%v", p.uid, msg)
 
 	sfu, err := p.sfu()
@@ -319,8 +227,8 @@ func (p *peer) answer(msg *proto.ClientAnswerMsg) error {
 	return nil
 }
 
-// trickle received candidate of client
-func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
+// Trickle received candidate of client
+func (p *Peer) Trickle(msg *proto.ClientTrickleMsg) error {
 	log.Infof("peer trickle: uid=%s, msg=%v", p.uid, msg)
 
 	sfu, err := p.sfu()
@@ -342,8 +250,8 @@ func (p *peer) trickle(msg *proto.ClientTrickleMsg) error {
 	return nil
 }
 
-// leave client leave the room
-func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
+// Leave client leave the room
+func (p *Peer) Leave(msg *proto.FromClientLeaveMsg) error {
 	log.Infof("peer leave: uid=%s, msg=%v", p.uid, msg)
 
 	// leave room
@@ -368,8 +276,8 @@ func (p *peer) leave(msg *proto.FromClientLeaveMsg) error {
 	return nil
 }
 
-// broadcast peer send message to peers of room
-func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
+// Broadcast peer send message to peers of room
+func (p *Peer) Broadcast(msg *proto.FromClientBroadcastMsg) error {
 	log.Infof("peer broadcast: uid=%s, msg=%v", p.uid, msg)
 
 	// validate
@@ -390,52 +298,28 @@ func (p *peer) broadcast(msg *proto.FromClientBroadcastMsg) error {
 	return nil
 }
 
-// unmarshal message
-func (p *peer) unmarshal(data json.RawMessage, result interface{}) error {
-	if err := json.Unmarshal(data, &result); err != nil {
-		return err
-	}
-	if p.auth != nil {
-		if msg, ok := result.(proto.Authenticatable); ok {
-			return p.auth(msg)
-		}
-	}
-	return nil
-}
-
-// // request send msg to message and waits for the response
-// func (p *peer) request(method string, params, result interface{}) error {
-// 	return p.conn.Call(p.ctx, method, params, result)
-// }
-
-// notify send a message to the peer
-func (p *peer) notify(method string, params interface{}) error {
-	return p.conn.Notify(p.ctx, method, params)
-}
-
-// disconnectNotify returns a channel that is closed when the
-// underlying connection is disconnected.
-func (p *peer) disconnectNotify() <-chan struct{} {
-	return p.conn.DisconnectNotify()
-}
-
-// close peer
-func (p *peer) close() {
+// Close peer
+func (p *Peer) Close() {
 	if p.closed.Get() {
 		return
 	}
 	p.closed.Set(true)
 
 	// leave all rooms
-	if err := p.leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
+	if err := p.Leave(&proto.FromClientLeaveMsg{RID: p.rid}); err != nil {
 		log.Infof("peer(%s) leave error: %v", p.rid, err)
 	}
 }
 
-func (p *peer) sfu() (string, error) {
+// UID return peer uid
+func (p *Peer) UID() proto.UID {
+	return p.uid
+}
+
+func (p *Peer) sfu() (string, error) {
 	return p.s.getNode(proto.ServiceSFU, p.uid, p.rid, p.mid)
 }
 
-func (p *peer) avp() (string, error) {
+func (p *Peer) avp() (string, error) {
 	return p.s.getNode(proto.ServiceAVP, p.uid, p.rid, p.mid)
 }

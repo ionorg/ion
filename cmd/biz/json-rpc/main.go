@@ -9,12 +9,12 @@ import (
 	"syscall"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/node/biz"
+	"github.com/pion/ion/cmd/biz/json-rpc/server"
 	"github.com/spf13/viper"
 )
 
 var (
-	conf = biz.Config{}
+	conf server.Config
 	file string
 )
 
@@ -22,6 +22,14 @@ func showHelp() {
 	fmt.Printf("Usage:%s {params}\n", os.Args[0])
 	fmt.Println("      -c {config file}")
 	fmt.Println("      -h (show help info)")
+}
+
+func unmarshal(rawVal interface{}) bool {
+	if err := viper.Unmarshal(rawVal); err != nil {
+		fmt.Printf("config file %s loaded failed. %v\n", file, err)
+		return false
+	}
+	return true
 }
 
 func load() bool {
@@ -39,7 +47,9 @@ func load() bool {
 		return false
 	}
 
-	err = viper.UnmarshalExact(&conf)
+	if !unmarshal(&conf) || !unmarshal(&conf.Config) {
+		return false
+	}
 	if err != nil {
 		fmt.Printf("config file %s loaded failed. %v\n", file, err)
 		return false
@@ -77,12 +87,12 @@ func main() {
 
 	log.Infof("--- starting biz node ---")
 
-	node := biz.NewBIZ()
-	if err := node.Start(conf); err != nil {
+	s := server.NewServer(conf)
+	if err := s.Start(); err != nil {
 		log.Errorf("biz start error: %v", err)
 		os.Exit(-1)
 	}
-	defer node.Close()
+	defer s.Close()
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

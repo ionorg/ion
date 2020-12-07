@@ -32,59 +32,60 @@ type avpConf struct {
 
 // Config for biz node
 type Config struct {
-	Global global     `mapstructure:"global"`
-	Log    logConf    `mapstructure:"log"`
-	Etcd   etcdConf   `mapstructure:"etcd"`
-	Nats   natsConf   `mapstructure:"nats"`
-	Signal signalConf `mapstructure:"signal"`
-	Avp    avpConf    `mapstructure:"avp"`
+	Global global   `mapstructure:"global"`
+	Log    logConf  `mapstructure:"log"`
+	Etcd   etcdConf `mapstructure:"etcd"`
+	Nats   natsConf `mapstructure:"nats"`
+	Avp    avpConf  `mapstructure:"avp"`
 }
 
 // BIZ represents biz node
 type BIZ struct {
+	conf     Config
 	nrpc     *proto.NatsRPC
 	sub      *nats.Subscription
 	subs     map[string]*nats.Subscription
 	nodeLock sync.RWMutex
 	nodes    map[string]discovery.Node
 	service  *discovery.Service
-	s        *server
+	s        *Server
 }
 
 // NewBIZ create a biz node instance
-func NewBIZ() *BIZ {
+func NewBIZ(conf Config) *BIZ {
 	return &BIZ{
+		conf:  conf,
 		nodes: make(map[string]discovery.Node),
 		subs:  make(map[string]*nats.Subscription),
 	}
 }
 
 // Start biz node
-func (b *BIZ) Start(conf Config) error {
+func (b *BIZ) Start() (*Server, error) {
 	var err error
 
-	if conf.Global.Pprof != "" {
+	if b.conf.Global.Pprof != "" {
 		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			log.Infof("start pprof on %s", b.conf.Global.Pprof)
+			err := http.ListenAndServe(b.conf.Global.Pprof, nil)
 			if err != nil {
 				log.Errorf("http.ListenAndServe err=%v", err)
 			}
 		}()
 	}
 
-	if b.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+	if b.nrpc, err = proto.NewNatsRPC(b.conf.Nats.URL); err != nil {
 		b.Close()
-		return err
+		return nil, err
 	}
 
-	if b.service, err = discovery.NewService(proto.ServiceBIZ, conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+	if b.service, err = discovery.NewService(proto.ServiceBIZ, b.conf.Global.Dc, b.conf.Etcd.Addrs); err != nil {
 		b.Close()
-		return err
+		return nil, err
 	}
 	if err = b.service.GetNodes(proto.ServiceISLB, b.nodes); err != nil {
 		b.Close()
-		return err
+		return nil, err
 	}
 	log.Infof("nodes up: %+v", b.nodes)
 	for _, n := range b.nodes {
@@ -95,12 +96,12 @@ func (b *BIZ) Start(conf Config) error {
 	b.service.Watch(proto.ServiceISLB, b.watchIslbNodes)
 	b.service.KeepAlive()
 
-	b.s = newServer(conf.Global.Dc, b.service.NID(), conf.Avp.Elements, b.nrpc, b.getNodes)
-	if err = b.s.start(conf.Signal); err != nil {
-		return err
+	b.s = newServer(b.conf.Global.Dc, b.service.NID(), b.conf.Avp.Elements, b.nrpc, b.getNodes)
+	if err = b.s.start(); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return b.s, nil
 }
 
 // Close all

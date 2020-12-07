@@ -11,14 +11,14 @@ import (
 type room struct {
 	sync.RWMutex
 	id    proto.RID
-	peers map[proto.UID]*peer
+	peers map[proto.UID]*Peer
 }
 
 // newRoom creates a new room instance
 func newRoom(id proto.RID) *room {
 	r := &room{
 		id:    id,
-		peers: make(map[proto.UID]*peer),
+		peers: make(map[proto.UID]*Peer),
 	}
 	return r
 }
@@ -29,21 +29,21 @@ func (r *room) ID() proto.RID {
 }
 
 // addPeer add a peer to room
-func (r *room) addPeer(p *peer) {
+func (r *room) addPeer(p *Peer) {
 	r.Lock()
 	defer r.Unlock()
 	r.peers[p.uid] = p
 }
 
 // getPeer get a peer by peer id
-func (r *room) getPeer(uid proto.UID) *peer {
+func (r *room) getPeer(uid proto.UID) *Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers[uid]
 }
 
 // getPeers get peers in the room
-func (r *room) getPeers() map[proto.UID]*peer {
+func (r *room) getPeers() map[proto.UID]*Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers
@@ -64,22 +64,12 @@ func (r *room) count() int {
 	return len(r.peers)
 }
 
-// // notify notify a message to peers without one peer
-// func (r *room) notify(method string, data interface{}) {
-// 	peers := r.getPeers()
-// 	for _, p := range peers {
-// 		if err := p.notify(method, data); err != nil {
-// 			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
-// 		}
-// 	}
-// }
-
-// notifyWithoutID notify a message to peers without one peer
-func (r *room) notifyWithoutID(method string, data interface{}, withoutID proto.UID) {
+// send message to peers
+func (r *room) send(data interface{}, without proto.UID) {
 	peers := r.getPeers()
 	for id, p := range peers {
-		if id != withoutID {
-			if err := p.notify(method, data); err != nil {
+		if len(without) > 0 && id != without {
+			if err := p.send(data); err != nil {
 				log.Errorf("send data to peer(%s) error: %v", p.uid, err)
 			}
 		}
