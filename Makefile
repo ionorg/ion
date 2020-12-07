@@ -35,3 +35,6 @@ test: go_deps start-services
 		-timeout 120s \
 		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
+protos:
+	docker build -t protoc-builder ./pkg/grpc/biz && docker run -v $(CURDIR):/workspace protoc-builder protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/grpc/biz/biz.proto
+
