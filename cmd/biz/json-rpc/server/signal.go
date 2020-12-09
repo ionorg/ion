@@ -116,6 +116,17 @@ func (s *Signal) serve() {
 	}
 
 	http.Handle(s.conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// get user id
+		parms := r.URL.Query()
+		fields := parms["uid"]
+		if fields == nil || len(fields) == 0 {
+			log.Errorf("invalid uid")
+			http.Error(w, "invalid uid", http.StatusForbidden)
+			return
+		}
+		uid := proto.UID(fields[0])
+		log.Infof("peer connected, uid=%s", uid)
+
 		// authenticate connection
 		var connClaims *claims
 		if s.conf.AuthConnection.Enabled {
@@ -149,7 +160,7 @@ func (s *Signal) serve() {
 		defer ws.Close()
 
 		// create a peer
-		p := newPeer(r.Context(), ws, s.bs, auth)
+		p := newPeer(r.Context(), ws, uid, s.bs, auth)
 		defer p.Close()
 		log.Infof("new peer: %s, %s", r.RemoteAddr, p.UID())
 

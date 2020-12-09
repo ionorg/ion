@@ -328,6 +328,7 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/uuid@latest/dist/umd/uuidv4.min.js"></script>
     <script src="https://unpkg.com/ion-sdk-js@1.5.3/dist/ion-sdk.min.js"></script>
     <script>
       const localVideo = document.getElementById("local-video");
@@ -350,11 +351,25 @@
       /* eslint-env browser */
       const joinBtns = document.getElementById("start-btns");
 
+      const getQueryVariable = (key) => {
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i=0;i<vars.length;i++) {
+                var pair = vars[i].split("=");
+                if(pair[0] == key){return pair[1];}
+        }
+        return(false);
+      };
+
+      const sid = getQueryVariable("sid") || "room1"
+      const uid = getQueryVariable("uid") || uuidv4()
+
       const signalLocal = new IonSDK.IonSFUJSONRPCSignal(
-        "ws://localhost:8443/ws"
+        //"ws://localhost:8443/ws?uid=tony&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ0b255IiwicmlkIjoicm9vbTEifQ.mopgibW3OYONYwzlo-YvkDIkNoYJc3OBQRsqQHZMnD8"
+        "ws://localhost:8443/ws?uid=" + uuidv4()
       );
       const signalRemote = new IonSDK.IonSFUJSONRPCSignal(
-        "ws://localhost:8443/ws"
+        "ws://localhost:8443/ws?uid=" + uuidv4()
       );
 
       const clientLocal = new IonSDK.Client(signalLocal);
@@ -362,8 +377,8 @@
 
       let localStream;
       const start = (sc) => {
-        clientLocal.join("room1");
-        clientRemote.join("room1");
+        clientLocal.join(sid);
+        clientRemote.join(sid);
         simulcast = sc;
         IonSDK.LocalStream.getUserMedia({
           resolution: "hd",

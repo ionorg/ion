@@ -28,10 +28,10 @@ type Peer struct {
 }
 
 // NewPeer create peer instance for client
-func NewPeer(s *Server, send func(msg interface{}) error) *Peer {
+func NewPeer(uid proto.UID, s *Server, send func(msg interface{}) error) *Peer {
 	id := uuid.New().String()
 	p := &Peer{
-		uid:  proto.UID(id), // TODO: may be improve
+		uid:  uid,
 		mid:  proto.MID(id),
 		s:    s,
 		send: send,

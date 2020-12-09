@@ -23,13 +23,13 @@ type Peer struct {
 }
 
 // newPeer create a peer instance
-func newPeer(ctx context.Context, c *websocket.Conn, bs *biz.Server, auth func(proto.Authenticatable) error) *Peer {
+func newPeer(ctx context.Context, c *websocket.Conn, uid proto.UID, bs *biz.Server, auth func(proto.Authenticatable) error) *Peer {
 	p := &Peer{
 		auth: auth,
 		ctx:  ctx,
 	}
 	p.conn = jsonrpc2.NewConn(ctx, websocketjsonrpc2.NewObjectStream(c), p)
-	p.Peer = biz.NewPeer(bs, p.send)
+	p.Peer = biz.NewPeer(uid, bs, p.send)
 	return p
 }
 
