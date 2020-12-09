@@ -42,6 +42,12 @@ func (p *Peer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Re
 		})
 	}
 
+	if req.Params == nil {
+		log.Errorf("request without params: uid=%s", p.UID())
+		replyError(errors.New("request without params"))
+		return
+	}
+
 	switch req.Method {
 	case proto.ClientJoin:
 		var msg proto.FromClientJoinMsg
