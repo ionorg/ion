@@ -81,10 +81,10 @@ func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := msg.Service
 	nodes := s.getNodes()
 
-	if msg.RID != "" && msg.UID != "" && msg.MID != "" {
+	if msg.SID != "" && msg.UID != "" && msg.MID != "" {
 		mkey := proto.MediaInfo{
 			DC:  s.dc,
-			RID: msg.RID,
+			SID: msg.SID,
 			UID: msg.UID,
 			MID: msg.MID,
 		}.BuildKey()
@@ -98,14 +98,14 @@ func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 			}
 			for _, node := range nodes {
 				if service == node.Service && minfo.NID == node.NID {
-					log.Infof("found node by rid=%s & uid=%s & mid=%s : %v", msg.RID, msg.UID, msg.MID, node)
+					log.Infof("found node by sid=%s & uid=%s & mid=%s : %v", msg.SID, msg.UID, msg.MID, node)
 					return proto.FromIslbFindNodeMsg{ID: node.NID}, nil
 				}
 			}
 		}
 	}
 
-	// MID/RID Doesn't exist in Redis
+	// MID/SID Doesn't exist in Redis
 	// Find least packed node to return
 	nodeID := ""
 	minStreamCount := math.MaxInt32
@@ -145,7 +145,7 @@ func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	mkey := proto.MediaInfo{
 		DC:  s.dc,
-		RID: msg.RID,
+		SID: msg.SID,
 		UID: msg.UID,
 		MID: msg.MID,
 	}.BuildKey()
@@ -173,7 +173,7 @@ func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 
 	log.Infof("broadcast: [stream-add] => %v", msg)
 	err = s.nrpc.Publish(s.bid, proto.FromIslbStreamAddMsg{
-		RID:    msg.RID,
+		SID:    msg.SID,
 		UID:    msg.UID,
 		Stream: proto.Stream{UID: msg.UID, StreamID: msg.StreamID},
 	})
@@ -184,14 +184,14 @@ func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
-		RID: msg.RID,
+		SID: msg.SID,
 		UID: msg.UID,
 	}.BuildKey()
 	log.Infof("clientJoin: set %s => %v", ukey, string(msg.Info))
 
 	// Tell everyone about the new peer.
 	if err := s.nrpc.Publish(s.bid, proto.ToClientPeerJoinMsg{
-		UID: msg.UID, RID: msg.RID, Info: msg.Info,
+		UID: msg.UID, SID: msg.SID, Info: msg.Info,
 	}); err != nil {
 		log.Errorf("broadcast peer-join error: %v", err)
 		return nil, err
@@ -200,7 +200,7 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	// Tell the new peer about everyone currently in the room.
 	searchKey := proto.UserInfo{
 		DC:  s.dc,
-		RID: msg.RID,
+		SID: msg.SID,
 	}.BuildKey()
 	keys := s.redis.Keys(searchKey)
 
@@ -224,7 +224,7 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 
 		mkey := proto.MediaInfo{
 			DC:  s.dc,
-			RID: msg.RID,
+			SID: msg.SID,
 			UID: parsedUserKey.UID,
 		}.BuildKey()
 		mediaKeys := s.redis.Keys(mkey)
@@ -257,7 +257,7 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
-		RID: msg.RID,
+		SID: msg.SID,
 		UID: msg.UID,
 	}.BuildKey()
 	log.Infof("clientLeave: remove key => %s", ukey)

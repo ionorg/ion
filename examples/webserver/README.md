@@ -14,7 +14,7 @@ Open [http://localhost:8080](http://localhost:8080) in the browser
 ## Signing a token
 
 ```sh
-curl http://localhost:8080/generate?uid=tony&rid=room1
+curl http://localhost:8080/generate?uid=tony&sid=room1
 # Response: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ0b255IiwicmlkIjoicm9vbTEifQ.mopgibW3OYONYwzlo-YvkDIkNoYJc3OBQRsqQHZMnD8"}
 ```
 
@@ -22,5 +22,5 @@ curl http://localhost:8080/generate?uid=tony&rid=room1
 
 ```sh
 curl http://localhost:8080/validate?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ0b255IiwicmlkIjoicm9vbTEifQ.mopgibW3OYONYwzlo-YvkDIkNoYJc3OBQRsqQHZMnD8
-# Response: {"uid":"tony","rid":"room1"}
+# Response: {"uid":"tony","sid":"room1"}
 ```

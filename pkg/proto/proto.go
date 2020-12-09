@@ -57,11 +57,11 @@ const (
 )
 
 type MID string
-type RID string
+type SID string
 type UID string
 
 // MediaInfo media detailed information
-// dc/${nid}/${rid}/${uid}/media/pub/${mid}
+// dc/${nid}/${sid}/${uid}/media/pub/${mid}
 // node1 origin
 // node2 shadow
 // msid  [{ssrc: 1234, pt: 111, type:audio}]
@@ -71,8 +71,8 @@ type MediaInfo struct {
 	DC string `json:"dc,omitempty"`
 	// NID node id
 	NID string `json:"nid,omitempty"`
-	// RID room id
-	RID RID `json:"rid,omitempty"`
+	// SID room id
+	SID SID `json:"sid,omitempty"`
 	// UID user id
 	UID UID `json:"uid,omitempty"`
 	// MID media id
@@ -86,8 +86,8 @@ func (m MediaInfo) BuildKey() string {
 	if m.NID == "" {
 		m.NID = "*"
 	}
-	if m.RID == "" {
-		m.RID = "*"
+	if m.SID == "" {
+		m.SID = "*"
 	}
 	if m.UID == "" {
 		m.UID = "*"
@@ -95,7 +95,7 @@ func (m MediaInfo) BuildKey() string {
 	if m.MID == "" {
 		m.MID = "*"
 	}
-	strs := []string{m.DC, m.NID, string(m.RID), string(m.UID), "media", "pub", string(m.MID)}
+	strs := []string{m.DC, m.NID, string(m.SID), string(m.UID), "media", "pub", string(m.MID)}
 	return strings.Join(strs, "/")
 }
 
@@ -108,7 +108,7 @@ func ParseMediaInfo(key string) (*MediaInfo, error) {
 	}
 	info.DC = arr[0]
 	info.NID = arr[1]
-	info.RID = RID(arr[2])
+	info.SID = SID(arr[2])
 	info.UID = UID(arr[3])
 	info.MID = MID(arr[6])
 	return &info, nil
@@ -122,7 +122,7 @@ info {name: "Guest"}
 
 type UserInfo struct {
 	DC  string
-	RID RID
+	SID SID
 	UID UID
 }
 
@@ -131,7 +131,7 @@ func (u UserInfo) BuildKey() string {
 	if uid == "" {
 		uid = "*"
 	}
-	strs := []string{u.DC, string(u.RID), "user", "info", uid}
+	strs := []string{u.DC, string(u.SID), "user", "info", uid}
 	return strings.Join(strs, "/")
 }
 
@@ -142,7 +142,7 @@ func ParseUserInfo(key string) (*UserInfo, error) {
 		return nil, fmt.Errorf("Can‘t parse userinfo; [%s]", key)
 	}
 	info.DC = arr[0]
-	info.RID = RID(arr[1])
+	info.SID = SID(arr[1])
 	info.UID = UID(arr[4])
 	return &info, nil
 }
@@ -198,19 +198,19 @@ func UnmarshalTrackField(key string, value string) (string, *[]TrackInfo, error)
 	return msid, &tracks, nil
 }
 
-func GetPubNodePath(rid, uid string) string {
-	return rid + "/node/pub/" + uid
+func GetPubNodePath(sid, uid string) string {
+	return sid + "/node/pub/" + uid
 }
 
-func GetPubMediaPath(rid, mid string, ssrc uint32) string {
+func GetPubMediaPath(sid, mid string, ssrc uint32) string {
 	if ssrc != 0 {
-		return rid + "/media/pub/" + mid + fmt.Sprintf("/%d", ssrc)
+		return sid + "/media/pub/" + mid + fmt.Sprintf("/%d", ssrc)
 	}
-	return rid + "/media/pub/" + mid
+	return sid + "/media/pub/" + mid
 }
 
-func GetPubMediaPathKey(rid string) string {
-	return rid + "/media/pub/"
+func GetPubMediaPathKey(sid string) string {
+	return sid + "/media/pub/"
 }
 
 // ISLB return islb subject

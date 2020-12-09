@@ -84,7 +84,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 	peer := s.getPeer(msg.MID)
 
-	answer, err := peer.Join(string(msg.RID), msg.Offer)
+	answer, err := peer.Join(string(msg.SID), msg.Offer)
 	if err != nil {
 		log.Errorf("join error: %v", err)
 		return nil, err
@@ -93,7 +93,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 	// notify user of new ice candidate
 	peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		data := proto.SfuOfferMsg{
-			RID:  msg.RID,
+			SID:  msg.SID,
 			UID:  msg.UID,
 			MID:  msg.MID,
 			Desc: *offer,
@@ -107,7 +107,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 	// notify user of new offer
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
 		data := proto.SfuTrickleMsg{
-			RID:       msg.RID,
+			SID:       msg.SID,
 			UID:       msg.UID,
 			MID:       msg.MID,
 			Candidate: *candidate,
@@ -121,7 +121,7 @@ func (s *server) join(msg *proto.ToSfuJoinMsg) (interface{}, error) {
 
 	peer.OnICEConnectionStateChange = func(state webrtc.ICEConnectionState) {
 		data := proto.SfuICEConnectionStateMsg{
-			RID:   msg.RID,
+			SID:   msg.SID,
 			UID:   msg.UID,
 			MID:   msg.MID,
 			State: state,

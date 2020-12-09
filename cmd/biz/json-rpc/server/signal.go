@@ -32,17 +32,17 @@ func (a authConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 // claims custom claims type for jwt
 type claims struct {
 	UID string `json:"uid"`
-	RID string `json:"rid"`
+	SID string `json:"sid"`
 	jwt.StandardClaims
 }
 
-// authenticateRoom checks both the connection token AND an optional message token for RID claims
-// returns nil for success and returns an error if there are no valid claims for the RID
+// authenticateRoom checks both the connection token AND an optional message token for SID claims
+// returns nil for success and returns an error if there are no valid claims for the SID
 func authenticateRoom(connClaims *claims, keyFunc jwt.Keyfunc, msg proto.Authenticatable) error {
 	log.Debugf("authenticateRoom: checking claims on token %v", msg.Token())
 	// connection token has valid claim on this room, succeed early
-	if connClaims != nil && msg.Room() == proto.RID(connClaims.RID) {
-		log.Debugf("authenticateRoom: valid rid in connection claims %v", msg.Room())
+	if connClaims != nil && msg.Room() == proto.SID(connClaims.SID) {
+		log.Debugf("authenticateRoom: valid sid in connection claims %v", msg.Room())
 		return nil
 	}
 
@@ -64,12 +64,12 @@ func authenticateRoom(connClaims *claims, keyFunc jwt.Keyfunc, msg proto.Authent
 	}
 
 	// message token is valid, succeed
-	if msgClaims != nil && msg.Room() == proto.RID(msgClaims.RID) {
-		log.Debugf("authenticateRoom: valid rid in msg claims %v", msg.Room())
+	if msgClaims != nil && msg.Room() == proto.SID(msgClaims.SID) {
+		log.Debugf("authenticateRoom: valid sid in msg claims %v", msg.Room())
 		return nil
 	}
 
-	// if this is reached, a token was passed but it did not have a valid RID claim
+	// if this is reached, a token was passed but it did not have a valid SID claim
 	return errors.New("permission not sufficient for room")
 }
 

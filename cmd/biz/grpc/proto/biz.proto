@@ -9,7 +9,7 @@ service BIZ {
 }
 
 message Client {
-    string rid = 1;
+    string sid = 1;
     oneof payload {
         JoinRequest join = 2;
         LeaveRequest leave = 3;
@@ -67,7 +67,7 @@ message Trickle {
 }
 
 message Broadcast{
-    string rid = 1;
+    string sid = 1;
     string uid = 2;
     bytes info = 3;
 }
@@ -93,7 +93,7 @@ message PeersEvent{
 
 message JoinEvent{
     string uid = 1;
-    string rid = 2;
+    string sid = 2;
     bytes info = 3;
 }
 

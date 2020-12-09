@@ -9,7 +9,7 @@ func TestKeyBuildAndParse(t *testing.T) {
 	key := MediaInfo{
 		DC:  "dc1",
 		NID: "sfu1",
-		RID: "room1",
+		SID: "room1",
 		UID: "uid1",
 		MID: "mid1",
 	}.BuildKey()
@@ -27,7 +27,7 @@ func TestKeyBuildAndParse(t *testing.T) {
 
 	key = UserInfo{
 		DC:  "dc1",
-		RID: "room1",
+		SID: "room1",
 		UID: "user1",
 	}.BuildKey()
 	if key != "dc1/room1/user/info/user1" {

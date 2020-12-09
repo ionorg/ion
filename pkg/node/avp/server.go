@@ -54,7 +54,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 
 	switch v := msg.(type) {
 	case *proto.ToAvpProcessMsg:
-		if err := s.process(v.Addr, v.PID, v.RID, v.TID, v.EID, v.Config); err != nil {
+		if err := s.process(v.Addr, v.PID, v.SID, v.TID, v.EID, v.Config); err != nil {
 			return nil, err
 		}
 	case *proto.SfuOfferMsg:
@@ -83,7 +83,7 @@ func (s *server) handleSFUMessage(addr string, msg interface{}) {
 }
 
 // process starts a process for a track.
-func (s *server) process(addr, pid, rid, tid, eid string, config []byte) error {
+func (s *server) process(addr, pid, sid, tid, eid string, config []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -106,7 +106,7 @@ func (s *server) process(addr, pid, rid, tid, eid string, config []byte) error {
 		log.Infof("sfu client exist, addr=%s", addr)
 	}
 
-	t, err := c.getTransport(proto.RID(rid))
+	t, err := c.getTransport(proto.SID(sid))
 	if err != nil {
 		return err
 	}

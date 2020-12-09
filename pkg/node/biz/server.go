@@ -26,7 +26,7 @@ type Server struct {
 	islb     string
 	getNodes func() map[string]discovery.Node
 	roomLock sync.RWMutex
-	rooms    map[proto.RID]*room
+	rooms    map[proto.SID]*room
 	closed   chan bool
 }
 
@@ -39,7 +39,7 @@ func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, ge
 		elements: elements,
 		islb:     proto.ISLB(dc),
 		getNodes: getNodes,
-		rooms:    make(map[proto.RID]*room),
+		rooms:    make(map[proto.SID]*room),
 		closed:   make(chan bool),
 	}
 }
@@ -71,11 +71,11 @@ func (s *Server) handle(msg interface{}) (interface{}, error) {
 
 	switch v := msg.(type) {
 	case *proto.SfuOfferMsg:
-		s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.SID, v.UID, msg)
 	case *proto.SfuTrickleMsg:
-		s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.SID, v.UID, msg)
 	case *proto.SfuICEConnectionStateMsg:
-		s.handleSFUMessage(v.RID, v.UID, msg)
+		s.handleSFUMessage(v.SID, v.UID, msg)
 	default:
 		log.Warnf("unkonw message: %v", msg)
 	}
@@ -83,51 +83,51 @@ func (s *Server) handle(msg interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *Server) handleSFUMessage(rid proto.RID, uid proto.UID, msg interface{}) {
-	if r := s.getRoom(rid); r != nil {
+func (s *Server) handleSFUMessage(sid proto.SID, uid proto.UID, msg interface{}) {
+	if r := s.getRoom(sid); r != nil {
 		if p := r.getPeer(uid); p != nil {
 			p.handleSFUMessage(msg)
 		} else {
-			log.Warnf("peer not exits, rid=%s, uid=%s", rid, uid)
+			log.Warnf("peer not exits, sid=%s, uid=%s", sid, uid)
 		}
 	} else {
-		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
 	}
 }
 
 func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 	log.Infof("handle islb message: %T, %+v", msg, msg)
 
-	var rid proto.RID
+	var sid proto.SID
 	var uid proto.UID
 
 	switch v := msg.(type) {
 	case *proto.FromIslbStreamAddMsg:
-		rid, uid = v.RID, v.UID
+		sid, uid = v.SID, v.UID
 	case *proto.ToClientPeerJoinMsg:
-		rid, uid = v.RID, v.UID
+		sid, uid = v.SID, v.UID
 	case *proto.IslbPeerLeaveMsg:
-		rid, uid = v.RID, v.UID
+		sid, uid = v.SID, v.UID
 	case *proto.IslbBroadcastMsg:
-		rid, uid = v.RID, v.UID
+		sid, uid = v.SID, v.UID
 	default:
 		log.Warnf("unkonw message: %v", msg)
 	}
 
-	if r := s.getRoom(rid); r != nil {
+	if r := s.getRoom(sid); r != nil {
 		r.send(msg, uid)
 	} else {
-		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
 	}
 
 	return nil, nil
 }
 
-func (s *Server) getNode(service string, uid proto.UID, rid proto.RID, mid proto.MID) (string, error) {
+func (s *Server) getNode(service string, uid proto.UID, sid proto.SID, mid proto.MID) (string, error) {
 	resp, err := s.nrpc.Request(s.islb, proto.ToIslbFindNodeMsg{
 		Service: service,
 		UID:     uid,
-		RID:     rid,
+		SID:     sid,
 		MID:     mid,
 	})
 
@@ -144,7 +144,7 @@ func (s *Server) getNode(service string, uid proto.UID, rid proto.RID, mid proto
 }
 
 // getRoom get a room by id
-func (s *Server) getRoom(id proto.RID) *room {
+func (s *Server) getRoom(id proto.SID) *room {
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
 	r := s.rooms[id]
@@ -165,39 +165,39 @@ func (s *Server) getRoom(id proto.RID) *room {
 // }
 
 // delPeer delete a peer in the room
-func (s *Server) delPeer(rid proto.RID, uid proto.UID) {
-	log.Infof("delPeer rid=%s uid=%s", rid, uid)
-	room := s.getRoom(rid)
+func (s *Server) delPeer(sid proto.SID, uid proto.UID) {
+	log.Infof("delPeer sid=%s uid=%s", sid, uid)
+	room := s.getRoom(sid)
 	if room == nil {
-		log.Warnf("room not exits, rid=%s, uid=%s", rid, uid)
+		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
 		return
 	}
 	if room.delPeer(uid) == 0 {
 		s.roomLock.RLock()
-		delete(s.rooms, rid)
+		delete(s.rooms, sid)
 		s.roomLock.RUnlock()
 	}
 }
 
 // addPeer add a peer to room
-func (s *Server) addPeer(rid proto.RID, peer *Peer) {
-	log.Infof("addPeer rid=%s uid=%s", rid, peer.uid)
-	room := s.getRoom(rid)
+func (s *Server) addPeer(sid proto.SID, peer *Peer) {
+	log.Infof("addPeer sid=%s uid=%s", sid, peer.uid)
+	room := s.getRoom(sid)
 	if room == nil {
-		room = newRoom(rid)
+		room = newRoom(sid)
 		s.roomLock.Lock()
-		s.rooms[rid] = room
+		s.rooms[sid] = room
 		s.roomLock.Unlock()
 	}
 	room.addPeer(peer)
 }
 
 // // getPeer get a peer in the room
-// func (s *server) getPeer(rid proto.RID, uid proto.UID) *peer {
-// 	log.Infof("getPeer rid=%s uid=%s", rid, uid)
-// 	r := s.getRoom(rid)
+// func (s *server) getPeer(sid proto.SID, uid proto.UID) *peer {
+// 	log.Infof("getPeer sid=%s uid=%s", sid, uid)
+// 	r := s.getRoom(sid)
 // 	if r == nil {
-// 		log.Infof("room not exits, rid=%s uid=%s", rid, uid)
+// 		log.Infof("room not exits, sid=%s uid=%s", sid, uid)
 // 		return nil
 // 	}
 // 	return r.getPeer(uid)
@@ -218,8 +218,8 @@ func (s *Server) stat() {
 
 		var info string
 		s.roomLock.RLock()
-		for rid, room := range s.rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", rid, room.count())
+		for sid, room := range s.rooms {
+			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
 		}
 		s.roomLock.RUnlock()
 		if len(info) > 0 {

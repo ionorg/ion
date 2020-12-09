@@ -71,7 +71,7 @@ type Client struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Rid string `protobuf:"bytes,1,opt,name=rid,proto3" json:"rid,omitempty"`
+	Sid string `protobuf:"bytes,1,opt,name=sid,proto3" json:"sid,omitempty"`
 	// Types that are assignable to Payload:
 	//	*Client_Join
 	//	*Client_Leave
@@ -114,9 +114,9 @@ func (*Client) Descriptor() ([]byte, []int) {
 	return file_pkg_grpc_biz_biz_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Client) GetRid() string {
+func (x *Client) GetSid() string {
 	if x != nil {
-		return x.Rid
+		return x.Sid
 	}
 	return ""
 }
@@ -678,7 +678,7 @@ type Broadcast struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Rid  string `protobuf:"bytes,1,opt,name=rid,proto3" json:"rid,omitempty"`
+	Sid  string `protobuf:"bytes,1,opt,name=sid,proto3" json:"sid,omitempty"`
 	Uid  string `protobuf:"bytes,2,opt,name=uid,proto3" json:"uid,omitempty"`
 	Info []byte `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
 }
@@ -715,9 +715,9 @@ func (*Broadcast) Descriptor() ([]byte, []int) {
 	return file_pkg_grpc_biz_biz_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *Broadcast) GetRid() string {
+func (x *Broadcast) GetSid() string {
 	if x != nil {
-		return x.Rid
+		return x.Sid
 	}
 	return ""
 }
@@ -954,7 +954,7 @@ type JoinEvent struct {
 	unknownFields protoimpl.UnknownFields
 
 	Uid  string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Rid  string `protobuf:"bytes,2,opt,name=rid,proto3" json:"rid,omitempty"`
+	Sid  string `protobuf:"bytes,2,opt,name=sid,proto3" json:"sid,omitempty"`
 	Info []byte `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
 }
 
@@ -997,9 +997,9 @@ func (x *JoinEvent) GetUid() string {
 	return ""
 }
 
-func (x *JoinEvent) GetRid() string {
+func (x *JoinEvent) GetSid() string {
 	if x != nil {
-		return x.Rid
+		return x.Sid
 	}
 	return ""
 }

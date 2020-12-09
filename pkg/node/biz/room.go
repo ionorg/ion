@@ -10,12 +10,12 @@ import (
 // room represents a room which manage peers
 type room struct {
 	sync.RWMutex
-	id    proto.RID
+	id    proto.SID
 	peers map[proto.UID]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(id proto.RID) *room {
+func newRoom(id proto.SID) *room {
 	r := &room{
 		id:    id,
 		peers: make(map[proto.UID]*Peer),
@@ -24,7 +24,7 @@ func newRoom(id proto.RID) *room {
 }
 
 // ID room id
-func (r *room) ID() proto.RID {
+func (r *room) ID() proto.SID {
 	return r.id
 }
 

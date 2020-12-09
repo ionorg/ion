@@ -28,7 +28,7 @@ JWT tokens should be passed using an `access_token` query parameter in the webso
 JWT Tokens should be passed as a `"token"` parameter on the JoinMsg and Publish requests via websocket.  
 ```json
 {
-  "rid": "...", // room id
+  "sid": "...", // session id
   "videopublish": true, // can a peer publish video
   "audiopublish": true // can a peer publish audio
 }

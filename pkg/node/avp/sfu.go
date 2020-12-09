@@ -20,7 +20,7 @@ type sfu struct {
 	mu         sync.RWMutex
 	addr       string
 	onCloseFn  func()
-	transports map[proto.RID]*iavp.WebRTCTransport
+	transports map[proto.SID]*iavp.WebRTCTransport
 	nid        string
 	nrpc       *proto.NatsRPC
 }
@@ -35,44 +35,44 @@ func newSFU(addr string, config iavp.Config, nid string, nrpc *proto.NatsRPC) (*
 		cancel:     cancel,
 		addr:       addr,
 		config:     config,
-		transports: make(map[proto.RID]*iavp.WebRTCTransport),
+		transports: make(map[proto.SID]*iavp.WebRTCTransport),
 		nid:        nid,
 		nrpc:       nrpc,
 	}, nil
 }
 
 // getTransport returns a webrtc transport for a session
-func (s *sfu) getTransport(rid proto.RID) (*iavp.WebRTCTransport, error) {
+func (s *sfu) getTransport(sid proto.SID) (*iavp.WebRTCTransport, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	t := s.transports[rid]
+	t := s.transports[sid]
 
 	// no transport yet, create one
 	if t == nil {
 		var err error
 		mid := proto.MID(uuid.New().String())
-		if t, err = s.join(rid, mid); err != nil {
+		if t, err = s.join(sid, mid); err != nil {
 			return nil, err
 		}
 		t.OnClose(func() {
 			s.mu.Lock()
 			defer s.mu.Unlock()
-			log.Infof("transport close, rid=%s", rid)
+			log.Infof("transport close, sid=%s", sid)
 			if err := s.nrpc.Publish(s.addr, proto.ToSfuLeaveMsg{
 				MID: mid,
 			}); err != nil {
 				log.Errorf("leave to %s error: %v", s.addr, err.Error())
 			}
-			delete(s.transports, rid)
+			delete(s.transports, sid)
 			if len(s.transports) == 0 && s.onCloseFn != nil {
 				s.cancel()
 				s.onCloseFn()
 			}
 		})
-		s.transports[rid] = t
+		s.transports[sid] = t
 	} else {
-		log.Infof("transport exist, rid=%s", rid)
+		log.Infof("transport exist, sid=%s", sid)
 	}
 
 	return t, nil
@@ -83,10 +83,10 @@ func (s *sfu) onClose(f func()) {
 	s.onCloseFn = f
 }
 
-func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, error) {
-	log.Infof("joining sfu session: %s", rid)
+func (s *sfu) join(sid proto.SID, mid proto.MID) (*iavp.WebRTCTransport, error) {
+	log.Infof("joining sfu session: %s", sid)
 
-	t := iavp.NewWebRTCTransport(string(rid), s.config)
+	t := iavp.NewWebRTCTransport(string(sid), s.config)
 
 	// join to sfu
 	offer, err := t.CreateOffer()
@@ -96,7 +96,7 @@ func (s *sfu) join(rid proto.RID, mid proto.MID) (*iavp.WebRTCTransport, error) 
 	}
 	req := proto.ToSfuJoinMsg{
 		RPC:   s.nid,
-		RID:   rid,
+		SID:   sid,
 		UID:   proto.UID(s.addr),
 		MID:   mid,
 		Offer: offer,
@@ -149,9 +149,9 @@ func (s *sfu) handleSFUMessage(msg interface{}) {
 	switch v := msg.(type) {
 	case *proto.SfuTrickleMsg:
 		log.Infof("got remote candidate: %v", v.Candidate)
-		t := s.transports[v.RID]
+		t := s.transports[v.SID]
 		if t == nil {
-			log.Warnf("not found transport: %s", v.RID)
+			log.Warnf("not found transport: %s", v.SID)
 			break
 		}
 		if err := t.AddICECandidate(v.Candidate, v.Target); err != nil {
@@ -159,9 +159,9 @@ func (s *sfu) handleSFUMessage(msg interface{}) {
 		}
 	case *proto.SfuOfferMsg:
 		log.Infof("got remote description: %v", v.Desc)
-		t := s.transports[v.RID]
+		t := s.transports[v.SID]
 		if t == nil {
-			log.Warnf("not found transport: %s", v.RID)
+			log.Warnf("not found transport: %s", v.SID)
 			break
 		}
 		answer, err := t.Answer(v.Desc)

@@ -41,7 +41,7 @@ func init() {
 }
 
 type Authenticatable interface {
-	Room() RID
+	Room() SID
 	Token() string
 }
 
@@ -50,7 +50,7 @@ type RoomToken struct {
 }
 
 type RoomInfo struct {
-	RID RID `json:"rid"`
+	SID SID `json:"sid"`
 	UID UID `json:"uid"`
 }
 type Peer struct {
@@ -68,7 +68,7 @@ type TrackMap map[string][]TrackInfo
 // Client <-> Biz messages.
 
 type FromClientJoinMsg struct {
-	RID   RID                       `json:"sid"`
+	SID   SID                       `json:"sid"`
 	Offer webrtc.SessionDescription `json:"offer"`
 	RoomToken
 	Info json.RawMessage `json:"info"`
@@ -77,8 +77,8 @@ type FromClientJoinMsg struct {
 func (j *FromClientJoinMsg) Token() string {
 	return j.RoomToken.Token
 }
-func (j *FromClientJoinMsg) Room() RID {
-	return j.RID
+func (j *FromClientJoinMsg) Room() SID {
+	return j.SID
 }
 
 type ToClientJoinMsg struct {
@@ -92,7 +92,7 @@ type ToClientPeersMsg struct {
 
 type ToClientPeerJoinMsg struct {
 	UID  UID             `json:"uid"`
-	RID  RID             `json:"rid"`
+	SID  SID             `json:"sid"`
 	Info json.RawMessage `json:"info"`
 }
 
@@ -110,11 +110,11 @@ type ClientTrickleMsg struct {
 }
 
 type FromClientLeaveMsg struct {
-	RID RID `json:"rid"`
+	SID SID `json:"sid"`
 }
 
 type FromClientBroadcastMsg struct {
-	RID  RID             `json:"rid"`
+	SID  SID             `json:"sid"`
 	Info json.RawMessage `json:"info"`
 }
 
@@ -127,7 +127,7 @@ type ToClientBroadcastMsg struct {
 
 type ToSfuJoinMsg struct {
 	RPC   string                    `json:"rpc"`
-	RID   RID                       `json:"rid"`
+	SID   SID                       `json:"sid"`
 	UID   UID                       `json:"uid"`
 	MID   MID                       `json:"mid"`
 	Offer webrtc.SessionDescription `json:"offer"`
@@ -142,7 +142,7 @@ type ToSfuLeaveMsg struct {
 }
 
 type SfuTrickleMsg struct {
-	RID       RID                     `json:"rid"`
+	SID       SID                     `json:"sid"`
 	UID       UID                     `json:"uid"`
 	MID       MID                     `json:"mid"`
 	Candidate webrtc.ICECandidateInit `json:"candidate"`
@@ -150,7 +150,7 @@ type SfuTrickleMsg struct {
 }
 
 type SfuOfferMsg struct {
-	RID  RID                       `json:"rid"`
+	SID  SID                       `json:"sid"`
 	UID  UID                       `json:"uid"`
 	MID  MID                       `json:"mid"`
 	Desc webrtc.SessionDescription `json:"offer"`
@@ -162,7 +162,7 @@ type SfuAnswerMsg struct {
 }
 
 type SfuICEConnectionStateMsg struct {
-	RID   RID                       `json:"rid"`
+	SID   SID                       `json:"sid"`
 	UID   UID                       `json:"uid"`
 	MID   MID                       `json:"mid"`
 	State webrtc.ICEConnectionState `json:"state"`
@@ -174,7 +174,7 @@ type SfuICEConnectionStateMsg struct {
 type ToAvpProcessMsg struct {
 	Addr   string `json:"Addr"`
 	PID    string `json:"pid"`
-	RID    string `json:"rid"`
+	SID    string `json:"sid"`
 	TID    string `json:"tid"`
 	EID    string `json:"eid"`
 	Config []byte `json:"config"`
@@ -189,7 +189,7 @@ type IslbBroadcastMsg struct {
 
 type ToIslbPeerJoinMsg struct {
 	UID  UID             `json:"uid"`
-	RID  RID             `json:"rid"`
+	SID  SID             `json:"sid"`
 	MID  MID             `json:"mid"`
 	Info json.RawMessage `json:"info"`
 }
@@ -207,21 +207,21 @@ type StreamID string
 
 type ToIslbStreamAddMsg struct {
 	UID      UID      `json:"uid"`
-	RID      RID      `json:"rid"`
+	SID      SID      `json:"sid"`
 	MID      MID      `json:"mid"`
 	StreamID StreamID `json:"streamId"`
 }
 
 type FromIslbStreamAddMsg struct {
 	UID    UID    `json:"uid"`
-	RID    RID    `json:"rid"`
+	SID    SID    `json:"sid"`
 	Stream Stream `json:"stream"`
 }
 
 type ToIslbFindNodeMsg struct {
 	Service string
 	UID     UID `json:"uid"`
-	RID     RID `json:"rid"`
+	SID     SID `json:"sid"`
 	MID     MID `json:"mid"`
 }
 

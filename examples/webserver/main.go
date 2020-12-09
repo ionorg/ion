@@ -19,7 +19,7 @@ type result struct {
 
 type claims struct {
 	UID string `json:"uid"`
-	RID string `json:"rid"`
+	SID string `json:"sid"`
 	jwt.StandardClaims
 }
 
@@ -34,7 +34,7 @@ func main() {
 		log.Fatal("No listen address")
 	}
 
-	// http://localhost:8080/generate?uid=tony&rid=room1
+	// http://localhost:8080/generate?uid=tony&sid=room1
 	http.HandleFunc("/generate", sign)
 
 	// http://localhost:8080/validate?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ0b255IiwicmlkIjoicm9vbTEifQ.mopgibW3OYONYwzlo-YvkDIkNoYJc3OBQRsqQHZMnD8
@@ -79,17 +79,17 @@ func sign(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := values[0]
 
-	values = r.URL.Query()["rid"]
+	values = r.URL.Query()["sid"]
 	if values == nil || len(values) < 1 {
-		log.Printf("invalid rid, %v", values)
-		http.Error(w, "invalid rid", http.StatusForbidden)
+		log.Printf("invalid sid, %v", values)
+		http.Error(w, "invalid sid", http.StatusForbidden)
 		return
 	}
-	rid := values[0]
+	sid := values[0]
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		UID: uid,
-		RID: rid,
+		SID: sid,
 	})
 	tokenString, err := token.SignedString([]byte(key))
 	if err != nil {

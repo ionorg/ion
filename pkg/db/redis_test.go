@@ -12,7 +12,7 @@ var (
 	db     *Redis
 	dc     = "dc1"
 	node   = "sfu1"
-	room   = proto.RID("room1")
+	room   = proto.SID("room1")
 	uid    = proto.UID("uuid-xxxxx-xxxxx-xxxxx-xxxxx")
 	mid    = proto.MID("mid-xxxxx-xxxxx-xxxxx-xxxxx")
 	msid0  = "pion audio"
@@ -29,13 +29,13 @@ var (
 	mkey = proto.MediaInfo{
 		DC:  dc,
 		NID: node,
-		RID: room,
+		SID: room,
 		UID: uid,
 		MID: mid,
 	}.BuildKey()
 	ukey = proto.UserInfo{
 		DC:  dc,
-		RID: room,
+		SID: room,
 		UID: uid,
 	}.BuildKey()
 )
