@@ -24,7 +24,7 @@ appVersion: 1.16.0
 
 dependencies:
 - name: nats 
-  version: "6.0.0"
+  version: "6.0.3"
   repository: "https://charts.bitnami.com/bitnami"
 - name: redis 
   version: "12.1.1"
