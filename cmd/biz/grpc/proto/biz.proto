@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/pion/ion/pkg/grpc/biz";
+option go_package = "cmd/biz/grpc/proto;proto";
 
 package biz;
 

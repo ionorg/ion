@@ -36,5 +36,5 @@ test: go_deps start-services
 		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
 protos:
-	docker build -t protoc-builder ./pkg/grpc/biz && docker run -v $(CURDIR):/workspace protoc-builder protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/grpc/biz/biz.proto
+	docker build -t protoc-builder ./cmd/biz/grpc/proto && docker run -v $(CURDIR):/workspace protoc-builder protoc --go_out=plugins=grpc:. cmd/biz/grpc/proto/biz.proto
 
