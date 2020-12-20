@@ -1,7 +1,6 @@
 package biz
 
 import (
-	"context"
 	"errors"
 	"sync"
 	"time"
@@ -20,7 +19,6 @@ type Peer struct {
 	mid       proto.MID
 	sid       proto.SID
 	info      []byte
-	ctx       context.Context
 	leaveOnce sync.Once
 	closed    util.AtomicBool
 	s         *Server

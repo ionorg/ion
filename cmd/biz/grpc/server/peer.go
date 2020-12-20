@@ -25,23 +25,47 @@ func newPeer(uid proto.UID, bs *biz.Server, stream pb.BIZ_SignalServer) *Peer {
 
 // send message to the peer
 func (p *Peer) send(msg interface{}) error {
-	switch msg.(type) {
+	switch v := msg.(type) {
 	case *proto.ClientOfferMsg:
-		reply := &pb.Server{}
-		return p.stream.Send(reply)
-		//return p.conn.Notify(p.ctx, proto.ClientOffer, v.Desc)
+		payload := &pb.Server_Offer{
+			Offer: &pb.Offer{
+				Desc: []byte(v.Desc.SDP),
+			},
+		}
+		srvMsg := &pb.Server{
+			Payload: payload,
+		}
+		return p.stream.Send(srvMsg)
 	case *proto.ClientTrickleMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientTrickle, v)
+		payload := &pb.Server_TrickleEvent{}
+		srvMsg := &pb.Server{
+			Payload: payload,
+		}
+		return p.stream.Send(srvMsg)
 	case *proto.ToClientPeersMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientOnList, v)
+		payload := &pb.Server_PeersEvent{}
+		srvMsg := &pb.Server{
+			Payload: payload,
+		}
+		return p.stream.Send(srvMsg)
 	case *proto.FromIslbStreamAddMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientOnStreamAdd, v)
 	case *proto.ToClientPeerJoinMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientOnJoin, v)
 	case *proto.IslbPeerLeaveMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientOnLeave, v)
+		payload := &pb.Server_PeersEvent{}
+		srvMsg := &pb.Server{
+			Payload: payload,
+		}
+		return p.stream.Send(srvMsg)
 	case *proto.IslbBroadcastMsg:
-		//return p.conn.Notify(p.ctx, proto.ClientBroadcast, v)
+		payload := &pb.Server_BroadcastEvent{}
+		srvMsg := &pb.Server{
+			Payload: payload,
+		}
+		return p.stream.Send(srvMsg)
 	}
 	return errors.New("unknown message")
+}
+
+func (p *Peer) Close() {
+
 }

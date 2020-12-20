@@ -119,7 +119,7 @@ func (s *Signal) serve() {
 		// get user id
 		parms := r.URL.Query()
 		fields := parms["uid"]
-		if fields == nil || len(fields) == 0 {
+		if len(fields) == 0 {
 			log.Errorf("invalid uid")
 			http.Error(w, "invalid uid", http.StatusForbidden)
 			return

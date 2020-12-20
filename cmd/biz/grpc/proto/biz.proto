@@ -36,9 +36,10 @@ message Server {
 
 message JoinRequest {
     string sid = 1;
-    bytes offer = 2;
-    string token = 3;
-    bytes info = 4;
+    string uid = 2;
+    bytes offer = 3;
+    string token = 4;
+    bytes info = 5;
 }
 
 message LeaveRequest{

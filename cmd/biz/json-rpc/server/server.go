@@ -16,7 +16,6 @@ type Config struct {
 
 // Server represents server
 type Server struct {
-	conf   Config
 	biz    *biz.BIZ
 	signal *Signal
 }
