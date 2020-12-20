@@ -73,8 +73,8 @@ func authenticateRoom(connClaims *claims, keyFunc jwt.Keyfunc, msg proto.Authent
 	return errors.New("permission not sufficient for room")
 }
 
-// signalConf represents signal server configuration
-type signalConf struct {
+// jsonRPCConf represents signal server configuration
+type jsonRPCConf struct {
 	Host           string     `mapstructure:"host"`
 	Port           int        `mapstructure:"port"`
 	Cert           string     `mapstructure:"cert"`
@@ -86,13 +86,13 @@ type signalConf struct {
 
 // Signal represents Signal server
 type Signal struct {
-	conf   signalConf
+	conf   jsonRPCConf
 	closed chan bool
 	bs     *biz.Server
 }
 
 // newSignal create signal server instance
-func newSignal(conf signalConf) *Signal {
+func newSignal(conf jsonRPCConf) *Signal {
 	return &Signal{
 		conf:   conf,
 		closed: make(chan bool),
