@@ -24,7 +24,7 @@ Next Time
 
 It will start all services we need
 
-*There is also individual module script in scripts folder, you can use them when you debug individual modul*
+*There is also individual module script in scripts folder, you can use them when you debug individual module*
 
 ## 4. Test 
 
