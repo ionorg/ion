@@ -9,7 +9,7 @@ service SFU {
 }
 
 message Signaling {
-    string sid = 1;
+    optional string sid = 1;
     oneof payload {
         Description description = 2;
         Trickle trickle = 3;
@@ -32,7 +32,7 @@ message Trickle {
         SUBSCRIBER = 1;
     }
     Target target = 1;
-    string init = 2;
+    string candidate = 2;
 }
 
 message Error {
