@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion-sfu/cmd/sfu/grpc/proto";
+
+package sfu;
+
+service SFU {
+    rpc Signal(stream Signaling) returns (stream Signaling) {}
+}
+
+message Signaling {
+    string sid = 1;
+    oneof payload {
+        Description description = 2;
+        Trickle trickle = 3;
+        Error error = 4;
+    }
+}
+
+message Description {
+    enum Type {
+        OFFER = 0;
+        ANSWER = 1;
+    }
+    Type type = 2;
+    string sdp = 3;
+}
+
+message Trickle {
+    enum Target {
+        PUBLISHER = 0;
+        SUBSCRIBER = 1;
+    }
+    Target target = 1;
+    string init = 2;
+}
+
+message Error {
+    int32 code = 1;
+    string reason = 2;
+}
