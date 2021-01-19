@@ -113,12 +113,13 @@ func (s *Signal) serve() {
 		},
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		Subprotocols: []string{"protoo"},
 	}
 
 	http.Handle(s.conf.WebSocketPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get user id
 		parms := r.URL.Query()
-		fields := parms["uid"]
+		fields := parms["peer"]
 		if fields == nil || len(fields) == 0 {
 			log.Errorf("invalid uid")
 			http.Error(w, "invalid uid", http.StatusForbidden)
