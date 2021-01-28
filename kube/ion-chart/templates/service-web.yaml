@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "ion.fullname" . }}-biz
+  name: {{ include "ion.fullname" . }}-web
   labels:
     {{- include "ion.labels" . | nindent 4 }}
 spec:
@@ -12,7 +12,7 @@ spec:
     targetPort: 8443
     protocol: TCP
   selector:
-    app.kubernetes.io/name: {{ include "ion.name" . }}-biz
+    app.kubernetes.io/name: {{ include "ion.name" . }}-web
     app.kubernetes.io/instance: {{ .Release.Name }}
 
 
