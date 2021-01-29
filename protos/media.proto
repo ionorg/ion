@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package media;
+
+// Describe the basic media info in the session of sfu.
+// Write session state key/value to redis
+// key => dc1/sfu-node-01/${sid}
+// value => [
+//   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video, rid: 'f'}, {id: ${trackId}, kind:video, rid: 'h'},{id: ${trackId}, kind:video, rid: 'q'}]
+//   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]
+// ]
+
+message SessionStreams {
+    string key = 1;
+	repeated Stream streams = 2;
+}
+
+message Stream {
+    string id  = 1;
+	repeated Track tracks = 2;
+}
+
+message Track {
+	string id      = 1;
+	string kind    = 2;
+	string rid     = 3;
+}
