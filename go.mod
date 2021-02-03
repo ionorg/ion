@@ -15,7 +15,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.1.9 // indirect
 	github.com/nats-io/nats.go v1.10.0
 	github.com/notedit/sdp v0.0.4
-	github.com/pion/ion-avp v1.5.1
+	github.com/pion/ion-avp v1.8.1
 	github.com/pion/ion-log v1.0.0
 	github.com/pion/ion-sfu v1.5.1
 	github.com/pion/webrtc/v3 v3.0.0-beta.12.0.20201115002753-64bbf7eea97d
