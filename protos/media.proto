@@ -1,23 +1,28 @@
 syntax = "proto3";
 
+option go_package = "github.com/pion/ion/pkg/proto";
+
 package media;
 
 // Describe the basic media info in the session of sfu.
 // Write session state key/value to redis
-// key => dc1/sfu-node-01/${sid}
+// key = dc1/${nid}/${sid}
+// key => dc1/sfu-node-01/room1
 // value => [
 //   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video, rid: 'f'}, {id: ${trackId}, kind:video, rid: 'h'},{id: ${trackId}, kind:video, rid: 'q'}]
 //   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]
 // ]
 
-message SessionStreams {
-    string key = 1;
-	repeated Stream streams = 2;
+message Session {
+    string nid = 1;
+    string sid = 2;
+	repeated Stream streams = 3;
 }
 
 message Stream {
-    string id  = 1;
-	repeated Track tracks = 2;
+    string uid = 1;
+    string id  = 2;
+	repeated Track tracks = 3;
 }
 
 message Track {

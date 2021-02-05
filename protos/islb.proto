@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+import "media.proto";
+
+option go_package = "github.com/pion/ion/pkg/proto";
+
+package islb;
+
+service ISLB {
+    rpc FindNode(FindNodeRequest) returns (FindNodeRequest) {}
+    rpc PublishSessionState(stream SessionState) returns (Empty){}
+}
+
+message FindNodeRequest {
+    oneof condition {
+         string sid = 1;
+         string nid = 2;
+         NodeType type = 3;
+    }
+}
+
+message FindNodeRequest {
+    repeated Node node = 1;
+}
+
+enum NodeType {
+     SFU = 0;
+     AVP = 2;
+     GW = 3;
+}
+
+message Node {
+  string nid = 1;
+  NodeType type = 5;
+}
+
+message Empty {}
+
+message SessionState {
+  Node node = 1;
+  enum State {
+       NEW = 2;
+       UPDATE = 3;
+       DELETE = 4;
+  }
+  State state = 5;
+  Session session = 6;
+}
