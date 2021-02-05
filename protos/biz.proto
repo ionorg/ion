@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "media.proto";
+import "protos/media.proto";
 
-option go_package = "github.com/pion/ion/pkg/proto";
+option go_package = "pkg/grpc/proto";
 
 package biz;
 
@@ -60,7 +60,7 @@ message PeerLeave {
     string reason = 3;
 }
 
-message Stream {
+message PeerStream {
     enum State {
         ADD = 0;
         UPDATE = 1;
@@ -68,7 +68,7 @@ message Stream {
     }
     Peer peer = 3;
     State state = 4;
-    Stream stream = 5;
+    media.Stream stream = 5;
 }
 
 message JoinReply {
@@ -76,7 +76,7 @@ message JoinReply {
         Result result = 1;
         PeerJoin join = 2;
         PeerLeave leave = 3;
-        Stream stream = 4;
+        PeerStream stream = 4;
         Message msg = 5;
     }
 }

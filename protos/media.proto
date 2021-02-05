@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/pion/ion/pkg/proto";
+option go_package = "pkg/grpc/proto";
 
 package media;
 

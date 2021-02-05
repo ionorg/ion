@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-import "media.proto";
+import "protos/media.proto";
 
-option go_package = "github.com/pion/ion/pkg/proto";
+option go_package = "pkg/grpc/proto";
 
 package islb;
 
 service ISLB {
-    rpc FindNode(FindNodeRequest) returns (FindNodeRequest) {}
+    rpc FindNode(FindNodeRequest) returns (FindNodeReply) {}
     rpc PublishSessionState(stream SessionState) returns (Empty){}
 }
 
@@ -19,30 +19,30 @@ message FindNodeRequest {
     }
 }
 
-message FindNodeRequest {
+message FindNodeReply {
     repeated Node node = 1;
 }
 
 enum NodeType {
      SFU = 0;
-     AVP = 2;
-     GW = 3;
+     AVP = 1;
+     GW = 2;
 }
 
 message Node {
   string nid = 1;
-  NodeType type = 5;
+  NodeType type = 2;
 }
 
 message Empty {}
 
 message SessionState {
-  Node node = 1;
   enum State {
-       NEW = 2;
-       UPDATE = 3;
-       DELETE = 4;
+       NEW = 0;
+       UPDATE = 1;
+       DELETE = 2;
   }
-  State state = 5;
-  Session session = 6;
+    Node node = 3;
+  State state = 4;
+  media.Session session = 5;
 }
