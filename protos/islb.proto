@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "protos/media.proto";
 
-option go_package = "pkg/grpc/proto";
+option go_package = "github.com/pion/ion/pkg/grpc/islb";
 
 package islb;
 

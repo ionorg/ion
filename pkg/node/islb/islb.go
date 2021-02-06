@@ -1,14 +1,17 @@
 package islb
 
 import (
+	"errors"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/proto"
+	proto "github.com/pion/ion/pkg/grpc/islb"
 )
 
 const (
@@ -44,18 +47,17 @@ type Config struct {
 
 // ISLB represents islb node
 type ISLB struct {
-	nrpc     *proto.NatsRPC
-	nodes    map[string]discovery.Node
+	nc       *nats.Conn
 	nodeLock sync.RWMutex
-	service  *discovery.Service
-	s        *server
+	s        *islbServer
+	ngrpc    *rpc.Server
+	registry *discovery.Registry
+	redis    *db.Redis
 }
 
 // NewISLB create a islb node instance
 func NewISLB() *ISLB {
-	return &ISLB{
-		nodes: make(map[string]discovery.Node),
-	}
+	return &ISLB{}
 }
 
 // Start islb node
@@ -72,62 +74,45 @@ func (i *ISLB) Start(conf Config) error {
 		}()
 	}
 
-	if i.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
-		i.Close()
+	// connect options
+	opts := []nats.Option{nats.Name("nats ion service")}
+	opts = setupConnOptions(opts)
+
+	// connect to nats server
+	if i.nc, err = nats.Connect(conf.Nats.URL, opts...); err != nil {
 		return err
 	}
 
-	if i.service, err = discovery.NewService(proto.ServiceISLB, conf.Global.Dc, conf.Etcd.Addrs); err != nil {
-		i.Close()
+	//registry for node discovery.
+	i.registry, err = discovery.NewRegistry(i.nc)
+	if err != nil {
+		log.Errorf("%v", err)
 		return err
 	}
-	if err := i.service.GetNodes("", i.nodes); err != nil {
-		i.Close()
-		return err
-	}
-	log.Infof("nodes up: %+v", i.nodes)
-	i.service.Watch("", i.watchNodes)
-	i.service.KeepAlive()
+	i.registry.Listen()
 
-	i.s = newServer(i.service.DC(), i.service.NID(), i.nrpc, i.getNodes)
-	if err = i.s.start(conf.Redis); err != nil {
-		i.Close()
-		return err
+	i.redis = db.NewRedis(conf.Redis)
+	if i.redis == nil {
+		return errors.New("new redis error")
 	}
+
+	i.s = &islbServer{Redis: i.redis}
+	//grpc service
+	i.ngrpc = rpc.NewServer(i.nc, "islb")
+	proto.RegisterISLBServer(i.ngrpc, i.s)
 
 	return nil
 }
 
-// watchNodes watch nodes
-func (i *ISLB) watchNodes(state discovery.NodeState, id string, node *discovery.Node) {
-	i.nodeLock.Lock()
-	defer i.nodeLock.Unlock()
-
-	if state == discovery.NodeStateUp {
-		if _, found := i.nodes[id]; !found {
-			i.nodes[id] = *node
-		}
-	} else if state == discovery.NodeStateDown {
-		delete(i.nodes, id)
-	}
-}
-
-func (i *ISLB) getNodes() map[string]discovery.Node {
-	i.nodeLock.RLock()
-	defer i.nodeLock.RUnlock()
-
-	return i.nodes
-}
-
 // Close all
 func (i *ISLB) Close() {
-	if i.s != nil {
-		i.s.close()
+	if i.ngrpc != nil {
+		i.ngrpc.Stop()
 	}
-	if i.service != nil {
-		i.service.Close()
+	if i.nc != nil {
+		i.nc.Close()
 	}
-	if i.nrpc != nil {
-		i.nrpc.Close()
+	if i.redis != nil {
+		i.redis.Close()
 	}
 }

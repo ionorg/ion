@@ -1,63 +1,31 @@
 package islb
 
 import (
-	"encoding/json"
-	"errors"
-	"math"
+	"context"
 
-	"github.com/nats-io/nats.go"
-	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/proto"
+	proto "github.com/pion/ion/pkg/grpc/islb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type server struct {
-	dc       string
-	nid      string
-	bid      string
-	nrpc     *proto.NatsRPC
-	sub      *nats.Subscription
-	redis    *db.Redis
-	getNodes func() map[string]discovery.Node
+type islbServer struct {
+	proto.UnimplementedISLBServer
+	Redis *db.Redis
 }
 
-func newServer(dc, nid string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
-	return &server{
-		dc:       dc,
-		nid:      nid,
-		bid:      nid + "-event",
-		nrpc:     nrpc,
-		getNodes: getNodes,
-	}
+func (s *islbServer) FindNode(context.Context, *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindNode not implemented")
 }
 
-func (s *server) start(conf db.Config) error {
-	var err error
+//PublishSessionState handle node session status.
+func (s *islbServer) PublishSessionState(stream proto.ISLB_PublishSessionStateServer) error {
 
-	s.redis = db.NewRedis(conf)
-	if s.redis == nil {
-		return errors.New("new redis error")
-	}
-
-	if s.sub, err = s.nrpc.QueueSubscribe(proto.ISLB(s.dc), s.dc, s.handle); err != nil {
-		return err
-	}
-	return nil
+	return status.Errorf(codes.Unimplemented, "method PublishSessionState not implemented")
 }
 
-func (s *server) close() {
-	if s.sub != nil {
-		if err := s.sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
-		}
-	}
-	if s.redis != nil {
-		s.redis.Close()
-	}
-}
-
-func (s *server) handle(msg interface{}) (interface{}, error) {
+/*
+func (s *islbServer) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handleRequest: %T, %+v", msg, msg)
 
 	switch v := msg.(type) {
@@ -77,7 +45,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 }
 
 // Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
-func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
+func (s *islbServer) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := msg.Service
 	nodes := s.getNodes()
 
@@ -142,7 +110,7 @@ func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	return nil, errors.New("service node not found")
 }
 
-func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
+func (s *islbServer) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	mkey := proto.MediaInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -181,7 +149,7 @@ func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	return nil, err
 }
 
-func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
+func (s *islbServer) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -254,7 +222,7 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	}, nil
 }
 
-func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
+func (s *islbServer) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -274,10 +242,11 @@ func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *server) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
+func (s *islbServer) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
 	if err := s.nrpc.Publish(s.bid, msg); err != nil {
 		log.Errorf("broadcast message error: %v", err)
 	}
 
 	return nil, nil
 }
+*/

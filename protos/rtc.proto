@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "pkg/grpc/proto";
+option go_package = "github.com/pion/ion/pkg/grpc/rtc";
 
 package rtc;
 
@@ -13,10 +13,22 @@ message Parameter {
   string value = 2;
 }
 
-message Join {
+message JoinRequest {
     string sid = 1;
     string uid = 2;
     repeated Parameter parameters = 3;
+}
+
+message JoinReply {
+    bool success = 1;
+    string error = 2; // room is full ?
+}
+
+message Join {
+    oneof payload {
+           JoinRequest req = 1;
+           JoinReply reply = 2;
+    }
 }
 
 message Signalling {
