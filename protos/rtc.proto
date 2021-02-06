@@ -46,13 +46,15 @@ enum Target {
 }
 
 message Description {
-    Target target = 1;
-    bytes description = 2;
+    string id = 1;
+    Target target = 2;
+    bytes description = 3;
 }
 
 message Trickle {
-    Target target = 1;
-    bytes candidate = 2;
+    string id = 1;
+    Target target = 2;
+    bytes candidate = 3;
 }
 
 message Error {

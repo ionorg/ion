@@ -6,21 +6,20 @@ import (
 	"os"
 	"path"
 
+	client "github.com/cloudwebrtc/nats-discovery/pkg/client"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/proto"
+	proto "github.com/pion/ion/pkg/grpc/avp"
 )
 
 type global struct {
 	Addr  string `mapstructure:"addr"`
 	Pprof string `mapstructure:"pprof"`
 	Dc    string `mapstructure:"dc"`
-}
-
-type etcdConf struct {
-	Addrs []string `mapstructure:"addrs"`
 }
 
 type natsConf struct {
@@ -38,7 +37,6 @@ type elementConf struct {
 // Config for avp node
 type Config struct {
 	Global      global      `mapstructure:"global"`
-	Etcd        etcdConf    `mapstructure:"etcd"`
 	Nats        natsConf    `mapstructure:"nats"`
 	Element     elementConf `mapstructure:"element"`
 	iavp.Config `mapstructure:"avp"`
@@ -46,14 +44,16 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
-	nrpc    *proto.NatsRPC
-	service *discovery.Service
-	s       *server
+	s     *avpServer
+	nc    *nats.Conn
+	ngrpc *rpc.Server
+	netcd *client.Client
+	nid   string
 }
 
 // NewAVP create a avp node instance
-func NewAVP() *AVP {
-	return &AVP{}
+func NewAVP(nid string) *AVP {
+	return &AVP{nid: nid}
 }
 
 // Start avp node
@@ -70,16 +70,40 @@ func (a *AVP) Start(conf Config) error {
 		}()
 	}
 
-	if a.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+	// connect options
+	opts := []nats.Option{nats.Name("nats sfu service")}
+	//opts = setupConnOptions(opts)
+
+	// connect to nats server
+	if a.nc, err = nats.Connect(conf.Nats.URL, opts...); err != nil {
 		a.Close()
 		return err
 	}
 
-	if a.service, err = discovery.NewService("avp", conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+	a.netcd, err = client.NewClient(a.nc)
+
+	if err != nil {
 		a.Close()
 		return err
 	}
-	a.service.KeepAlive()
+
+	node := discovery.Node{
+		DC:      conf.Global.Dc,
+		Service: "avp",
+		NID:     a.nid,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     a.nid,
+			//Params:   map[string]string{"username": "foo", "password": "bar"},
+		},
+	}
+
+	go a.netcd.KeepAlive(node)
+
+	a.s = &avpServer{}
+	//grpc service
+	a.ngrpc = rpc.NewServer(a.nc, a.nid)
+	proto.RegisterAVPServer(a.ngrpc, a.s)
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
@@ -95,24 +119,16 @@ func (a *AVP) Start(conf Config) error {
 			return webm
 		}
 	}
-	a.s = newServer(conf.Config, elems, a.service.NID(), a.nrpc)
-	if err = a.s.start(); err != nil {
-		a.Close()
-		return err
-	}
 
 	return nil
 }
 
 // Close all
 func (a *AVP) Close() {
-	if a.s != nil {
-		a.s.close()
+	if a.ngrpc != nil {
+		a.ngrpc.Stop()
 	}
-	if a.nrpc != nil {
-		a.nrpc.Close()
-	}
-	if a.service != nil {
-		a.service.Close()
+	if a.nc != nil {
+		a.nc.Close()
 	}
 }

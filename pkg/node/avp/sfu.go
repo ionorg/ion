@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
+	rtc "github.com/pion/ion/pkg/grpc/rtc"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
 )
@@ -18,26 +19,23 @@ type sfu struct {
 	cancel     context.CancelFunc
 	config     iavp.Config
 	mu         sync.RWMutex
-	addr       string
 	onCloseFn  func()
 	transports map[proto.SID]*iavp.WebRTCTransport
 	nid        string
-	nrpc       *proto.NatsRPC
+	cli        *rtc.RTCClient
 }
 
 // newSFU intializes a new SFU client
-func newSFU(addr string, config iavp.Config, nid string, nrpc *proto.NatsRPC) (*sfu, error) {
-	log.Infof("connecting to sfu: %s", addr)
-
+func newSFU(config iavp.Config, cli *rtc.RTCClient, nid string) (*sfu, error) {
+	log.Infof("connecting to sfu: %s", nid)
 	ctx, cancel := context.WithCancel(context.Background())
 	return &sfu{
 		ctx:        ctx,
 		cancel:     cancel,
-		addr:       addr,
 		config:     config,
 		transports: make(map[proto.SID]*iavp.WebRTCTransport),
+		cli:        cli,
 		nid:        nid,
-		nrpc:       nrpc,
 	}, nil
 }
 

@@ -16,11 +16,15 @@ package media;
 message Session {
     string nid = 1;
     string sid = 2;
-	repeated Stream streams = 3;
+	repeated Peer peers = 3;
+}
+
+message Peer {
+   string uid = 1;
+   repeated Stream streams = 3;
 }
 
 message Stream {
-    string uid = 1;
     string id  = 2;
 	repeated Track tracks = 3;
 }

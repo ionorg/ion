@@ -1,4 +1,4 @@
-package islb
+package sfu
 
 import (
 	"context"
@@ -7,8 +7,7 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/db"
-	proto "github.com/pion/ion/pkg/grpc/islb"
+	proto "github.com/pion/ion/pkg/grpc/rtc"
 )
 
 var (
@@ -16,15 +15,10 @@ var (
 		Nats: natsConf{
 			URL: "nats://127.0.0.1:4222",
 		},
-		Redis: db.Config{
-			DB:    0,
-			Pwd:   "",
-			Addrs: []string{":6379"},
-		},
 	}
 	file string
 
-	nid = "islb-01"
+	nid = "sfu-01"
 )
 
 func init() {
@@ -35,9 +29,9 @@ func init() {
 }
 
 func TestStart(t *testing.T) {
-	i := NewISLB(nid)
+	s := NewSFU(nid)
 
-	err := i.Start(conf)
+	err := s.Start(conf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,18 +45,34 @@ func TestStart(t *testing.T) {
 	defer nc.Close()
 
 	ncli := rpc.NewClient(nc, nid)
-	cli := proto.NewISLBClient(ncli)
+	cli := proto.NewRTCClient(ncli)
 
-	reply, err := cli.FindNode(context.Background(), &proto.FindNodeRequest{
-		Condition: &proto.FindNodeRequest_Nid{
-			Nid: "sfu-001",
-		},
-	})
+	stream, err := cli.Signal(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
 
-	log.Debugf("reply => %v", reply)
+	stream.Send(&proto.Signalling{
+		Payload: &proto.Signalling_Join{
+			Join: &proto.Join{
+				Payload: &proto.Join_Req{
+					Req: &proto.JoinRequest{
+						Sid: "room1",
+						Uid: "user1",
+					},
+				},
+			},
+		},
+	})
 
-	i.Close()
+	for {
+		reply, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Signal: err %s", err)
+			break
+		}
+		log.Debugf("Reply: reply %v", reply)
+	}
+
+	s.Close()
 }

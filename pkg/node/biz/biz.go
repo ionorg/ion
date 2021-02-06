@@ -6,7 +6,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -19,9 +18,6 @@ type logConf struct {
 	Level string `mapstructure:"level"`
 }
 
-type etcdConf struct {
-	Addrs []string `mapstructure:"addrs"`
-}
 type natsConf struct {
 	URL string `mapstructure:"url"`
 }
@@ -34,7 +30,6 @@ type avpConf struct {
 type Config struct {
 	Global global   `mapstructure:"global"`
 	Log    logConf  `mapstructure:"log"`
-	Etcd   etcdConf `mapstructure:"etcd"`
 	Nats   natsConf `mapstructure:"nats"`
 	Avp    avpConf  `mapstructure:"avp"`
 }
@@ -46,17 +41,18 @@ type BIZ struct {
 	sub      *nats.Subscription
 	subs     map[string]*nats.Subscription
 	nodeLock sync.RWMutex
-	nodes    map[string]discovery.Node
-	service  *discovery.Service
-	s        *Server
+	//nodes    map[string]discovery.Node
+	//service  *discovery.Service
+	s   *Server
+	nid string
 }
 
 // NewBIZ create a biz node instance
 func NewBIZ(conf Config) *BIZ {
 	return &BIZ{
-		conf:  conf,
-		nodes: make(map[string]discovery.Node),
-		subs:  make(map[string]*nats.Subscription),
+		conf: conf,
+		//nodes: make(map[string]discovery.Node),
+		subs: make(map[string]*nats.Subscription),
 	}
 }
 
@@ -78,25 +74,25 @@ func (b *BIZ) Start() (*Server, error) {
 		b.Close()
 		return nil, err
 	}
-
-	if b.service, err = discovery.NewService(proto.ServiceBIZ, b.conf.Global.Dc, b.conf.Etcd.Addrs); err != nil {
-		b.Close()
-		return nil, err
-	}
-	if err = b.service.GetNodes(proto.ServiceISLB, b.nodes); err != nil {
-		b.Close()
-		return nil, err
-	}
-	log.Infof("nodes up: %+v", b.nodes)
-	for _, n := range b.nodes {
-		if n.Service == proto.ServiceISLB {
-			b.subIslbBroadcast(n)
+	/*
+		if b.service, err = discovery.NewService(proto.ServiceBIZ, b.conf.Global.Dc, b.conf.Etcd.Addrs); err != nil {
+			b.Close()
+			return nil, err
 		}
-	}
-	b.service.Watch(proto.ServiceISLB, b.watchIslbNodes)
-	b.service.KeepAlive()
-
-	b.s = newServer(b.conf.Global.Dc, b.service.NID(), b.conf.Avp.Elements, b.nrpc, b.getNodes)
+		if err = b.service.GetNodes(proto.ServiceISLB, b.nodes); err != nil {
+			b.Close()
+			return nil, err
+		}
+		log.Infof("nodes up: %+v", b.nodes)
+		for _, n := range b.nodes {
+			if n.Service == proto.ServiceISLB {
+				b.subIslbBroadcast(n)
+			}
+		}
+		b.service.Watch(proto.ServiceISLB, b.watchIslbNodes)
+		b.service.KeepAlive()
+	*/
+	b.s = newServer(b.conf.Global.Dc, b.nid, b.conf.Avp.Elements, b.nrpc)
 	if err = b.s.start(); err != nil {
 		return nil, err
 	}
@@ -115,14 +111,15 @@ func (b *BIZ) Close() {
 			log.Errorf("unsubscribe %s error: %v", b.sub.Subject, err)
 		}
 	}
-	if b.service != nil {
+	/*if b.service != nil {
 		b.service.Close()
-	}
+	}*/
 	if b.nrpc != nil {
 		b.nrpc.Close()
 	}
 }
 
+/*
 func (b *BIZ) subIslbBroadcast(node discovery.Node) {
 	log.Infof("subscribe islb broadcast: %s", node.NID)
 	if sub, err := b.nrpc.Subscribe(node.NID+"-event", b.handleIslbBroadcast); err == nil {
@@ -135,6 +132,7 @@ func (b *BIZ) subIslbBroadcast(node discovery.Node) {
 func (b *BIZ) handleIslbBroadcast(msg interface{}) (interface{}, error) {
 	return b.s.broadcast(msg)
 }
+
 
 // watchNodes watch islb nodes up/down
 func (b *BIZ) watchIslbNodes(state discovery.NodeState, id string, node *discovery.Node) {
@@ -165,7 +163,7 @@ func (b *BIZ) getNodes() map[string]discovery.Node {
 
 	return b.nodes
 }
-
+*/
 func (b *BIZ) closeSubs() {
 	b.nodeLock.Lock()
 	defer b.nodeLock.Unlock()

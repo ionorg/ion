@@ -3,19 +3,18 @@ package sfu
 import (
 	"net/http"
 
+	client "github.com/cloudwebrtc/nats-discovery/pkg/client"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	isfu "github.com/pion/ion-sfu/pkg"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/proto"
+	proto "github.com/pion/ion/pkg/grpc/rtc"
 )
 
 type global struct {
 	Pprof string `mapstructure:"pprof"`
 	Dc    string `mapstructure:"dc"`
-}
-
-type etcdConf struct {
-	Addrs []string `mapstructure:"addrs"`
 }
 
 type natsConf struct {
@@ -25,21 +24,22 @@ type natsConf struct {
 // Config for sfu node
 type Config struct {
 	Global global   `mapstructure:"global"`
-	Etcd   etcdConf `mapstructure:"etcd"`
 	Nats   natsConf `mapstructure:"nats"`
 	isfu.Config
 }
 
 // SFU represents a sfu node
 type SFU struct {
-	nrpc    *proto.NatsRPC
-	service *discovery.Service
-	s       *server
+	s     *sfuServer
+	nc    *nats.Conn
+	ngrpc *rpc.Server
+	netcd *client.Client
+	nid   string
 }
 
 // NewSFU create a sfu node instance
-func NewSFU() *SFU {
-	return &SFU{}
+func NewSFU(nid string) *SFU {
+	return &SFU{nid: nid}
 }
 
 // Start sfu node
@@ -55,35 +55,50 @@ func (s *SFU) Start(conf Config) error {
 			}
 		}()
 	}
+	// connect options
+	opts := []nats.Option{nats.Name("nats sfu service")}
+	//opts = setupConnOptions(opts)
 
-	if s.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+	// connect to nats server
+	if s.nc, err = nats.Connect(conf.Nats.URL, opts...); err != nil {
 		s.Close()
 		return err
 	}
 
-	if s.service, err = discovery.NewService(proto.ServiceSFU, conf.Global.Dc, conf.Etcd.Addrs); err != nil {
+	s.netcd, err = client.NewClient(s.nc)
+
+	if err != nil {
 		s.Close()
 		return err
 	}
-	s.service.KeepAlive()
 
-	s.s = newServer(conf.Config, s.service.NID(), s.nrpc)
-	if err := s.s.start(); err != nil {
-		return err
+	node := discovery.Node{
+		DC:      conf.Global.Dc,
+		Service: "sfu",
+		NID:     s.nid,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     s.nid,
+			//Params:   map[string]string{"username": "foo", "password": "bar"},
+		},
 	}
+
+	go s.netcd.KeepAlive(node)
+
+	s.s = newServer(isfu.NewSFU(conf.Config))
+	//grpc service
+	s.ngrpc = rpc.NewServer(s.nc, s.nid)
+	proto.RegisterRTCServer(s.ngrpc, s.s)
 
 	return nil
 }
 
 // Close all
 func (s *SFU) Close() {
-	if s.s != nil {
-		s.s.close()
+	if s.ngrpc != nil {
+		s.ngrpc.Stop()
 	}
-	if s.nrpc != nil {
-		s.nrpc.Close()
-	}
-	if s.service != nil {
-		s.service.Close()
+	if s.nc != nil {
+		s.nc.Close()
 	}
 }

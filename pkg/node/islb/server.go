@@ -3,23 +3,37 @@ package islb
 import (
 	"context"
 
+	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	proto "github.com/pion/ion/pkg/grpc/islb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type islbServer struct {
+type server struct {
 	proto.UnimplementedISLBServer
 	Redis *db.Redis
 }
 
-func (s *islbServer) FindNode(context.Context, *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindNode not implemented")
+func (s *server) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
+	log.Infof("nid => %v", req.GetNid())
+	nodes := []*proto.Node{
+		&proto.Node{
+			Nid:  "avp-01",
+			Type: proto.NodeType_AVP,
+		},
+		&proto.Node{
+			Nid:  "sfu-01",
+			Type: proto.NodeType_SFU,
+		},
+	}
+	return &proto.FindNodeReply{
+		Node: nodes,
+	}, nil
 }
 
 //PublishSessionState handle node session status.
-func (s *islbServer) PublishSessionState(stream proto.ISLB_PublishSessionStateServer) error {
+func (s *server) PublishSessionState(stream proto.ISLB_PublishSessionStateServer) error {
 
 	return status.Errorf(codes.Unimplemented, "method PublishSessionState not implemented")
 }

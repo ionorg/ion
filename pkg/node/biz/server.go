@@ -8,7 +8,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/discovery"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -24,23 +23,23 @@ type Server struct {
 	sub      *nats.Subscription
 	nrpc     *proto.NatsRPC
 	islb     string
-	getNodes func() map[string]discovery.Node
+	//getNodes func() map[string]discovery.Node
 	roomLock sync.RWMutex
 	rooms    map[proto.SID]*room
 	closed   chan bool
 }
 
 // newServer creates a new avp server instance
-func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *Server {
+func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC /*, getNodes func() map[string]discovery.Node*/) *Server {
 	return &Server{
 		dc:       dc,
 		nid:      nid,
 		nrpc:     nrpc,
 		elements: elements,
 		islb:     proto.ISLB(dc),
-		getNodes: getNodes,
-		rooms:    make(map[proto.SID]*room),
-		closed:   make(chan bool),
+		//getNodes: getNodes,
+		rooms:  make(map[proto.SID]*room),
+		closed: make(chan bool),
 	}
 }
 

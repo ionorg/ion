@@ -27,10 +27,6 @@ type logConf struct {
 	Level string `mapstructure:"level"`
 }
 
-type etcdConf struct {
-	Addrs []string `mapstructure:"addrs"`
-}
-
 type natsConf struct {
 	URL string `mapstructure:"url"`
 }
@@ -39,7 +35,6 @@ type natsConf struct {
 type Config struct {
 	Global  global    `mapstructure:"global"`
 	Log     logConf   `mapstructure:"log"`
-	Etcd    etcdConf  `mapstructure:"etcd"`
 	Nats    natsConf  `mapstructure:"nats"`
 	Redis   db.Config `mapstructure:"redis"`
 	CfgFile string
@@ -49,15 +44,16 @@ type Config struct {
 type ISLB struct {
 	nc       *nats.Conn
 	nodeLock sync.RWMutex
-	s        *islbServer
+	s        *server
 	ngrpc    *rpc.Server
 	registry *discovery.Registry
 	redis    *db.Redis
+	nid      string
 }
 
 // NewISLB create a islb node instance
-func NewISLB() *ISLB {
-	return &ISLB{}
+func NewISLB(nid string) *ISLB {
+	return &ISLB{nid: nid}
 }
 
 // Start islb node
@@ -75,7 +71,7 @@ func (i *ISLB) Start(conf Config) error {
 	}
 
 	// connect options
-	opts := []nats.Option{nats.Name("nats ion service")}
+	opts := []nats.Option{nats.Name("ion islb service")}
 	opts = setupConnOptions(opts)
 
 	// connect to nats server
@@ -96,9 +92,9 @@ func (i *ISLB) Start(conf Config) error {
 		return errors.New("new redis error")
 	}
 
-	i.s = &islbServer{Redis: i.redis}
+	i.s = &server{Redis: i.redis}
 	//grpc service
-	i.ngrpc = rpc.NewServer(i.nc, "islb")
+	i.ngrpc = rpc.NewServer(i.nc, i.nid)
 	proto.RegisterISLBServer(i.ngrpc, i.s)
 
 	return nil

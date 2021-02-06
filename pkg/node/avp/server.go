@@ -1,13 +1,26 @@
 package avp
 
 import (
+	"context"
 	"sync"
 
 	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/proto"
+	proto "github.com/pion/ion/pkg/grpc/avp"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+type avpServer struct {
+	proto.UnimplementedAVPServer
+	config  iavp.Config
+	clients map[string]*sfu
+}
+
+func (s *avpServer) Process(context.Context, *proto.AVPRequest) (*proto.AVPReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
+}
 
 // server represents an server instance
 type server struct {
