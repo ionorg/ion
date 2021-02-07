@@ -1,13 +1,14 @@
 package biz
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	biz "github.com/pion/ion/pkg/grpc/biz"
+	islb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -17,26 +18,18 @@ const (
 
 // Server represents an Server instance
 type Server struct {
-	dc       string
-	nid      string
+	biz.UnimplementedBizServer
 	elements []string
-	sub      *nats.Subscription
-	nrpc     *proto.NatsRPC
-	islb     string
-	//getNodes func() map[string]discovery.Node
 	roomLock sync.RWMutex
 	rooms    map[proto.SID]*room
 	closed   chan bool
+	islbcli  *islb.ISLBClient
 }
 
 // newServer creates a new avp server instance
 func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC /*, getNodes func() map[string]discovery.Node*/) *Server {
 	return &Server{
-		dc:       dc,
-		nid:      nid,
-		nrpc:     nrpc,
 		elements: elements,
-		islb:     proto.ISLB(dc),
 		//getNodes: getNodes,
 		rooms:  make(map[proto.SID]*room),
 		closed: make(chan bool),
@@ -44,25 +37,13 @@ func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC /*,
 }
 
 func (s *Server) start() error {
-	var err error
-
-	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
-		return err
-	}
 
 	go s.stat()
-
 	return nil
 }
 
 func (s *Server) close() {
 	close(s.closed)
-
-	if s.sub != nil {
-		if err := s.sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
-		}
-	}
 }
 
 func (s *Server) handle(msg interface{}) (interface{}, error) {
@@ -123,23 +104,17 @@ func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 }
 
 func (s *Server) getNode(service string, uid proto.UID, sid proto.SID, mid proto.MID) (string, error) {
-	resp, err := s.nrpc.Request(s.islb, proto.ToIslbFindNodeMsg{
+
+	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindCondition{
 		Service: service,
-		UID:     uid,
-		SID:     sid,
-		MID:     mid,
+		Sid:     sid,
 	})
 
 	if err != nil {
 		return "", err
 	}
 
-	msg, ok := resp.(*proto.FromIslbFindNodeMsg)
-	if !ok {
-		return "", errors.New("parse islb-find-node msg error")
-	}
-
-	return msg.ID, nil
+	return resp.ID, nil
 }
 
 // getRoom get a room by id

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/pion/ion-avp/pkg/conf"
 	"github.com/pion/ion/pkg/node/biz"
 )
 
@@ -18,21 +19,22 @@ type Config struct {
 type Server struct {
 	biz    *biz.BIZ
 	signal *Signal
+	conf   Config
 }
 
 // NewServer create a server instance
-func NewServer(conf Config) *Server {
+func NewServer(nid string, conf Config) *Server {
 	s := &Server{
-		biz:    biz.NewBIZ(conf.Config),
+		conf:   conf,
+		biz:    biz.NewBIZ(nid),
 		signal: newSignal(conf.Signal.JsonRPC),
 	}
-
 	return s
 }
 
 // Start server
 func (s *Server) Start() error {
-	bs, err := s.biz.Start()
+	bs, err := s.biz.Start(conf.Config)
 	if err != nil {
 		return err
 	}

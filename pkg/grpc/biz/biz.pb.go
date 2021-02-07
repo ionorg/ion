@@ -7,6 +7,7 @@
 package biz
 
 import (
+	ion "github.com/pion/ion/pkg/grpc/ion"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -20,113 +21,19 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Result_Status int32
-
-const (
-	Result_JoinSuccess Result_Status = 0
-	Result_JoinFailed  Result_Status = 1
-)
-
-// Enum value maps for Result_Status.
-var (
-	Result_Status_name = map[int32]string{
-		0: "JoinSuccess",
-		1: "JoinFailed",
-	}
-	Result_Status_value = map[string]int32{
-		"JoinSuccess": 0,
-		"JoinFailed":  1,
-	}
-)
-
-func (x Result_Status) Enum() *Result_Status {
-	p := new(Result_Status)
-	*p = x
-	return p
-}
-
-func (x Result_Status) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Result_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_protos_biz_proto_enumTypes[0].Descriptor()
-}
-
-func (Result_Status) Type() protoreflect.EnumType {
-	return &file_protos_biz_proto_enumTypes[0]
-}
-
-func (x Result_Status) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Result_Status.Descriptor instead.
-func (Result_Status) EnumDescriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{5, 0}
-}
-
-type Stream_State int32
-
-const (
-	Stream_ADD    Stream_State = 0
-	Stream_UPDATE Stream_State = 1
-	Stream_REMOVE Stream_State = 2
-)
-
-// Enum value maps for Stream_State.
-var (
-	Stream_State_name = map[int32]string{
-		0: "ADD",
-		1: "UPDATE",
-		2: "REMOVE",
-	}
-	Stream_State_value = map[string]int32{
-		"ADD":    0,
-		"UPDATE": 1,
-		"REMOVE": 2,
-	}
-)
-
-func (x Stream_State) Enum() *Stream_State {
-	p := new(Stream_State)
-	*p = x
-	return p
-}
-
-func (x Stream_State) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Stream_State) Descriptor() protoreflect.EnumDescriptor {
-	return file_protos_biz_proto_enumTypes[1].Descriptor()
-}
-
-func (Stream_State) Type() protoreflect.EnumType {
-	return &file_protos_biz_proto_enumTypes[1]
-}
-
-func (x Stream_State) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Stream_State.Descriptor instead.
-func (Stream_State) EnumDescriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{8, 0}
-}
-
-type Peer struct {
+type Join struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uid  string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Info []byte `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
+	Sid   string `protobuf:"bytes,1,opt,name=sid,proto3" json:"sid,omitempty"`
+	Uid   string `protobuf:"bytes,2,opt,name=uid,proto3" json:"uid,omitempty"`
+	Info  []byte `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	Token string `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
 }
 
-func (x *Peer) Reset() {
-	*x = Peer{}
+func (x *Join) Reset() {
+	*x = Join{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_protos_biz_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -134,13 +41,13 @@ func (x *Peer) Reset() {
 	}
 }
 
-func (x *Peer) String() string {
+func (x *Join) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Peer) ProtoMessage() {}
+func (*Join) ProtoMessage() {}
 
-func (x *Peer) ProtoReflect() protoreflect.Message {
+func (x *Join) ProtoReflect() protoreflect.Message {
 	mi := &file_protos_biz_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -152,44 +59,50 @@ func (x *Peer) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Peer.ProtoReflect.Descriptor instead.
-func (*Peer) Descriptor() ([]byte, []int) {
+// Deprecated: Use Join.ProtoReflect.Descriptor instead.
+func (*Join) Descriptor() ([]byte, []int) {
 	return file_protos_biz_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Peer) GetUid() string {
+func (x *Join) GetSid() string {
+	if x != nil {
+		return x.Sid
+	}
+	return ""
+}
+
+func (x *Join) GetUid() string {
 	if x != nil {
 		return x.Uid
 	}
 	return ""
 }
 
-func (x *Peer) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *Peer) GetInfo() []byte {
+func (x *Join) GetInfo() []byte {
 	if x != nil {
 		return x.Info
 	}
 	return nil
 }
 
-type Message struct {
+func (x *Join) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type JoinResult struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	From string `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"` // uid
-	To   string `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`     // uid
-	Data []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Success bool   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Reason  string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 }
 
-func (x *Message) Reset() {
-	*x = Message{}
+func (x *JoinResult) Reset() {
+	*x = JoinResult{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_protos_biz_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -197,13 +110,13 @@ func (x *Message) Reset() {
 	}
 }
 
-func (x *Message) String() string {
+func (x *JoinResult) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Message) ProtoMessage() {}
+func (*JoinResult) ProtoMessage() {}
 
-func (x *Message) ProtoReflect() protoreflect.Message {
+func (x *JoinResult) ProtoReflect() protoreflect.Message {
 	mi := &file_protos_biz_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -215,93 +128,23 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Message.ProtoReflect.Descriptor instead.
-func (*Message) Descriptor() ([]byte, []int) {
+// Deprecated: Use JoinResult.ProtoReflect.Descriptor instead.
+func (*JoinResult) Descriptor() ([]byte, []int) {
 	return file_protos_biz_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Message) GetFrom() string {
+func (x *JoinResult) GetSuccess() bool {
 	if x != nil {
-		return x.From
+		return x.Success
+	}
+	return false
+}
+
+func (x *JoinResult) GetReason() string {
+	if x != nil {
+		return x.Reason
 	}
 	return ""
-}
-
-func (x *Message) GetTo() string {
-	if x != nil {
-		return x.To
-	}
-	return ""
-}
-
-func (x *Message) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-type JoinInfo struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Sid   string `protobuf:"bytes,1,opt,name=sid,proto3" json:"sid,omitempty"`
-	Token string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	Peer  *Peer  `protobuf:"bytes,3,opt,name=peer,proto3" json:"peer,omitempty"`
-}
-
-func (x *JoinInfo) Reset() {
-	*x = JoinInfo{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *JoinInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*JoinInfo) ProtoMessage() {}
-
-func (x *JoinInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use JoinInfo.ProtoReflect.Descriptor instead.
-func (*JoinInfo) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *JoinInfo) GetSid() string {
-	if x != nil {
-		return x.Sid
-	}
-	return ""
-}
-
-func (x *JoinInfo) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *JoinInfo) GetPeer() *Peer {
-	if x != nil {
-		return x.Peer
-	}
-	return nil
 }
 
 type Leave struct {
@@ -309,14 +152,13 @@ type Leave struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Code   int32  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
 }
 
 func (x *Leave) Reset() {
 	*x = Leave{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[3]
+		mi := &file_protos_biz_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -329,7 +171,7 @@ func (x *Leave) String() string {
 func (*Leave) ProtoMessage() {}
 
 func (x *Leave) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[3]
+	mi := &file_protos_biz_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,19 +184,12 @@ func (x *Leave) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Leave.ProtoReflect.Descriptor instead.
 func (*Leave) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{3}
+	return file_protos_biz_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Leave) GetCode() int32 {
+func (x *Leave) GetUid() string {
 	if x != nil {
-		return x.Code
-	}
-	return 0
-}
-
-func (x *Leave) GetReason() string {
-	if x != nil {
-		return x.Reason
+		return x.Uid
 	}
 	return ""
 }
@@ -374,7 +209,7 @@ type JoinRequest struct {
 func (x *JoinRequest) Reset() {
 	*x = JoinRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[4]
+		mi := &file_protos_biz_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -387,7 +222,7 @@ func (x *JoinRequest) String() string {
 func (*JoinRequest) ProtoMessage() {}
 
 func (x *JoinRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[4]
+	mi := &file_protos_biz_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +235,7 @@ func (x *JoinRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinRequest.ProtoReflect.Descriptor instead.
 func (*JoinRequest) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{4}
+	return file_protos_biz_proto_rawDescGZIP(), []int{3}
 }
 
 func (m *JoinRequest) GetPayload() isJoinRequest_Payload {
@@ -410,7 +245,7 @@ func (m *JoinRequest) GetPayload() isJoinRequest_Payload {
 	return nil
 }
 
-func (x *JoinRequest) GetJoin() *JoinInfo {
+func (x *JoinRequest) GetJoin() *Join {
 	if x, ok := x.GetPayload().(*JoinRequest_Join); ok {
 		return x.Join
 	}
@@ -424,7 +259,7 @@ func (x *JoinRequest) GetLeave() *Leave {
 	return nil
 }
 
-func (x *JoinRequest) GetMsg() *Message {
+func (x *JoinRequest) GetMsg() *ion.Message {
 	if x, ok := x.GetPayload().(*JoinRequest_Msg); ok {
 		return x.Msg
 	}
@@ -436,7 +271,7 @@ type isJoinRequest_Payload interface {
 }
 
 type JoinRequest_Join struct {
-	Join *JoinInfo `protobuf:"bytes,1,opt,name=join,proto3,oneof"`
+	Join *Join `protobuf:"bytes,1,opt,name=join,proto3,oneof"`
 }
 
 type JoinRequest_Leave struct {
@@ -444,7 +279,7 @@ type JoinRequest_Leave struct {
 }
 
 type JoinRequest_Msg struct {
-	Msg *Message `protobuf:"bytes,4,opt,name=msg,proto3,oneof"`
+	Msg *ion.Message `protobuf:"bytes,4,opt,name=msg,proto3,oneof"`
 }
 
 func (*JoinRequest_Join) isJoinRequest_Payload() {}
@@ -453,234 +288,6 @@ func (*JoinRequest_Leave) isJoinRequest_Payload() {}
 
 func (*JoinRequest_Msg) isJoinRequest_Payload() {}
 
-type Result struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Status Result_Status `protobuf:"varint,2,opt,name=status,proto3,enum=biz.Result_Status" json:"status,omitempty"`
-	Reason string        `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-}
-
-func (x *Result) Reset() {
-	*x = Result{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Result) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Result) ProtoMessage() {}
-
-func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Result.ProtoReflect.Descriptor instead.
-func (*Result) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Result) GetStatus() Result_Status {
-	if x != nil {
-		return x.Status
-	}
-	return Result_JoinSuccess
-}
-
-func (x *Result) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-type PeerJoin struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Peer *Peer `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
-}
-
-func (x *PeerJoin) Reset() {
-	*x = PeerJoin{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *PeerJoin) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PeerJoin) ProtoMessage() {}
-
-func (x *PeerJoin) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PeerJoin.ProtoReflect.Descriptor instead.
-func (*PeerJoin) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PeerJoin) GetPeer() *Peer {
-	if x != nil {
-		return x.Peer
-	}
-	return nil
-}
-
-type PeerLeave struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Peer   *Peer  `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
-	Code   int32  `protobuf:"varint,2,opt,name=code,proto3" json:"code,omitempty"`
-	Reason string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-}
-
-func (x *PeerLeave) Reset() {
-	*x = PeerLeave{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *PeerLeave) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PeerLeave) ProtoMessage() {}
-
-func (x *PeerLeave) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PeerLeave.ProtoReflect.Descriptor instead.
-func (*PeerLeave) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *PeerLeave) GetPeer() *Peer {
-	if x != nil {
-		return x.Peer
-	}
-	return nil
-}
-
-func (x *PeerLeave) GetCode() int32 {
-	if x != nil {
-		return x.Code
-	}
-	return 0
-}
-
-func (x *PeerLeave) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-type Stream struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Peer   *Peer        `protobuf:"bytes,3,opt,name=peer,proto3" json:"peer,omitempty"`
-	State  Stream_State `protobuf:"varint,4,opt,name=state,proto3,enum=biz.Stream_State" json:"state,omitempty"`
-	Stream *Stream      `protobuf:"bytes,5,opt,name=stream,proto3" json:"stream,omitempty"`
-}
-
-func (x *Stream) Reset() {
-	*x = Stream{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Stream) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Stream) ProtoMessage() {}
-
-func (x *Stream) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Stream.ProtoReflect.Descriptor instead.
-func (*Stream) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *Stream) GetPeer() *Peer {
-	if x != nil {
-		return x.Peer
-	}
-	return nil
-}
-
-func (x *Stream) GetState() Stream_State {
-	if x != nil {
-		return x.State
-	}
-	return Stream_ADD
-}
-
-func (x *Stream) GetStream() *Stream {
-	if x != nil {
-		return x.Stream
-	}
-	return nil
-}
-
 type JoinReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -688,9 +295,8 @@ type JoinReply struct {
 
 	// Types that are assignable to Payload:
 	//	*JoinReply_Result
-	//	*JoinReply_Join
-	//	*JoinReply_Leave
-	//	*JoinReply_Stream
+	//	*JoinReply_PeerEvent
+	//	*JoinReply_StreamEvent
 	//	*JoinReply_Msg
 	Payload isJoinReply_Payload `protobuf_oneof:"payload"`
 }
@@ -698,7 +304,7 @@ type JoinReply struct {
 func (x *JoinReply) Reset() {
 	*x = JoinReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_biz_proto_msgTypes[9]
+		mi := &file_protos_biz_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -711,7 +317,7 @@ func (x *JoinReply) String() string {
 func (*JoinReply) ProtoMessage() {}
 
 func (x *JoinReply) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_biz_proto_msgTypes[9]
+	mi := &file_protos_biz_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +330,7 @@ func (x *JoinReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinReply.ProtoReflect.Descriptor instead.
 func (*JoinReply) Descriptor() ([]byte, []int) {
-	return file_protos_biz_proto_rawDescGZIP(), []int{9}
+	return file_protos_biz_proto_rawDescGZIP(), []int{4}
 }
 
 func (m *JoinReply) GetPayload() isJoinReply_Payload {
@@ -734,35 +340,28 @@ func (m *JoinReply) GetPayload() isJoinReply_Payload {
 	return nil
 }
 
-func (x *JoinReply) GetResult() *Result {
+func (x *JoinReply) GetResult() *JoinResult {
 	if x, ok := x.GetPayload().(*JoinReply_Result); ok {
 		return x.Result
 	}
 	return nil
 }
 
-func (x *JoinReply) GetJoin() *PeerJoin {
-	if x, ok := x.GetPayload().(*JoinReply_Join); ok {
-		return x.Join
+func (x *JoinReply) GetPeerEvent() *ion.PeerEvent {
+	if x, ok := x.GetPayload().(*JoinReply_PeerEvent); ok {
+		return x.PeerEvent
 	}
 	return nil
 }
 
-func (x *JoinReply) GetLeave() *PeerLeave {
-	if x, ok := x.GetPayload().(*JoinReply_Leave); ok {
-		return x.Leave
+func (x *JoinReply) GetStreamEvent() *ion.StreamEvent {
+	if x, ok := x.GetPayload().(*JoinReply_StreamEvent); ok {
+		return x.StreamEvent
 	}
 	return nil
 }
 
-func (x *JoinReply) GetStream() *Stream {
-	if x, ok := x.GetPayload().(*JoinReply_Stream); ok {
-		return x.Stream
-	}
-	return nil
-}
-
-func (x *JoinReply) GetMsg() *Message {
+func (x *JoinReply) GetMsg() *ion.Message {
 	if x, ok := x.GetPayload().(*JoinReply_Msg); ok {
 		return x.Msg
 	}
@@ -774,32 +373,26 @@ type isJoinReply_Payload interface {
 }
 
 type JoinReply_Result struct {
-	Result *Result `protobuf:"bytes,1,opt,name=result,proto3,oneof"`
+	Result *JoinResult `protobuf:"bytes,1,opt,name=result,proto3,oneof"`
 }
 
-type JoinReply_Join struct {
-	Join *PeerJoin `protobuf:"bytes,2,opt,name=join,proto3,oneof"`
+type JoinReply_PeerEvent struct {
+	PeerEvent *ion.PeerEvent `protobuf:"bytes,2,opt,name=peerEvent,proto3,oneof"`
 }
 
-type JoinReply_Leave struct {
-	Leave *PeerLeave `protobuf:"bytes,3,opt,name=leave,proto3,oneof"`
-}
-
-type JoinReply_Stream struct {
-	Stream *Stream `protobuf:"bytes,4,opt,name=stream,proto3,oneof"`
+type JoinReply_StreamEvent struct {
+	StreamEvent *ion.StreamEvent `protobuf:"bytes,3,opt,name=streamEvent,proto3,oneof"`
 }
 
 type JoinReply_Msg struct {
-	Msg *Message `protobuf:"bytes,5,opt,name=msg,proto3,oneof"`
+	Msg *ion.Message `protobuf:"bytes,4,opt,name=msg,proto3,oneof"`
 }
 
 func (*JoinReply_Result) isJoinReply_Payload() {}
 
-func (*JoinReply_Join) isJoinReply_Payload() {}
+func (*JoinReply_PeerEvent) isJoinReply_Payload() {}
 
-func (*JoinReply_Leave) isJoinReply_Payload() {}
-
-func (*JoinReply_Stream) isJoinReply_Payload() {}
+func (*JoinReply_StreamEvent) isJoinReply_Payload() {}
 
 func (*JoinReply_Msg) isJoinReply_Payload() {}
 
@@ -807,77 +400,46 @@ var File_protos_biz_proto protoreflect.FileDescriptor
 
 var file_protos_biz_proto_rawDesc = []byte{
 	0x0a, 0x10, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x62, 0x69, 0x7a, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x12, 0x03, 0x62, 0x69, 0x7a, 0x22, 0x40, 0x0a, 0x04, 0x50, 0x65, 0x65, 0x72, 0x12,
-	0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x69,
-	0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x69, 0x6e, 0x66, 0x6f, 0x18, 0x04, 0x20,
-	0x01, 0x28, 0x0c, 0x52, 0x04, 0x69, 0x6e, 0x66, 0x6f, 0x22, 0x41, 0x0a, 0x07, 0x4d, 0x65, 0x73,
-	0x73, 0x61, 0x67, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x0e, 0x0a, 0x02, 0x74, 0x6f, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x74, 0x6f, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x51, 0x0a, 0x08,
-	0x4a, 0x6f, 0x69, 0x6e, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x69, 0x64, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x73, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f,
-	0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e,
-	0x12, 0x1d, 0x0a, 0x04, 0x70, 0x65, 0x65, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09,
-	0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x52, 0x04, 0x70, 0x65, 0x65, 0x72, 0x22,
-	0x33, 0x0a, 0x05, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x16, 0x0a, 0x06,
-	0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x72, 0x65,
-	0x61, 0x73, 0x6f, 0x6e, 0x22, 0x83, 0x01, 0x0a, 0x0b, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x23, 0x0a, 0x04, 0x6a, 0x6f, 0x69, 0x6e, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x49, 0x6e, 0x66,
-	0x6f, 0x48, 0x00, 0x52, 0x04, 0x6a, 0x6f, 0x69, 0x6e, 0x12, 0x22, 0x0a, 0x05, 0x6c, 0x65, 0x61,
-	0x76, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4c,
-	0x65, 0x61, 0x76, 0x65, 0x48, 0x00, 0x52, 0x05, 0x6c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x20, 0x0a,
-	0x03, 0x6d, 0x73, 0x67, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x62, 0x69, 0x7a,
-	0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x48, 0x00, 0x52, 0x03, 0x6d, 0x73, 0x67, 0x42,
-	0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x77, 0x0a, 0x06, 0x52, 0x65,
-	0x73, 0x75, 0x6c, 0x74, 0x12, 0x2a, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0e, 0x32, 0x12, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x52, 0x65, 0x73, 0x75, 0x6c,
-	0x74, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
-	0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22, 0x29, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x74,
-	0x75, 0x73, 0x12, 0x0f, 0x0a, 0x0b, 0x4a, 0x6f, 0x69, 0x6e, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
-	0x73, 0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a, 0x4a, 0x6f, 0x69, 0x6e, 0x46, 0x61, 0x69, 0x6c, 0x65,
-	0x64, 0x10, 0x01, 0x22, 0x29, 0x0a, 0x08, 0x50, 0x65, 0x65, 0x72, 0x4a, 0x6f, 0x69, 0x6e, 0x12,
-	0x1d, 0x0a, 0x04, 0x70, 0x65, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e,
-	0x62, 0x69, 0x7a, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x52, 0x04, 0x70, 0x65, 0x65, 0x72, 0x22, 0x56,
-	0x0a, 0x09, 0x50, 0x65, 0x65, 0x72, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x1d, 0x0a, 0x04, 0x70,
-	0x65, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x62, 0x69, 0x7a, 0x2e,
-	0x50, 0x65, 0x65, 0x72, 0x52, 0x04, 0x70, 0x65, 0x65, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f,
-	0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x16,
-	0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06,
-	0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22, 0x9f, 0x01, 0x0a, 0x06, 0x53, 0x74, 0x72, 0x65, 0x61,
-	0x6d, 0x12, 0x1d, 0x0a, 0x04, 0x70, 0x65, 0x65, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x09, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x52, 0x04, 0x70, 0x65, 0x65, 0x72,
-	0x12, 0x27, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32,
-	0x11, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x2e, 0x53, 0x74, 0x61,
-	0x74, 0x65, 0x52, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x12, 0x23, 0x0a, 0x06, 0x73, 0x74, 0x72,
-	0x65, 0x61, 0x6d, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x62, 0x69, 0x7a, 0x2e,
-	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x06, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x22, 0x28,
-	0x0a, 0x05, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x07, 0x0a, 0x03, 0x41, 0x44, 0x44, 0x10, 0x00,
-	0x12, 0x0a, 0x0a, 0x06, 0x55, 0x50, 0x44, 0x41, 0x54, 0x45, 0x10, 0x01, 0x12, 0x0a, 0x0a, 0x06,
-	0x52, 0x45, 0x4d, 0x4f, 0x56, 0x45, 0x10, 0x02, 0x22, 0xd3, 0x01, 0x0a, 0x09, 0x4a, 0x6f, 0x69,
-	0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x25, 0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x52, 0x65, 0x73,
-	0x75, 0x6c, 0x74, 0x48, 0x00, 0x52, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x23, 0x0a,
-	0x04, 0x6a, 0x6f, 0x69, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x62, 0x69,
-	0x7a, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x4a, 0x6f, 0x69, 0x6e, 0x48, 0x00, 0x52, 0x04, 0x6a, 0x6f,
-	0x69, 0x6e, 0x12, 0x26, 0x0a, 0x05, 0x6c, 0x65, 0x61, 0x76, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x0e, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x4c, 0x65, 0x61, 0x76,
-	0x65, 0x48, 0x00, 0x52, 0x05, 0x6c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x25, 0x0a, 0x06, 0x73, 0x74,
-	0x72, 0x65, 0x61, 0x6d, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x62, 0x69, 0x7a,
-	0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x48, 0x00, 0x52, 0x06, 0x73, 0x74, 0x72, 0x65, 0x61,
-	0x6d, 0x12, 0x20, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c,
-	0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x48, 0x00, 0x52, 0x03,
-	0x6d, 0x73, 0x67, 0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x32, 0x31,
-	0x0a, 0x03, 0x42, 0x69, 0x7a, 0x12, 0x2a, 0x0a, 0x04, 0x4a, 0x6f, 0x69, 0x6e, 0x12, 0x10, 0x2e,
-	0x62, 0x69, 0x7a, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x0e, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x30,
-	0x01, 0x42, 0x22, 0x5a, 0x20, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
-	0x70, 0x69, 0x6f, 0x6e, 0x2f, 0x69, 0x6f, 0x6e, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x72, 0x70,
-	0x63, 0x2f, 0x62, 0x69, 0x7a, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x6f, 0x12, 0x03, 0x62, 0x69, 0x7a, 0x1a, 0x10, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f,
+	0x69, 0x6f, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x54, 0x0a, 0x04, 0x4a, 0x6f, 0x69,
+	0x6e, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
+	0x73, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x69, 0x6e, 0x66, 0x6f, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x04, 0x69, 0x6e, 0x66, 0x6f, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b,
+	0x65, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22,
+	0x3e, 0x0a, 0x0a, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x18, 0x0a,
+	0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07,
+	0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f,
+	0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22,
+	0x19, 0x0a, 0x05, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x69, 0x64, 0x22, 0x7f, 0x0a, 0x0b, 0x4a, 0x6f,
+	0x69, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x04, 0x6a, 0x6f, 0x69,
+	0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4a, 0x6f,
+	0x69, 0x6e, 0x48, 0x00, 0x52, 0x04, 0x6a, 0x6f, 0x69, 0x6e, 0x12, 0x22, 0x0a, 0x05, 0x6c, 0x65,
+	0x61, 0x76, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x62, 0x69, 0x7a, 0x2e,
+	0x4c, 0x65, 0x61, 0x76, 0x65, 0x48, 0x00, 0x52, 0x05, 0x6c, 0x65, 0x61, 0x76, 0x65, 0x12, 0x20,
+	0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x69, 0x6f,
+	0x6e, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x48, 0x00, 0x52, 0x03, 0x6d, 0x73, 0x67,
+	0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0xc9, 0x01, 0x0a, 0x09,
+	0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x29, 0x0a, 0x06, 0x72, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x62, 0x69, 0x7a, 0x2e,
+	0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x48, 0x00, 0x52, 0x06, 0x72, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x12, 0x2e, 0x0a, 0x09, 0x70, 0x65, 0x65, 0x72, 0x45, 0x76, 0x65, 0x6e,
+	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x69, 0x6f, 0x6e, 0x2e, 0x50, 0x65,
+	0x65, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x09, 0x70, 0x65, 0x65, 0x72, 0x45,
+	0x76, 0x65, 0x6e, 0x74, 0x12, 0x34, 0x0a, 0x0b, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x45, 0x76,
+	0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x69, 0x6f, 0x6e, 0x2e,
+	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x0b, 0x73,
+	0x74, 0x72, 0x65, 0x61, 0x6d, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x20, 0x0a, 0x03, 0x6d, 0x73,
+	0x67, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x69, 0x6f, 0x6e, 0x2e, 0x4d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x48, 0x00, 0x52, 0x03, 0x6d, 0x73, 0x67, 0x42, 0x09, 0x0a, 0x07,
+	0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x32, 0x31, 0x0a, 0x03, 0x42, 0x69, 0x7a, 0x12, 0x2a,
+	0x0a, 0x04, 0x4a, 0x6f, 0x69, 0x6e, 0x12, 0x10, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4a, 0x6f, 0x69,
+	0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0e, 0x2e, 0x62, 0x69, 0x7a, 0x2e, 0x4a,
+	0x6f, 0x69, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x30, 0x01, 0x42, 0x22, 0x5a, 0x20, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x6f, 0x6e, 0x2f, 0x69, 0x6f,
+	0x6e, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x62, 0x69, 0x7a, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -892,45 +454,32 @@ func file_protos_biz_proto_rawDescGZIP() []byte {
 	return file_protos_biz_proto_rawDescData
 }
 
-var file_protos_biz_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_protos_biz_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_protos_biz_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_protos_biz_proto_goTypes = []interface{}{
-	(Result_Status)(0),  // 0: biz.Result.Status
-	(Stream_State)(0),   // 1: biz.Stream.State
-	(*Peer)(nil),        // 2: biz.Peer
-	(*Message)(nil),     // 3: biz.Message
-	(*JoinInfo)(nil),    // 4: biz.JoinInfo
-	(*Leave)(nil),       // 5: biz.Leave
-	(*JoinRequest)(nil), // 6: biz.JoinRequest
-	(*Result)(nil),      // 7: biz.Result
-	(*PeerJoin)(nil),    // 8: biz.PeerJoin
-	(*PeerLeave)(nil),   // 9: biz.PeerLeave
-	(*Stream)(nil),      // 10: biz.Stream
-	(*JoinReply)(nil),   // 11: biz.JoinReply
+	(*Join)(nil),            // 0: biz.Join
+	(*JoinResult)(nil),      // 1: biz.JoinResult
+	(*Leave)(nil),           // 2: biz.Leave
+	(*JoinRequest)(nil),     // 3: biz.JoinRequest
+	(*JoinReply)(nil),       // 4: biz.JoinReply
+	(*ion.Message)(nil),     // 5: ion.Message
+	(*ion.PeerEvent)(nil),   // 6: ion.PeerEvent
+	(*ion.StreamEvent)(nil), // 7: ion.StreamEvent
 }
 var file_protos_biz_proto_depIdxs = []int32{
-	2,  // 0: biz.JoinInfo.peer:type_name -> biz.Peer
-	4,  // 1: biz.JoinRequest.join:type_name -> biz.JoinInfo
-	5,  // 2: biz.JoinRequest.leave:type_name -> biz.Leave
-	3,  // 3: biz.JoinRequest.msg:type_name -> biz.Message
-	0,  // 4: biz.Result.status:type_name -> biz.Result.Status
-	2,  // 5: biz.PeerJoin.peer:type_name -> biz.Peer
-	2,  // 6: biz.PeerLeave.peer:type_name -> biz.Peer
-	2,  // 7: biz.Stream.peer:type_name -> biz.Peer
-	1,  // 8: biz.Stream.state:type_name -> biz.Stream.State
-	10, // 9: biz.Stream.stream:type_name -> biz.Stream
-	7,  // 10: biz.JoinReply.result:type_name -> biz.Result
-	8,  // 11: biz.JoinReply.join:type_name -> biz.PeerJoin
-	9,  // 12: biz.JoinReply.leave:type_name -> biz.PeerLeave
-	10, // 13: biz.JoinReply.stream:type_name -> biz.Stream
-	3,  // 14: biz.JoinReply.msg:type_name -> biz.Message
-	6,  // 15: biz.Biz.Join:input_type -> biz.JoinRequest
-	11, // 16: biz.Biz.Join:output_type -> biz.JoinReply
-	16, // [16:17] is the sub-list for method output_type
-	15, // [15:16] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	0, // 0: biz.JoinRequest.join:type_name -> biz.Join
+	2, // 1: biz.JoinRequest.leave:type_name -> biz.Leave
+	5, // 2: biz.JoinRequest.msg:type_name -> ion.Message
+	1, // 3: biz.JoinReply.result:type_name -> biz.JoinResult
+	6, // 4: biz.JoinReply.peerEvent:type_name -> ion.PeerEvent
+	7, // 5: biz.JoinReply.streamEvent:type_name -> ion.StreamEvent
+	5, // 6: biz.JoinReply.msg:type_name -> ion.Message
+	3, // 7: biz.Biz.Join:input_type -> biz.JoinRequest
+	4, // 8: biz.Biz.Join:output_type -> biz.JoinReply
+	8, // [8:9] is the sub-list for method output_type
+	7, // [7:8] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_protos_biz_proto_init() }
@@ -940,7 +489,7 @@ func file_protos_biz_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_protos_biz_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Peer); i {
+			switch v := v.(*Join); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -952,7 +501,7 @@ func file_protos_biz_proto_init() {
 			}
 		}
 		file_protos_biz_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Message); i {
+			switch v := v.(*JoinResult); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -964,18 +513,6 @@ func file_protos_biz_proto_init() {
 			}
 		}
 		file_protos_biz_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JoinInfo); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protos_biz_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Leave); i {
 			case 0:
 				return &v.state
@@ -987,7 +524,7 @@ func file_protos_biz_proto_init() {
 				return nil
 			}
 		}
-		file_protos_biz_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_biz_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JoinRequest); i {
 			case 0:
 				return &v.state
@@ -999,55 +536,7 @@ func file_protos_biz_proto_init() {
 				return nil
 			}
 		}
-		file_protos_biz_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Result); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protos_biz_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeerJoin); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protos_biz_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeerLeave); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protos_biz_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Stream); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protos_biz_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_biz_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JoinReply); i {
 			case 0:
 				return &v.state
@@ -1060,16 +549,15 @@ func file_protos_biz_proto_init() {
 			}
 		}
 	}
-	file_protos_biz_proto_msgTypes[4].OneofWrappers = []interface{}{
+	file_protos_biz_proto_msgTypes[3].OneofWrappers = []interface{}{
 		(*JoinRequest_Join)(nil),
 		(*JoinRequest_Leave)(nil),
 		(*JoinRequest_Msg)(nil),
 	}
-	file_protos_biz_proto_msgTypes[9].OneofWrappers = []interface{}{
+	file_protos_biz_proto_msgTypes[4].OneofWrappers = []interface{}{
 		(*JoinReply_Result)(nil),
-		(*JoinReply_Join)(nil),
-		(*JoinReply_Leave)(nil),
-		(*JoinReply_Stream)(nil),
+		(*JoinReply_PeerEvent)(nil),
+		(*JoinReply_StreamEvent)(nil),
 		(*JoinReply_Msg)(nil),
 	}
 	type x struct{}
@@ -1077,14 +565,13 @@ func file_protos_biz_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_protos_biz_proto_rawDesc,
-			NumEnums:      2,
-			NumMessages:   10,
+			NumEnums:      0,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_protos_biz_proto_goTypes,
 		DependencyIndexes: file_protos_biz_proto_depIdxs,
-		EnumInfos:         file_protos_biz_proto_enumTypes,
 		MessageInfos:      file_protos_biz_proto_msgTypes,
 	}.Build()
 	File_protos_biz_proto = out.File

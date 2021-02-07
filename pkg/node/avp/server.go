@@ -15,54 +15,29 @@ import (
 type avpServer struct {
 	proto.UnimplementedAVPServer
 	config  iavp.Config
-	clients map[string]*sfu
+	clients map[string]*sfuClient
+	nid     string
+	nc      *nats.Conn
+	mu      sync.RWMutex
 }
 
 func (s *avpServer) Process(context.Context, *proto.AVPRequest) (*proto.AVPReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
 }
 
-// server represents an server instance
-type server struct {
-	config  iavp.Config
-	clients map[string]*sfu
-	mu      sync.RWMutex
-	sub     *nats.Subscription
-	nid     string
-	nrpc    *proto.NatsRPC
-}
-
-// newServer creates a new avp server instance
-func newServer(conf iavp.Config, elems map[string]iavp.ElementFun, nid string, nrpc *proto.NatsRPC) *server {
-	s := &server{
+// newAvpServer creates a new avp server instance
+func newAvpServer(conf iavp.Config, elems map[string]iavp.ElementFun, nid string, nc *nats.Conn) *avpServer {
+	s := &avpServer{
 		config:  conf,
-		clients: make(map[string]*sfu),
+		clients: make(map[string]*sfuClient),
 		nid:     nid,
-		nrpc:    nrpc,
+		nc:      nc,
 	}
-
 	iavp.Init(elems)
-
 	return s
 }
 
-func (s *server) start() error {
-	var err error
-	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *server) close() {
-	if s.sub != nil {
-		if err := s.sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
-		}
-	}
-}
-
-func (s *server) handle(msg interface{}) (interface{}, error) {
+func (s *avpServer) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handle incoming message: %T, %+v", msg, msg)
 
 	switch v := msg.(type) {
@@ -83,7 +58,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *server) handleSFUMessage(addr string, msg interface{}) {
+func (s *avpServer) handleSFUMessage(addr string, msg interface{}) {
 	s.mu.Lock()
 	client := s.clients[addr]
 	s.mu.Unlock()
@@ -96,7 +71,7 @@ func (s *server) handleSFUMessage(addr string, msg interface{}) {
 }
 
 // process starts a process for a track.
-func (s *server) process(addr, pid, sid, tid, eid string, config []byte) error {
+func (s *avpServer) process(addr, pid, sid, tid, eid string, config []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

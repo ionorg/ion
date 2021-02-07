@@ -3,15 +3,12 @@ package islb
 import (
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
-	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
-	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	proto "github.com/pion/ion/pkg/grpc/islb"
+	pb "github.com/pion/ion/pkg/grpc/islb"
 )
 
 const (
@@ -42,18 +39,15 @@ type Config struct {
 
 // ISLB represents islb node
 type ISLB struct {
-	nc       *nats.Conn
-	nodeLock sync.RWMutex
-	s        *server
-	ngrpc    *rpc.Server
+	ion.Node
+	s        *islbServer
 	registry *discovery.Registry
 	redis    *db.Redis
-	nid      string
 }
 
 // NewISLB create a islb node instance
 func NewISLB(nid string) *ISLB {
-	return &ISLB{nid: nid}
+	return &ISLB{Node: ion.Node{NID: nid}}
 }
 
 // Start islb node
@@ -70,45 +64,38 @@ func (i *ISLB) Start(conf Config) error {
 		}()
 	}
 
-	// connect options
-	opts := []nats.Option{nats.Name("ion islb service")}
-	opts = setupConnOptions(opts)
-
-	// connect to nats server
-	if i.nc, err = nats.Connect(conf.Nats.URL, opts...); err != nil {
+	err = i.Node.Start(conf.Nats.URL)
+	if err != nil {
+		i.Close()
 		return err
 	}
 
 	//registry for node discovery.
-	i.registry, err = discovery.NewRegistry(i.nc)
+	i.registry, err = discovery.NewRegistry(i.Node.NatsConn())
 	if err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
-	i.registry.Listen()
+
+	i.registry.Listen(i.s.handleNode)
 
 	i.redis = db.NewRedis(conf.Redis)
 	if i.redis == nil {
 		return errors.New("new redis error")
 	}
 
-	i.s = &server{Redis: i.redis}
-	//grpc service
-	i.ngrpc = rpc.NewServer(i.nc, i.nid)
-	proto.RegisterISLBServer(i.ngrpc, i.s)
-
+	i.s = &islbServer{Redis: i.redis, nodes: make(map[string]discovery.Node)}
+	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 	return nil
 }
 
 // Close all
 func (i *ISLB) Close() {
-	if i.ngrpc != nil {
-		i.ngrpc.Stop()
-	}
-	if i.nc != nil {
-		i.nc.Close()
-	}
+	i.Node.Close()
 	if i.redis != nil {
 		i.redis.Close()
+	}
+	if i.registry != nil {
+		i.registry.Close()
 	}
 }

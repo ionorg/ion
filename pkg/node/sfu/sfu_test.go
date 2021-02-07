@@ -2,16 +2,22 @@ package sfu
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	proto "github.com/pion/ion/pkg/grpc/rtc"
+	pb "github.com/pion/ion/pkg/grpc/sfu"
+	"github.com/pion/webrtc/v3"
+	"github.com/tj/assert"
 )
 
 var (
 	conf = Config{
+		Global: global{
+			Dc: "dc1",
+		},
 		Nats: natsConf{
 			URL: "nats://127.0.0.1:4222",
 		},
@@ -45,25 +51,61 @@ func TestStart(t *testing.T) {
 	defer nc.Close()
 
 	ncli := rpc.NewClient(nc, nid)
-	cli := proto.NewRTCClient(ncli)
+	cli := pb.NewSFUClient(ncli)
 
 	stream, err := cli.Signal(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
 
-	stream.Send(&proto.Signalling{
-		Payload: &proto.Signalling_Join{
-			Join: &proto.Join{
-				Payload: &proto.Join_Req{
-					Req: &proto.JoinRequest{
-						Sid: "room1",
-						Uid: "user1",
-					},
+	me := webrtc.MediaEngine{}
+	assert.NoError(t, err)
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(me))
+	pub, err := api.NewPeerConnection(webrtc.Configuration{})
+	assert.NoError(t, err)
+
+	pub.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
+		log.Infof("ICEConnectionState %v", state.String())
+	})
+
+	pub.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		if candidate == nil {
+			return
+		}
+		log.Infof("OnICECandidate %v", candidate)
+		bytes, err := json.Marshal(candidate)
+		if err != nil {
+			log.Errorf("OnIceCandidate error %s", err)
+		}
+		stream.Send(&pb.SignalRequest{
+			Payload: &pb.SignalRequest_Trickle{
+				Trickle: &pb.Trickle{
+					Target: pb.Trickle_PUBLISHER,
+					Init:   string(bytes),
 				},
+			},
+		})
+	})
+
+	_, err = pub.CreateDataChannel("ion-sfu", nil)
+	offer, err := pub.CreateOffer(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	log.Infof("offer => %v", offer)
+
+	marshalled, err := json.Marshal(offer)
+
+	stream.Send(&pb.SignalRequest{
+		Payload: &pb.SignalRequest_Join{
+			Join: &pb.JoinRequest{
+				Sid:         "room1",
+				Description: marshalled,
 			},
 		},
 	})
+
+	pub.SetLocalDescription(offer)
 
 	for {
 		reply, err := stream.Recv()
@@ -71,7 +113,25 @@ func TestStart(t *testing.T) {
 			t.Fatalf("Signal: err %s", err)
 			break
 		}
-		log.Debugf("Reply: reply %v", reply)
+		log.Debugf("\nReply: reply %v\n", reply)
+
+		switch payload := reply.Payload.(type) {
+		case *pb.SignalReply_Description:
+			var sdp webrtc.SessionDescription
+			err := json.Unmarshal(payload.Description, &offer)
+			if err != nil {
+				t.Error(err)
+			}
+			pub.SetRemoteDescription(sdp)
+		case *pb.SignalReply_Trickle:
+			var candidate webrtc.ICECandidateInit
+			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
+			if err != nil {
+				t.Error(err)
+			}
+			pub.AddICECandidate(candidate)
+			//return
+		}
 	}
 
 	s.Close()

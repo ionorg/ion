@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "protos/ion.proto";
+
 option go_package = "github.com/pion/ion/pkg/grpc/rtc";
 
 package rtc;
@@ -8,15 +10,10 @@ service RTC {
     rpc Signal(stream Signalling) returns (stream Signalling) {}
 }
 
-message Parameter {
-  string key = 1;
-  string value = 2;
-}
-
 message JoinRequest {
     string sid = 1;
     string uid = 2;
-    repeated Parameter parameters = 3;
+    repeated ion.Parameter parameters = 3;
 }
 
 message JoinReply {

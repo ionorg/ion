@@ -6,14 +6,13 @@ import (
 	"os"
 	"path"
 
-	client "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
-	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
-	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
-	proto "github.com/pion/ion/pkg/grpc/avp"
+	pb "github.com/pion/ion/pkg/grpc/avp"
+	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/proto"
 )
 
 type global struct {
@@ -44,16 +43,13 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
-	s     *avpServer
-	nc    *nats.Conn
-	ngrpc *rpc.Server
-	netcd *client.Client
-	nid   string
+	ion.Node
+	s *avpServer
 }
 
 // NewAVP create a avp node instance
 func NewAVP(nid string) *AVP {
-	return &AVP{nid: nid}
+	return &AVP{Node: ion.Node{NID: nid}}
 }
 
 // Start avp node
@@ -70,18 +66,7 @@ func (a *AVP) Start(conf Config) error {
 		}()
 	}
 
-	// connect options
-	opts := []nats.Option{nats.Name("nats sfu service")}
-	//opts = setupConnOptions(opts)
-
-	// connect to nats server
-	if a.nc, err = nats.Connect(conf.Nats.URL, opts...); err != nil {
-		a.Close()
-		return err
-	}
-
-	a.netcd, err = client.NewClient(a.nc)
-
+	err = a.Node.Start(conf.Nats.URL)
 	if err != nil {
 		a.Close()
 		return err
@@ -89,21 +74,16 @@ func (a *AVP) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: "avp",
-		NID:     a.nid,
+		Service: proto.ServiceAVP,
+		NID:     a.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
-			Addr:     a.nid,
+			Addr:     a.Node.NID,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
 
-	go a.netcd.KeepAlive(node)
-
-	a.s = &avpServer{}
-	//grpc service
-	a.ngrpc = rpc.NewServer(a.nc, a.nid)
-	proto.RegisterAVPServer(a.ngrpc, a.s)
+	go a.Node.KeepAlive(node)
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
@@ -120,15 +100,13 @@ func (a *AVP) Start(conf Config) error {
 		}
 	}
 
+	a.s = newAvpServer(conf.Config, elems, a.Node.NID, a.Node.NatsConn())
+	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
+
 	return nil
 }
 
 // Close all
 func (a *AVP) Close() {
-	if a.ngrpc != nil {
-		a.ngrpc.Stop()
-	}
-	if a.nc != nil {
-		a.nc.Close()
-	}
+	a.Node.Close()
 }

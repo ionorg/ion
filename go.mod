@@ -3,7 +3,7 @@ module github.com/pion/ion
 go 1.13
 
 require (
-	github.com/cloudwebrtc/nats-discovery v0.0.0-20210206044727-742a3945c2ec
+	github.com/cloudwebrtc/nats-discovery v0.0.0-20210206133643-dda3fdf282f6
 	github.com/cloudwebrtc/nats-grpc v0.1.3-0.20210206060332-3cf62da1f1ff
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -25,6 +25,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
+	github.com/tj/assert v0.0.3
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20210205041354-b753f4903c1b // indirect

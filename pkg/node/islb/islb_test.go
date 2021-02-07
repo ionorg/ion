@@ -53,11 +53,10 @@ func TestStart(t *testing.T) {
 	ncli := rpc.NewClient(nc, nid)
 	cli := proto.NewISLBClient(ncli)
 
-	reply, err := cli.FindNode(context.Background(), &proto.FindNodeRequest{
-		Condition: &proto.FindNodeRequest_Nid{
-			Nid: "sfu-001",
-		},
+	reply, err := cli.FindNode(context.Background(), &proto.FindCondition{
+		Nid: "sfu-001",
 	})
+
 	if err != nil {
 		t.Error(err)
 	}

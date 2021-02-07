@@ -4,6 +4,7 @@ package islb
 
 import (
 	context "context"
+	ion "github.com/pion/ion/pkg/grpc/ion"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,7 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ISLBClient interface {
 	FindNode(ctx context.Context, in *FindNodeRequest, opts ...grpc.CallOption) (*FindNodeReply, error)
-	PublishSessionState(ctx context.Context, opts ...grpc.CallOption) (ISLB_PublishSessionStateClient, error)
+	SessionReport(ctx context.Context, in *ion.SessionReport, opts ...grpc.CallOption) (*ion.Empty, error)
+	Broadcast(ctx context.Context, in *ion.Empty, opts ...grpc.CallOption) (ISLB_BroadcastClient, error)
 }
 
 type iSLBClient struct {
@@ -39,34 +41,41 @@ func (c *iSLBClient) FindNode(ctx context.Context, in *FindNodeRequest, opts ...
 	return out, nil
 }
 
-func (c *iSLBClient) PublishSessionState(ctx context.Context, opts ...grpc.CallOption) (ISLB_PublishSessionStateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ISLB_ServiceDesc.Streams[0], "/islb.ISLB/PublishSessionState", opts...)
+func (c *iSLBClient) SessionReport(ctx context.Context, in *ion.SessionReport, opts ...grpc.CallOption) (*ion.Empty, error) {
+	out := new(ion.Empty)
+	err := c.cc.Invoke(ctx, "/islb.ISLB/SessionReport", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &iSLBPublishSessionStateClient{stream}
-	return x, nil
+	return out, nil
 }
 
-type ISLB_PublishSessionStateClient interface {
-	Send(*SessionState) error
-	CloseAndRecv() (*Empty, error)
-	grpc.ClientStream
-}
-
-type iSLBPublishSessionStateClient struct {
-	grpc.ClientStream
-}
-
-func (x *iSLBPublishSessionStateClient) Send(m *SessionState) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *iSLBPublishSessionStateClient) CloseAndRecv() (*Empty, error) {
+func (c *iSLBClient) Broadcast(ctx context.Context, in *ion.Empty, opts ...grpc.CallOption) (ISLB_BroadcastClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ISLB_ServiceDesc.Streams[0], "/islb.ISLB/Broadcast", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &iSLBBroadcastClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(Empty)
+	return x, nil
+}
+
+type ISLB_BroadcastClient interface {
+	Recv() (*BroadcastMsg, error)
+	grpc.ClientStream
+}
+
+type iSLBBroadcastClient struct {
+	grpc.ClientStream
+}
+
+func (x *iSLBBroadcastClient) Recv() (*BroadcastMsg, error) {
+	m := new(BroadcastMsg)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -78,7 +87,8 @@ func (x *iSLBPublishSessionStateClient) CloseAndRecv() (*Empty, error) {
 // for forward compatibility
 type ISLBServer interface {
 	FindNode(context.Context, *FindNodeRequest) (*FindNodeReply, error)
-	PublishSessionState(ISLB_PublishSessionStateServer) error
+	SessionReport(context.Context, *ion.SessionReport) (*ion.Empty, error)
+	Broadcast(*ion.Empty, ISLB_BroadcastServer) error
 	mustEmbedUnimplementedISLBServer()
 }
 
@@ -89,8 +99,11 @@ type UnimplementedISLBServer struct {
 func (UnimplementedISLBServer) FindNode(context.Context, *FindNodeRequest) (*FindNodeReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindNode not implemented")
 }
-func (UnimplementedISLBServer) PublishSessionState(ISLB_PublishSessionStateServer) error {
-	return status.Errorf(codes.Unimplemented, "method PublishSessionState not implemented")
+func (UnimplementedISLBServer) SessionReport(context.Context, *ion.SessionReport) (*ion.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SessionReport not implemented")
+}
+func (UnimplementedISLBServer) Broadcast(*ion.Empty, ISLB_BroadcastServer) error {
+	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 func (UnimplementedISLBServer) mustEmbedUnimplementedISLBServer() {}
 
@@ -123,30 +136,43 @@ func _ISLB_FindNode_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISLB_PublishSessionState_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ISLBServer).PublishSessionState(&iSLBPublishSessionStateServer{stream})
-}
-
-type ISLB_PublishSessionStateServer interface {
-	SendAndClose(*Empty) error
-	Recv() (*SessionState, error)
-	grpc.ServerStream
-}
-
-type iSLBPublishSessionStateServer struct {
-	grpc.ServerStream
-}
-
-func (x *iSLBPublishSessionStateServer) SendAndClose(m *Empty) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *iSLBPublishSessionStateServer) Recv() (*SessionState, error) {
-	m := new(SessionState)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _ISLB_SessionReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ion.SessionReport)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ISLBServer).SessionReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/islb.ISLB/SessionReport",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ISLBServer).SessionReport(ctx, req.(*ion.SessionReport))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ISLB_Broadcast_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ion.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ISLBServer).Broadcast(m, &iSLBBroadcastServer{stream})
+}
+
+type ISLB_BroadcastServer interface {
+	Send(*BroadcastMsg) error
+	grpc.ServerStream
+}
+
+type iSLBBroadcastServer struct {
+	grpc.ServerStream
+}
+
+func (x *iSLBBroadcastServer) Send(m *BroadcastMsg) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // ISLB_ServiceDesc is the grpc.ServiceDesc for ISLB service.
@@ -160,12 +186,16 @@ var ISLB_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "FindNode",
 			Handler:    _ISLB_FindNode_Handler,
 		},
+		{
+			MethodName: "SessionReport",
+			Handler:    _ISLB_SessionReport_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "PublishSessionState",
-			Handler:       _ISLB_PublishSessionState_Handler,
-			ClientStreams: true,
+			StreamName:    "Broadcast",
+			Handler:       _ISLB_Broadcast_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "protos/islb.proto",

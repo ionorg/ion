@@ -2,40 +2,80 @@ package islb
 
 import (
 	"context"
+	"sync"
 
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	proto "github.com/pion/ion/pkg/grpc/islb"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-type server struct {
+type islbServer struct {
 	proto.UnimplementedISLBServer
-	Redis *db.Redis
+	Redis    *db.Redis
+	nodeLock sync.Mutex
+	nodes    map[string]discovery.Node
 }
 
-func (s *server) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
+// handle Node from service discovery.
+func (s *islbServer) handleNode(action string, node discovery.Node) {
+	log.Infof("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
+
+	s.nodeLock.Lock()
+	defer s.nodeLock.Unlock()
+
+	switch action {
+	case discovery.Save:
+		fallthrough
+	case discovery.Update:
+		s.nodes[node.ID()] = node
+	case discovery.Delete:
+		delete(s.nodes, node.ID())
+	}
+}
+
+func (s *islbServer) FindNode(ctx context.Context, req *proto.FindCondition) (*proto.NodesReply, error) {
 	log.Infof("nid => %v", req.GetNid())
 	nodes := []*proto.Node{
 		&proto.Node{
-			Nid:  "avp-01",
-			Type: proto.NodeType_AVP,
+			Nid:     "avp-01",
+			Service: "avp",
 		},
 		&proto.Node{
-			Nid:  "sfu-01",
-			Type: proto.NodeType_SFU,
+			Nid:     "sfu-01",
+			Service: "sfu",
 		},
 	}
-	return &proto.FindNodeReply{
+
+	mkey := "*" + "." + req.GetNid() + "." + req.GetSid() + ".*"
+	for _, key := range s.Redis.Keys(mkey) {
+		fields := s.Redis.HGetAll(key)
+		log.Debugf("key: %v, fields: %v", key, fields)
+	}
+
+	return &proto.NodesReply{
 		Node: nodes,
 	}, nil
 }
 
-//PublishSessionState handle node session status.
-func (s *server) PublishSessionState(stream proto.ISLB_PublishSessionStateServer) error {
-
-	return status.Errorf(codes.Unimplemented, "method PublishSessionState not implemented")
+//HandleSessionState handle node session status.
+// key = dc/ion-sfu-1/room1/uid
+// value = []
+func (s *islbServer) HandleSessionState(ctx context.Context, state *proto.SessionState) (*proto.Empty, error) {
+	session := state.Session
+	key := session.Dc + "." + session.Nid + "." + session.Sid + "."
+	for _, peer := range session.Peers {
+		mkey := key + peer.Uid
+		switch state.State {
+		case proto.SessionState_NEW:
+			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
+		case proto.SessionState_UPDATE:
+			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
+		case proto.SessionState_DELETE:
+			s.Redis.HDel(mkey, "streams")
+		}
+	}
+	return &proto.Empty{}, nil
 }
 
 /*

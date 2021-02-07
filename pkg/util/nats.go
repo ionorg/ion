@@ -1,4 +1,4 @@
-package islb
+package util
 
 import (
 	"time"
@@ -6,6 +6,19 @@ import (
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 )
+
+func NewNatsConn(url string) (*nats.Conn, error) {
+	// connect options
+	opts := []nats.Option{nats.Name("nats conn")}
+	opts = setupConnOptions(opts)
+
+	// connect to nats server
+	nc, err := nats.Connect(url, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return nc, nil
+}
 
 func setupConnOptions(opts []nats.Option) []nats.Option {
 	totalWait := 10 * time.Minute
