@@ -13,7 +13,7 @@ COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
 WORKDIR $GOPATH/src/github.com/pion/ion/cmd/biz/json-rpc
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /biz .
 
-FROM alpine:3.12.1
+FROM alpine:3.13.2
 
 RUN apk --no-cache add ca-certificates
 COPY --from=0 /biz /usr/local/bin/biz
