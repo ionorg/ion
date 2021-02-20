@@ -7,7 +7,10 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
+	ion "github.com/pion/ion/pkg/grpc/ion"
 	proto "github.com/pion/ion/pkg/grpc/islb"
+	"google.golang.org/grpc/status"
+	"grpc.go4.org/codes"
 )
 
 type islbServer struct {
@@ -34,14 +37,14 @@ func (s *islbServer) handleNode(action string, node discovery.Node) {
 	}
 }
 
-func (s *islbServer) FindNode(ctx context.Context, req *proto.FindCondition) (*proto.NodesReply, error) {
+func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	log.Infof("nid => %v", req.GetNid())
-	nodes := []*proto.Node{
-		&proto.Node{
+	nodes := []*ion.Node{
+		&ion.Node{
 			Nid:     "avp-01",
 			Service: "avp",
 		},
-		&proto.Node{
+		&ion.Node{
 			Nid:     "sfu-01",
 			Service: "sfu",
 		},
@@ -53,7 +56,7 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindCondition) (*p
 		log.Debugf("key: %v, fields: %v", key, fields)
 	}
 
-	return &proto.NodesReply{
+	return &proto.FindNodeReply{
 		Node: nodes,
 	}, nil
 }
@@ -61,21 +64,27 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindCondition) (*p
 //HandleSessionState handle node session status.
 // key = dc/ion-sfu-1/room1/uid
 // value = []
-func (s *islbServer) HandleSessionState(ctx context.Context, state *proto.SessionState) (*proto.Empty, error) {
+/*
+func (s *islbServer) HandleSessionState(ctx context.Context, state *ion.SessionReport) (*ion.Empty, error) {
 	session := state.Session
-	key := session.Dc + "." + session.Nid + "." + session.Sid + "."
+	key := session.Node.Dc + "." + session.Node.Nid + "." + session.Sid + "."
 	for _, peer := range session.Peers {
 		mkey := key + peer.Uid
 		switch state.State {
-		case proto.SessionState_NEW:
+		case ion.SessionReport_NEW:
 			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
-		case proto.SessionState_UPDATE:
+		case ion.SessionReport_UPDATE:
 			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
-		case proto.SessionState_DELETE:
+		case ion.SessionReport_DELETE:
 			s.Redis.HDel(mkey, "streams")
 		}
 	}
-	return &proto.Empty{}, nil
+	return &ion.Empty{}, nil
+}
+*/
+
+func (s *islbServer) Broadcast(stream proto.ISLB_BroadcastServer) error {
+	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 
 /*

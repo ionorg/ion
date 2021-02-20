@@ -7,15 +7,15 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
-	sfu "github.com/pion/ion-sfu/pkg"
-	pb "github.com/pion/ion/pkg/grpc/sfu"
+	sfu "github.com/pion/ion-sfu/pkg/sfu"
+	rtc "github.com/pion/ion/pkg/grpc/rtc"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type sfuServer struct {
-	pb.UnimplementedSFUServer
+	rtc.UnimplementedRTCServer
 	sync.Mutex
 	SFU *sfu.SFU
 }
@@ -24,7 +24,7 @@ func newServer(sfu *sfu.SFU) *sfuServer {
 	return &sfuServer{SFU: sfu}
 }
 
-func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
+func (s *sfuServer) Signal(stream rtc.RTC_SignalServer) error {
 	peer := sfu.NewPeer(s.SFU)
 	for {
 		in, err := stream.Recv()
@@ -46,25 +46,72 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 		}
 
 		switch payload := in.Payload.(type) {
-		case *pb.SignalRequest_Join:
-			log.Debugf("signal->join called:\n%v", string(payload.Join.Description))
+		case *rtc.Signalling_Join:
+			log.Debugf("signal->join sid:\n%v", string(payload.Join.GetReq().Sid))
 
-			var offer webrtc.SessionDescription
-			err := json.Unmarshal(payload.Join.Description, &offer)
-			if err != nil {
-				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_Error{
-						Error: fmt.Errorf("join sdp unmarshal error: %w", err).Error(),
+			switch join := payload.Join.Payload.(type) {
+			case *rtc.Join_Req:
+				sid := join.Req.Sid
+				//TODO: handle uid
+				//uid := join.Req.Uid
+				//parameters := join.Req.Parameters
+
+				err := peer.Join(sid)
+				if err != nil {
+					switch err {
+					case sfu.ErrTransportExists:
+						fallthrough
+					case sfu.ErrOfferIgnored:
+						s.Lock()
+						err = stream.Send(&rtc.Signalling{
+							Payload: &rtc.Signalling_Error{
+								Error: &rtc.Error{
+									Code:   500,
+									Reason: fmt.Errorf("join error: %w", err).Error(),
+								},
+							},
+						})
+						s.Unlock()
+						if err != nil {
+							log.Errorf("grpc send error %v ", err)
+							return status.Errorf(codes.Internal, err.Error())
+						}
+					default:
+						return status.Errorf(codes.Unknown, err.Error())
+					}
+				}
+
+				stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Join{
+						Join: &rtc.Join{
+							Payload: &rtc.Join_Reply{
+								Reply: &rtc.JoinReply{
+									Success: true,
+									Error:   "",
+								},
+							},
+						},
 					},
 				})
-				s.Unlock()
-				if err != nil {
-					log.Errorf("grpc send error %v ", err)
-					return status.Errorf(codes.Internal, err.Error())
-				}
 			}
 
+			/*
+				var offer webrtc.SessionDescription
+				err := json.Unmarshal(payload.Join.Description, &offer)
+				if err != nil {
+					s.Lock()
+					err = stream.Send(&rtc.Signalling{
+						Payload: &rtc.Signalling_Error{
+							Error: fmt.Errorf("join sdp unmarshal error: %w", err).Error(),
+						},
+					})
+					s.Unlock()
+					if err != nil {
+						log.Errorf("grpc send error %v ", err)
+						return status.Errorf(codes.Internal, err.Error())
+					}
+				}
+			*/
 			// Notify user of new ice candidate
 			peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
 				bytes, err := json.Marshal(candidate)
@@ -72,11 +119,11 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 					log.Errorf("OnIceCandidate error %s", err)
 				}
 				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_Trickle{
-						Trickle: &pb.Trickle{
-							Init:   string(bytes),
-							Target: pb.Trickle_Target(target),
+				err = stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Trickle{
+						Trickle: &rtc.Trickle{
+							Candidate: bytes,
+							Target:    rtc.Target(target),
 						},
 					},
 				})
@@ -91,9 +138,12 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				marshalled, err := json.Marshal(o)
 				if err != nil {
 					s.Lock()
-					err = stream.Send(&pb.SignalReply{
-						Payload: &pb.SignalReply_Error{
-							Error: fmt.Errorf("offer sdp marshal error: %w", err).Error(),
+					err = stream.Send(&rtc.Signalling{
+						Payload: &rtc.Signalling_Error{
+							Error: &rtc.Error{
+								Code:   415,
+								Reason: fmt.Errorf("offer sdp marshal error: %w", err).Error(),
+							},
 						},
 					})
 					s.Unlock()
@@ -104,9 +154,11 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 
 				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_Description{
-						Description: marshalled,
+				err = stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Description{
+						Description: &rtc.Description{
+							Description: marshalled,
+						},
 					},
 				})
 				s.Unlock()
@@ -117,71 +169,71 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 			}
 
 			peer.OnICEConnectionStateChange = func(c webrtc.ICEConnectionState) {
-				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_IceConnectionState{
-						IceConnectionState: c.String(),
-					},
-				})
-				s.Unlock()
-
+				log.Infof("oniceconnectionstatechange: %v", c.String())
 				if err != nil {
 					log.Errorf("oniceconnectionstatechange error %s", err)
 				}
 			}
-
-			answer, err := peer.Join(payload.Join.Sid, offer)
-			if err != nil {
-				switch err {
-				case sfu.ErrTransportExists:
-					fallthrough
-				case sfu.ErrOfferIgnored:
-					s.Lock()
-					err = stream.Send(&pb.SignalReply{
-						Payload: &pb.SignalReply_Error{
-							Error: fmt.Errorf("join error: %w", err).Error(),
-						},
-					})
-					s.Unlock()
+			/*
+					err = peer.Join(payload.Join.Sid, webrtc.SessionDescription{})
 					if err != nil {
-						log.Errorf("grpc send error %v ", err)
-						return status.Errorf(codes.Internal, err.Error())
+						switch err {
+						case sfu.ErrTransportExists:
+							fallthrough
+						case sfu.ErrOfferIgnored:
+							s.Lock()
+							err = stream.Send(&rtc.Signalling{
+								Payload: &rtc.Signalling_Error{
+									Error: fmt.Errorf("join error: %w", err).Error(),
+								},
+							})
+							s.Unlock()
+							if err != nil {
+								log.Errorf("grpc send error %v ", err)
+								return status.Errorf(codes.Internal, err.Error())
+							}
+						default:
+							return status.Errorf(codes.Unknown, err.Error())
+						}
 					}
-				default:
-					return status.Errorf(codes.Unknown, err.Error())
+
+						answer, err := peer.Answer(offer)
+						if err != nil {
+							return status.Errorf(codes.Internal, fmt.Sprintf("answer error: %v", err))
+						}
+
+						marshalled, err := json.Marshal(answer)
+						if err != nil {
+							return status.Errorf(codes.Internal, fmt.Sprintf("sdp marshal error: %v", err))
+						}
+
+						// send answer
+						s.Lock()
+						err = stream.Send(&rtc.Signalling{
+							Payload: &rtc.Signalling_Description{
+								Description: &rtc.Description{
+									Description: marshalled,
+								},
+							},
+						})
+						s.Unlock()
+
+				if err != nil {
+					log.Errorf("error sending join response %s", err)
+					return status.Errorf(codes.Internal, "join error %s", err)
 				}
-			}
-
-			marshalled, err := json.Marshal(answer)
-			if err != nil {
-				return status.Errorf(codes.Internal, fmt.Sprintf("sdp marshal error: %v", err))
-			}
-
-			// send answer
-			s.Lock()
-			err = stream.Send(&pb.SignalReply{
-				Id: in.Id,
-				Payload: &pb.SignalReply_Join{
-					Join: &pb.JoinReply{
-						Description: marshalled,
-					},
-				},
-			})
-			s.Unlock()
-
-			if err != nil {
-				log.Errorf("error sending join response %s", err)
-				return status.Errorf(codes.Internal, "join error %s", err)
-			}
-
-		case *pb.SignalRequest_Description:
+			*/
+		case *rtc.Signalling_Description:
 			var sdp webrtc.SessionDescription
-			err := json.Unmarshal(payload.Description, &sdp)
+			err := json.Unmarshal(payload.Description.Description, &sdp)
 			if err != nil {
 				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_Error{
-						Error: fmt.Errorf("negotiate sdp unmarshal error: %w", err).Error(),
+				err = stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Error{
+						Error: &rtc.Error{
+							Code:   415,
+							Reason: fmt.Errorf("negotiate sdp unmarshal error: %w", err).Error(),
+						},
 					},
 				})
 				s.Unlock()
@@ -199,9 +251,12 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 						fallthrough
 					case sfu.ErrOfferIgnored:
 						s.Lock()
-						err = stream.Send(&pb.SignalReply{
-							Payload: &pb.SignalReply_Error{
-								Error: fmt.Errorf("negotiate answer error: %w", err).Error(),
+						err = stream.Send(&rtc.Signalling{
+							Payload: &rtc.Signalling_Error{
+								Error: &rtc.Error{
+									Code:   415,
+									Reason: fmt.Errorf("negotiate answer error: %w", err).Error(),
+								},
 							},
 						})
 						s.Unlock()
@@ -218,9 +273,12 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				marshalled, err := json.Marshal(answer)
 				if err != nil {
 					s.Lock()
-					err = stream.Send(&pb.SignalReply{
-						Payload: &pb.SignalReply_Error{
-							Error: fmt.Errorf("sdp marshal error: %w", err).Error(),
+					err = stream.Send(&rtc.Signalling{
+						Payload: &rtc.Signalling_Error{
+							Error: &rtc.Error{
+								Code:   415,
+								Reason: fmt.Errorf("sdp marshal error: %w", err).Error(),
+							},
 						},
 					})
 					s.Unlock()
@@ -231,10 +289,11 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 
 				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Id: in.Id,
-					Payload: &pb.SignalReply_Description{
-						Description: marshalled,
+				err = stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Description{
+						Description: &rtc.Description{
+							Description: marshalled,
+						},
 					},
 				})
 				s.Unlock()
@@ -249,9 +308,12 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 					switch err {
 					case sfu.ErrNoTransportEstablished:
 						s.Lock()
-						err = stream.Send(&pb.SignalReply{
-							Payload: &pb.SignalReply_Error{
-								Error: fmt.Errorf("set remote description error: %w", err).Error(),
+						err = stream.Send(&rtc.Signalling{
+							Payload: &rtc.Signalling_Error{
+								Error: &rtc.Error{
+									Code:   415,
+									Reason: fmt.Errorf("set remote description error: %w", err).Error(),
+								},
 							},
 						})
 						s.Unlock()
@@ -265,16 +327,18 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 			}
 
-		case *pb.SignalRequest_Trickle:
-			log.Debugf("signal->trickle called:\n%v", string(payload.Trickle.Init))
+		case *rtc.Signalling_Trickle:
 			var candidate webrtc.ICECandidateInit
-			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
+			err := json.Unmarshal([]byte(payload.Trickle.Candidate), &candidate)
 			if err != nil {
 				log.Errorf("error parsing ice candidate: %v", err)
 				s.Lock()
-				err = stream.Send(&pb.SignalReply{
-					Payload: &pb.SignalReply_Error{
-						Error: fmt.Errorf("unmarshal ice candidate error:  %w", err).Error(),
+				err = stream.Send(&rtc.Signalling{
+					Payload: &rtc.Signalling_Error{
+						Error: &rtc.Error{
+							Code:   415,
+							Reason: fmt.Errorf("unmarshal ice candidate error:  %w", err).Error(),
+						},
 					},
 				})
 				s.Unlock()
@@ -291,9 +355,12 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				case sfu.ErrNoTransportEstablished:
 					log.Errorf("peer hasn't joined")
 					s.Lock()
-					err = stream.Send(&pb.SignalReply{
-						Payload: &pb.SignalReply_Error{
-							Error: fmt.Errorf("trickle error:  %w", err).Error(),
+					err = stream.Send(&rtc.Signalling{
+						Payload: &rtc.Signalling_Error{
+							Error: &rtc.Error{
+								Code:   415,
+								Reason: fmt.Errorf("trickle error:  %w", err).Error(),
+							},
 						},
 					})
 					s.Unlock()

@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion/pkg/grpc/biz"
+	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
 

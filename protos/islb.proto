@@ -9,9 +9,9 @@ package islb;
 service ISLB {
     rpc FindNode(FindNodeRequest) returns (FindNodeReply) {}
 
-    rpc SessionReport(ion.SessionReport) returns (ion.Empty){}
+    rpc PostEvent(ISLBEvent) returns (ion.Empty){}
 
-    rpc Broadcast(ion.Empty) returns (stream BroadcastMsg) {}
+    rpc HandleEvent(ion.Empty) returns (stream ISLBEvent) {}
 }
 
 message FindNodeRequest {
@@ -24,7 +24,7 @@ message FindNodeReply {
     repeated ion.Node node = 1;
 }
 
-message BroadcastMsg {
+message ISLBEvent {
   oneof payload {
     ion.PeerEvent peerEvent = 2;
     ion.StreamEvent streamEvent = 3;

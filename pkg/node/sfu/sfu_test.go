@@ -60,7 +60,7 @@ func TestStart(t *testing.T) {
 
 	me := webrtc.MediaEngine{}
 	assert.NoError(t, err)
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(me))
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(&me))
 	pub, err := api.NewPeerConnection(webrtc.Configuration{})
 	assert.NoError(t, err)
 

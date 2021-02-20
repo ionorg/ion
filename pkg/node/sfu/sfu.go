@@ -5,8 +5,9 @@ import (
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
-	isfu "github.com/pion/ion-sfu/pkg"
-	pb "github.com/pion/ion/pkg/grpc/sfu"
+	isfu "github.com/pion/ion-sfu/pkg/sfu"
+	pb "github.com/pion/ion/pkg/grpc/rtc"
+	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -60,14 +61,6 @@ func (s *SFU) Start(conf Config) error {
 		return err
 	}
 
-	/*
-		discovery.RPC{
-				Protocol: discovery.GRPC,
-				Addr:     "sfu-ip:5551",
-				Params:   map[string]string{"username": "foo", "password": "bar"},
-			}
-	*/
-
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
 		Service: proto.ServiceSFU,
@@ -83,7 +76,7 @@ func (s *SFU) Start(conf Config) error {
 
 	s.s = newServer(isfu.NewSFU(conf.Config))
 	//grpc service
-	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
+	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
 	return nil
 }
 

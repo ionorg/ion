@@ -105,7 +105,7 @@ func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 
 func (s *Server) getNode(service string, uid proto.UID, sid proto.SID, mid proto.MID) (string, error) {
 
-	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindCondition{
+	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindNodeRequest{
 		Service: service,
 		Sid:     sid,
 	})

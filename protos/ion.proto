@@ -21,8 +21,7 @@ message Stream {
 
 message Peer {
    string uid = 1;
-   bytes info = 2;
-   repeated Stream streams = 3;
+   repeated Stream streams = 2;
 }
 
 message Session {
@@ -33,8 +32,8 @@ message Session {
 
 // Describe the basic media info in the session of sfu.
 // Write session state key/value to redis
-// key = dc1/${nid}/${sid}
-// key => dc1/sfu-node-01/room1
+// key = dc1/${nid}/${sid}/${uid}
+// key => dc1/sfu-node-01/room1/peer1
 // value => [
 //   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video, rid: 'f'}, {id: ${trackId}, kind:video, rid: 'h'},{id: ${trackId}, kind:video, rid: 'q'}]
 //   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]

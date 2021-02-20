@@ -9,6 +9,7 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	pb "github.com/pion/ion/pkg/grpc/islb"
+	"github.com/pion/ion/pkg/ion"
 )
 
 const (
