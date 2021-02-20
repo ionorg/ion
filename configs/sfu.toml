@@ -3,10 +3,6 @@ pprof = ":6062"
 # data center id
 dc = "dc1"
 
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2379"]
-
 [nats]
 url = "nats://127.0.0.1:4222"
 

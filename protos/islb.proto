@@ -1,48 +1,33 @@
 syntax = "proto3";
 
-import "protos/media.proto";
+import "protos/ion.proto";
 
-option go_package = "pkg/grpc/proto";
+option go_package = "github.com/pion/ion/pkg/grpc/islb";
 
 package islb;
 
 service ISLB {
     rpc FindNode(FindNodeRequest) returns (FindNodeReply) {}
-    rpc PublishSessionState(stream SessionState) returns (Empty){}
+
+    rpc PostEvent(ISLBEvent) returns (ion.Empty){}
+
+    rpc HandleEvent(ion.Empty) returns (stream ISLBEvent) {}
 }
 
 message FindNodeRequest {
-    oneof condition {
-         string sid = 1;
-         string nid = 2;
-         NodeType type = 3;
-    }
+    string sid = 1;
+    string nid = 2;
+    string service = 3;
 }
 
 message FindNodeReply {
-    repeated Node node = 1;
+    repeated ion.Node node = 1;
 }
 
-enum NodeType {
-     SFU = 0;
-     AVP = 1;
-     GW = 2;
-}
-
-message Node {
-  string nid = 1;
-  NodeType type = 2;
-}
-
-message Empty {}
-
-message SessionState {
-  enum State {
-       NEW = 0;
-       UPDATE = 1;
-       DELETE = 2;
+message ISLBEvent {
+  oneof payload {
+    ion.PeerEvent peerEvent = 2;
+    ion.StreamEvent streamEvent = 3;
+    ion.Message msg = 4;
   }
-    Node node = 3;
-  State state = 4;
-  media.Session session = 5;
 }

@@ -74,7 +74,7 @@ func main() {
 
 	log.Infof("--- starting islb node ---")
 
-	node := islb.NewISLB()
+	node := islb.NewISLB("islb")
 	if err := node.Start(conf); err != nil {
 		log.Errorf("islb start error: %v", err)
 		os.Exit(-1)

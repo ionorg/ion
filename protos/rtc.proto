@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-option go_package = "pkg/grpc/proto";
+import "protos/ion.proto";
+
+option go_package = "github.com/pion/ion/pkg/grpc/rtc";
 
 package rtc;
 
@@ -8,15 +10,22 @@ service RTC {
     rpc Signal(stream Signalling) returns (stream Signalling) {}
 }
 
-message Parameter {
-  string key = 1;
-  string value = 2;
+message JoinRequest {
+    string sid = 1;
+    string uid = 2;
+    repeated ion.Parameter parameters = 3;
+}
+
+message JoinReply {
+    bool success = 1;
+    string error = 2; // room is full ?
 }
 
 message Join {
-    string sid = 1;
-    string uid = 2;
-    repeated Parameter parameters = 3;
+    oneof payload {
+           JoinRequest req = 1;
+           JoinReply reply = 2;
+    }
 }
 
 message Signalling {
@@ -34,13 +43,15 @@ enum Target {
 }
 
 message Description {
-    Target target = 1;
-    bytes description = 2;
+    string id = 1;
+    Target target = 2;
+    bytes description = 3;
 }
 
 message Trickle {
-    Target target = 1;
-    bytes candidate = 2;
+    string id = 1;
+    Target target = 2;
+    bytes candidate = 3;
 }
 
 message Error {

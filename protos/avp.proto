@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+import "protos/ion.proto";
+
+option go_package = "github.com/pion/ion/pkg/grpc/avp";
+
+package avp;
+
+service AVP {
+  rpc Process(AVPRequest) returns (AVPReply);
+}
+
+message Element {
+    // Element Name
+    // webmsaver/mixer/opencv/play/record/ml
+    string name = 1;
+    // params for element.
+    repeated ion.Parameter parameters = 2;
+}
+
+message AVPRequest {
+    //media source
+    //node id, sfu-01
+    string nid = 1;
+    //session id, room1
+    string sid = 2;
+
+    //process
+
+    //choose streams to send to the AVP node.
+    //streams = [${msid}:[ {id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]
+    repeated ion.Stream streams = 3;
+
+    //choose process elements
+    repeated Element elements = 4;
+}
+
+message AVPReply {
+    bool success = 1;
+    string error = 2;
+}

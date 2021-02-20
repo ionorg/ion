@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/pkg/grpc/ion";
+
+package ion;
+
+message Empty {}
+
+message Track {
+	string id      = 1;
+	string kind    = 2;
+	string rid     = 3;
+    uint32 ssrc    = 4;
+    string codec   = 5;
+}
+
+message Stream {
+    string id  = 2;
+	repeated Track tracks = 3;
+}
+
+message Peer {
+   string uid = 1;
+   repeated Stream streams = 2;
+}
+
+message Session {
+    Node node = 1;
+    string sid = 3;
+	repeated Peer peers = 4;
+}
+
+// Describe the basic media info in the session of sfu.
+// Write session state key/value to redis
+// key = dc1/${nid}/${sid}/${uid}
+// key => dc1/sfu-node-01/room1/peer1
+// value => [
+//   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video, rid: 'f'}, {id: ${trackId}, kind:video, rid: 'h'},{id: ${trackId}, kind:video, rid: 'q'}]
+//   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]
+// ]
+
+message SessionReport {
+  enum State {
+       NEW = 0;
+       UPDATE = 1;
+       DELETE = 2;
+  }
+  State state = 3;
+  ion.Session session = 4;
+}
+
+message PeerEvent {
+    enum State {
+        JOIN = 0;
+        LEAVE = 1;
+    }
+    State state = 2;
+    ion.Peer peer = 3;
+}
+
+message StreamEvent {
+    enum State {
+        ADD = 0;
+        UPDATE = 1;
+        REMOVE = 2;
+    }
+    string uid = 3;
+    State state = 4;
+    repeated ion.Stream streams = 5;
+}
+
+message Message {
+    string from = 1;
+    string to = 2;
+    bytes data = 3;
+}
+
+message Parameter {
+  string key = 1;
+  string value = 2;
+}
+
+message Node {
+  string dc = 1;
+  string nid = 2;
+  string service = 3;
+}

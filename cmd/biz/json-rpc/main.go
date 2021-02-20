@@ -87,7 +87,7 @@ func main() {
 
 	log.Infof("--- starting biz node ---")
 
-	s := server.NewServer(conf)
+	s := server.NewServer("biz", conf)
 	if err := s.Start(); err != nil {
 		log.Errorf("biz start error: %v", err)
 		os.Exit(-1)

@@ -1,63 +1,94 @@
 package islb
 
 import (
-	"encoding/json"
-	"errors"
-	"math"
+	"context"
+	"sync"
 
-	"github.com/nats-io/nats.go"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	"github.com/pion/ion/pkg/discovery"
-	"github.com/pion/ion/pkg/proto"
+	ion "github.com/pion/ion/pkg/grpc/ion"
+	proto "github.com/pion/ion/pkg/grpc/islb"
+	"google.golang.org/grpc/status"
+	"grpc.go4.org/codes"
 )
 
-type server struct {
-	dc       string
-	nid      string
-	bid      string
-	nrpc     *proto.NatsRPC
-	sub      *nats.Subscription
-	redis    *db.Redis
-	getNodes func() map[string]discovery.Node
+type islbServer struct {
+	proto.UnimplementedISLBServer
+	Redis    *db.Redis
+	nodeLock sync.Mutex
+	nodes    map[string]discovery.Node
 }
 
-func newServer(dc, nid string, nrpc *proto.NatsRPC, getNodes func() map[string]discovery.Node) *server {
-	return &server{
-		dc:       dc,
-		nid:      nid,
-		bid:      nid + "-event",
-		nrpc:     nrpc,
-		getNodes: getNodes,
+// handle Node from service discovery.
+func (s *islbServer) handleNode(action string, node discovery.Node) {
+	log.Infof("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
+
+	s.nodeLock.Lock()
+	defer s.nodeLock.Unlock()
+
+	switch action {
+	case discovery.Save:
+		fallthrough
+	case discovery.Update:
+		s.nodes[node.ID()] = node
+	case discovery.Delete:
+		delete(s.nodes, node.ID())
 	}
 }
 
-func (s *server) start(conf db.Config) error {
-	var err error
-
-	s.redis = db.NewRedis(conf)
-	if s.redis == nil {
-		return errors.New("new redis error")
+func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
+	log.Infof("nid => %v", req.GetNid())
+	nodes := []*ion.Node{
+		&ion.Node{
+			Nid:     "avp-01",
+			Service: "avp",
+		},
+		&ion.Node{
+			Nid:     "sfu-01",
+			Service: "sfu",
+		},
 	}
 
-	if s.sub, err = s.nrpc.QueueSubscribe(proto.ISLB(s.dc), s.dc, s.handle); err != nil {
-		return err
+	mkey := "*" + "." + req.GetNid() + "." + req.GetSid() + ".*"
+	for _, key := range s.Redis.Keys(mkey) {
+		fields := s.Redis.HGetAll(key)
+		log.Debugf("key: %v, fields: %v", key, fields)
 	}
-	return nil
+
+	return &proto.FindNodeReply{
+		Node: nodes,
+	}, nil
 }
 
-func (s *server) close() {
-	if s.sub != nil {
-		if err := s.sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
+//HandleSessionState handle node session status.
+// key = dc/ion-sfu-1/room1/uid
+// value = []
+/*
+func (s *islbServer) HandleSessionState(ctx context.Context, state *ion.SessionReport) (*ion.Empty, error) {
+	session := state.Session
+	key := session.Node.Dc + "." + session.Node.Nid + "." + session.Sid + "."
+	for _, peer := range session.Peers {
+		mkey := key + peer.Uid
+		switch state.State {
+		case ion.SessionReport_NEW:
+			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
+		case ion.SessionReport_UPDATE:
+			s.Redis.HSetTTL(mkey, "streams", "{}", redisLongKeyTTL)
+		case ion.SessionReport_DELETE:
+			s.Redis.HDel(mkey, "streams")
 		}
 	}
-	if s.redis != nil {
-		s.redis.Close()
-	}
+	return &ion.Empty{}, nil
+}
+*/
+
+func (s *islbServer) Broadcast(stream proto.ISLB_BroadcastServer) error {
+	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 
-func (s *server) handle(msg interface{}) (interface{}, error) {
+/*
+func (s *islbServer) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handleRequest: %T, %+v", msg, msg)
 
 	switch v := msg.(type) {
@@ -77,7 +108,7 @@ func (s *server) handle(msg interface{}) (interface{}, error) {
 }
 
 // Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
-func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
+func (s *islbServer) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := msg.Service
 	nodes := s.getNodes()
 
@@ -142,7 +173,7 @@ func (s *server) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	return nil, errors.New("service node not found")
 }
 
-func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
+func (s *islbServer) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	mkey := proto.MediaInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -181,7 +212,7 @@ func (s *server) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, error) {
 	return nil, err
 }
 
-func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
+func (s *islbServer) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -254,7 +285,7 @@ func (s *server) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
 	}, nil
 }
 
-func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
+func (s *islbServer) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	ukey := proto.UserInfo{
 		DC:  s.dc,
 		SID: msg.SID,
@@ -274,10 +305,11 @@ func (s *server) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *server) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
+func (s *islbServer) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
 	if err := s.nrpc.Publish(s.bid, msg); err != nil {
 		log.Errorf("broadcast message error: %v", err)
 	}
 
 	return nil, nil
 }
+*/

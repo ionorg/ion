@@ -36,5 +36,10 @@ test: go_deps start-services
 		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
 protos:
-	docker build -t protoc-builder ./protos && docker run -v $(CURDIR):/workspace protoc-builder protoc --go_out=. --go-grpc_out=. protos/*.proto
+	docker build -t protoc-builder ./protos && \
+	docker run -v $(CURDIR):/workspace protoc-builder \
+	protoc \
+	--go_opt=module=github.com/pion/ion --go_out=. \
+	--go-grpc_opt=module=github.com/pion/ion --go-grpc_out=. \
+	protos/*.proto
 

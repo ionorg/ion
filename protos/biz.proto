@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "protos/media.proto";
+import "protos/ion.proto";
 
-option go_package = "pkg/grpc/proto";
+option go_package = "github.com/pion/ion/pkg/grpc/biz";
 
 package biz;
 
@@ -10,73 +10,35 @@ service Biz {
   rpc Join(JoinRequest) returns (stream JoinReply);
 }
 
-message Peer {
-   string uid = 1;
-   string name = 2;
-   bytes info = 4;
-}
-
-message Message {
-    string from = 1; // uid
-    string to = 2;  // uid
-    bytes data = 3;
-}
-
 message Join {
     string sid = 1;
-    string token = 2;
-    Peer peer = 3;
+    string uid = 2;
+    bytes info = 3;
+    string token = 4;
+}
+
+message JoinResult {
+    bool success = 1;
+    string reason = 2;
 }
 
 message Leave {
-    int32 code = 1;
-    string reason = 2;
+    string uid = 1;
 }
 
 message JoinRequest {
   oneof payload {
     Join join = 1;
     Leave leave = 2;
-    Message msg = 4;
+    ion.Message msg = 4;
   }
-}
-
-message Result {
-    enum Status {
-        JoinSuccess = 0;
-        JoinFailed = 1;
-    }
-    Status status = 2;
-    string reason = 3;
-}
-
-message PeerJoin {
-    Peer peer = 1;
-}
-
-message PeerLeave {
-    Peer peer = 1;
-    int32 code = 2;
-    string reason = 3;
-}
-
-message PeerStream {
-    enum State {
-        ADD = 0;
-        UPDATE = 1;
-        REMOVE = 2;
-    }
-    Peer peer = 3;
-    State state = 4;
-    media.Stream stream = 5;
 }
 
 message JoinReply {
   oneof payload {
-        Result result = 1;
-        PeerJoin join = 2;
-        PeerLeave leave = 3;
-        PeerStream stream = 4;
-        Message msg = 5;
+        JoinResult result = 1;
+        ion.PeerEvent peerEvent = 2;
+        ion.StreamEvent streamEvent = 3;
+        ion.Message msg = 4;
     }
 }

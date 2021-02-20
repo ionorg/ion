@@ -2,47 +2,137 @@ package avp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"sync"
 
 	"github.com/google/uuid"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/grpc/rtc"
+	"github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
 )
 
-// sfu client
-type sfu struct {
+// sfuClient client
+type sfuClient struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	config     iavp.Config
 	mu         sync.RWMutex
-	addr       string
 	onCloseFn  func()
 	transports map[proto.SID]*iavp.WebRTCTransport
 	nid        string
-	nrpc       *proto.NatsRPC
+	cli        *sfu.SFUClient
 }
 
 // newSFU intializes a new SFU client
-func newSFU(addr string, config iavp.Config, nid string, nrpc *proto.NatsRPC) (*sfu, error) {
-	log.Infof("connecting to sfu: %s", addr)
-
+func newSFU(config iavp.Config, cli *sfu.SFUClient, nid string) (*sfuClient, error) {
+	log.Infof("connecting to sfu: %s", nid)
 	ctx, cancel := context.WithCancel(context.Background())
-	return &sfu{
+	return &sfuClient{
 		ctx:        ctx,
 		cancel:     cancel,
-		addr:       addr,
 		config:     config,
 		transports: make(map[proto.SID]*iavp.WebRTCTransport),
+		cli:        cli,
 		nid:        nid,
-		nrpc:       nrpc,
 	}, nil
 }
 
+func (s *sfuClient) Start() error {
+	stream, err := s.cli.Signal(context.Background())
+	if err != nil {
+		return err
+	}
+
+	recvCh := make(chan *rtc.Signalling, 1)
+	sendCh := make(chan *rtc.Signalling, 1)
+
+	go func() {
+		defer close(recvCh)
+		for {
+			reply, err := stream.Recv()
+			if err != nil {
+				log.Errorf("Signal: err %s", err)
+				return
+			}
+			recvCh <- reply
+		}
+	}()
+
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	case req, ok := <-sendCh:
+		if ok {
+			stream.Send(req)
+		}
+	case reply, ok := <-recvCh:
+		if ok {
+			err := s.handleSignal(reply)
+			if err != nil {
+				return err
+			}
+			break
+		}
+		return io.EOF
+	}
+
+	return nil
+}
+
+func (s *sfuClient) handleSignal(sig *rtc.Signalling) error {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	switch payload := sig.Payload.(type) {
+	case *rtc.Signalling_Description:
+		var sdp webrtc.SessionDescription
+		err := json.Unmarshal(payload.Description.Description, &sdp)
+		if err != nil {
+		}
+	case *rtc.Signalling_Trickle:
+	}
+
+	switch v := msg.(type) {
+	case *proto.SfuTrickleMsg:
+		log.Infof("got remote candidate: %v", v.Candidate)
+		t := s.transports[v.SID]
+		if t == nil {
+			log.Warnf("not found transport: %s", v.SID)
+			break
+		}
+		if err := t.AddICECandidate(v.Candidate, v.Target); err != nil {
+			log.Errorf("add ice candidate error: %s", err)
+		}
+	case *proto.SfuOfferMsg:
+		log.Infof("got remote description: %v", v.Desc)
+		t := s.transports[v.SID]
+		if t == nil {
+			log.Warnf("not found transport: %s", v.SID)
+			break
+		}
+		answer, err := t.Answer(v.Desc)
+		if err != nil {
+			log.Errorf("create answer error: %v", err)
+		}
+		log.Infof("send description to [%s]: %v", s.addr, answer)
+		if err := s.nrpc.Publish(s.addr, proto.SfuAnswerMsg{
+			MID:  v.MID,
+			Desc: answer,
+		}); err != nil {
+			log.Errorf("send description to [%s] error: %v", s.addr, err)
+		}
+	}
+	return nil
+}
+
 // getTransport returns a webrtc transport for a session
-func (s *sfu) getTransport(sid proto.SID) (*iavp.WebRTCTransport, error) {
+func (s *sfuClient) getTransport(sid proto.SID) (*iavp.WebRTCTransport, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -79,11 +169,11 @@ func (s *sfu) getTransport(sid proto.SID) (*iavp.WebRTCTransport, error) {
 }
 
 // onClose handler called when sfu client is closed
-func (s *sfu) onClose(f func()) {
+func (s *sfuClient) onClose(f func()) {
 	s.onCloseFn = f
 }
 
-func (s *sfu) join(sid proto.SID, mid proto.MID) (*iavp.WebRTCTransport, error) {
+func (s *sfuClient) join(sid proto.SID, mid proto.MID) (*iavp.WebRTCTransport, error) {
 	log.Infof("joining sfu session: %s", sid)
 
 	t := iavp.NewWebRTCTransport(string(sid), s.config)
@@ -142,7 +232,7 @@ func (s *sfu) join(sid proto.SID, mid proto.MID) (*iavp.WebRTCTransport, error) 
 	return t, nil
 }
 
-func (s *sfu) handleSFUMessage(msg interface{}) {
+func (s *sfuClient) handleSFUMessage(msg interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

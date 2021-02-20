@@ -6,10 +6,12 @@ import (
 	"os"
 	"path"
 
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/discovery"
+	pb "github.com/pion/ion/pkg/grpc/avp"
+	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
 
@@ -17,10 +19,6 @@ type global struct {
 	Addr  string `mapstructure:"addr"`
 	Pprof string `mapstructure:"pprof"`
 	Dc    string `mapstructure:"dc"`
-}
-
-type etcdConf struct {
-	Addrs []string `mapstructure:"addrs"`
 }
 
 type natsConf struct {
@@ -38,7 +36,6 @@ type elementConf struct {
 // Config for avp node
 type Config struct {
 	Global      global      `mapstructure:"global"`
-	Etcd        etcdConf    `mapstructure:"etcd"`
 	Nats        natsConf    `mapstructure:"nats"`
 	Element     elementConf `mapstructure:"element"`
 	iavp.Config `mapstructure:"avp"`
@@ -46,14 +43,13 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
-	nrpc    *proto.NatsRPC
-	service *discovery.Service
-	s       *server
+	ion.Node
+	s *avpServer
 }
 
 // NewAVP create a avp node instance
-func NewAVP() *AVP {
-	return &AVP{}
+func NewAVP(nid string) *AVP {
+	return &AVP{Node: ion.Node{NID: nid}}
 }
 
 // Start avp node
@@ -70,16 +66,24 @@ func (a *AVP) Start(conf Config) error {
 		}()
 	}
 
-	if a.nrpc, err = proto.NewNatsRPC(conf.Nats.URL); err != nil {
+	err = a.Node.Start(conf.Nats.URL)
+	if err != nil {
 		a.Close()
 		return err
 	}
 
-	if a.service, err = discovery.NewService("avp", conf.Global.Dc, conf.Etcd.Addrs); err != nil {
-		a.Close()
-		return err
+	node := discovery.Node{
+		DC:      conf.Global.Dc,
+		Service: proto.ServiceAVP,
+		NID:     a.Node.NID,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     a.Node.NID,
+			//Params:   map[string]string{"username": "foo", "password": "bar"},
+		},
 	}
-	a.service.KeepAlive()
+
+	go a.Node.KeepAlive(node)
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
@@ -95,24 +99,14 @@ func (a *AVP) Start(conf Config) error {
 			return webm
 		}
 	}
-	a.s = newServer(conf.Config, elems, a.service.NID(), a.nrpc)
-	if err = a.s.start(); err != nil {
-		a.Close()
-		return err
-	}
+
+	a.s = newAvpServer(conf.Config, elems, a.Node.NID, a.Node.NatsConn())
+	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
 	return nil
 }
 
 // Close all
 func (a *AVP) Close() {
-	if a.s != nil {
-		a.s.close()
-	}
-	if a.nrpc != nil {
-		a.nrpc.Close()
-	}
-	if a.service != nil {
-		a.service.Close()
-	}
+	a.Node.Close()
 }
