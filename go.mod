@@ -22,7 +22,7 @@ require (
 	github.com/sourcegraph/jsonrpc2 v0.0.0-20200429184054-15c2290dcb37
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	go.etcd.io/etcd v3.3.25+incompatible
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.33.2
