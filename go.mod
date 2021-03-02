@@ -5,7 +5,6 @@ go 1.13
 replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
-	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
@@ -23,7 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
-	go.etcd.io/etcd v3.3.25+incompatible
+	go.etcd.io/etcd v3.4.15+incompatible
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.25.0
