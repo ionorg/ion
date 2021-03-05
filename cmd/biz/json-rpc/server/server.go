@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/pion/ion-avp/pkg/conf"
+	"github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion/pkg/node/biz"
 )
 

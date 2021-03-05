@@ -6,7 +6,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	iavp "github.com/pion/ion-avp/pkg"
-	log "github.com/pion/ion-log"
 	proto "github.com/pion/ion/pkg/grpc/avp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,6 +36,7 @@ func newAvpServer(conf iavp.Config, elems map[string]iavp.ElementFun, nid string
 	return s
 }
 
+/*
 func (s *avpServer) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handle incoming message: %T, %+v", msg, msg)
 
@@ -101,3 +101,4 @@ func (s *avpServer) process(addr, pid, sid, tid, eid string, config []byte) erro
 
 	return t.Process(pid, tid, eid, config)
 }
+*/

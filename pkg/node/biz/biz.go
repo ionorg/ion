@@ -6,10 +6,23 @@ import (
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/pkg/grpc/biz"
+	sfu "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
+
+type signalConf struct {
+	GRPC grpcConf `mapstructure:"grpc"`
+}
+
+// signalConf represents signal server configuration
+type grpcConf struct {
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	Cert            string `mapstructure:"cert"`
+	Key             string `mapstructure:"key"`
+	AllowAllOrigins bool   `mapstructure:"allow_all_origins"`
+}
 
 type global struct {
 	Pprof string `mapstructure:"pprof"`
@@ -30,10 +43,11 @@ type avpConf struct {
 
 // Config for biz node
 type Config struct {
-	Global global   `mapstructure:"global"`
-	Log    logConf  `mapstructure:"log"`
-	Nats   natsConf `mapstructure:"nats"`
-	Avp    avpConf  `mapstructure:"avp"`
+	Global global     `mapstructure:"global"`
+	Log    logConf    `mapstructure:"log"`
+	Nats   natsConf   `mapstructure:"nats"`
+	Avp    avpConf    `mapstructure:"avp"`
+	Signal signalConf `mapstructure:"signal"`
 }
 
 // BIZ represents biz node
@@ -41,6 +55,7 @@ type BIZ struct {
 	ion.Node
 	conf     Config
 	nodeLock sync.RWMutex
+	sfu      sfu.SFUServer
 	s        *Server
 }
 
@@ -87,16 +102,21 @@ func (b *BIZ) Start(conf Config) (*Server, error) {
 	//b.netcd.Watch(proto.ServiceISLB, func(tate discovery.NodeState, node *discovery.Node) {
 	//
 	//})
+
 	b.s = &Server{
 		elements: conf.Avp.Elements,
 	}
-	pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
+	//pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
 	return b.s, nil
 }
 
 // Close all
 func (b *BIZ) Close() {
 	b.Node.Close()
+}
+
+func (b *BIZ) GRPCServer() *Server {
+	return b.s
 }
 
 /*

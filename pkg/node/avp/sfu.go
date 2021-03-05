@@ -2,18 +2,13 @@ package avp
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"io"
 	"sync"
 
-	"github.com/google/uuid"
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/grpc/rtc"
 	"github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/webrtc/v3"
 )
 
 // sfuClient client
@@ -25,11 +20,11 @@ type sfuClient struct {
 	onCloseFn  func()
 	transports map[proto.SID]*iavp.WebRTCTransport
 	nid        string
-	cli        *sfu.SFUClient
+	cli        sfu.SFUClient
 }
 
 // newSFU intializes a new SFU client
-func newSFU(config iavp.Config, cli *sfu.SFUClient, nid string) (*sfuClient, error) {
+func newSFU(config iavp.Config, cli sfu.SFUClient, nid string) (*sfuClient, error) {
 	log.Infof("connecting to sfu: %s", nid)
 	ctx, cancel := context.WithCancel(context.Background())
 	return &sfuClient{
@@ -48,8 +43,8 @@ func (s *sfuClient) Start() error {
 		return err
 	}
 
-	recvCh := make(chan *rtc.Signalling, 1)
-	sendCh := make(chan *rtc.Signalling, 1)
+	recvCh := make(chan *sfu.SignalReply, 1)
+	sendCh := make(chan *sfu.SignalRequest, 1)
 
 	go func() {
 		defer close(recvCh)
@@ -70,12 +65,12 @@ func (s *sfuClient) Start() error {
 		if ok {
 			stream.Send(req)
 		}
-	case reply, ok := <-recvCh:
+	case _, ok := <-recvCh:
 		if ok {
-			err := s.handleSignal(reply)
+			/*err := s.handleSignal(reply)
 			if err != nil {
 				return err
-			}
+			}*/
 			break
 		}
 		return io.EOF
@@ -84,18 +79,19 @@ func (s *sfuClient) Start() error {
 	return nil
 }
 
-func (s *sfuClient) handleSignal(sig *rtc.Signalling) error {
+/*
+func (s *sfuClient) handleSignal(sig *sfu.SignalReply) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	switch payload := sig.Payload.(type) {
-	case *rtc.Signalling_Description:
+	case *sfu.SignalReply_Description:
 		var sdp webrtc.SessionDescription
-		err := json.Unmarshal(payload.Description.Description, &sdp)
+		err := json.Unmarshal(payload.Description, &sdp)
 		if err != nil {
 		}
-	case *rtc.Signalling_Trickle:
+	case *sfu.SignalReply_Trickle:
 	}
 
 	switch v := msg.(type) {
@@ -267,3 +263,4 @@ func (s *sfuClient) handleSFUMessage(msg interface{}) {
 		}
 	}
 }
+*/

@@ -1,15 +1,15 @@
 package biz
 
 import (
-	"context"
-	"fmt"
 	"sync"
 	"time"
 
-	log "github.com/pion/ion-log"
 	biz "github.com/pion/ion/pkg/grpc/biz"
 	islb "github.com/pion/ion/pkg/grpc/islb"
+	sfu "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -19,6 +19,7 @@ const (
 // Server represents an Server instance
 type Server struct {
 	biz.UnimplementedBizServer
+	sfu.UnimplementedSFUServer
 	elements []string
 	roomLock sync.RWMutex
 	rooms    map[proto.SID]*room
@@ -27,7 +28,7 @@ type Server struct {
 }
 
 // newServer creates a new avp server instance
-func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC /*, getNodes func() map[string]discovery.Node*/) *Server {
+func newServer(dc string, nid string, elements []string /*nrpc *proto.NatsRPC , getNodes func() map[string]discovery.Node*/) *Server {
 	return &Server{
 		elements: elements,
 		//getNodes: getNodes,
@@ -37,8 +38,7 @@ func newServer(dc string, nid string, elements []string, nrpc *proto.NatsRPC /*,
 }
 
 func (s *Server) start() error {
-
-	go s.stat()
+	//go s.stat()
 	return nil
 }
 
@@ -46,6 +46,17 @@ func (s *Server) close() {
 	close(s.closed)
 }
 
+//Signal for sfu signalling.
+func (s *Server) Signal(sfu.SFU_SignalServer) error {
+	return status.Errorf(codes.Unimplemented, "method Signal not implemented")
+}
+
+//Join for biz request.
+func (s *Server) Join(biz.Biz_JoinServer) error {
+	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+}
+
+/*
 func (s *Server) handle(msg interface{}) (interface{}, error) {
 	log.Infof("handle incoming message: %T, %+v", msg, msg)
 
@@ -201,3 +212,4 @@ func (s *Server) stat() {
 		}
 	}
 }
+*/

@@ -7,7 +7,7 @@ option go_package = "github.com/pion/ion/pkg/grpc/biz";
 package biz;
 
 service Biz {
-  rpc Join(JoinRequest) returns (stream JoinReply);
+  rpc Join(stream JoinRequest) returns (stream JoinReply);
 }
 
 message Join {

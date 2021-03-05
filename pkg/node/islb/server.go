@@ -9,8 +9,8 @@ import (
 	"github.com/pion/ion/pkg/db"
 	ion "github.com/pion/ion/pkg/grpc/ion"
 	proto "github.com/pion/ion/pkg/grpc/islb"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"grpc.go4.org/codes"
 )
 
 type islbServer struct {
@@ -40,11 +40,11 @@ func (s *islbServer) handleNode(action string, node discovery.Node) {
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	log.Infof("nid => %v", req.GetNid())
 	nodes := []*ion.Node{
-		&ion.Node{
+		{
 			Nid:     "avp-01",
 			Service: "avp",
 		},
-		&ion.Node{
+		{
 			Nid:     "sfu-01",
 			Service: "sfu",
 		},
@@ -83,8 +83,12 @@ func (s *islbServer) HandleSessionState(ctx context.Context, state *ion.SessionR
 }
 */
 
-func (s *islbServer) Broadcast(stream proto.ISLB_BroadcastServer) error {
-	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
+func (s *islbServer) PostEvent(context.Context, *proto.ISLBEvent) (*ion.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostEvent not implemented")
+}
+
+func (s *islbServer) HandleEvent(*ion.Empty, proto.ISLB_HandleEventServer) error {
+	return status.Errorf(codes.Unimplemented, "method HandleEvent not implemented")
 }
 
 /*
