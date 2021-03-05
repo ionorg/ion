@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BizClient interface {
-	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (Biz_JoinClient, error)
+	Join(ctx context.Context, opts ...grpc.CallOption) (Biz_JoinClient, error)
 }
 
 type bizClient struct {
@@ -29,28 +29,27 @@ func NewBizClient(cc grpc.ClientConnInterface) BizClient {
 	return &bizClient{cc}
 }
 
-func (c *bizClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (Biz_JoinClient, error) {
+func (c *bizClient) Join(ctx context.Context, opts ...grpc.CallOption) (Biz_JoinClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Biz_ServiceDesc.Streams[0], "/biz.Biz/Join", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &bizJoinClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
 	return x, nil
 }
 
 type Biz_JoinClient interface {
+	Send(*JoinRequest) error
 	Recv() (*JoinReply, error)
 	grpc.ClientStream
 }
 
 type bizJoinClient struct {
 	grpc.ClientStream
+}
+
+func (x *bizJoinClient) Send(m *JoinRequest) error {
+	return x.ClientStream.SendMsg(m)
 }
 
 func (x *bizJoinClient) Recv() (*JoinReply, error) {
@@ -65,7 +64,7 @@ func (x *bizJoinClient) Recv() (*JoinReply, error) {
 // All implementations must embed UnimplementedBizServer
 // for forward compatibility
 type BizServer interface {
-	Join(*JoinRequest, Biz_JoinServer) error
+	Join(Biz_JoinServer) error
 	mustEmbedUnimplementedBizServer()
 }
 
@@ -73,7 +72,7 @@ type BizServer interface {
 type UnimplementedBizServer struct {
 }
 
-func (UnimplementedBizServer) Join(*JoinRequest, Biz_JoinServer) error {
+func (UnimplementedBizServer) Join(Biz_JoinServer) error {
 	return status.Errorf(codes.Unimplemented, "method Join not implemented")
 }
 func (UnimplementedBizServer) mustEmbedUnimplementedBizServer() {}
@@ -90,15 +89,12 @@ func RegisterBizServer(s grpc.ServiceRegistrar, srv BizServer) {
 }
 
 func _Biz_Join_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(JoinRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(BizServer).Join(m, &bizJoinServer{stream})
+	return srv.(BizServer).Join(&bizJoinServer{stream})
 }
 
 type Biz_JoinServer interface {
 	Send(*JoinReply) error
+	Recv() (*JoinRequest, error)
 	grpc.ServerStream
 }
 
@@ -108,6 +104,14 @@ type bizJoinServer struct {
 
 func (x *bizJoinServer) Send(m *JoinReply) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func (x *bizJoinServer) Recv() (*JoinRequest, error) {
+	m := new(JoinRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // Biz_ServiceDesc is the grpc.ServiceDesc for Biz service.
@@ -122,6 +126,7 @@ var Biz_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Join",
 			Handler:       _Biz_Join_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "protos/biz.proto",

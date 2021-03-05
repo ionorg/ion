@@ -8,11 +8,14 @@ import (
 
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/cmd/biz/grpc/server"
+	bizpb "github.com/pion/ion/pkg/grpc/biz"
+	sfupb "github.com/pion/ion/pkg/grpc/sfu"
+	"github.com/pion/ion/pkg/node/biz"
 	"github.com/spf13/viper"
 )
 
 var (
-	conf server.Config
+	conf = biz.Config{}
 	file string
 )
 
@@ -45,7 +48,7 @@ func load() bool {
 		return false
 	}
 
-	if !unmarshal(&conf) || !unmarshal(&conf.Config) {
+	if !unmarshal(&conf) || !unmarshal(&conf.Signal) {
 		return false
 	}
 	if err != nil {
@@ -99,8 +102,15 @@ func main() {
 
 	s := server.NewWrapperedGRPCWebServer(options)
 
-	//注册所有grpc service.
-	//service.RegisterGRPCServices(sfu.NewSFU(conf.Config), s.GRPCServer)
+	node := biz.NewBIZ("biz1")
+	if _, err := node.Start(conf); err != nil {
+		log.Errorf("biz init start: %v", err)
+		os.Exit(-1)
+	}
+	defer node.Close()
+
+	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, node.GRPCServer())
+	s.GRPCServer.RegisterService(&bizpb.Biz_ServiceDesc, node.GRPCServer())
 
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)

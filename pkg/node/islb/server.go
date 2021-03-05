@@ -40,11 +40,11 @@ func (s *islbServer) handleNode(action string, node discovery.Node) {
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	log.Infof("nid => %v", req.GetNid())
 	nodes := []*ion.Node{
-		&ion.Node{
+		{
 			Nid:     "avp-01",
 			Service: "avp",
 		},
-		&ion.Node{
+		{
 			Nid:     "sfu-01",
 			Service: "sfu",
 		},
