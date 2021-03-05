@@ -93,7 +93,7 @@ func (a *AVP) Start(conf Config) error {
 			}
 		}
 		elems["webmsaver"] = func(sid, pid, tid string, config []byte) iavp.Element {
-			filewriter := elements.NewFileWriter(path.Join(conf.Element.Webmsaver.Path, fmt.Sprintf("%s-%s.webm", sid, pid)))
+			filewriter := elements.NewFileWriter(path.Join(conf.Element.Webmsaver.Path, fmt.Sprintf("%s-%s.webm", sid, pid)), 2048)
 			webm := elements.NewWebmSaver()
 			webm.Attach(filewriter)
 			return webm

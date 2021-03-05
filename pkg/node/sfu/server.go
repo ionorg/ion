@@ -56,7 +56,7 @@ func (s *sfuServer) Signal(stream rtc.RTC_SignalServer) error {
 				//uid := join.Req.Uid
 				//parameters := join.Req.Parameters
 
-				err := peer.Join(sid)
+				err := peer.Join(sid, "")
 				if err != nil {
 					switch err {
 					case sfu.ErrTransportExists:
