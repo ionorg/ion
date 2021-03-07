@@ -77,6 +77,9 @@ func (s *SFU) Start(conf Config) error {
 	s.s = newServer(isfu.NewSFU(conf.Config))
 	//grpc service
 	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
+
+	//Watch ISLB nodes.
+	go s.Node.Watch(proto.ServiceISLB, s.s.watchNodes)
 	return nil
 }
 

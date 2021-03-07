@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	sfu "github.com/pion/ion-sfu/pkg/sfu"
 	rtc "github.com/pion/ion/pkg/grpc/rtc"
@@ -17,11 +18,29 @@ import (
 type sfuServer struct {
 	rtc.UnimplementedRTCServer
 	sync.Mutex
-	SFU *sfu.SFU
+	SFU      *sfu.SFU
+	nodeLock sync.RWMutex
+	nodes    map[string]*discovery.Node
 }
 
 func newServer(sfu *sfu.SFU) *sfuServer {
-	return &sfuServer{SFU: sfu}
+	return &sfuServer{SFU: sfu, nodes: make(map[string]*discovery.Node)}
+}
+
+// watchNodes watch islb nodes up/down
+func (s *sfuServer) watchNodes(state discovery.NodeState, node *discovery.Node) {
+	s.nodeLock.Lock()
+	defer s.nodeLock.Unlock()
+	id := node.NID
+	if state == discovery.NodeUp {
+		log.Infof("islb node %v up", id)
+		if _, found := s.nodes[id]; !found {
+			s.nodes[id] = node
+		}
+	} else if state == discovery.NodeDown {
+		log.Infof("islb node %v down", id)
+		delete(s.nodes, id)
+	}
 }
 
 func (s *sfuServer) Signal(stream rtc.RTC_SignalServer) error {
@@ -61,7 +80,6 @@ func (s *sfuServer) Signal(stream rtc.RTC_SignalServer) error {
 					case sfu.ErrTransportExists:
 						fallthrough
 					case sfu.ErrOfferIgnored:
-						s.Lock()
 						err = stream.Send(&rtc.Signalling{
 							Payload: &rtc.Signalling_Error{
 								Error: &rtc.Error{
@@ -70,7 +88,6 @@ func (s *sfuServer) Signal(stream rtc.RTC_SignalServer) error {
 								},
 							},
 						})
-						s.Unlock()
 						if err != nil {
 							log.Errorf("grpc send error %v ", err)
 							return status.Errorf(codes.Internal, err.Error())

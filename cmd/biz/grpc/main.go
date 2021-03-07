@@ -102,7 +102,7 @@ func main() {
 
 	s := server.NewWrapperedGRPCWebServer(options)
 
-	node := biz.NewBIZ("biz1")
+	node := biz.NewBIZ("biz01")
 	if err := node.Start(conf); err != nil {
 		log.Errorf("biz init start: %v", err)
 		os.Exit(-1)

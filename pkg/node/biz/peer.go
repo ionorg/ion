@@ -3,6 +3,7 @@ package biz
 import (
 	"sync"
 
+	"github.com/pion/ion/pkg/grpc/biz"
 	"github.com/pion/ion/pkg/util"
 )
 
@@ -49,12 +50,6 @@ func (p *Peer) SID() string {
 	return p.sid
 }
 
-/*
-func (p *Peer) sfu() (string, error) {
-	return p.s.getNode(proto.ServiceSFU, p.uid, p.sid, p.mid)
+func (p *Peer) handleBizSignal(req *biz.JoinRequest) (*biz.JoinReply, error) {
+	return nil, nil
 }
-
-func (p *Peer) avp() (string, error) {
-	return p.s.getNode(proto.ServiceAVP, p.uid, p.sid, p.mid)
-}
-*/

@@ -23,10 +23,8 @@ type islbServer struct {
 // handle Node from service discovery.
 func (s *islbServer) handleNode(action string, node discovery.Node) {
 	log.Infof("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
-
 	s.nodeLock.Lock()
 	defer s.nodeLock.Unlock()
-
 	switch action {
 	case discovery.Save:
 		fallthrough
@@ -38,22 +36,31 @@ func (s *islbServer) handleNode(action string, node discovery.Node) {
 }
 
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
-	log.Infof("nid => %v", req.GetNid())
-	nodes := []*ion.Node{
-		{
-			Nid:     "avp-01",
-			Service: "avp",
-		},
-		{
-			Nid:     "sfu-01",
-			Service: "sfu",
-		},
-	}
+	nid := req.GetNid()
+	sid := req.GetSid()
+	service := req.GetService()
 
-	mkey := "*" + "." + req.GetNid() + "." + req.GetSid() + ".*"
+	log.Infof("nid => %v, sid => %v, service => %v", nid, sid, service)
+
+	nodes := []*ion.Node{}
+
+	// find node by sid
+	mkey := "*" + ".*." + sid + ".*"
 	for _, key := range s.Redis.Keys(mkey) {
 		fields := s.Redis.HGetAll(key)
 		log.Debugf("key: %v, fields: %v", key, fields)
+	}
+
+	if len(nodes) == 0 {
+		// find node by nid or service
+		for _, node := range s.nodes {
+			if nid == node.NID || service == node.Service {
+				nodes = append(nodes, &ion.Node{
+					Nid:     node.NID,
+					Service: node.Service,
+				})
+			}
+		}
 	}
 
 	return &proto.FindNodeReply{

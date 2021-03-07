@@ -95,10 +95,12 @@ func (b *BIZ) Start(conf Config) error {
 
 	go b.Node.KeepAlive(node)
 
-	b.s = newBizServer(conf.Global.Dc, b.NID, conf.Avp.Elements)
+	s := newBizServer(conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
 
 	//Watch ISLB nodes.
-	go b.Node.Watch(proto.ServiceISLB, b.s.watchIslbNodes)
+	go b.Node.Watch(proto.ServiceISLB, s.watchNodes)
+
+	b.s = s
 
 	return nil
 }
