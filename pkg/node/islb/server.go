@@ -52,6 +52,8 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 	}
 
 	if len(nodes) == 0 {
+		s.nodeLock.Lock()
+		defer s.nodeLock.Unlock()
 		// find node by nid or service
 		for _, node := range s.nodes {
 			if nid == node.NID || service == node.Service {
