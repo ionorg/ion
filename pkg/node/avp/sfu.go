@@ -8,7 +8,6 @@ import (
 	iavp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/grpc/sfu"
-	"github.com/pion/ion/pkg/proto"
 )
 
 // sfuClient client
@@ -18,7 +17,7 @@ type sfuClient struct {
 	config     iavp.Config
 	mu         sync.RWMutex
 	onCloseFn  func()
-	transports map[proto.SID]*iavp.WebRTCTransport
+	transports map[string]*iavp.WebRTCTransport
 	nid        string
 	cli        sfu.SFUClient
 }
@@ -31,7 +30,7 @@ func newSFU(config iavp.Config, cli sfu.SFUClient, nid string) (*sfuClient, erro
 		ctx:        ctx,
 		cancel:     cancel,
 		config:     config,
-		transports: make(map[proto.SID]*iavp.WebRTCTransport),
+		transports: make(map[string]*iavp.WebRTCTransport),
 		cli:        cli,
 		nid:        nid,
 	}, nil
