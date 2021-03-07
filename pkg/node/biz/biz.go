@@ -2,11 +2,9 @@ package biz
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
-	sfu "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
@@ -53,10 +51,8 @@ type Config struct {
 // BIZ represents biz node
 type BIZ struct {
 	ion.Node
-	conf     Config
-	nodeLock sync.RWMutex
-	sfu      sfu.SFUServer
-	s        *Server
+	conf Config
+	s    *BizServer
 }
 
 // NewBIZ create a biz node instance
@@ -67,7 +63,7 @@ func NewBIZ(nid string) *BIZ {
 }
 
 // Start biz node
-func (b *BIZ) Start(conf Config) (*Server, error) {
+func (b *BIZ) Start(conf Config) error {
 	var err error
 
 	if conf.Global.Pprof != "" {
@@ -83,7 +79,7 @@ func (b *BIZ) Start(conf Config) (*Server, error) {
 	err = b.Node.Start(conf.Nats.URL)
 	if err != nil {
 		b.Close()
-		return nil, err
+		return err
 	}
 
 	node := discovery.Node{
@@ -99,15 +95,12 @@ func (b *BIZ) Start(conf Config) (*Server, error) {
 
 	go b.Node.KeepAlive(node)
 
-	//b.netcd.Watch(proto.ServiceISLB, func(tate discovery.NodeState, node *discovery.Node) {
-	//
-	//})
+	b.s = newBizServer(conf.Global.Dc, b.NID, conf.Avp.Elements)
 
-	b.s = &Server{
-		elements: conf.Avp.Elements,
-	}
-	//pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
-	return b.s, nil
+	//Watch ISLB nodes.
+	go b.Node.Watch(proto.ServiceISLB, b.s.watchIslbNodes)
+
+	return nil
 }
 
 // Close all
@@ -115,63 +108,7 @@ func (b *BIZ) Close() {
 	b.Node.Close()
 }
 
-func (b *BIZ) GRPCServer() *Server {
+// Service return grpc services.
+func (b *BIZ) Service() *BizServer {
 	return b.s
 }
-
-/*
-func (b *BIZ) subIslbBroadcast(node discovery.Node) {
-	log.Infof("subscribe islb broadcast: %s", node.NID)
-	if sub, err := b.nrpc.Subscribe(node.NID+"-event", b.handleIslbBroadcast); err == nil {
-		b.subs[node.ID()] = sub
-	} else {
-		log.Errorf("subcribe error: %v", err)
-	}
-}
-
-func (b *BIZ) handleIslbBroadcast(msg interface{}) (interface{}, error) {
-	return b.s.broadcast(msg)
-}
-
-
-// watchNodes watch islb nodes up/down
-func (b *BIZ) watchIslbNodes(state discovery.NodeState, id string, node *discovery.Node) {
-	b.nodeLock.Lock()
-	defer b.nodeLock.Unlock()
-
-	if state == discovery.NodeStateUp {
-		if _, found := b.nodes[id]; !found {
-			b.nodes[id] = *node
-		}
-		if _, found := b.subs[id]; !found {
-			b.subIslbBroadcast(*node)
-		}
-	} else if state == discovery.NodeStateDown {
-		if sub := b.subs[id]; sub != nil {
-			if err := sub.Unsubscribe(); err != nil {
-				log.Errorf("unsubscribe %s error: %v", sub.Subject, err)
-			}
-		}
-		delete(b.subs, id)
-		delete(b.nodes, id)
-	}
-}
-
-func (b *BIZ) getNodes() map[string]discovery.Node {
-	b.nodeLock.RLock()
-	defer b.nodeLock.RUnlock()
-
-	return b.nodes
-}
-
-func (b *BIZ) closeSubs() {
-	b.nodeLock.Lock()
-	defer b.nodeLock.Unlock()
-
-	for _, sub := range b.subs {
-		if err := sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", sub.Subject, err)
-		}
-	}
-}
-*/

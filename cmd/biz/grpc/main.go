@@ -103,14 +103,14 @@ func main() {
 	s := server.NewWrapperedGRPCWebServer(options)
 
 	node := biz.NewBIZ("biz1")
-	if _, err := node.Start(conf); err != nil {
+	if err := node.Start(conf); err != nil {
 		log.Errorf("biz init start: %v", err)
 		os.Exit(-1)
 	}
 	defer node.Close()
 
-	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, node.GRPCServer())
-	s.GRPCServer.RegisterService(&bizpb.Biz_ServiceDesc, node.GRPCServer())
+	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, node.Service())
+	s.GRPCServer.RegisterService(&bizpb.Biz_ServiceDesc, node.Service())
 
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)

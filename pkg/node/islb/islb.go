@@ -10,6 +10,7 @@ import (
 	"github.com/pion/ion/pkg/db"
 	pb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/proto"
 )
 
 const (
@@ -78,8 +79,6 @@ func (i *ISLB) Start(conf Config) error {
 		return err
 	}
 
-	i.registry.Listen(i.s.handleNode)
-
 	i.redis = db.NewRedis(conf.Redis)
 	if i.redis == nil {
 		return errors.New("new redis error")
@@ -87,6 +86,22 @@ func (i *ISLB) Start(conf Config) error {
 
 	i.s = &islbServer{Redis: i.redis, nodes: make(map[string]discovery.Node)}
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
+
+	i.registry.Listen(i.s.handleNode)
+
+	node := discovery.Node{
+		DC:      conf.Global.Dc,
+		Service: proto.ServiceISLB,
+		NID:     i.Node.NID,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     i.Node.NID,
+			//Params:   map[string]string{"username": "foo", "password": "bar"},
+		},
+	}
+
+	go i.Node.KeepAlive(node)
+
 	return nil
 }
 

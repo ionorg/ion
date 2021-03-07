@@ -4,27 +4,26 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/proto"
 )
 
 // room represents a room which manage peers
 type room struct {
 	sync.RWMutex
-	id    proto.SID
-	peers map[proto.UID]*Peer
+	id    string
+	peers map[string]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(id proto.SID) *room {
+func newRoom(id string) *room {
 	r := &room{
 		id:    id,
-		peers: make(map[proto.UID]*Peer),
+		peers: make(map[string]*Peer),
 	}
 	return r
 }
 
 // ID room id
-func (r *room) ID() proto.SID {
+func (r *room) ID() string {
 	return r.id
 }
 
@@ -36,21 +35,21 @@ func (r *room) addPeer(p *Peer) {
 }
 
 // getPeer get a peer by peer id
-func (r *room) getPeer(uid proto.UID) *Peer {
+func (r *room) getPeer(uid string) *Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers[uid]
 }
 
 // getPeers get peers in the room
-func (r *room) getPeers() map[proto.UID]*Peer {
+func (r *room) getPeers() map[string]*Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers
 }
 
 // delPeer delete a peer in the room
-func (r *room) delPeer(uid proto.UID) int {
+func (r *room) delPeer(uid string) int {
 	r.Lock()
 	defer r.Unlock()
 	delete(r.peers, uid)
@@ -65,7 +64,7 @@ func (r *room) count() int {
 }
 
 // send message to peers
-func (r *room) send(data interface{}, without proto.UID) {
+func (r *room) send(data interface{}, without string) {
 	peers := r.getPeers()
 	for id, p := range peers {
 		if len(without) > 0 && id != without {

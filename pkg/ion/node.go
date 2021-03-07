@@ -47,6 +47,19 @@ func (n *Node) KeepAlive(node discovery.Node) error {
 	return n.nd.KeepAlive(node)
 }
 
+func (n *Node) Watch(service string, onStateChange nd.NodeStateChangeCallback) error {
+	resp, err := n.nd.Get(service)
+	if err != nil {
+		log.Errorf("Watch service %v error %v", service, err)
+		return err
+	}
+	for _, node := range resp.Nodes {
+		onStateChange(discovery.NodeUp, &node)
+	}
+
+	return n.nd.Watch(service, onStateChange)
+}
+
 func (n *Node) ServiceRegistrar() grpc.ServiceRegistrar {
 	return n.nrpc
 }

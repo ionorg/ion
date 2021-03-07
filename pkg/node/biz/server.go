@@ -1,59 +1,139 @@
 package biz
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	log "github.com/pion/ion-log"
 	biz "github.com/pion/ion/pkg/grpc/biz"
 	islb "github.com/pion/ion/pkg/grpc/islb"
 	sfu "github.com/pion/ion/pkg/grpc/sfu"
-	"github.com/pion/ion/pkg/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
 	statCycle = time.Second * 3
 )
 
-// Server represents an Server instance
-type Server struct {
+// BizServer represents an BizServer instance
+type BizServer struct {
 	biz.UnimplementedBizServer
 	sfu.UnimplementedSFUServer
 	elements []string
 	roomLock sync.RWMutex
-	rooms    map[proto.SID]*room
+	rooms    map[string]*room
 	closed   chan bool
-	islbcli  *islb.ISLBClient
+	islbcli  islb.ISLBClient
+	nodeLock sync.RWMutex
+	nodes    map[string]*discovery.Node
 }
 
-// newServer creates a new avp server instance
-func newServer(dc string, nid string, elements []string /*nrpc *proto.NatsRPC , getNodes func() map[string]discovery.Node*/) *Server {
-	return &Server{
+// newBizServer creates a new avp server instance
+func newBizServer(dc string, nid string, elements []string) *BizServer {
+	return &BizServer{
 		elements: elements,
-		//getNodes: getNodes,
-		rooms:  make(map[proto.SID]*room),
-		closed: make(chan bool),
+		rooms:    make(map[string]*room),
+		closed:   make(chan bool),
+		nodes:    make(map[string]*discovery.Node),
 	}
 }
 
-func (s *Server) start() error {
+func (s *BizServer) start() error {
 	//go s.stat()
 	return nil
 }
 
-func (s *Server) close() {
+func (s *BizServer) close() {
 	close(s.closed)
 }
 
-//Signal for sfu signalling.
-func (s *Server) Signal(sfu.SFU_SignalServer) error {
-	return status.Errorf(codes.Unimplemented, "method Signal not implemented")
+// getRoom get a room by id
+func (s *BizServer) getRoom(id string) *room {
+	s.roomLock.Lock()
+	defer s.roomLock.Unlock()
+	r := s.rooms[id]
+	return r
+}
+
+//Signal forward to sfu node.
+func (s *BizServer) Signal(stream sfu.SFU_SignalServer) error {
+	for {
+		payload, err := stream.Recv()
+		if err != nil {
+			log.Errorf("err: %v", err)
+			return err
+		}
+
+		log.Infof("req => %v", payload.String())
+	}
 }
 
 //Join for biz request.
-func (s *Server) Join(biz.Biz_JoinServer) error {
-	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+func (s *BizServer) Join(stream biz.Biz_JoinServer) error {
+	for {
+		payload, err := stream.Recv()
+		if err != nil {
+			log.Errorf("err: %v", err)
+			return err
+		}
+
+		log.Infof("req => %v", payload.String())
+	}
+}
+
+// watchNodes watch islb nodes up/down
+func (s *BizServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
+	s.nodeLock.Lock()
+	defer s.nodeLock.Unlock()
+	id := node.NID
+	if state == discovery.NodeUp {
+		log.Infof("islb node %v up", id)
+		if _, found := s.nodes[id]; !found {
+			s.nodes[id] = node
+		}
+	} else if state == discovery.NodeDown {
+		log.Infof("islb node %v down", id)
+		delete(s.nodes, id)
+	}
+}
+
+func (s *BizServer) getNode(service string, uid string, sid string) (string, error) {
+	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindNodeRequest{
+		Service: service,
+		Sid:     sid,
+	})
+
+	if err != nil {
+		return "", err
+	}
+	return resp.Nodes[0].Nid, nil
+}
+
+// stat peers
+func (s *BizServer) stat() {
+	t := time.NewTicker(statCycle)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			break
+		case <-s.closed:
+			log.Infof("stop stat")
+			return
+		}
+
+		var info string
+		s.roomLock.RLock()
+		for sid, room := range s.rooms {
+			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
+		}
+		s.roomLock.RUnlock()
+		if len(info) > 0 {
+			log.Infof("\n----------------signal-----------------\n" + info)
+		}
+	}
 }
 
 /*
@@ -74,7 +154,7 @@ func (s *Server) handle(msg interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *Server) handleSFUMessage(sid proto.SID, uid proto.UID, msg interface{}) {
+func (s *Server) handleSFUMessage(sid string, uid proto.UID, msg interface{}) {
 	if r := s.getRoom(sid); r != nil {
 		if p := r.getPeer(uid); p != nil {
 			p.handleSFUMessage(msg)
@@ -89,7 +169,7 @@ func (s *Server) handleSFUMessage(sid proto.SID, uid proto.UID, msg interface{})
 func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 	log.Infof("handle islb message: %T, %+v", msg, msg)
 
-	var sid proto.SID
+	var sid string
 	var uid proto.UID
 
 	switch v := msg.(type) {
@@ -114,27 +194,7 @@ func (s *Server) broadcast(msg interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (s *Server) getNode(service string, uid proto.UID, sid proto.SID, mid proto.MID) (string, error) {
 
-	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindNodeRequest{
-		Service: service,
-		Sid:     sid,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return resp.ID, nil
-}
-
-// getRoom get a room by id
-func (s *Server) getRoom(id proto.SID) *room {
-	s.roomLock.Lock()
-	defer s.roomLock.Unlock()
-	r := s.rooms[id]
-	return r
-}
 
 // // getRoomsByPeer a peer in many room
 // func (s *server) getRoomsByPeer(uid proto.UID) []*room {
@@ -150,7 +210,7 @@ func (s *Server) getRoom(id proto.SID) *room {
 // }
 
 // delPeer delete a peer in the room
-func (s *Server) delPeer(sid proto.SID, uid proto.UID) {
+func (s *Server) delPeer(sid string, uid proto.UID) {
 	log.Infof("delPeer sid=%s uid=%s", sid, uid)
 	room := s.getRoom(sid)
 	if room == nil {
@@ -165,7 +225,7 @@ func (s *Server) delPeer(sid proto.SID, uid proto.UID) {
 }
 
 // addPeer add a peer to room
-func (s *Server) addPeer(sid proto.SID, peer *Peer) {
+func (s *Server) addPeer(sid string, peer *Peer) {
 	log.Infof("addPeer sid=%s uid=%s", sid, peer.uid)
 	room := s.getRoom(sid)
 	if room == nil {
@@ -178,7 +238,7 @@ func (s *Server) addPeer(sid proto.SID, peer *Peer) {
 }
 
 // // getPeer get a peer in the room
-// func (s *server) getPeer(sid proto.SID, uid proto.UID) *peer {
+// func (s *server) getPeer(sid string, uid proto.UID) *peer {
 // 	log.Infof("getPeer sid=%s uid=%s", sid, uid)
 // 	r := s.getRoom(sid)
 // 	if r == nil {
@@ -188,28 +248,4 @@ func (s *Server) addPeer(sid proto.SID, peer *Peer) {
 // 	return r.getPeer(uid)
 // }
 
-// stat peers
-func (s *Server) stat() {
-	t := time.NewTicker(statCycle)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			break
-		case <-s.closed:
-			log.Infof("stop stat")
-			return
-		}
-
-		var info string
-		s.roomLock.RLock()
-		for sid, room := range s.rooms {
-			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
-		}
-		s.roomLock.RUnlock()
-		if len(info) > 0 {
-			log.Infof("\n----------------signal-----------------\n" + info)
-		}
-	}
-}
 */

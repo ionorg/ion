@@ -3,31 +3,25 @@ package biz
 import (
 	"sync"
 
-	"github.com/google/uuid"
-	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 )
 
 // Peer represents a peer for client
 type Peer struct {
-	uid       proto.UID
-	mid       proto.MID
-	sid       proto.SID
+	uid       string
+	sid       string
 	info      []byte
 	leaveOnce sync.Once
 	closed    util.AtomicBool
-	s         *Server
 	send      func(msg interface{}) error
 }
 
 // NewPeer create peer instance for client
-func NewPeer(uid proto.UID, s *Server, send func(msg interface{}) error) *Peer {
-	id := uuid.New().String()
+func NewPeer(sid string, uid string, info []byte) *Peer {
 	p := &Peer{
 		uid:  uid,
-		mid:  proto.MID(id),
-		s:    s,
-		send: send,
+		sid:  sid,
+		info: info,
 	}
 	return p
 }
@@ -46,8 +40,13 @@ func (p *Peer) Close() {
 }
 
 // UID return peer uid
-func (p *Peer) UID() proto.UID {
+func (p *Peer) UID() string {
 	return p.uid
+}
+
+// SID return session id
+func (p *Peer) SID() string {
+	return p.sid
 }
 
 /*

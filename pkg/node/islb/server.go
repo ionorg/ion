@@ -57,7 +57,7 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 	}
 
 	return &proto.FindNodeReply{
-		Node: nodes,
+		Nodes: nodes,
 	}, nil
 }
 

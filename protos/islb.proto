@@ -21,7 +21,7 @@ message FindNodeRequest {
 }
 
 message FindNodeReply {
-    repeated ion.Node node = 1;
+    repeated ion.Node nodes = 1;
 }
 
 message ISLBEvent {

@@ -88,7 +88,7 @@ type jsonRPCConf struct {
 type Signal struct {
 	conf   jsonRPCConf
 	closed chan bool
-	bs     *biz.Server
+	bs     *biz.BizServer
 }
 
 // newSignal create signal server instance
@@ -100,7 +100,7 @@ func newSignal(conf jsonRPCConf) *Signal {
 }
 
 // Start signal server
-func (s *Signal) Start(bs *biz.Server) {
+func (s *Signal) Start(bs *biz.BizServer) {
 	s.bs = bs
 	go s.serve()
 }
