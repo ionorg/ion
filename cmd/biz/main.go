@@ -1,20 +1,21 @@
+// Package cmd contains an entrypoint for running an ion-sfu instance.
 package main
 
 import (
 	"flag"
 	"fmt"
-	_ "net/http/pprof"
 	"os"
-	sig "os/signal"
-	"syscall"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/cmd/biz/json-rpc/server"
+	"github.com/pion/ion/cmd/biz/server"
+	bizpb "github.com/pion/ion/pkg/grpc/biz"
+	sfupb "github.com/pion/ion/pkg/grpc/sfu"
+	"github.com/pion/ion/pkg/node/biz"
 	"github.com/spf13/viper"
 )
 
 var (
-	conf server.Config
+	conf = biz.Config{}
 	file string
 )
 
@@ -47,7 +48,7 @@ func load() bool {
 		return false
 	}
 
-	if !unmarshal(&conf) || !unmarshal(&conf.Config) {
+	if !unmarshal(&conf) || !unmarshal(&conf.Signal) {
 		return false
 	}
 	if err != nil {
@@ -84,18 +85,35 @@ func main() {
 	fixByFile := []string{"asm_amd64.s", "proc.go"}
 	fixByFunc := []string{}
 	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	addr := fmt.Sprintf("%s:%d", conf.Signal.GRPC.Host, conf.Signal.GRPC.Port)
+	log.Infof("--- Starting Biz(gRPC + gRPC-Web) Node ---\n %s", addr)
+	options := server.DefaultWrapperedServerOptions()
 
-	log.Infof("--- starting biz node ---")
+	options.Addr = addr
+	options.AllowAllOrigins = true
+	options.UseWebSocket = true
+	options.Cert = conf.Signal.GRPC.Cert
+	options.Key = conf.Signal.GRPC.Key
+	options.EnableTLS = (len(options.Cert) > 0 && len(options.Key) > 0)
 
-	s := server.NewServer("biz", conf)
-	if err := s.Start(); err != nil {
-		log.Errorf("biz start error: %v", err)
+	if options.EnableTLS {
+		options.TLSAddr = addr
+	}
+
+	s := server.NewWrapperedGRPCWebServer(options)
+
+	node := biz.NewBIZ("biz01")
+	if err := node.Start(conf); err != nil {
+		log.Errorf("biz init start: %v", err)
 		os.Exit(-1)
 	}
-	defer s.Close()
+	defer node.Close()
 
-	// Press Ctrl+C to exit the process
-	ch := make(chan os.Signal, 1)
-	sig.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
+	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, node.Service())
+	s.GRPCServer.RegisterService(&bizpb.Biz_ServiceDesc, node.Service())
+
+	if err := s.Serve(); err != nil {
+		log.Panicf("failed to serve: %v", err)
+	}
+	select {}
 }
