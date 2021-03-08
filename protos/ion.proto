@@ -80,8 +80,15 @@ message Parameter {
   string value = 2;
 }
 
+message RPC {
+    string protocol = 1;
+    string addr = 2;
+    repeated Parameter params = 3;
+}
+
 message Node {
   string dc = 1;
   string nid = 2;
   string service = 3;
+  RPC rpc = 4;
 }

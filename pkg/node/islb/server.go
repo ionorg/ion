@@ -58,8 +58,14 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 		for _, node := range s.nodes {
 			if nid == node.NID || service == node.Service {
 				nodes = append(nodes, &ion.Node{
+					Dc:      node.DC,
 					Nid:     node.NID,
 					Service: node.Service,
+					Rpc: &ion.RPC{
+						Protocol: string(node.RPC.Protocol),
+						Addr:     node.RPC.Addr,
+						//Params:   node.RPC.Params,
+					},
 				})
 			}
 		}

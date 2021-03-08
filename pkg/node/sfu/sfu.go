@@ -67,7 +67,7 @@ func (s *SFU) Start(conf Config) error {
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
-			Addr:     s.Node.NID,
+			Addr:     conf.Nats.URL,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}

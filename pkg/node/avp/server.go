@@ -74,7 +74,7 @@ func newAVPServer(conf avp.Config, elems map[string]avp.ElementFun) *avpServer {
 	}
 }
 
-// watchNodes watch islb nodes up/down
+// watchIslbNodes watch islb nodes up/down
 func (a *avpServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
 	a.nodeLock.Lock()
 	defer a.nodeLock.Unlock()

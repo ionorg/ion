@@ -110,6 +110,7 @@ func (s *SFU) join(sid string) (*avp.WebRTCTransport, error) {
 			Payload: &sfu.SignalRequest_Join{
 				Join: &sfu.JoinRequest{
 					Sid:         sid,
+					Uid:         "",
 					Description: marshalled,
 				},
 			},

@@ -26,7 +26,7 @@ func newSFUServer(sfu *sfu.SFU) *sfuServer {
 	return &sfuServer{sfu: sfu, nodes: make(map[string]*discovery.Node)}
 }
 
-// watchNodes watch islb nodes up/down
+// watchIslbNodes watch islb nodes up/down
 func (s *sfuServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
 	s.nodeLock.Lock()
 	defer s.nodeLock.Unlock()

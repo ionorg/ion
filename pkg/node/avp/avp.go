@@ -80,7 +80,7 @@ func (a *AVP) Start(conf Config) error {
 		NID:     a.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
-			Addr:     a.Node.NID,
+			Addr:     conf.Nats.URL,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}

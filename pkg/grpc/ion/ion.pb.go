@@ -750,6 +750,69 @@ func (x *Parameter) GetValue() string {
 	return ""
 }
 
+type RPC struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Protocol string       `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Addr     string       `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
+	Params   []*Parameter `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty"`
+}
+
+func (x *RPC) Reset() {
+	*x = RPC{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protos_ion_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RPC) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RPC) ProtoMessage() {}
+
+func (x *RPC) ProtoReflect() protoreflect.Message {
+	mi := &file_protos_ion_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RPC.ProtoReflect.Descriptor instead.
+func (*RPC) Descriptor() ([]byte, []int) {
+	return file_protos_ion_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RPC) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *RPC) GetAddr() string {
+	if x != nil {
+		return x.Addr
+	}
+	return ""
+}
+
+func (x *RPC) GetParams() []*Parameter {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
 type Node struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -758,12 +821,13 @@ type Node struct {
 	Dc      string `protobuf:"bytes,1,opt,name=dc,proto3" json:"dc,omitempty"`
 	Nid     string `protobuf:"bytes,2,opt,name=nid,proto3" json:"nid,omitempty"`
 	Service string `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
+	Rpc     *RPC   `protobuf:"bytes,4,opt,name=rpc,proto3" json:"rpc,omitempty"`
 }
 
 func (x *Node) Reset() {
 	*x = Node{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_ion_proto_msgTypes[10]
+		mi := &file_protos_ion_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -776,7 +840,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_ion_proto_msgTypes[10]
+	mi := &file_protos_ion_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -789,7 +853,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_protos_ion_proto_rawDescGZIP(), []int{10}
+	return file_protos_ion_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Node) GetDc() string {
@@ -811,6 +875,13 @@ func (x *Node) GetService() string {
 		return x.Service
 	}
 	return ""
+}
+
+func (x *Node) GetRpc() *RPC {
+	if x != nil {
+		return x.Rpc
+	}
+	return nil
 }
 
 var File_protos_ion_proto protoreflect.FileDescriptor
@@ -872,14 +943,22 @@ var file_protos_ion_proto_rawDesc = []byte{
 	0x61, 0x74, 0x61, 0x22, 0x33, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72,
 	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
 	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x42, 0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65,
-	0x12, 0x0e, 0x0a, 0x02, 0x64, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x64, 0x63,
-	0x12, 0x10, 0x0a, 0x03, 0x6e, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6e,
-	0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x42, 0x22, 0x5a, 0x20,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x6f, 0x6e, 0x2f,
-	0x69, 0x6f, 0x6e, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x69, 0x6f, 0x6e,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x5d, 0x0a, 0x03, 0x52, 0x50, 0x43, 0x12,
+	0x1a, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x12, 0x12, 0x0a, 0x04, 0x61,
+	0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12,
+	0x26, 0x0a, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x0e, 0x2e, 0x69, 0x6f, 0x6e, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x52,
+	0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x22, 0x5e, 0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65, 0x12,
+	0x0e, 0x0a, 0x02, 0x64, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x64, 0x63, 0x12,
+	0x10, 0x0a, 0x03, 0x6e, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6e, 0x69,
+	0x64, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x07, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x1a, 0x0a, 0x03, 0x72,
+	0x70, 0x63, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x08, 0x2e, 0x69, 0x6f, 0x6e, 0x2e, 0x52,
+	0x50, 0x43, 0x52, 0x03, 0x72, 0x70, 0x63, 0x42, 0x22, 0x5a, 0x20, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x6f, 0x6e, 0x2f, 0x69, 0x6f, 0x6e, 0x2f, 0x70,
+	0x6b, 0x67, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x69, 0x6f, 0x6e, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -895,7 +974,7 @@ func file_protos_ion_proto_rawDescGZIP() []byte {
 }
 
 var file_protos_ion_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_protos_ion_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_protos_ion_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_protos_ion_proto_goTypes = []interface{}{
 	(SessionReport_State)(0), // 0: ion.SessionReport.State
 	(PeerEvent_State)(0),     // 1: ion.PeerEvent.State
@@ -910,12 +989,13 @@ var file_protos_ion_proto_goTypes = []interface{}{
 	(*StreamEvent)(nil),      // 10: ion.StreamEvent
 	(*Message)(nil),          // 11: ion.Message
 	(*Parameter)(nil),        // 12: ion.Parameter
-	(*Node)(nil),             // 13: ion.Node
+	(*RPC)(nil),              // 13: ion.RPC
+	(*Node)(nil),             // 14: ion.Node
 }
 var file_protos_ion_proto_depIdxs = []int32{
 	4,  // 0: ion.Stream.tracks:type_name -> ion.Track
 	5,  // 1: ion.Peer.streams:type_name -> ion.Stream
-	13, // 2: ion.Session.node:type_name -> ion.Node
+	14, // 2: ion.Session.node:type_name -> ion.Node
 	6,  // 3: ion.Session.peers:type_name -> ion.Peer
 	0,  // 4: ion.SessionReport.state:type_name -> ion.SessionReport.State
 	7,  // 5: ion.SessionReport.session:type_name -> ion.Session
@@ -923,11 +1003,13 @@ var file_protos_ion_proto_depIdxs = []int32{
 	6,  // 7: ion.PeerEvent.peer:type_name -> ion.Peer
 	2,  // 8: ion.StreamEvent.state:type_name -> ion.StreamEvent.State
 	5,  // 9: ion.StreamEvent.streams:type_name -> ion.Stream
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	12, // 10: ion.RPC.params:type_name -> ion.Parameter
+	13, // 11: ion.Node.rpc:type_name -> ion.RPC
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_protos_ion_proto_init() }
@@ -1057,6 +1139,18 @@ func file_protos_ion_proto_init() {
 			}
 		}
 		file_protos_ion_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RPC); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protos_ion_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Node); i {
 			case 0:
 				return &v.state
@@ -1075,7 +1169,7 @@ func file_protos_ion_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_protos_ion_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

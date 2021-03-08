@@ -95,7 +95,7 @@ func (i *ISLB) Start(conf Config) error {
 		NID:     i.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
-			Addr:     i.Node.NID,
+			Addr:     conf.Nats.URL,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
