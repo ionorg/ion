@@ -7,7 +7,25 @@ option go_package = "github.com/pion/ion/pkg/grpc/avp";
 package avp;
 
 service AVP {
-  rpc Process(AVPRequest) returns (AVPReply);
+  rpc Signal(stream SignalRequest) returns (stream SignalReply) {}
+}
+
+message SignalRequest {
+    oneof payload {
+        Process process = 1;
+    }
+}
+
+message SignalReply {}
+
+// Process describes an a/v process
+message Process {
+    string sfu = 1;      // media sfu
+    string pid = 2;      // pipeline id
+    string sid = 3;      // session id
+    string tid = 4;      // track id
+    string eid = 5;      // element id
+    bytes config = 6;
 }
 
 message Element {

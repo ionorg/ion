@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AVPClient interface {
-	Process(ctx context.Context, in *AVPRequest, opts ...grpc.CallOption) (*AVPReply, error)
+	Signal(ctx context.Context, opts ...grpc.CallOption) (AVP_SignalClient, error)
 }
 
 type aVPClient struct {
@@ -29,20 +29,42 @@ func NewAVPClient(cc grpc.ClientConnInterface) AVPClient {
 	return &aVPClient{cc}
 }
 
-func (c *aVPClient) Process(ctx context.Context, in *AVPRequest, opts ...grpc.CallOption) (*AVPReply, error) {
-	out := new(AVPReply)
-	err := c.cc.Invoke(ctx, "/avp.AVP/Process", in, out, opts...)
+func (c *aVPClient) Signal(ctx context.Context, opts ...grpc.CallOption) (AVP_SignalClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AVP_ServiceDesc.Streams[0], "/avp.AVP/Signal", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &aVPSignalClient{stream}
+	return x, nil
+}
+
+type AVP_SignalClient interface {
+	Send(*SignalRequest) error
+	Recv() (*SignalReply, error)
+	grpc.ClientStream
+}
+
+type aVPSignalClient struct {
+	grpc.ClientStream
+}
+
+func (x *aVPSignalClient) Send(m *SignalRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *aVPSignalClient) Recv() (*SignalReply, error) {
+	m := new(SignalReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // AVPServer is the server API for AVP service.
 // All implementations must embed UnimplementedAVPServer
 // for forward compatibility
 type AVPServer interface {
-	Process(context.Context, *AVPRequest) (*AVPReply, error)
+	Signal(AVP_SignalServer) error
 	mustEmbedUnimplementedAVPServer()
 }
 
@@ -50,8 +72,8 @@ type AVPServer interface {
 type UnimplementedAVPServer struct {
 }
 
-func (UnimplementedAVPServer) Process(context.Context, *AVPRequest) (*AVPReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
+func (UnimplementedAVPServer) Signal(AVP_SignalServer) error {
+	return status.Errorf(codes.Unimplemented, "method Signal not implemented")
 }
 func (UnimplementedAVPServer) mustEmbedUnimplementedAVPServer() {}
 
@@ -66,22 +88,30 @@ func RegisterAVPServer(s grpc.ServiceRegistrar, srv AVPServer) {
 	s.RegisterService(&AVP_ServiceDesc, srv)
 }
 
-func _AVP_Process_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AVPRequest)
-	if err := dec(in); err != nil {
+func _AVP_Signal_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AVPServer).Signal(&aVPSignalServer{stream})
+}
+
+type AVP_SignalServer interface {
+	Send(*SignalReply) error
+	Recv() (*SignalRequest, error)
+	grpc.ServerStream
+}
+
+type aVPSignalServer struct {
+	grpc.ServerStream
+}
+
+func (x *aVPSignalServer) Send(m *SignalReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *aVPSignalServer) Recv() (*SignalRequest, error) {
+	m := new(SignalRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(AVPServer).Process(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/avp.AVP/Process",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AVPServer).Process(ctx, req.(*AVPRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // AVP_ServiceDesc is the grpc.ServiceDesc for AVP service.
@@ -90,12 +120,14 @@ func _AVP_Process_Handler(srv interface{}, ctx context.Context, dec func(interfa
 var AVP_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "avp.AVP",
 	HandlerType: (*AVPServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Process",
-			Handler:    _AVP_Process_Handler,
+			StreamName:    "Signal",
+			Handler:       _AVP_Signal_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "protos/avp.proto",
 }

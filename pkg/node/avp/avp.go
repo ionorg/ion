@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	avp "github.com/pion/ion-avp/pkg"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
@@ -43,6 +44,7 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
+	config avp.Config
 	ion.Node
 	s *avpServer
 }
@@ -100,8 +102,11 @@ func (a *AVP) Start(conf Config) error {
 		}
 	}
 
-	a.s = newAvpServer(conf.Config, elems, a.Node.NID, a.Node.NatsConn())
+	a.s = newAVPServer(conf.Config, elems)
 	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
+
+	//Watch ISLB nodes.
+	go a.Node.Watch(proto.ServiceISLB, a.s.watchIslbNodes)
 
 	return nil
 }
