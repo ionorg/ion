@@ -6,50 +6,57 @@ import (
 	log "github.com/pion/ion-log"
 )
 
-// room represents a room which manage peers
-type room struct {
+// Room represents a Room which manage peers
+type Room struct {
 	sync.RWMutex
 	id    string
+	nid   string
 	peers map[string]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(id string) *room {
-	r := &room{
+func newRoom(id string, nid string) *Room {
+	r := &Room{
 		id:    id,
+		nid:   nid,
 		peers: make(map[string]*Peer),
 	}
 	return r
 }
 
 // ID room id
-func (r *room) ID() string {
+func (r *Room) ID() string {
 	return r.id
 }
 
+// NID ID for sfu node.
+func (r *Room) NID() string {
+	return r.nid
+}
+
 // addPeer add a peer to room
-func (r *room) addPeer(p *Peer) {
+func (r *Room) addPeer(p *Peer) {
 	r.Lock()
 	defer r.Unlock()
 	r.peers[p.uid] = p
 }
 
 // getPeer get a peer by peer id
-func (r *room) getPeer(uid string) *Peer {
+func (r *Room) getPeer(uid string) *Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers[uid]
 }
 
 // getPeers get peers in the room
-func (r *room) getPeers() map[string]*Peer {
+func (r *Room) getPeers() map[string]*Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers
 }
 
 // delPeer delete a peer in the room
-func (r *room) delPeer(uid string) int {
+func (r *Room) delPeer(uid string) int {
 	r.Lock()
 	defer r.Unlock()
 	delete(r.peers, uid)
@@ -57,14 +64,14 @@ func (r *room) delPeer(uid string) int {
 }
 
 // count return count of peers in room
-func (r *room) count() int {
+func (r *Room) count() int {
 	r.RLock()
 	defer r.RUnlock()
 	return len(r.peers)
 }
 
 // send message to peers
-func (r *room) send(data interface{}, without string) {
+func (r *Room) send(data interface{}, without string) {
 	peers := r.getPeers()
 	for id, p := range peers {
 		if len(without) > 0 && id != without {

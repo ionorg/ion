@@ -14,21 +14,11 @@ type Peer struct {
 	info      []byte
 	leaveOnce sync.Once
 	closed    util.AtomicBool
-	send      func(msg interface{}) error
-}
-
-// NewPeer create peer instance for client
-func NewPeer(sid string, uid string, info []byte) *Peer {
-	p := &Peer{
-		uid:  uid,
-		sid:  sid,
-		info: info,
-	}
-	return p
 }
 
 // Close peer
 func (p *Peer) Close() {
+
 	if p.closed.Get() {
 		return
 	}
@@ -50,6 +40,10 @@ func (p *Peer) SID() string {
 	return p.sid
 }
 
-func (p *Peer) handleBizSignal(req *biz.JoinRequest) (*biz.JoinReply, error) {
+func (p *Peer) send(msg interface{}) error {
+	return nil
+}
+
+func (p *Peer) handleRequest(req *biz.JoinRequest) (*biz.JoinReply, error) {
 	return nil, nil
 }

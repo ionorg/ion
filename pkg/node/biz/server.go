@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -14,10 +15,7 @@ import (
 	islb "github.com/pion/ion/pkg/grpc/islb"
 	sfu "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/proto"
-)
-
-const (
-	statCycle = time.Second * 3
+	"github.com/pion/ion/pkg/util"
 )
 
 // BizServer represents an BizServer instance
@@ -27,7 +25,7 @@ type BizServer struct {
 	nc       *nats.Conn
 	elements []string
 	roomLock sync.RWMutex
-	rooms    map[string]*room
+	rooms    map[string]*Room
 	closed   chan bool
 	islbcli  islb.ISLBClient
 	nodeLock sync.RWMutex
@@ -39,14 +37,14 @@ func newBizServer(dc string, nid string, elements []string, nc *nats.Conn) *BizS
 	return &BizServer{
 		nc:       nc,
 		elements: elements,
-		rooms:    make(map[string]*room),
+		rooms:    make(map[string]*Room),
 		closed:   make(chan bool),
 		nodes:    make(map[string]*discovery.Node),
 	}
 }
 
 func (s *BizServer) start() error {
-	//go s.stat()
+	go s.stat()
 	return nil
 }
 
@@ -55,46 +53,143 @@ func (s *BizServer) close() {
 }
 
 // getRoom get a room by id
-func (s *BizServer) getRoom(id string) *room {
+func (s *BizServer) getRoom(id string) *Room {
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
 	r := s.rooms[id]
 	return r
 }
 
-//Signal forward to sfu node.
-func (s *BizServer) Signal(stream sfu.SFU_SignalServer) error {
-	var peer *Peer = nil
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			log.Errorf("err: %v", err)
-			return err
+/*func (s *BizServer) BridgeTest(sid, uid string) {
+
+	if s.islbcli == nil {
+		for nid, _ := range s.nodes {
+			ncli := nrpc.NewClient(s.nc, nid)
+			s.islbcli = islb.NewISLBClient(ncli)
 		}
+		resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
+			Service: proto.ServiceSFU,
+			Sid:     sid,
+		})
+		if err == nil && len(resp.Nodes) > 0 {
 
-		switch payload := req.Payload.(type) {
-		case *sfu.SignalRequest_Join:
-			sid := payload.Join.Sid
-			uid := payload.Join.Uid
-			room := s.getRoom(sid)
-			if room != nil {
-				peer = room.getPeer(uid)
-				if peer != nil {
+			peer := &Peer{
+				uid:  uid,
+				sid:  sid,
+				info: []byte(""),
+			}
 
+			r := s.getRoom(sid)
+			if r == nil {
+				r = newRoom(sid, resp.GetNodes()[0].Nid)
+				s.roomLock.RLock()
+				s.rooms[sid] = r
+				s.roomLock.RUnlock()
+			}
+			r.addPeer(peer)
+		}
+	}
+}*/
+
+//Signal bridge SFU signaling between client and sfu node.
+func (s *BizServer) Signal(sstream sfu.SFU_SignalServer) error {
+	var peer *Peer = nil
+	var cstream sfu.SFU_SignalClient = nil
+	reqCh := make(chan *sfu.SignalRequest)
+	replyCh := make(chan *sfu.SignalReply)
+	errCh := make(chan error)
+
+	defer func() {
+		if cstream != nil {
+			cstream.CloseSend()
+		}
+		close(reqCh)
+		close(replyCh)
+		close(errCh)
+	}()
+
+	go func() {
+		for {
+			req, err := sstream.Recv()
+			if err != nil {
+				log.Errorf("Singal server stream.Recv() err: %v", err)
+				errCh <- err
+				return
+			}
+			reqCh <- req
+		}
+	}()
+
+	for {
+		select {
+		case err, _ := <-errCh:
+			return err
+		case req, ok := <-reqCh:
+
+			if !ok {
+				return io.EOF
+			}
+
+			if cstream != nil {
+				cstream.Send(req)
+				break
+			}
+
+			switch payload := req.Payload.(type) {
+			case *sfu.SignalRequest_Join:
+				//s.BridgeTest(payload.Join.Sid, payload.Join.Uid)
+				r := s.getRoom(payload.Join.Sid)
+				if r != nil {
+					peer = r.getPeer(payload.Join.Uid)
+					if peer != nil {
+						//Use nats-grpc or grpc
+						cli := sfu.NewSFUClient(nrpc.NewClient(s.nc, r.NID()))
+						var err error
+						cstream, err = cli.Signal(context.Background())
+						if err != nil {
+							log.Errorf("Singal cli.Signal() err: %v", err)
+							return err
+						}
+
+						go func() {
+							for {
+								reply, err := cstream.Recv()
+								if err != nil {
+									log.Errorf("Singal client stream.Recv() err: %v", err)
+									errCh <- err
+									return
+								}
+								replyCh <- reply
+							}
+						}()
+
+						cstream.Send(req)
+						break
+					} else {
+						return fmt.Errorf("peer [%v] not found", payload.Join.Uid)
+					}
+				} else {
+					return fmt.Errorf("session [%v] not found", payload.Join.Sid)
 				}
 			}
+		case reply, ok := <-replyCh:
+			if ok {
+				sstream.Send(reply)
+				break
+			}
+			return io.EOF
 		}
-
-		log.Infof("req => %v", req.String())
 	}
 }
 
-//Join for biz request.
+//Join process biz request.
 func (s *BizServer) Join(stream biz.Biz_JoinServer) error {
-	var r *room = nil
+	var r *Room = nil
 	var peer *Peer = nil
+
 	defer func() {
 		if peer != nil && r != nil {
+			peer.Close()
 			r.delPeer(peer.UID())
 		}
 	}()
@@ -102,75 +197,84 @@ func (s *BizServer) Join(stream biz.Biz_JoinServer) error {
 	for {
 		req, err := stream.Recv()
 		if err != nil {
-			log.Errorf("err: %v", err)
+			log.Errorf("Biz stream.Recv() err: %v", err)
 			return err
 		}
+
+		log.Infof("Biz request => %v", req.String())
 
 		switch payload := req.Payload.(type) {
 		case *biz.JoinRequest_Join:
 			sid := payload.Join.Sid
 			uid := payload.Join.Uid
-			info := payload.Join.Info
-			r = s.getRoom(sid)
-
-			if r == nil {
-				r = newRoom(sid)
-				s.roomLock.RLock()
-				s.rooms[sid] = r
-				s.roomLock.RUnlock()
-			}
+			success := false
+			reason := "unkown error."
 
 			if s.islbcli == nil {
-				ncli := nrpc.NewClient(s.nc, s.nodes["islb"].NID)
-				s.islbcli = islb.NewISLBClient(ncli)
+				s.nodeLock.Lock()
+				defer s.nodeLock.Unlock()
+				for _, node := range s.nodes {
+					if node.Service == proto.ServiceISLB {
+						ncli := nrpc.NewClient(s.nc, node.NID)
+						s.islbcli = islb.NewISLBClient(ncli)
+						break
+					}
+				}
 			}
 
-			resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
-				Service: proto.ServiceSFU,
-				Sid:     sid,
-			})
-			log.Infof("resp => %v", resp)
-
-			if err != nil {
-				stream.Send(&biz.JoinReply{
-					Payload: &biz.JoinReply_Result{
-						Result: &biz.JoinResult{
-							Success: false,
-							Reason:  "islb " + sid + " not found.",
-						},
-					},
-				})
-				break
-			}
-
-			if r != nil {
-				peer = NewPeer(sid, uid, info)
-				r.addPeer(peer)
-				stream.Send(&biz.JoinReply{
-					Payload: &biz.JoinReply_Result{
-						Result: &biz.JoinResult{
-							Success: true,
-							Reason:  "join success.",
-						},
-					},
-				})
+			if s.islbcli != nil {
+				r = s.getRoom(sid)
+				if r == nil {
+					resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
+						Service: proto.ServiceSFU,
+						Sid:     sid,
+					})
+					if err == nil && len(resp.Nodes) > 0 {
+						r = newRoom(sid, resp.GetNodes()[0].Nid)
+						s.roomLock.RLock()
+						s.rooms[sid] = r
+						s.roomLock.RUnlock()
+					} else {
+						reason = fmt.Sprintf("islbcli.FindNode(serivce = sfu, sid = %v) err %v", sid, err)
+					}
+				}
+				if r != nil {
+					peer = &Peer{
+						uid:  uid,
+						sid:  sid,
+						info: payload.Join.Info,
+					}
+					r.addPeer(peer)
+					success = true
+					reason = "join success."
+				} else {
+					reason = fmt.Sprintf("room sid = %v not found", sid)
+				}
 			} else {
-				stream.Send(&biz.JoinReply{
-					Payload: &biz.JoinReply_Result{
-						Result: &biz.JoinResult{
-							Success: false,
-							Reason:  "sid " + sid + " not found.",
-						},
-					},
-				})
+				reason = fmt.Sprintf("islb node not found")
 			}
-		case *biz.JoinRequest_Leave:
-			//uid := payload.Leave.Uid
-			break
 
-		case *biz.JoinRequest_Msg:
-			//msg := payload.Msg
-			//broadcast massge to room.
+			stream.Send(&biz.JoinReply{
+				Payload: &biz.JoinReply_Result{
+					Result: &biz.JoinResult{
+						Success: success,
+						Reason:  reason,
+					},
+				},
+			})
+
+			break
+		case *biz.JoinRequest_Leave, *biz.JoinRequest_Msg:
+			if peer != nil {
+				reply, err := peer.handleRequest(req)
+				if err != nil {
+					log.Errorf("Biz request err %v", err)
+					return err
+				}
+				stream.Send(reply)
+			}
+		default:
+			break
 		}
 		log.Infof("req => %v", req.String())
 	}
@@ -193,21 +297,9 @@ func (s *BizServer) watchNodes(state discovery.NodeState, node *discovery.Node) 
 	}
 }
 
-func (s *BizServer) getNode(service string, uid string, sid string) (string, error) {
-	resp, err := s.islbcli.FindNode(context.Background(), &islb.FindNodeRequest{
-		Service: service,
-		Sid:     sid,
-	})
-
-	if err != nil {
-		return "", err
-	}
-	return resp.Nodes[0].Nid, nil
-}
-
 // stat peers
 func (s *BizServer) stat() {
-	t := time.NewTicker(statCycle)
+	t := time.NewTicker(util.DefaultStatCycle)
 	defer t.Stop()
 	for {
 		select {

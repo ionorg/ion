@@ -74,7 +74,7 @@ func (s *SFU) Start(conf Config) error {
 
 	go s.Node.KeepAlive(node)
 
-	s.s = newServer(isfu.NewSFU(conf.Config))
+	s.s = newSFUServer(isfu.NewSFU(conf.Config))
 	//grpc service
 	psfu.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
 

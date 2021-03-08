@@ -87,7 +87,7 @@ func (i *ISLB) Start(conf Config) error {
 	i.s = &islbServer{Redis: i.redis, nodes: make(map[string]discovery.Node)}
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
-	i.registry.Listen(i.s.handleNode)
+	i.registry.Listen(i.s.watchAllNodes)
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,

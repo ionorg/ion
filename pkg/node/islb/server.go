@@ -21,8 +21,8 @@ type islbServer struct {
 }
 
 // handle Node from service discovery.
-func (s *islbServer) handleNode(action string, node discovery.Node) {
-	log.Infof("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
+func (s *islbServer) watchAllNodes(action string, node discovery.Node) {
+	log.Debugf("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 	s.nodeLock.Lock()
 	defer s.nodeLock.Unlock()
 	switch action {

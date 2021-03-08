@@ -9,6 +9,11 @@ import (
 	log "github.com/pion/ion-log"
 )
 
+const (
+	DefaultStatCycle   = time.Second * 3
+	DefaultGRPCTimeout = 15 * time.Second
+)
+
 // RandomString generate a random string
 func RandomString(n int) string {
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
