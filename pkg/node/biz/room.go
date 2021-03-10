@@ -4,34 +4,30 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/grpc/ion"
 )
 
 // Room represents a Room which manage peers
 type Room struct {
 	sync.RWMutex
-	id    string
-	nid   string
-	peers map[string]*Peer
+	sid    string
+	sfuNID string
+	peers  map[string]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(id string, nid string) *Room {
+func newRoom(sid string, nid string) *Room {
 	r := &Room{
-		id:    id,
-		nid:   nid,
-		peers: make(map[string]*Peer),
+		sid:    sid,
+		sfuNID: nid,
+		peers:  make(map[string]*Peer),
 	}
 	return r
 }
 
-// ID room id
-func (r *Room) ID() string {
-	return r.id
-}
-
-// NID ID for sfu node.
-func (r *Room) NID() string {
-	return r.nid
+// SID room id
+func (r *Room) SID() string {
+	return r.sid
 }
 
 // addPeer add a peer to room
@@ -70,13 +66,34 @@ func (r *Room) count() int {
 	return len(r.peers)
 }
 
-// send message to peers
-func (r *Room) send(data interface{}, without string) {
+func (r *Room) broadcastPeerEvent(event *ion.PeerEvent) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.sendPeerEvent(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		}
+	}
+}
+
+func (r *Room) broadcastStreamEvent(event *ion.StreamEvent) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.sendStreamEvent(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		}
+	}
+}
+
+func (r *Room) broadcastMessage(msg *ion.Message) {
+	from := msg.From
+	to := msg.To
+	data := msg.Data
+	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
 	peers := r.getPeers()
 	for id, p := range peers {
-		if len(without) > 0 && id != without {
-			if err := p.send(data); err != nil {
-				log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		if id == to || to == "all" {
+			if err := p.sendMessage(msg); err != nil {
+				log.Errorf("send msg to peer(%s) error: %v", p.uid, err)
 			}
 		}
 	}

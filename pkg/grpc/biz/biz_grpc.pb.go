@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BizClient interface {
-	Join(ctx context.Context, opts ...grpc.CallOption) (Biz_JoinClient, error)
+	Signal(ctx context.Context, opts ...grpc.CallOption) (Biz_SignalClient, error)
 }
 
 type bizClient struct {
@@ -29,31 +29,31 @@ func NewBizClient(cc grpc.ClientConnInterface) BizClient {
 	return &bizClient{cc}
 }
 
-func (c *bizClient) Join(ctx context.Context, opts ...grpc.CallOption) (Biz_JoinClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Biz_ServiceDesc.Streams[0], "/biz.Biz/Join", opts...)
+func (c *bizClient) Signal(ctx context.Context, opts ...grpc.CallOption) (Biz_SignalClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Biz_ServiceDesc.Streams[0], "/biz.Biz/Signal", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &bizJoinClient{stream}
+	x := &bizSignalClient{stream}
 	return x, nil
 }
 
-type Biz_JoinClient interface {
-	Send(*JoinRequest) error
-	Recv() (*JoinReply, error)
+type Biz_SignalClient interface {
+	Send(*SignalRequest) error
+	Recv() (*SignalReply, error)
 	grpc.ClientStream
 }
 
-type bizJoinClient struct {
+type bizSignalClient struct {
 	grpc.ClientStream
 }
 
-func (x *bizJoinClient) Send(m *JoinRequest) error {
+func (x *bizSignalClient) Send(m *SignalRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *bizJoinClient) Recv() (*JoinReply, error) {
-	m := new(JoinReply)
+func (x *bizSignalClient) Recv() (*SignalReply, error) {
+	m := new(SignalReply)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (x *bizJoinClient) Recv() (*JoinReply, error) {
 // All implementations must embed UnimplementedBizServer
 // for forward compatibility
 type BizServer interface {
-	Join(Biz_JoinServer) error
+	Signal(Biz_SignalServer) error
 	mustEmbedUnimplementedBizServer()
 }
 
@@ -72,8 +72,8 @@ type BizServer interface {
 type UnimplementedBizServer struct {
 }
 
-func (UnimplementedBizServer) Join(Biz_JoinServer) error {
-	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+func (UnimplementedBizServer) Signal(Biz_SignalServer) error {
+	return status.Errorf(codes.Unimplemented, "method Signal not implemented")
 }
 func (UnimplementedBizServer) mustEmbedUnimplementedBizServer() {}
 
@@ -88,26 +88,26 @@ func RegisterBizServer(s grpc.ServiceRegistrar, srv BizServer) {
 	s.RegisterService(&Biz_ServiceDesc, srv)
 }
 
-func _Biz_Join_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(BizServer).Join(&bizJoinServer{stream})
+func _Biz_Signal_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BizServer).Signal(&bizSignalServer{stream})
 }
 
-type Biz_JoinServer interface {
-	Send(*JoinReply) error
-	Recv() (*JoinRequest, error)
+type Biz_SignalServer interface {
+	Send(*SignalReply) error
+	Recv() (*SignalRequest, error)
 	grpc.ServerStream
 }
 
-type bizJoinServer struct {
+type bizSignalServer struct {
 	grpc.ServerStream
 }
 
-func (x *bizJoinServer) Send(m *JoinReply) error {
+func (x *bizSignalServer) Send(m *SignalReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *bizJoinServer) Recv() (*JoinRequest, error) {
-	m := new(JoinRequest)
+func (x *bizSignalServer) Recv() (*SignalRequest, error) {
+	m := new(SignalRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ var Biz_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Join",
-			Handler:       _Biz_Join_Handler,
+			StreamName:    "Signal",
+			Handler:       _Biz_Signal_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

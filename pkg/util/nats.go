@@ -7,6 +7,7 @@ import (
 	log "github.com/pion/ion-log"
 )
 
+// NewNatsConn .
 func NewNatsConn(url string) (*nats.Conn, error) {
 	// connect options
 	opts := []nats.Option{nats.Name("nats conn")}

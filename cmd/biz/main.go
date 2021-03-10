@@ -108,9 +108,13 @@ func main() {
 		os.Exit(-1)
 	}
 	defer node.Close()
-
-	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, node.Service())
 	s.GRPCServer.RegisterService(&bizpb.Biz_ServiceDesc, node.Service())
+
+	//Register SFU sig bridge.
+	sfusig := biz.SFUSignalBridge{
+		BizServer: node.Service(),
+	}
+	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, sfusig)
 
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)

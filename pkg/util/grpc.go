@@ -10,10 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	natsURL = "nats://127.0.0.1:4222"
-)
-
 // ClientConnInterface .
 type ClientConnInterface interface {
 	grpc.ClientConnInterface
@@ -21,7 +17,7 @@ type ClientConnInterface interface {
 }
 
 // NewGRPCClientForNode .
-func NewGRPCClientForNode(node discovery.Node) (ClientConnInterface, error) {
+func NewGRPCClientConnForNode(node discovery.Node) (ClientConnInterface, error) {
 	switch node.RPC.Protocol {
 	case discovery.GRPC:
 		conn, err := grpc.Dial(node.RPC.Addr, grpc.WithInsecure(), grpc.WithBlock())
@@ -39,7 +35,7 @@ func NewGRPCClientForNode(node discovery.Node) (ClientConnInterface, error) {
 		conn := nrpc.NewClient(nc, node.NID)
 		return conn, nil
 	case discovery.JSONRPC:
-		return nil, fmt.Errorf("unsupport protocol %v", node.RPC.Protocol)
+		return nil, fmt.Errorf("%v not yet implementation", node.RPC.Protocol)
 	}
 	return nil, fmt.Errorf("New grpc client failed")
 }
@@ -84,7 +80,7 @@ func NewGRPCServiceForNode(node discovery.Node) (ServiceInterface, error) {
 		s := nrpc.NewServer(nc, node.NID)
 		return &nrpcServer{s}, nil
 	case discovery.JSONRPC:
-		return nil, fmt.Errorf("unsupport protocol %v", node.RPC.Protocol)
+		return nil, fmt.Errorf("%v not yet implementation", node.RPC.Protocol)
 	}
 
 	return nil, fmt.Errorf("New grpc server failed")
