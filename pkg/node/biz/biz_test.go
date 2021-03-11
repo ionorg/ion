@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion/pkg/grpc/biz"
@@ -51,17 +50,17 @@ func init() {
 
 	s := grpc.NewServer()
 
-	bs = newBizServer(dc, nid, []string{}, nc)
+	bn := NewBIZ(nid)
 
-	bs.nodes["islb00"] = &discovery.Node{
-		Service: proto.ServiceISLB,
-		NID:     "islb00",
-		DC:      "dc1",
-		RPC: discovery.RPC{
-			Protocol: discovery.NGRPC,
-			Addr:     natsURL,
-		},
+	err = bn.Node.Start(natsURL)
+	if err != nil {
+		log.Panicf("failed to start biz node: %v", err)
 	}
+
+	bs = newBizServer(bn, dc, nid, []string{}, nc)
+
+	//Watch ISLB nodes.
+	go bn.Node.Watch(proto.ServiceISLB)
 
 	pb.RegisterBizServer(s, bs)
 
@@ -94,8 +93,10 @@ func TestJBizJoin(t *testing.T) {
 	stream.Send(&pb.SignalRequest{
 		Payload: &pb.SignalRequest_Join{
 			Join: &pb.Join{
-				Sid: sid,
-				Uid: uid,
+				Peer: &ion.Peer{
+					Sid: sid,
+					Uid: uid,
+				},
 			},
 		},
 	})
@@ -105,13 +106,14 @@ func TestJBizJoin(t *testing.T) {
 		t.Error(err)
 	}
 
+	log.Infof("join reply %v", reply)
+
 	r := bs.getRoom(sid)
 	assert.EqualValues(t, sid, r.sid)
 
 	p := r.getPeer(uid)
 	assert.EqualValues(t, uid, p.UID())
 
-	log.Infof("join reply %v", reply)
 	log.Infof("TestJoin done")
 }
 

@@ -58,7 +58,7 @@ type BIZ struct {
 // NewBIZ create a biz node instance
 func NewBIZ(nid string) *BIZ {
 	return &BIZ{
-		Node: ion.Node{NID: nid},
+		Node: ion.NewNode(nid),
 	}
 }
 
@@ -95,10 +95,10 @@ func (b *BIZ) Start(conf Config) error {
 
 	go b.Node.KeepAlive(node)
 
-	s := newBizServer(conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+	s := newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
 
 	//Watch ISLB nodes.
-	go b.Node.Watch(proto.ServiceISLB, s.watchNodes)
+	go b.Node.Watch(proto.ServiceISLB)
 
 	b.s = s
 

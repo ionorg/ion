@@ -18,11 +18,23 @@ type islbServer struct {
 	Redis    *db.Redis
 	nodeLock sync.Mutex
 	nodes    map[string]discovery.Node
+	in       *ISLB
 }
 
-// handle Node from service discovery.
-func (s *islbServer) watchAllNodes(action string, node discovery.Node) {
-	log.Debugf("handleNode:service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
+func newISLBServer(in *ISLB, redis *db.Redis) *islbServer {
+	return &islbServer{
+		in:    in,
+		Redis: redis,
+		nodes: make(map[string]discovery.Node),
+	}
+}
+
+// handleNodeDiscovery handle all Node from service discovery.
+// This callback can observe all nodes in the ion cluster,
+// TODO: Upload all node information to redis DB so that info
+// can be shared when there are more than one ISLB in the later.
+func (s *islbServer) handleNodeDiscovery(action string, node discovery.Node) {
+	log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 	s.nodeLock.Lock()
 	defer s.nodeLock.Unlock()
 	switch action {
@@ -35,12 +47,13 @@ func (s *islbServer) watchAllNodes(action string, node discovery.Node) {
 	}
 }
 
+// FindNode find service nodes by service name|nid|sid, such as sfu|avp|sip-gateway|rtmp-gateway
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	nid := req.GetNid()
 	sid := req.GetSid()
 	service := req.GetService()
 
-	log.Infof("nid => %v, sid => %v, service => %v", nid, sid, service)
+	log.Infof("islb.FindNode: nid => %v, sid => %v, service => %v", nid, sid, service)
 
 	nodes := []*ion.Node{}
 
@@ -55,6 +68,7 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 		s.nodeLock.Lock()
 		defer s.nodeLock.Unlock()
 		// find node by nid or service
+		//TODO: Add load balancing algorithm to select SFU nodes
 		for _, node := range s.nodes {
 			if nid == node.NID || service == node.Service {
 				nodes = append(nodes, &ion.Node{
@@ -98,35 +112,23 @@ func (s *islbServer) HandleSessionState(ctx context.Context, state *ion.SessionR
 }
 */
 
-func (s *islbServer) PostEvent(context.Context, *proto.ISLBEvent) (*ion.Empty, error) {
+//PostISLBEvent Receive ISLBEvent(stream or session events) from ion-SFU, ion-AVP and ion-SIP
+//the stream and session event will be save to redis db, which is used to create the
+//global location of the media stream
+// key = dc/ion-sfu-1/room1/uid
+// value = [...stream/track info ...]
+func (s *islbServer) PostISLBEvent(context.Context, *proto.ISLBEvent) (*ion.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostEvent not implemented")
 }
 
-func (s *islbServer) HandleEvent(*ion.Empty, proto.ISLB_HandleEventServer) error {
+//WatchISLBEvent broadcast ISLBEvent to ion-biz node.
+//The stream metadata is forwarded to biz node and coupled with the peer in the client through UID
+func (s *islbServer) WatchISLBEvent(*ion.Empty, proto.ISLB_WatchISLBEventServer) error {
 	return status.Errorf(codes.Unimplemented, "method HandleEvent not implemented")
 }
 
 /*
-func (s *islbServer) handle(msg interface{}) (interface{}, error) {
-	log.Infof("handleRequest: %T, %+v", msg, msg)
 
-	switch v := msg.(type) {
-	case *proto.ToIslbFindNodeMsg:
-		return s.findNode(v)
-	case *proto.ToIslbPeerJoinMsg:
-		return s.peerJoin(v)
-	case *proto.IslbPeerLeaveMsg:
-		return s.peerLeave(v)
-	case *proto.ToIslbStreamAddMsg:
-		return s.streamAdd(v)
-	case *proto.IslbBroadcastMsg:
-		return s.broadcast(v)
-	default:
-		return nil, errors.New("unkonw message")
-	}
-}
-
-// Find service nodes by name, such as sfu|avp|sip-gateway|rtmp-gateway
 func (s *islbServer) findNode(msg *proto.ToIslbFindNodeMsg) (interface{}, error) {
 	service := msg.Service
 	nodes := s.getNodes()
@@ -229,106 +231,5 @@ func (s *islbServer) streamAdd(msg *proto.ToIslbStreamAddMsg) (interface{}, erro
 	})
 
 	return nil, err
-}
-
-func (s *islbServer) peerJoin(msg *proto.ToIslbPeerJoinMsg) (interface{}, error) {
-	ukey := proto.UserInfo{
-		DC:  s.dc,
-		SID: msg.SID,
-		UID: msg.UID,
-	}.BuildKey()
-	log.Infof("clientJoin: set %s => %v", ukey, string(msg.Info))
-
-	// Tell everyone about the new peer.
-	if err := s.nrpc.Publish(s.bid, proto.ToClientPeerJoinMsg{
-		UID: msg.UID, SID: msg.SID, Info: msg.Info,
-	}); err != nil {
-		log.Errorf("broadcast peer-join error: %v", err)
-		return nil, err
-	}
-
-	// Tell the new peer about everyone currently in the room.
-	searchKey := proto.UserInfo{
-		DC:  s.dc,
-		SID: msg.SID,
-	}.BuildKey()
-	keys := s.redis.Keys(searchKey)
-
-	peers := make([]proto.Peer, 0)
-	streams := make([]proto.Stream, 0)
-	for _, key := range keys {
-		fields := s.redis.HGetAll(key)
-		parsedUserKey, err := proto.ParseUserInfo(key)
-		if err != nil {
-			log.Errorf("redis.HGetAll err = %v", err)
-			continue
-		}
-		if info, ok := fields["info"]; ok {
-			peers = append(peers, proto.Peer{
-				UID:  parsedUserKey.UID,
-				Info: json.RawMessage(info),
-			})
-		} else {
-			log.Warnf("No info found for %v", key)
-		}
-
-		mkey := proto.MediaInfo{
-			DC:  s.dc,
-			SID: msg.SID,
-			UID: parsedUserKey.UID,
-		}.BuildKey()
-		mediaKeys := s.redis.Keys(mkey)
-		for _, mediaKey := range mediaKeys {
-			mediaFields := s.redis.HGetAll(mediaKey)
-			for mediaField := range mediaFields {
-				log.Warnf("Received media field %s for key %s", mediaField, mediaKey)
-				if len(mediaField) > 6 && mediaField[:6] == "track/" {
-					streams = append(streams, proto.Stream{
-						UID:      parsedUserKey.UID,
-						StreamID: proto.StreamID(mediaField[6:]),
-					})
-				}
-			}
-		}
-	}
-
-	// Write the user info to redis.
-	err := s.redis.HSetTTL(ukey, "info", string(msg.Info), redisLongKeyTTL)
-	if err != nil {
-		log.Errorf("redis.HSetTTL err = %v", err)
-	}
-
-	return proto.FromIslbPeerJoinMsg{
-		Peers:   peers,
-		Streams: streams,
-	}, nil
-}
-
-func (s *islbServer) peerLeave(msg *proto.IslbPeerLeaveMsg) (interface{}, error) {
-	ukey := proto.UserInfo{
-		DC:  s.dc,
-		SID: msg.SID,
-		UID: msg.UID,
-	}.BuildKey()
-	log.Infof("clientLeave: remove key => %s", ukey)
-	err := s.redis.Del(ukey)
-	if err != nil {
-		log.Errorf("redis.Del err = %v", err)
-	}
-
-	if err := s.nrpc.Publish(s.bid, msg); err != nil {
-		log.Errorf("broadcast peer-leave error: %v", err)
-		return nil, err
-	}
-
-	return nil, nil
-}
-
-func (s *islbServer) broadcast(msg *proto.IslbBroadcastMsg) (interface{}, error) {
-	if err := s.nrpc.Publish(s.bid, msg); err != nil {
-		log.Errorf("broadcast message error: %v", err)
-	}
-
-	return nil, nil
 }
 */

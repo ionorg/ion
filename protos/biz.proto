@@ -11,10 +11,8 @@ service Biz {
 }
 
 message Join {
-    string sid = 1;
-    string uid = 2;
-    bytes info = 3;
-    string token = 4;
+    ion.Peer peer = 1;
+    string token = 2;
 }
 
 message JoinReply {

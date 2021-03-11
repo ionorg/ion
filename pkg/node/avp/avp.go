@@ -51,7 +51,7 @@ type AVP struct {
 
 // NewAVP create a avp node instance
 func NewAVP(nid string) *AVP {
-	return &AVP{Node: ion.Node{NID: nid}}
+	return &AVP{Node: ion.NewNode(nid)}
 }
 
 // Start avp node
@@ -106,7 +106,7 @@ func (a *AVP) Start(conf Config) error {
 	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
 	//Watch ISLB nodes.
-	go a.Node.Watch(proto.ServiceISLB, a.s.watchIslbNodes)
+	go a.Node.Watch(proto.ServiceISLB)
 
 	return nil
 }

@@ -11,15 +11,15 @@ import (
 type Room struct {
 	sync.RWMutex
 	sid    string
-	sfuNID string
+	sfunid string
 	peers  map[string]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(sid string, nid string) *Room {
+func newRoom(sid string, sfunid string) *Room {
 	r := &Room{
 		sid:    sid,
-		sfuNID: nid,
+		sfunid: sfunid,
 		peers:  make(map[string]*Peer),
 	}
 	return r
@@ -33,8 +33,18 @@ func (r *Room) SID() string {
 // addPeer add a peer to room
 func (r *Room) addPeer(p *Peer) {
 	r.Lock()
-	defer r.Unlock()
 	r.peers[p.uid] = p
+	r.Unlock()
+
+	event := &ion.PeerEvent{
+		State: ion.PeerEvent_JOIN,
+		Peer: &ion.Peer{
+			Sid: r.sid,
+			Uid: p.uid,
+		},
+	}
+
+	r.sendPeerEvent(event)
 }
 
 // getPeer get a peer by peer id
@@ -54,8 +64,18 @@ func (r *Room) getPeers() map[string]*Peer {
 // delPeer delete a peer in the room
 func (r *Room) delPeer(uid string) int {
 	r.Lock()
-	defer r.Unlock()
 	delete(r.peers, uid)
+	r.Unlock()
+
+	event := &ion.PeerEvent{
+		State: ion.PeerEvent_LEAVE,
+		Peer: &ion.Peer{
+			Sid: r.sid,
+			Uid: uid,
+		},
+	}
+	r.sendPeerEvent(event)
+
 	return len(r.peers)
 }
 
@@ -66,7 +86,7 @@ func (r *Room) count() int {
 	return len(r.peers)
 }
 
-func (r *Room) broadcastPeerEvent(event *ion.PeerEvent) {
+func (r *Room) sendPeerEvent(event *ion.PeerEvent) {
 	peers := r.getPeers()
 	for _, p := range peers {
 		if err := p.sendPeerEvent(event); err != nil {
@@ -75,7 +95,7 @@ func (r *Room) broadcastPeerEvent(event *ion.PeerEvent) {
 	}
 }
 
-func (r *Room) broadcastStreamEvent(event *ion.StreamEvent) {
+func (r *Room) sendStreamEvent(event *ion.StreamEvent) {
 	peers := r.getPeers()
 	for _, p := range peers {
 		if err := p.sendStreamEvent(event); err != nil {
@@ -84,7 +104,7 @@ func (r *Room) broadcastStreamEvent(event *ion.StreamEvent) {
 	}
 }
 
-func (r *Room) broadcastMessage(msg *ion.Message) {
+func (r *Room) sendMessage(msg *ion.Message) {
 	from := msg.From
 	to := msg.To
 	data := msg.Data

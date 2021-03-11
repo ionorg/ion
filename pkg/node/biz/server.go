@@ -7,12 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	biz "github.com/pion/ion/pkg/grpc/biz"
-	"github.com/pion/ion/pkg/grpc/ion"
 	islb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -27,18 +25,17 @@ type BizServer struct {
 	rooms    map[string]*Room
 	closed   chan bool
 	islbcli  islb.ISLBClient
-	nodeLock sync.RWMutex
-	nodes    map[string]*discovery.Node
+	bn       *BIZ
 }
 
 // newBizServer creates a new avp server instance
-func newBizServer(dc string, nid string, elements []string, nc *nats.Conn) *BizServer {
+func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Conn) *BizServer {
 	return &BizServer{
+		bn:       bn,
 		nc:       nc,
 		elements: elements,
 		rooms:    make(map[string]*Room),
 		closed:   make(chan bool),
-		nodes:    make(map[string]*discovery.Node),
 	}
 }
 
@@ -151,16 +148,15 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 
 			switch payload := req.Payload.(type) {
 			case *biz.SignalRequest_Join:
-				sid := payload.Join.Sid
-				uid := payload.Join.Uid
+				sid := payload.Join.Peer.Sid
+				uid := payload.Join.Peer.Uid
 
 				success := false
 				reason := "unkown error."
 
 				if s.islbcli == nil {
-					s.nodeLock.Lock()
-					defer s.nodeLock.Unlock()
-					for _, node := range s.nodes {
+					nodes := s.bn.GetNeighborNodes()
+					for _, node := range nodes {
 						if node.Service == proto.ServiceISLB {
 							ncli := nrpc.NewClient(s.nc, node.NID)
 							s.islbcli = islb.NewISLBClient(ncli)
@@ -172,10 +168,12 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				if s.islbcli != nil {
 					r = s.getRoom(sid)
 					if r == nil {
+						reason = fmt.Sprintf("room sid = %v not found", sid)
 						resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
 							Service: proto.ServiceSFU,
 							Sid:     sid,
 						})
+
 						if err == nil && len(resp.Nodes) > 0 {
 							r = s.createRoom(sid, resp.GetNodes()[0].Nid)
 						} else {
@@ -183,23 +181,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						}
 					}
 					if r != nil {
-						peer = NewPeer(sid, uid, payload.Join.Info, repCh)
+						peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
 						r.addPeer(peer)
-
-						peerEvent := &ion.PeerEvent{
-							State: ion.PeerEvent_JOIN,
-							Peer: &ion.Peer{
-								Uid: uid,
-								//TODO: Parse the sdp to get the stream parameter set.
-								Streams: []*ion.Stream{},
-							},
-						}
-						r.broadcastPeerEvent(peerEvent)
-
 						success = true
 						reason = "join success."
-					} else {
-						reason = fmt.Sprintf("room sid = %v not found", sid)
 					}
 				} else {
 					reason = fmt.Sprintf("islb node not found")
@@ -221,16 +206,6 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				peer.Close()
 				peer = nil
 
-				peerEvent := &ion.PeerEvent{
-					State: ion.PeerEvent_LEAVE,
-					Peer: &ion.Peer{
-						Uid: uid,
-						//TODO: Parse the sdp to get the stream parameter set.
-						Streams: []*ion.Stream{},
-					},
-				}
-				r.broadcastPeerEvent(peerEvent)
-
 				if r.count() == 0 {
 					s.delRoom(r.SID())
 					r = nil
@@ -247,31 +222,14 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				to := payload.Msg.To
 				data := payload.Msg.Data
 				log.Debugf("Msg request %v => %v, data: %v", from, to, data)
-
+				
 				// message broadcast
-				r.broadcastMessage(payload.Msg)
+				r.sendMessage(payload.Msg)
 			default:
 				break
 			}
 
 		}
-	}
-}
-
-// watchNodes watch islb nodes up/down
-func (s *BizServer) watchNodes(state discovery.NodeState, node *discovery.Node) {
-	s.nodeLock.Lock()
-	defer s.nodeLock.Unlock()
-	id := node.NID
-	service := node.Service
-	if state == discovery.NodeUp {
-		log.Infof("Service up: "+service+" node id => [%v], rpc => %v", id, node.RPC.Protocol)
-		if _, found := s.nodes[id]; !found {
-			s.nodes[id] = node
-		}
-	} else if state == discovery.NodeDown {
-		log.Infof("Service down: "+service+" node id => [%v]", id)
-		delete(s.nodes, id)
 	}
 }
 

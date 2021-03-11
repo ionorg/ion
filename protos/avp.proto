@@ -33,7 +33,7 @@ message Element {
     // webmsaver/mixer/opencv/play/record/ml
     string name = 1;
     // params for element.
-    repeated ion.Parameter parameters = 2;
+    map<string, string> params = 2;
 }
 
 message AVPRequest {

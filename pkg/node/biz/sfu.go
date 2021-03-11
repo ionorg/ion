@@ -69,7 +69,7 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 					if peer != nil {
 						// Use nats-grpc or grpc
 						// TODO: change to util.NewGRPCClientConnForNode.
-						cli := sfu.NewSFUClient(nrpc.NewClient(s.BizServer.nc, r.sfuNID))
+						cli := sfu.NewSFUClient(nrpc.NewClient(s.BizServer.nc, r.sfunid))
 						var err error
 						cstream, err = cli.Signal(context.Background())
 						if err != nil {

@@ -36,7 +36,7 @@ type SFU struct {
 // NewSFU create a sfu node instance
 func NewSFU(nid string) *SFU {
 	s := &SFU{
-		Node: ion.Node{NID: nid},
+		Node: ion.NewNode(nid),
 	}
 	return s
 }
@@ -74,12 +74,12 @@ func (s *SFU) Start(conf Config) error {
 
 	go s.Node.KeepAlive(node)
 
-	s.s = newSFUServer(isfu.NewSFU(conf.Config))
+	s.s = newSFUServer(s, isfu.NewSFU(conf.Config), s.NatsConn())
 	//grpc service
 	psfu.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
 
 	//Watch ISLB nodes.
-	go s.Node.Watch(proto.ServiceISLB, s.s.watchIslbNodes)
+	go s.Node.Watch(proto.ServiceISLB)
 	return nil
 }
 

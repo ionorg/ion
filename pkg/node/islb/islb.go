@@ -49,7 +49,7 @@ type ISLB struct {
 
 // NewISLB create a islb node instance
 func NewISLB(nid string) *ISLB {
-	return &ISLB{Node: ion.Node{NID: nid}}
+	return &ISLB{Node: ion.NewNode(nid)}
 }
 
 // Start islb node
@@ -84,10 +84,10 @@ func (i *ISLB) Start(conf Config) error {
 		return errors.New("new redis error")
 	}
 
-	i.s = &islbServer{Redis: i.redis, nodes: make(map[string]discovery.Node)}
+	i.s = newISLBServer(i, i.redis)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
-	i.registry.Listen(i.s.watchAllNodes)
+	i.registry.Listen(i.s.handleNodeDiscovery)
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,

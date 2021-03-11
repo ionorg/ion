@@ -1,15 +1,20 @@
 package sfu
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	sfu "github.com/pion/ion-sfu/pkg/sfu"
+	isfu "github.com/pion/ion-sfu/pkg/sfu"
+	"github.com/pion/ion/pkg/grpc/ion"
+	"github.com/pion/ion/pkg/grpc/islb"
 	pb "github.com/pion/ion/pkg/grpc/sfu"
+	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,33 +22,38 @@ import (
 
 type sfuServer struct {
 	pb.UnimplementedSFUServer
-	sfu      *sfu.SFU
-	nodeLock sync.RWMutex
-	nodes    map[string]*discovery.Node
+	nc      *nats.Conn
+	sfu     *isfu.SFU
+	islbcli islb.ISLBClient
+	sn      *SFU
 }
 
-func newSFUServer(sfu *sfu.SFU) *sfuServer {
-	return &sfuServer{sfu: sfu, nodes: make(map[string]*discovery.Node)}
+func newSFUServer(sn *SFU, sfu *isfu.SFU, nc *nats.Conn) *sfuServer {
+	return &sfuServer{sn: sn, sfu: sfu, nc: nc}
 }
 
-// watchIslbNodes watch islb nodes up/down
-func (s *sfuServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
-	s.nodeLock.Lock()
-	defer s.nodeLock.Unlock()
-	id := node.NID
-	if state == discovery.NodeUp {
-		log.Infof("islb node %v up", id)
-		if _, found := s.nodes[id]; !found {
-			s.nodes[id] = node
+func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
+	if s.islbcli == nil {
+		nodes := s.sn.GetNeighborNodes()
+		for _, node := range nodes {
+			if node.Service == proto.ServiceISLB {
+				ncli := nrpc.NewClient(s.nc, node.NID)
+				s.islbcli = islb.NewISLBClient(ncli)
+				break
+			}
 		}
-	} else if state == discovery.NodeDown {
-		log.Infof("islb node %v down", id)
-		delete(s.nodes, id)
+	}
+
+	if s.islbcli != nil {
+		_, err := s.islbcli.PostISLBEvent(context.Background(), event)
+		if err != nil {
+			log.Errorf("PostISLBEvent err %v", err)
+		}
 	}
 }
 
 func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
-	peer := sfu.NewPeer(s.sfu)
+	peer := isfu.NewPeer(s.sfu)
 	for {
 		in, err := stream.Recv()
 
@@ -141,9 +151,9 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 			err = peer.Join(payload.Join.Sid, payload.Join.Uid)
 			if err != nil {
 				switch err {
-				case sfu.ErrTransportExists:
+				case isfu.ErrTransportExists:
 					fallthrough
-				case sfu.ErrOfferIgnored:
+				case isfu.ErrOfferIgnored:
 					err = stream.Send(&pb.SignalReply{
 						Payload: &pb.SignalReply_Error{
 							Error: fmt.Errorf("join error: %w", err).Error(),
@@ -198,13 +208,29 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 			}
 
+			streams, err := util.ParseSDP(sdp.SDP)
+			if err != nil {
+				log.Errorf("util.ParseSDP error: %v", err)
+			}
+
+			s.postISLBEvent(&islb.ISLBEvent{
+				Payload: &islb.ISLBEvent_Stream{
+					Stream: &ion.StreamEvent{
+						Sid:     peer.Session().ID(),
+						Uid:     peer.ID(),
+						Streams: streams,
+						State:   ion.StreamEvent_NEW,
+					},
+				},
+			})
+
 			if sdp.Type == webrtc.SDPTypeOffer {
 				answer, err := peer.Answer(sdp)
 				if err != nil {
 					switch err {
-					case sfu.ErrNoTransportEstablished:
+					case isfu.ErrNoTransportEstablished:
 						fallthrough
-					case sfu.ErrOfferIgnored:
+					case isfu.ErrOfferIgnored:
 						err = stream.Send(&pb.SignalReply{
 							Payload: &pb.SignalReply_Error{
 								Error: fmt.Errorf("negotiate answer error: %w", err).Error(),
@@ -247,7 +273,7 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				err := peer.SetRemoteDescription(sdp)
 				if err != nil {
 					switch err {
-					case sfu.ErrNoTransportEstablished:
+					case isfu.ErrNoTransportEstablished:
 						err = stream.Send(&pb.SignalReply{
 							Payload: &pb.SignalReply_Error{
 								Error: fmt.Errorf("set remote description error: %w", err).Error(),
@@ -283,7 +309,7 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 			err = peer.Trickle(candidate, int(payload.Trickle.Target))
 			if err != nil {
 				switch err {
-				case sfu.ErrNoTransportEstablished:
+				case isfu.ErrNoTransportEstablished:
 					log.Errorf("peer hasn't joined, error -> %v", err)
 					err = stream.Send(&pb.SignalReply{
 						Payload: &pb.SignalReply_Error{

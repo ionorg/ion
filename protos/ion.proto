@@ -8,10 +8,9 @@ message Empty {}
 
 message Track {
 	string id      = 1;
-	string kind    = 2;
-	string rid     = 3;
-    uint32 ssrc    = 4;
-    string codec   = 5;
+    string label   = 2;
+	string kind    = 3;
+    map<string, string> simulcast = 4;
 }
 
 message Stream {
@@ -20,14 +19,9 @@ message Stream {
 }
 
 message Peer {
-   string uid = 1;
-   repeated Stream streams = 2;
-}
-
-message Session {
-    Node node = 1;
-    string sid = 3;
-	repeated Peer peers = 4;
+   string sid = 1;
+   string uid = 2;
+   bytes info = 3;
 }
 
 // Describe the basic media info in the session of sfu.
@@ -39,34 +33,36 @@ message Session {
 //   ${msid}: [{id: ${trackId}, kind:audio}, {id: ${trackId}, kind:video}]
 // ]
 
-message SessionReport {
-  enum State {
-       NEW = 0;
-       UPDATE = 1;
-       DELETE = 2;
-  }
-  State state = 3;
-  ion.Session session = 4;
+message SessionEvent {
+    enum State {
+        NEW = 0;
+        DELETE = 1;
+    }
+    State state = 2;
+    string nid = 3;
+    string sid = 4;
+}
+
+message StreamEvent {
+    enum State {
+        NEW = 0;
+        DELETE = 2;
+    }
+    State state = 3;
+    string nid = 4;
+    string sid = 5;
+    string uid = 6;
+    repeated ion.Stream streams = 7;
 }
 
 message PeerEvent {
     enum State {
         JOIN = 0;
-        LEAVE = 1;
-    }
-    State state = 2;
-    ion.Peer peer = 3;
-}
-
-message StreamEvent {
-    enum State {
-        ADD = 0;
         UPDATE = 1;
-        REMOVE = 2;
+        LEAVE = 2;
     }
-    string uid = 3;
-    State state = 4;
-    repeated ion.Stream streams = 5;
+    State state = 3;
+    ion.Peer peer = 4;
 }
 
 message Message {
@@ -83,7 +79,7 @@ message Parameter {
 message RPC {
     string protocol = 1;
     string addr = 2;
-    repeated Parameter params = 3;
+    map<string, string> params = 3;
 }
 
 message Node {
