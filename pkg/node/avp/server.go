@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	pb "github.com/pion/ion-avp/cmd/signal/grpc/proto"
 	avp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/pkg/grpc/avp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

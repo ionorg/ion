@@ -5,8 +5,8 @@ import (
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
+	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
-	psfu "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
@@ -76,7 +76,7 @@ func (s *SFU) Start(conf Config) error {
 
 	s.s = newSFUServer(s, isfu.NewSFU(conf.Config), s.NatsConn())
 	//grpc service
-	psfu.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
+	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
 
 	//Watch ISLB nodes.
 	go s.Node.Watch(proto.ServiceISLB)

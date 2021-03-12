@@ -8,7 +8,7 @@ import (
 
 	avp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
-	sfu "github.com/pion/ion/pkg/grpc/sfu"
+	sfu "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

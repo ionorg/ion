@@ -8,7 +8,7 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/pkg/grpc/sfu"
+	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	"github.com/pion/webrtc/v3"
 	"github.com/tj/assert"
 )

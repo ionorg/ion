@@ -9,10 +9,10 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/grpc/ion"
 	"github.com/pion/ion/pkg/grpc/islb"
-	pb "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/webrtc/v3"
@@ -54,6 +54,21 @@ func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
 
 func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 	peer := isfu.NewPeer(s.sfu)
+
+	defer func() {
+		if peer.Session() != nil {
+			s.postISLBEvent(&islb.ISLBEvent{
+				Payload: &islb.ISLBEvent_Stream{
+					Stream: &ion.StreamEvent{
+						Sid:   peer.Session().ID(),
+						Uid:   peer.ID(),
+						State: ion.StreamEvent_REMOVE,
+					},
+				},
+			})
+		}
+	}()
+
 	for {
 		in, err := stream.Recv()
 
@@ -208,22 +223,6 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 			}
 
-			streams, err := util.ParseSDP(sdp.SDP)
-			if err != nil {
-				log.Errorf("util.ParseSDP error: %v", err)
-			}
-
-			s.postISLBEvent(&islb.ISLBEvent{
-				Payload: &islb.ISLBEvent_Stream{
-					Stream: &ion.StreamEvent{
-						Sid:     peer.Session().ID(),
-						Uid:     peer.ID(),
-						Streams: streams,
-						State:   ion.StreamEvent_NEW,
-					},
-				},
-			})
-
 			if sdp.Type == webrtc.SDPTypeOffer {
 				answer, err := peer.Answer(sdp)
 				if err != nil {
@@ -269,6 +268,24 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 					return status.Errorf(codes.Internal, fmt.Sprintf("negotiate error: %v", err))
 				}
 
+				streams, err := util.ParseSDP(sdp.SDP)
+				if err != nil {
+					log.Errorf("util.ParseSDP error: %v", err)
+				}
+
+				if len(streams) > 0 {
+					s.postISLBEvent(&islb.ISLBEvent{
+						Payload: &islb.ISLBEvent_Stream{
+							Stream: &ion.StreamEvent{
+								Sid:     peer.Session().ID(),
+								Uid:     peer.ID(),
+								Streams: streams,
+								State:   ion.StreamEvent_ADD,
+							},
+						},
+					})
+
+				}
 			} else if sdp.Type == webrtc.SDPTypeAnswer {
 				err := peer.SetRemoteDescription(sdp)
 				if err != nil {

@@ -35,8 +35,8 @@ message Peer {
 
 message SessionEvent {
     enum State {
-        NEW = 0;
-        DELETE = 1;
+        ADD = 0;
+        REMOVE = 1;
     }
     State state = 2;
     string nid = 3;
@@ -45,8 +45,8 @@ message SessionEvent {
 
 message StreamEvent {
     enum State {
-        NEW = 0;
-        DELETE = 2;
+        ADD = 0;
+        REMOVE = 2;
     }
     State state = 3;
     string nid = 4;
