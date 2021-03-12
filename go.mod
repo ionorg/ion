@@ -12,11 +12,10 @@ require (
 	github.com/improbable-eng/grpc-web v0.13.0
 	github.com/nats-io/nats-server/v2 v2.1.9
 	github.com/nats-io/nats.go v1.10.0
-	github.com/notedit/sdp v0.0.4
 	github.com/pion/ion-avp v1.8.1
 	github.com/pion/ion-log v1.0.0
 	github.com/pion/ion-sfu v1.9.3
-	github.com/pion/webrtc/v3 v3.0.10
+	github.com/pion/webrtc/v3 v3.0.11
 	github.com/pixelbender/go-sdp v1.1.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -27,4 +26,5 @@ require (
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20210205041354-b753f4903c1b // indirect
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

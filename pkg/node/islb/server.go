@@ -47,7 +47,7 @@ func (s *islbServer) handleNodeDiscovery(action string, node discovery.Node) {
 	}
 }
 
-// FindNode find service nodes by service name|nid|sid, such as sfu|avp|sip-gateway|rtmp-gateway
+// FindNode find service nodes by service|nid|sid, such as sfu|avp|sip-gateway|rtmp-gateway
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	nid := req.GetNid()
 	sid := req.GetSid()

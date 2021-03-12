@@ -7,9 +7,9 @@ import (
 	"os"
 
 	log "github.com/pion/ion-log"
+	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	"github.com/pion/ion/cmd/biz/server"
 	bizpb "github.com/pion/ion/pkg/grpc/biz"
-	sfupb "github.com/pion/ion/pkg/grpc/sfu"
 	"github.com/pion/ion/pkg/node/biz"
 	"github.com/spf13/viper"
 )
@@ -114,7 +114,7 @@ func main() {
 	sfusig := biz.SFUSignalBridge{
 		BizServer: node.Service(),
 	}
-	s.GRPCServer.RegisterService(&sfupb.SFU_ServiceDesc, sfusig)
+	s.GRPCServer.RegisterService(&pb.SFU_ServiceDesc, sfusig)
 
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)
