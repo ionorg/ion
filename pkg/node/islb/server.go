@@ -117,8 +117,9 @@ func (s *islbServer) HandleSessionState(ctx context.Context, state *ion.SessionR
 //global location of the media stream
 // key = dc/ion-sfu-1/room1/uid
 // value = [...stream/track info ...]
-func (s *islbServer) PostISLBEvent(context.Context, *proto.ISLBEvent) (*ion.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostEvent not implemented")
+func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) (*ion.Empty, error) {
+	log.Infof("PostISLBEvent: %v", event)
+	return &ion.Empty{}, nil
 }
 
 //WatchISLBEvent broadcast ISLBEvent to ion-biz node.

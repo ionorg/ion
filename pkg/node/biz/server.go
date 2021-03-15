@@ -222,7 +222,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				to := payload.Msg.To
 				data := payload.Msg.Data
 				log.Debugf("Msg request %v => %v, data: %v", from, to, data)
-				
+
 				// message broadcast
 				r.sendMessage(payload.Msg)
 			default:

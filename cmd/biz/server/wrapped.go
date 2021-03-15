@@ -37,7 +37,7 @@ func DefaultWrapperedServerOptions() WrapperedServerOptions {
 		AllowedHeaders:        &[]string{},
 		AllowedOrigins:        &[]string{},
 		UseWebSocket:          true,
-		WebsocketPingInterval: time.Second * 30,
+		WebsocketPingInterval: 0,
 	}
 }
 
@@ -123,11 +123,11 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 
 		if s.options.WebsocketPingInterval >= time.Second {
 			log.Infof("websocket keepalive pinging enabled, the timeout interval is %s", s.options.WebsocketPingInterval.String())
+			options = append(
+				options,
+				grpcweb.WithWebsocketPingInterval(s.options.WebsocketPingInterval),
+			)
 		}
-		options = append(
-			options,
-			grpcweb.WithWebsocketPingInterval(s.options.WebsocketPingInterval),
-		)
 	}
 
 	if s.options.AllowedHeaders != nil && len(*s.options.AllowedHeaders) > 0 {
@@ -174,7 +174,7 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 	log.Infof("Starting grpc/grpc-web server, bind: %s, with TLS: %v", addr, s.options.EnableTLS)
 
 	m := cmux.New(listener)
-	grpcListener := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
+	grpcListener := m.Match(cmux.HTTP2())
 	httpListener := m.Match(cmux.HTTP1Fast())
 	g := new(errgroup.Group)
 	g.Go(func() error { return s.GRPCServer.Serve(grpcListener) })

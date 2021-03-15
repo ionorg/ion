@@ -8,13 +8,11 @@ import (
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	pb "github.com/pion/ion-avp/cmd/signal/grpc/proto"
-	avp "github.com/pion/ion-avp/pkg"
 	iavp "github.com/pion/ion-avp/pkg"
 	"github.com/pion/ion-avp/pkg/elements"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
-	"google.golang.org/grpc"
 )
 
 type global struct {
@@ -45,7 +43,7 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
-	config avp.Config
+	config Config
 	ion.Node
 	s *avpServer
 }
@@ -104,7 +102,7 @@ func (a *AVP) Start(conf Config) error {
 	}
 
 	a.s = newAVPServer(conf.Config, elems)
-	pb.RegisterAVPServer(a.Node.ServiceRegistrar().(*grpc.Server), a.s)
+	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
 	//Watch ISLB nodes.
 	go a.Node.Watch(proto.ServiceISLB)

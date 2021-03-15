@@ -27,18 +27,16 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 		if cstream != nil {
 			cstream.CloseSend()
 		}
-		close(reqCh)
-		close(repCh)
 		close(errCh)
 		log.Infof("SFU.Signal loop done")
 	}()
 
 	go func() {
+		defer close(reqCh)
 		for {
 			req, err := sstream.Recv()
 			if err != nil {
 				log.Errorf("Singal server stream.Recv() err: %v", err)
-				errCh <- err
 				return
 			}
 			reqCh <- req
@@ -47,7 +45,7 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 
 	for {
 		select {
-		case err, _ := <-errCh:
+		case err := <-errCh:
 			return err
 		case req, ok := <-reqCh:
 
@@ -78,11 +76,11 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 						}
 
 						go func() {
+							defer close(repCh)
 							for {
 								reply, err := cstream.Recv()
 								if err != nil {
 									log.Errorf("Singal client stream.Recv() err: %v", err)
-									errCh <- err
 									return
 								}
 								repCh <- reply
