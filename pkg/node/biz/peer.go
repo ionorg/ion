@@ -1,8 +1,6 @@
 package biz
 
 import (
-	"fmt"
-
 	"github.com/pion/ion/pkg/grpc/biz"
 	"github.com/pion/ion/pkg/grpc/ion"
 	"github.com/pion/ion/pkg/util"
@@ -18,12 +16,14 @@ type Peer struct {
 }
 
 func NewPeer(sid string, uid string, info []byte, senCh chan *biz.SignalReply) *Peer {
-	return &Peer{
+	p := &Peer{
 		uid:   uid,
 		sid:   sid,
 		info:  info,
 		sndCh: senCh,
 	}
+	p.closed.Set(false)
+	return p
 }
 
 // Close peer
@@ -32,11 +32,6 @@ func (p *Peer) Close() {
 		return
 	}
 	p.closed.Set(true)
-
-	// leave all rooms
-	//if err := p.Leave(&proto.FromClientLeaveMsg{SID: p.sid}); err != nil {
-	//	log.Infof("peer(%s) leave error: %v", p.sid, err)
-	//}
 }
 
 // UID return peer uid
@@ -50,9 +45,6 @@ func (p *Peer) SID() string {
 }
 
 func (p *Peer) send(data *biz.SignalReply) error {
-	if p.closed.Get() {
-		return fmt.Errorf("peer %v closed", p.uid)
-	}
 	go func() {
 		p.sndCh <- data
 	}()

@@ -81,6 +81,10 @@ func (b *BIZ) Start(conf Config) error {
 		return err
 	}
 
+	b.s = newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+
+	go b.s.stat()
+
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
 		Service: proto.ServiceBIZ,
@@ -94,14 +98,8 @@ func (b *BIZ) Start(conf Config) error {
 
 	go b.Node.KeepAlive(node)
 
-	s := newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
-
-	go s.stat()
-
 	//Watch ISLB nodes.
 	go b.Node.Watch(proto.ServiceISLB)
-
-	b.s = s
 
 	return nil
 }

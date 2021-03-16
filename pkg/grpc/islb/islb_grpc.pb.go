@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ISLBClient interface {
 	FindNode(ctx context.Context, in *FindNodeRequest, opts ...grpc.CallOption) (*FindNodeReply, error)
 	PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...grpc.CallOption) (*ion.Empty, error)
-	WatchISLBEvent(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error)
+	WatchISLBEvent(ctx context.Context, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error)
 }
 
 type iSLBClient struct {
@@ -50,28 +50,27 @@ func (c *iSLBClient) PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...g
 	return out, nil
 }
 
-func (c *iSLBClient) WatchISLBEvent(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error) {
+func (c *iSLBClient) WatchISLBEvent(ctx context.Context, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error) {
 	stream, err := c.cc.NewStream(ctx, &ISLB_ServiceDesc.Streams[0], "/islb.ISLB/WatchISLBEvent", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &iSLBWatchISLBEventClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
 	return x, nil
 }
 
 type ISLB_WatchISLBEventClient interface {
+	Send(*WatchRequest) error
 	Recv() (*ISLBEvent, error)
 	grpc.ClientStream
 }
 
 type iSLBWatchISLBEventClient struct {
 	grpc.ClientStream
+}
+
+func (x *iSLBWatchISLBEventClient) Send(m *WatchRequest) error {
+	return x.ClientStream.SendMsg(m)
 }
 
 func (x *iSLBWatchISLBEventClient) Recv() (*ISLBEvent, error) {
@@ -88,7 +87,7 @@ func (x *iSLBWatchISLBEventClient) Recv() (*ISLBEvent, error) {
 type ISLBServer interface {
 	FindNode(context.Context, *FindNodeRequest) (*FindNodeReply, error)
 	PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error)
-	WatchISLBEvent(*WatchRequest, ISLB_WatchISLBEventServer) error
+	WatchISLBEvent(ISLB_WatchISLBEventServer) error
 	mustEmbedUnimplementedISLBServer()
 }
 
@@ -102,7 +101,7 @@ func (UnimplementedISLBServer) FindNode(context.Context, *FindNodeRequest) (*Fin
 func (UnimplementedISLBServer) PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostISLBEvent not implemented")
 }
-func (UnimplementedISLBServer) WatchISLBEvent(*WatchRequest, ISLB_WatchISLBEventServer) error {
+func (UnimplementedISLBServer) WatchISLBEvent(ISLB_WatchISLBEventServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchISLBEvent not implemented")
 }
 func (UnimplementedISLBServer) mustEmbedUnimplementedISLBServer() {}
@@ -155,15 +154,12 @@ func _ISLB_PostISLBEvent_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _ISLB_WatchISLBEvent_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WatchRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ISLBServer).WatchISLBEvent(m, &iSLBWatchISLBEventServer{stream})
+	return srv.(ISLBServer).WatchISLBEvent(&iSLBWatchISLBEventServer{stream})
 }
 
 type ISLB_WatchISLBEventServer interface {
 	Send(*ISLBEvent) error
+	Recv() (*WatchRequest, error)
 	grpc.ServerStream
 }
 
@@ -173,6 +169,14 @@ type iSLBWatchISLBEventServer struct {
 
 func (x *iSLBWatchISLBEventServer) Send(m *ISLBEvent) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func (x *iSLBWatchISLBEventServer) Recv() (*WatchRequest, error) {
+	m := new(WatchRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // ISLB_ServiceDesc is the grpc.ServiceDesc for ISLB service.
@@ -196,6 +200,7 @@ var ISLB_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "WatchISLBEvent",
 			Handler:       _ISLB_WatchISLBEvent_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "protos/islb.proto",

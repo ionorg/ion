@@ -62,6 +62,14 @@ func (s *SFU) Start(conf Config) error {
 		return err
 	}
 
+	nsfu := isfu.NewSFU(conf.Config)
+	dc := nsfu.NewDatachannel(isfu.APIChannelLabel)
+	dc.Use(datachannel.SubscriberAPI)
+
+	s.s = newSFUServer(s, nsfu, s.NatsConn())
+	//grpc service
+	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
+
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
 		Service: proto.ServiceSFU,
@@ -75,16 +83,9 @@ func (s *SFU) Start(conf Config) error {
 
 	go s.Node.KeepAlive(node)
 
-	nsfu := isfu.NewSFU(conf.Config)
-	dc := nsfu.NewDatachannel(isfu.APIChannelLabel)
-	dc.Use(datachannel.SubscriberAPI)
-
-	s.s = newSFUServer(s, nsfu, s.NatsConn())
-	//grpc service
-	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
-
 	//Watch ISLB nodes.
 	go s.Node.Watch(proto.ServiceISLB)
+
 	return nil
 }
 

@@ -26,6 +26,7 @@ type BizServer struct {
 	closed   chan bool
 	islbcli  islb.ISLBClient
 	bn       *BIZ
+	stream   islb.ISLB_WatchISLBEventClient
 }
 
 // newBizServer creates a new avp server instance
@@ -36,6 +37,7 @@ func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Con
 		elements: elements,
 		rooms:    make(map[string]*Room),
 		closed:   make(chan bool),
+		stream:   nil,
 	}
 }
 
@@ -64,8 +66,37 @@ func (s *BizServer) delRoom(id string) {
 	delete(s.rooms, id)
 }
 
-func (s *BizServer) watchISLBEvent() {
-	
+func (s *BizServer) watchISLBEvent(nid string, sid string) error {
+
+	if s.stream == nil {
+		stream, err := s.islbcli.WatchISLBEvent(context.Background())
+		if err != nil {
+			return err
+		}
+		stream.Send(&islb.WatchRequest{
+			Nid: nid,
+			Sid: sid,
+		})
+
+		go func() {
+			for {
+				req, err := stream.Recv()
+				if err != nil {
+					log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
+					return
+				}
+				log.Infof("watchISLBEvent req => %v", req)
+				switch payload := req.Payload.(type) {
+				case *islb.ISLBEvent_Stream:
+					r := s.getRoom(payload.Stream.Sid)
+					if r != nil {
+						r.sendStreamEvent(payload.Stream)
+					}
+				}
+			}
+		}()
+	}
+	return nil
 }
 
 //Signal process biz request.
@@ -128,7 +159,6 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						if node.Service == proto.ServiceISLB {
 							ncli := nrpc.NewClient(s.nc, node.NID)
 							s.islbcli = islb.NewISLBClient(ncli)
-							s.watchISLBEvent()
 							break
 						}
 					}
@@ -142,12 +172,15 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 							Service: proto.ServiceSFU,
 							Sid:     sid,
 						})
-
+						nid := ""
 						if err == nil && len(resp.Nodes) > 0 {
-							r = s.createRoom(sid, resp.GetNodes()[0].Nid)
+							nid = resp.GetNodes()[0].Nid
+							r = s.createRoom(sid, nid)
 						} else {
 							reason = fmt.Sprintf("islbcli.FindNode(serivce = sfu, sid = %v) err %v", sid, err)
 						}
+
+						s.watchISLBEvent(nid, sid)
 					}
 					if r != nil {
 						peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
@@ -181,7 +214,9 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 
 					stream.Send(&biz.SignalReply{
 						Payload: &biz.SignalReply_LeaveReply{
-							LeaveReply: &biz.LeaveReply{},
+							LeaveReply: &biz.LeaveReply{
+								Reason: "closed",
+							},
 						},
 					})
 				}

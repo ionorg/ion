@@ -11,7 +11,7 @@ service ISLB {
 
     rpc PostISLBEvent(ISLBEvent) returns (ion.Empty) {}
 
-    rpc WatchISLBEvent(WatchRequest) returns (stream ISLBEvent) {}
+    rpc WatchISLBEvent(stream WatchRequest) returns (stream ISLBEvent) {}
 }
 
 message FindNodeRequest {
@@ -25,7 +25,8 @@ message FindNodeReply {
 }
 
 message WatchRequest {
-  
+   string nid = 1;
+   string sid = 2;
 }
 
 message ISLBEvent {

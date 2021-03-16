@@ -10,8 +10,6 @@ import (
 	ion "github.com/pion/ion/pkg/grpc/ion"
 	proto "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/square/go-jose/v3/json"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type islbServer struct {
@@ -21,14 +19,16 @@ type islbServer struct {
 	nodes    map[string]discovery.Node
 	in       *ISLB
 	conf     Config
+	watchs   map[string]proto.ISLB_WatchISLBEventServer
 }
 
 func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
 	return &islbServer{
-		conf:  conf,
-		in:    in,
-		Redis: redis,
-		nodes: make(map[string]discovery.Node),
+		conf:   conf,
+		in:     in,
+		Redis:  redis,
+		nodes:  make(map[string]discovery.Node),
+		watchs: make(map[string]proto.ISLB_WatchISLBEventServer),
 	}
 }
 
@@ -60,12 +60,12 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 
 	nodes := []*ion.Node{}
 
-	// find node by sid
+	// find node by sid from reids
 	mkey := s.conf.Global.Dc + "/" + nid + "/" + sid
 	log.Infof("islb.FindNode: mkey => %v", mkey)
 	for _, key := range s.Redis.Keys(mkey) {
-		fields := s.Redis.HGetAll(key)
-		log.Debugf("key: %v, fields: %v", key, fields)
+		value := s.Redis.Get(key)
+		log.Debugf("key: %v, value: %v", key, value)
 	}
 
 	if len(nodes) == 0 {
@@ -100,7 +100,7 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 // key = dc/ion-sfu-1/room1/uid
 // value = [...stream/track info ...]
 func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) (*ion.Empty, error) {
-	log.Infof("PostISLBEvent: %v", event)
+	log.Infof("ISLBServer.PostISLBEvent: %v", event)
 	switch payload := event.Payload.(type) {
 	case *proto.ISLBEvent_Stream:
 		stream := payload.Stream
@@ -116,6 +116,10 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 		case ion.StreamEvent_REMOVE:
 			s.Redis.Del(mkey)
 		}
+
+		for _, stream := range s.watchs {
+			stream.Send(event)
+		}
 	case *proto.ISLBEvent_Session:
 		//session := payload.Session
 		//log.Infof("ISLBEvent_Session event %v", session.String())
@@ -125,6 +129,17 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 
 //WatchISLBEvent broadcast ISLBEvent to ion-biz node.
 //The stream metadata is forwarded to biz node and coupled with the peer in the client through UID
-func (s *islbServer) WatchISLBEvent(*proto.WatchRequest, proto.ISLB_WatchISLBEventServer) error {
-	return status.Errorf(codes.Unimplemented, "method HandleEvent not implemented")
+func (s *islbServer) WatchISLBEvent(stream proto.ISLB_WatchISLBEventServer) error {
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			log.Errorf("ISLBServer.WatchISLBEvent server stream.Recv() err: %v", err)
+			return err
+		}
+		log.Infof("ISLBServer.WatchISLBEvent req => %v", req)
+		sid := req.Sid
+		if _, found := s.watchs[sid]; !found {
+			s.watchs[sid] = stream
+		}
+	}
 }
