@@ -24,7 +24,9 @@ message Leave {
     string uid = 1;
 }
 
-message LeaveReply {}
+message LeaveReply {
+    string reason = 1;
+}
 
 message SignalRequest {
   oneof payload {

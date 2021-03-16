@@ -39,11 +39,6 @@ func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Con
 	}
 }
 
-func (s *BizServer) start() error {
-	go s.stat()
-	return nil
-}
-
 func (s *BizServer) close() {
 	close(s.closed)
 }
@@ -69,36 +64,9 @@ func (s *BizServer) delRoom(id string) {
 	delete(s.rooms, id)
 }
 
-/*func (s *BizServer) BridgeTest(sid, uid string) {
-
-	if s.islbcli == nil {
-		for nid, _ := range s.nodes {
-			ncli := nrpc.NewClient(s.nc, nid)
-			s.islbcli = islb.NewISLBClient(ncli)
-		}
-		resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
-			Service: proto.ServiceSFU,
-			Sid:     sid,
-		})
-		if err == nil && len(resp.Nodes) > 0 {
-
-			peer := &Peer{
-				uid:  uid,
-				sid:  sid,
-				info: []byte(""),
-			}
-
-			r := s.getRoom(sid)
-			if r == nil {
-				r = newRoom(sid, resp.GetNodes()[0].Nid)
-				s.roomLock.RLock()
-				s.rooms[sid] = r
-				s.roomLock.RUnlock()
-			}
-			r.addPeer(peer)
-		}
-	}
-}*/
+func (s *BizServer) watchISLBEvent() {
+	
+}
 
 //Signal process biz request.
 func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
@@ -116,14 +84,14 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 		close(errCh)
 		close(repCh)
 		close(reqCh)
-		log.Infof("Biz.Signal loop done")
+		log.Infof("BizServer.Signal loop done")
 	}()
 
 	go func() {
 		for {
 			req, err := stream.Recv()
 			if err != nil {
-				log.Errorf("Singal server stream.Recv() err: %v", err)
+				log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
 				errCh <- err
 				return
 			}
@@ -133,7 +101,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 
 	for {
 		select {
-		case err, _ := <-errCh:
+		case err := <-errCh:
 			return err
 		case reply, ok := <-repCh:
 			if !ok {
@@ -160,6 +128,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						if node.Service == proto.ServiceISLB {
 							ncli := nrpc.NewClient(s.nc, node.NID)
 							s.islbcli = islb.NewISLBClient(ncli)
+							s.watchISLBEvent()
 							break
 						}
 					}
@@ -187,7 +156,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						reason = "join success."
 					}
 				} else {
-					reason = fmt.Sprintf("islb node not found")
+					reason = fmt.Sprintf("join [sid=%v] islb node not found", sid)
 				}
 
 				stream.Send(&biz.SignalReply{
@@ -198,31 +167,26 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						},
 					},
 				})
-
-				break
 			case *biz.SignalRequest_Leave:
 				uid := payload.Leave.Uid
-				r.delPeer(uid)
-				peer.Close()
-				peer = nil
+				if peer != nil && peer.uid == uid {
+					r.delPeer(uid)
+					peer.Close()
+					peer = nil
 
-				if r.count() == 0 {
-					s.delRoom(r.SID())
-					r = nil
+					if r.count() == 0 {
+						s.delRoom(r.SID())
+						r = nil
+					}
+
+					stream.Send(&biz.SignalReply{
+						Payload: &biz.SignalReply_LeaveReply{
+							LeaveReply: &biz.LeaveReply{},
+						},
+					})
 				}
-
-				stream.Send(&biz.SignalReply{
-					Payload: &biz.SignalReply_LeaveReply{
-						LeaveReply: &biz.LeaveReply{},
-					},
-				})
-				break
 			case *biz.SignalRequest_Msg:
-				from := payload.Msg.From
-				to := payload.Msg.To
-				data := payload.Msg.Data
-				log.Debugf("Msg request %v => %v, data: %v", from, to, data)
-
+				log.Debugf("Message: from: %v => to: %v, data: %v", payload.Msg.From, payload.Msg.To, payload.Msg.Data)
 				// message broadcast
 				r.sendMessage(payload.Msg)
 			default:
@@ -240,7 +204,6 @@ func (s *BizServer) stat() {
 	for {
 		select {
 		case <-t.C:
-			break
 		case <-s.closed:
 			log.Infof("stop stat")
 			return
@@ -257,117 +220,3 @@ func (s *BizServer) stat() {
 		}
 	}
 }
-
-/*
-func (s *Server) handle(msg interface{}) (interface{}, error) {
-	log.Infof("handle incoming message: %T, %+v", msg, msg)
-
-	switch v := msg.(type) {
-	case *proto.SfuOfferMsg:
-		s.handleSFUMessage(v.SID, v.UID, msg)
-	case *proto.SfuTrickleMsg:
-		s.handleSFUMessage(v.SID, v.UID, msg)
-	case *proto.SfuICEConnectionStateMsg:
-		s.handleSFUMessage(v.SID, v.UID, msg)
-	default:
-		log.Warnf("unkonw message: %v", msg)
-	}
-
-	return nil, nil
-}
-
-func (s *Server) handleSFUMessage(sid string, uid proto.UID, msg interface{}) {
-	if r := s.getRoom(sid); r != nil {
-		if p := r.getPeer(uid); p != nil {
-			p.handleSFUMessage(msg)
-		} else {
-			log.Warnf("peer not exits, sid=%s, uid=%s", sid, uid)
-		}
-	} else {
-		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
-	}
-}
-
-func (s *Server) broadcast(msg interface{}) (interface{}, error) {
-	log.Infof("handle islb message: %T, %+v", msg, msg)
-
-	var sid string
-	var uid proto.UID
-
-	switch v := msg.(type) {
-	case *proto.FromIslbStreamAddMsg:
-		sid, uid = v.SID, v.UID
-	case *proto.ToClientPeerJoinMsg:
-		sid, uid = v.SID, v.UID
-	case *proto.IslbPeerLeaveMsg:
-		sid, uid = v.SID, v.UID
-	case *proto.IslbBroadcastMsg:
-		sid, uid = v.SID, v.UID
-	default:
-		log.Warnf("unkonw message: %v", msg)
-	}
-
-	if r := s.getRoom(sid); r != nil {
-		r.send(msg, uid)
-	} else {
-		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
-	}
-
-	return nil, nil
-}
-
-
-
-// // getRoomsByPeer a peer in many room
-// func (s *server) getRoomsByPeer(uid proto.UID) []*room {
-// 	var result []*room
-// 	s.roomLock.RLock()
-// 	defer s.roomLock.RUnlock()
-// 	for _, r := range s.rooms {
-// 		if p := r.getPeer(uid); p != nil {
-// 			result = append(result, r)
-// 		}
-// 	}
-// 	return result
-// }
-
-// delPeer delete a peer in the room
-func (s *Server) delPeer(sid string, uid proto.UID) {
-	log.Infof("delPeer sid=%s uid=%s", sid, uid)
-	room := s.getRoom(sid)
-	if room == nil {
-		log.Warnf("room not exits, sid=%s, uid=%s", sid, uid)
-		return
-	}
-	if room.delPeer(uid) == 0 {
-		s.roomLock.RLock()
-		delete(s.rooms, sid)
-		s.roomLock.RUnlock()
-	}
-}
-
-// addPeer add a peer to room
-func (s *Server) addPeer(sid string, peer *Peer) {
-	log.Infof("addPeer sid=%s uid=%s", sid, peer.uid)
-	room := s.getRoom(sid)
-	if room == nil {
-		room = newRoom(sid)
-		s.roomLock.Lock()
-		s.rooms[sid] = room
-		s.roomLock.Unlock()
-	}
-	room.addPeer(peer)
-}
-
-// // getPeer get a peer in the room
-// func (s *server) getPeer(sid string, uid proto.UID) *peer {
-// 	log.Infof("getPeer sid=%s uid=%s", sid, uid)
-// 	r := s.getRoom(sid)
-// 	if r == nil {
-// 		log.Infof("room not exits, sid=%s uid=%s", sid, uid)
-// 		return nil
-// 	}
-// 	return r.getPeer(uid)
-// }
-
-*/

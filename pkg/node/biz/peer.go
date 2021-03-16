@@ -1,7 +1,7 @@
 package biz
 
 import (
-	"sync"
+	"fmt"
 
 	"github.com/pion/ion/pkg/grpc/biz"
 	"github.com/pion/ion/pkg/grpc/ion"
@@ -10,12 +10,11 @@ import (
 
 // Peer represents a peer for client
 type Peer struct {
-	uid       string
-	sid       string
-	info      []byte
-	leaveOnce sync.Once
-	closed    util.AtomicBool
-	sndCh     chan *biz.SignalReply
+	uid    string
+	sid    string
+	info   []byte
+	closed util.AtomicBool
+	sndCh  chan *biz.SignalReply
 }
 
 func NewPeer(sid string, uid string, info []byte, senCh chan *biz.SignalReply) *Peer {
@@ -51,6 +50,9 @@ func (p *Peer) SID() string {
 }
 
 func (p *Peer) send(data *biz.SignalReply) error {
+	if p.closed.Get() {
+		return fmt.Errorf("peer %v closed", p.uid)
+	}
 	go func() {
 		p.sndCh <- data
 	}()

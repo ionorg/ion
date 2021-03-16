@@ -51,8 +51,7 @@ type Config struct {
 // BIZ represents biz node
 type BIZ struct {
 	ion.Node
-	conf Config
-	s    *BizServer
+	s *BizServer
 }
 
 // NewBIZ create a biz node instance
@@ -97,6 +96,8 @@ func (b *BIZ) Start(conf Config) error {
 
 	s := newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
 
+	go s.stat()
+
 	//Watch ISLB nodes.
 	go b.Node.Watch(proto.ServiceISLB)
 
@@ -107,6 +108,7 @@ func (b *BIZ) Start(conf Config) error {
 
 // Close all
 func (b *BIZ) Close() {
+	b.s.close()
 	b.Node.Close()
 }
 

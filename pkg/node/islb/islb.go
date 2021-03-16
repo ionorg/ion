@@ -84,7 +84,7 @@ func (i *ISLB) Start(conf Config) error {
 		return errors.New("new redis error")
 	}
 
-	i.s = newISLBServer(i, i.redis)
+	i.s = newISLBServer(conf, i, i.redis)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
 	i.registry.Listen(i.s.handleNodeDiscovery)

@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "protos/ion.proto";
-
 option go_package = "github.com/pion/ion/pkg/grpc/rtc";
 
 package rtc;
@@ -13,7 +11,7 @@ service RTC {
 message JoinRequest {
     string sid = 1;
     string uid = 2;
-    repeated ion.Parameter parameters = 3;
+    map<string,string> parameters = 3;
 }
 
 message JoinReply {

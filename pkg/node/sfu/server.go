@@ -54,15 +54,18 @@ func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
 
 func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 	peer := isfu.NewPeer(s.sfu)
+	var streams []*ion.Stream
 
 	defer func() {
 		if peer.Session() != nil {
 			s.postISLBEvent(&islb.ISLBEvent{
 				Payload: &islb.ISLBEvent_Stream{
 					Stream: &ion.StreamEvent{
-						Sid:   peer.Session().ID(),
-						Uid:   peer.ID(),
-						State: ion.StreamEvent_REMOVE,
+						Nid:     s.sn.NID,
+						Sid:     peer.Session().ID(),
+						Uid:     peer.ID(),
+						State:   ion.StreamEvent_REMOVE,
+						Streams: streams,
 					},
 				},
 			})
@@ -268,24 +271,27 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 					return status.Errorf(codes.Internal, fmt.Sprintf("negotiate error: %v", err))
 				}
 
-				streams, err := util.ParseSDP(sdp.SDP)
+				newStreams, err := util.ParseSDP(sdp.SDP)
 				if err != nil {
 					log.Errorf("util.ParseSDP error: %v", err)
 				}
 
-				if len(streams) > 0 {
+				if len(newStreams) > 0 {
 					s.postISLBEvent(&islb.ISLBEvent{
 						Payload: &islb.ISLBEvent_Stream{
 							Stream: &ion.StreamEvent{
+								Nid:     s.sn.NID,
 								Sid:     peer.Session().ID(),
 								Uid:     peer.ID(),
-								Streams: streams,
+								Streams: newStreams,
 								State:   ion.StreamEvent_ADD,
 							},
 						},
 					})
 
+					streams = newStreams
 				}
+
 			} else if sdp.Type == webrtc.SDPTypeAnswer {
 				err := peer.SetRemoteDescription(sdp)
 				if err != nil {

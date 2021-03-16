@@ -6,6 +6,11 @@ package ion;
 
 message Empty {}
 
+message Error {
+    int32 code = 1;
+    string reason = 2;
+}
+
 message Track {
 	string id      = 1;
     string label   = 2;
@@ -14,8 +19,8 @@ message Track {
 }
 
 message Stream {
-    string id  = 2;
-	repeated Track tracks = 3;
+    string id  = 1;
+	repeated Track tracks = 2;
 }
 
 message Peer {
@@ -46,13 +51,13 @@ message SessionEvent {
 message StreamEvent {
     enum State {
         ADD = 0;
-        REMOVE = 2;
+        REMOVE = 1;
     }
-    State state = 3;
-    string nid = 4;
-    string sid = 5;
-    string uid = 6;
-    repeated ion.Stream streams = 7;
+    State state = 2;
+    string nid = 3;
+    string sid = 4;
+    string uid = 5;
+    repeated ion.Stream streams = 6;
 }
 
 message PeerEvent {
@@ -69,11 +74,6 @@ message Message {
     string from = 1;
     string to = 2;
     bytes data = 3;
-}
-
-message Parameter {
-  string key = 1;
-  string value = 2;
 }
 
 message RPC {
