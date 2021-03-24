@@ -39,8 +39,9 @@ func (r *Room) addPeer(p *Peer) {
 	event := &ion.PeerEvent{
 		State: ion.PeerEvent_JOIN,
 		Peer: &ion.Peer{
-			Sid: r.sid,
-			Uid: p.uid,
+			Sid:  r.sid,
+			Uid:  p.uid,
+			Info: p.info,
 		},
 	}
 
@@ -111,7 +112,7 @@ func (r *Room) sendMessage(msg *ion.Message) {
 	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
 	peers := r.getPeers()
 	for id, p := range peers {
-		if id == to || to == "all" {
+		if id == to || to == "all" || to == r.sid {
 			if err := p.sendMessage(msg); err != nil {
 				log.Errorf("send msg to peer(%s) error: %v", p.uid, err)
 			}
