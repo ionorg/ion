@@ -35,6 +35,7 @@ test: go_deps start-services
 		-timeout 120s \
 		-coverpkg=${GO_COVERPKGS} -coverprofile=cover.out -covermode=atomic \
 		-v -race ${GO_TESTPKGS}
+
 protos:
 	docker build -t protoc-builder ./protos && \
 	docker run -v $(CURDIR):/workspace protoc-builder \
