@@ -2,7 +2,7 @@ module github.com/pion/ion
 
 go 1.13
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+replace google.golang.org/grpc => google.golang.org/grpc v1.36.1
 
 require (
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.etcd.io/etcd v3.3.25+incompatible
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
-	google.golang.org/grpc v1.33.2
+	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.25.0
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
