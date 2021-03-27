@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+      crossorigin="anonymous"
+    />
+
+    <style>
+      #remotes video {
+        width: 320px;
+      }
+    </style>
+
+    <title>Pion ion-cluster | Pub Sub test</title>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-light bg-light border-bottom">
+      <h3>Pion</h3>
+    </nav>
+    <div class="container pt-4">
+      <div class="row" id="start-btns">
+        <div class="col-12">
+          <button type="button" class="btn btn-primary" onclick="start(false)">
+            start
+          </button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6 pt-2">
+          <span
+            style="position: absolute; margin-left: 5px; margin-top: 5px"
+            class="badge badge-primary"
+            >Local</span
+          >
+          <video
+            id="local-video"
+            style="background-color: black"
+            width="320"
+            height="240"
+          ></video>
+          <div class="controls" style="display: none">
+            <div class="row pt-3">
+              <div class="col-3">
+                <strong>Video</strong>
+                <div class="radio">
+                  <label
+                    ><input
+                      type="radio"
+                      onclick="controlLocalVideo(this)"
+                      value="true"
+                      name="optlocalvideo"
+                      checked
+                    />
+                    Unmute</label
+                  >
+                </div>
+                <div class="radio">
+                  <label
+                    ><input
+                      type="radio"
+                      onclick="controlLocalVideo(this)"
+                      value="false"
+                      name="optlocalvideo"
+                    />
+                    Mute</label
+                  >
+                </div>
+              </div>
+              <div class="col-3">
+                <strong>Audio</strong>
+                <div class="radio">
+                  <label
+                    ><input
+                      type="radio"
+                      onclick="controlLocalAudio(this)"
+                      value="true"
+                      name="optlocalaudio"
+                      checked
+                    />
+                    Unmute</label
+                  >
+                </div>
+                <div class="radio">
+                  <label
+                    ><input
+                      type="radio"
+                      onclick="controlLocalAudio(this)"
+                      value="false"
+                      name="optlocalaudio"
+                    />
+                    Mute</label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="remotes" class="col-6 pt-2">
+          <span
+            style="position: absolute; margin-left: 5px; margin-top: 5px"
+            class="badge badge-primary"
+            >Remotes</span
+          >
+        </div>
+      </div>
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+      integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+      integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+      crossorigin="anonymous"
+    ></script>
+    <script src="js/ion-connector.min.js"></script>
+    <script src="https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js"></script>
+    <script>
+      const localVideo = document.getElementById("local-video");
+      const remotesDiv = document.getElementById("remotes");
+
+      /* eslint-env browser */
+      const joinBtns = document.getElementById("start-btns");
+
+      const connector = new Ion.IonConnector("http://localhost:5551");
+      const uid = uuidv4();
+
+      connector.onjoin = function(success, reason) {
+        console.log("onjoin: ", success, ", ", reason);
+        connector.message(uid,  "all", { text: "hello"});
+      };
+
+      connector.onleave = function(reason) {
+        console.log("onleave: ", reason);
+      };
+
+      connector.onpeerevent = function(ev) {
+         console.log("onpeerevent: state = ", ev.state, ", peer = ", ev.peer.uid, ", name = ", ev.peer.info.name);
+      };
+
+      connector.onstreamevent = function(ev) {
+         console.log("onstreamevent: state = ", ev.state, ", sid = ", ev.sid,", uid = ", ev.uid);
+      };
+
+      connector.onmessage = function(msg) {
+        console.log("onmessage: from ", msg.from,", to ", msg.to, ", text = ", msg.data.text);
+      }
+
+      connector.join("test room", uid, {name: 'ts client'});
+
+
+      const streams = {};
+      let localStream;
+      const start = () => {
+        Ion.LocalStream.getUserMedia({
+          resolution: "vga",
+          audio: true,
+        })
+          .then((media) => {
+            localStream = media;
+            localVideo.srcObject = media;
+            localVideo.autoplay = true;
+            localVideo.controls = true;
+            localVideo.muted = true;
+            joinBtns.style.display = "none";
+            connector.sfu.publish(media);
+          })
+          .catch(console.error);
+      };
+
+      connector.ontrack = (track, stream) => {
+        console.log("got track", track.id, "for stream", stream.id);
+        if (track.kind === "video") {
+          track.onunmute = () => {
+            if (!streams[stream.id]) {
+              remoteVideo = document.createElement("video");
+              remoteVideo.srcObject = stream;
+              remoteVideo.autoplay = true;
+              remoteVideo.muted = true;
+
+              remotesDiv.appendChild(remoteVideo);
+              stream.onremovetrack = () => {
+                remotesDiv.removeChild(remoteVideo);
+                streams[stream.id] = null;
+              };
+            }
+          };
+        }
+      };
+
+      const controlLocalVideo = (radio) => {
+        if (radio.value === "false") {
+          localStream.mute("video");
+        } else {
+          localStream.unmute("video");
+        }
+      };
+
+      const controlLocalAudio = (radio) => {
+        if (radio.value === "false") {
+          localStream.mute("audio");
+        } else {
+          localStream.unmute("audio");
+        }
+      };
+    </script>
+  </body>
+</html>
