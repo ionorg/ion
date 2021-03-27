@@ -13,7 +13,6 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
-	"google.golang.org/grpc"
 )
 
 type global struct {
@@ -103,7 +102,7 @@ func (a *AVP) Start(conf Config) error {
 	}
 
 	a.s = newAVPServer(conf.Config, elems)
-	pb.RegisterAVPServer(a.Node.ServiceRegistrar().(*grpc.Server), a.s)
+	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
 	//Watch ISLB nodes.
 	go a.Node.Watch(proto.ServiceISLB)
