@@ -1,0 +1,103 @@
+#!/bin/bash
+#set -eux
+
+APP_DIR=$(cd `dirname $0`/../; pwd)
+cd $APP_DIR
+mkdir -p $APP_DIR/logs
+SERVICE=$1
+#COMMAND=$APP_DIR/bin/$SERVICE
+# CONFIG=$APP_DIR/configs/$SERVICE.toml
+# PID_FILE=$APP_DIR/configs/$SERVICE.pid
+# LOG_FILE=$APP_DIR/logs/$SERVICE.log
+
+ACTION=$1
+SERVICE=$2
+
+show_help()
+{
+    echo ""
+    echo "Usage: ./service {start|stop} {biz|islb|sfu|avp}"
+    echo ""
+}
+
+if [[ $# -ne 2 ]] ; then
+    show_help
+    exit 1
+fi
+
+function start()
+{
+    COMMAND=$APP_DIR/bin/$1
+    CONFIG=$APP_DIR/configs/$SERVICE.toml
+    PID_FILE=$APP_DIR/configs/$SERVICE.pid
+    LOG_FILE=$APP_DIR/logs/$SERVICE.log
+
+    count=`ps -ef |grep " $COMMAND " |grep -v "grep" |wc -l`
+    if [ 0 != $count ];then
+        ps aux | grep " $COMMAND " | grep -v "grep"
+        echo "already start"
+        exit 1;
+    fi
+
+    if [ ! -r $CONFIG ]; then
+        echo "$CONFIG not exsist"
+        exit 1;
+    fi
+
+    cd $APP_DIR/cmd/$SERVICE
+    echo "go build -o $COMMAND"
+    go build -o $COMMAND
+    cd $APP_DIR
+
+    echo "nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &"
+    nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &
+    pid=$!
+    echo "$pid" > $PID_FILE
+    rpid=`ps aux | grep $pid |grep -v "grep" | awk '{print $2}'`
+    if [[ $pid != $rpid ]];then
+        echo "start failly."
+        rm  $PID_FILE
+        exit 1
+    fi
+}
+
+function stop(){
+    PID_FILE=$APP_DIR/configs/$1.pid
+    echo "$PID_FILE......"
+
+    echo "stop $SERVICE..."
+    PID=`cat $PID_FILE`
+    if [ ! -n "$PID" ]; then
+        echo "pid not exist"
+        exit 1;
+    fi
+    SUB_PIDS=`pgrep -P $PID`
+    if [ -n "$SUB_PIDS" ]; then
+        GRANDSON_PIDS=`pgrep -P $SUB_PIDS`
+    fi
+
+    # echo "kill $PID $SUB_PIDS $GRANDSON_PIDS"
+    kill $PID $SUB_PIDS $GRANDSON_PIDS
+    rm -rf $PID_FILE
+    echo "stop ok"
+}
+
+if [[ "$ACTION" != "start" && "$ACTION" != "stop" ]]; then
+    show_help
+    exit 1
+fi
+
+if [[ "$SERVICE" != "biz" && "$SERVICE" != "islb" && "$SERVICE" != "sfu" && "$SERVICE" != "avp" ]]; then
+    show_help
+    exit 1
+fi
+
+if [[ "$ACTION" == "start" ]]; then
+    start $SERVICE
+    exit 0
+fi
+
+if [[ "$ACTION" == "stop" ]]; then
+    stop $SERVICE
+    exit 0
+fi

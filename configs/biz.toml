@@ -10,29 +10,6 @@ level = "info"
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[redis]
-addrs = [":6379"]
-password = ""
-db = 0
-
-[signal.jsonrpc]
-#listen ip port
-host = "0.0.0.0"
-port = "8443"
-# cert= "configs/certs/cert.pem"
-# key= "configs/certs/key.pem"
-path = "/ws"
-
-[signal.jsonrpc.auth_connection]
-enabled = false 
-key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.com/dgrijalva/jwt-go#SigningMethod
-key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
-
-[signal.jsonrpc.auth_room]
-enabled = false
-key_type = "HMAC"
-key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
-
 [signal.grpc]
 #listen ip port
 host = "0.0.0.0"

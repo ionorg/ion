@@ -6,10 +6,6 @@ dc = "dc1"
 [log]
 level = "info"
 
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["etcd:2379"]
-
 [nats]
 url = "nats://nats:4222"
 
