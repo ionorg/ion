@@ -10,7 +10,6 @@ services:
       - "./configs/docker/islb.toml:/configs/islb.toml"
     depends_on:
       - nats
-      - etcd
       - redis
     networks:
       - ionnet
@@ -26,7 +25,6 @@ services:
       - "5000-5200:5000-5200/udp"
     depends_on:
       - nats
-      - etcd
     networks:
       - ionnet
 
@@ -40,7 +38,6 @@ services:
       - "./out:/out/"
     depends_on:
       - nats
-      - etcd
     networks:
       - ionnet
 
@@ -55,7 +52,6 @@ services:
       - 8443:8443
     depends_on:
       - nats
-      - etcd
     networks:
       - ionnet
 
@@ -63,15 +59,6 @@ services:
     image: nats
     ports:
       - 4222:4222
-    networks:
-      - ionnet
-
-  etcd:
-    image: gcr.io/etcd-development/etcd:v3.4.14
-    entrypoint: "/usr/local/bin/etcd"
-    command: "--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379"
-    ports:
-      - 2379:2379
     networks:
       - ionnet
 

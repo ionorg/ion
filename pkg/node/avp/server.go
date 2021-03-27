@@ -1,115 +1,126 @@
 package avp
 
 import (
+	"context"
+	"io"
 	"sync"
 
-	"github.com/nats-io/nats.go"
-	iavp "github.com/pion/ion-avp/pkg"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	pb "github.com/pion/ion-avp/cmd/signal/grpc/proto"
+	avp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// server represents an server instance
-type server struct {
-	config  iavp.Config
-	clients map[string]*sfu
+// AVPProcesser represents an avp instance
+type AVPProcesser struct {
+	config  avp.Config
+	clients map[string]*SFU
 	mu      sync.RWMutex
-	sub     *nats.Subscription
-	nid     string
-	nrpc    *proto.NatsRPC
 }
 
-// newServer creates a new avp server instance
-func newServer(conf iavp.Config, elems map[string]iavp.ElementFun, nid string, nrpc *proto.NatsRPC) *server {
-	s := &server{
-		config:  conf,
-		clients: make(map[string]*sfu),
-		nid:     nid,
-		nrpc:    nrpc,
+// NewAVPProcesser creates a new avp instance
+func NewAVPProcesser(c avp.Config, elems map[string]avp.ElementFun) *AVPProcesser {
+	a := &AVPProcesser{
+		config:  c,
+		clients: make(map[string]*SFU),
 	}
 
-	iavp.Init(elems)
+	avp.Init(elems)
 
-	return s
+	return a
 }
 
-func (s *server) start() error {
-	var err error
-	if s.sub, err = s.nrpc.Subscribe(s.nid, s.handle); err != nil {
-		return err
-	}
-	return nil
-}
+// Process starts a process for a track.
+func (a *AVPProcesser) Process(ctx context.Context, addr, pid, sid, tid, eid string, config []byte) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-func (s *server) close() {
-	if s.sub != nil {
-		if err := s.sub.Unsubscribe(); err != nil {
-			log.Errorf("unsubscribe %s error: %v", s.sub.Subject, err)
-		}
-	}
-}
-
-func (s *server) handle(msg interface{}) (interface{}, error) {
-	log.Infof("handle incoming message: %T, %+v", msg, msg)
-
-	switch v := msg.(type) {
-	case *proto.ToAvpProcessMsg:
-		if err := s.process(v.Addr, v.PID, v.SID, v.TID, v.EID, v.Config); err != nil {
-			return nil, err
-		}
-	case *proto.SfuOfferMsg:
-		s.handleSFUMessage(string(v.UID), msg)
-	case *proto.SfuTrickleMsg:
-		s.handleSFUMessage(string(v.UID), msg)
-	case *proto.SfuICEConnectionStateMsg:
-		s.handleSFUMessage(string(v.UID), msg)
-	default:
-		log.Warnf("unkonw message: %v", msg)
-	}
-
-	return nil, nil
-}
-
-func (s *server) handleSFUMessage(addr string, msg interface{}) {
-	s.mu.Lock()
-	client := s.clients[addr]
-	s.mu.Unlock()
-
-	if client != nil {
-		client.handleSFUMessage(msg)
-	} else {
-		log.Warnf("not found sfu client, addr=%s", addr)
-	}
-}
-
-// process starts a process for a track.
-func (s *server) process(addr, pid, sid, tid, eid string, config []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	c := s.clients[addr]
+	c := a.clients[addr]
 	// no client yet, create one
 	if c == nil {
 		var err error
-		log.Infof("create a sfu client, addr=%s", addr)
-		if c, err = newSFU(addr, s.config, s.nid, s.nrpc); err != nil {
+		if c, err = NewSFU(addr, a.config); err != nil {
 			return err
 		}
-		c.onClose(func() {
-			s.mu.Lock()
-			defer s.mu.Unlock()
-			log.Infof("sfu client close, addr=%s", addr)
-			delete(s.clients, addr)
+		c.OnClose(func() {
+			a.mu.Lock()
+			defer a.mu.Unlock()
+			delete(a.clients, addr)
 		})
-		s.clients[addr] = c
-	} else {
-		log.Infof("sfu client exist, addr=%s", addr)
+		a.clients[addr] = c
 	}
 
-	t, err := c.getTransport(proto.SID(sid))
+	t, err := c.GetTransport(sid)
 	if err != nil {
 		return err
 	}
 
 	return t.Process(pid, tid, eid, config)
+}
+
+type avpServer struct {
+	pb.UnimplementedAVPServer
+	avp      *AVPProcesser
+	nodeLock sync.RWMutex
+	nodes    map[string]*discovery.Node
+}
+
+func newAVPServer(conf avp.Config, elems map[string]avp.ElementFun) *avpServer {
+	return &avpServer{
+		avp:   NewAVPProcesser(conf, elems),
+		nodes: make(map[string]*discovery.Node),
+	}
+}
+
+// watchIslbNodes watch islb nodes up/down
+func (a *avpServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
+	a.nodeLock.Lock()
+	defer a.nodeLock.Unlock()
+	id := node.NID
+	if state == discovery.NodeUp {
+		log.Infof("islb node %v up", id)
+		if _, found := a.nodes[id]; !found {
+			a.nodes[id] = node
+		}
+	} else if state == discovery.NodeDown {
+		log.Infof("islb node %v down", id)
+		delete(a.nodes, id)
+	}
+}
+
+// Signal handler for avp server
+func (s *avpServer) Signal(stream pb.AVP_SignalServer) error {
+	for {
+		in, err := stream.Recv()
+
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			errStatus, _ := status.FromError(err)
+			if errStatus.Code() == codes.Canceled {
+				return nil
+			}
+
+			log.Errorf("signal error %v %v", errStatus.Message(), errStatus.Code())
+			return err
+		}
+
+		if payload, ok := in.Payload.(*pb.SignalRequest_Process); ok {
+			if err = s.avp.Process(
+				stream.Context(),
+				payload.Process.Sfu,
+				payload.Process.Pid,
+				payload.Process.Sid,
+				payload.Process.Tid,
+				payload.Process.Eid,
+				payload.Process.Config,
+			); err != nil {
+				log.Errorf("process error: %v", err)
+			}
+		}
+	}
 }

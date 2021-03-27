@@ -2,51 +2,17 @@ package util
 
 import (
 	"math/rand"
-	"net"
 	"runtime"
 	"runtime/debug"
-	"strings"
 	"time"
 
 	log "github.com/pion/ion-log"
 )
 
-var (
-	localIPPrefix = [...]string{"192.168", "10.0", "169.254", "172.16"}
+const (
+	DefaultStatCycle   = time.Second * 3
+	DefaultGRPCTimeout = 15 * time.Second
 )
-
-// IsLocalIP check if local ip
-func IsLocalIP(ip string) bool {
-	for i := 0; i < len(localIPPrefix); i++ {
-		if strings.HasPrefix(ip, localIPPrefix[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-// GetInterfaceIP get interface ip
-func GetInterfaceIP() string {
-	addrs, _ := net.InterfaceAddrs()
-
-	// get internet ip first
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-			if !IsLocalIP(ipnet.IP.String()) {
-				return ipnet.IP.String()
-			}
-		}
-	}
-
-	// get internat ip
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-			return ipnet.IP.String()
-		}
-	}
-
-	return ""
-}
 
 // RandomString generate a random string
 func RandomString(n int) string {

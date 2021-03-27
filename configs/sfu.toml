@@ -3,10 +3,6 @@ pprof = ":6062"
 # data center id
 dc = "dc1"
 
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["127.0.0.1:2379"]
-
 [nats]
 url = "nats://127.0.0.1:4222"
 
@@ -15,13 +11,29 @@ url = "nats://127.0.0.1:4222"
 # size of ballast. Be aware that the ballast should be less than the half of memory
 # available.
 ballast = 0
+# enable prometheus sfu statistics
+withstats = false
 
 [router]
 # Limit the remb bandwidth in kbps
 # zero means no limits
 maxbandwidth = 1500
-# max buffer time by ms for video tracks
-maxbuffertime = 1000
+# max number of video tracks packets the SFU will keep track
+maxpackettrack = 500
+# Sets the audio level volume threshold.
+# Values from [0-127] where 0 is the loudest.
+# Audio levels are read from rtp extension header according to:
+# https://tools.ietf.org/html/rfc6464
+audiolevelthreshold = 40
+# Sets the interval in which the SFU will check the audio level
+# in [ms]. If the active speaker has changed, the sfu will
+# emit an event to clients.
+audiolevelinterval=1000
+# Sets minimum percentage of events required to fire an audio level
+# according to the expected events from the audiolevelinterval,
+# calculated as audiolevelinterval/packetization time (20ms for 8kHz)
+# Values from [0-100]
+audiolevelfilter = 20
 
 [router.simulcast]
 # Prefer best quality initially
@@ -33,7 +45,7 @@ enabletemporallayer = false
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
 # Format: [min, max]   and max - min >= 100
-# portrange = [50000, 60000]
+portrange = [5000, 5200]
 # if sfu behind nat, set iceserver
 # [[webrtc.iceserver]]
 # urls = ["stun:stun.stunprotocol.org:3478"]
@@ -47,6 +59,8 @@ enabletemporallayer = false
 # "plan-b"
 # "unified-plan-with-fallback"
 sdpsemantics = "unified-plan"
+# toggle multicast dns support: https://tools.ietf.org/html/draft-mdns-ice-candidates-00
+mdns = true
 
 [webrtc.candidates]
 # In case you're deploying ion-sfu on a server which is configured with
@@ -61,5 +75,28 @@ sdpsemantics = "unified-plan"
 # nat1to1 = ["1.2.3.4"]
 # icelite = true
 
+[turn]
+# Enables embeded turn server
+enabled = false
+# Sets the realm for turn server
+realm = "ion"
+# The address the TURN server will listen on.
+address = "0.0.0.0:3478"
+# Certs path to config tls/dtls
+# cert="path/to/cert.pem"
+# key="path/to/key.pem"
+# Port range that turn relays to SFU
+# WARNING: It shouldn't overlap webrtc.portrange
+# Format: [min, max]
+# portrange = [5201, 5400]
+[turn.auth]
+# Use an auth secret to generate long-term credentials defined in RFC5389-10.2
+# NOTE: This takes precedence over `credentials` if defined.
+# secret = "secret"
+# Sets the credentials pairs
+credentials = "pion=ion,pion2=ion2"
+
 [log]
+# 0 - INFO 1 - DEBUG 2 - TRACE
+v = 1
 level = "info"

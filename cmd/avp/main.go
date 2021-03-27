@@ -56,7 +56,7 @@ func load() bool {
 
 func parse() bool {
 
-	flag.StringVar(&file, "c", "conf/conf.toml", "config file")
+	flag.StringVar(&file, "c", "configs/avp.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -82,7 +82,7 @@ func main() {
 
 	log.Infof("--- starting avp node ---")
 
-	node := avp.NewAVP()
+	node := avp.NewAVP("avp")
 	if err := node.Start(conf); err != nil {
 		log.Errorf("avp start error: %v", err)
 		os.Exit(-1)

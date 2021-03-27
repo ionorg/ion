@@ -4,73 +4,117 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/grpc/ion"
 )
 
-// room represents a room which manage peers
-type room struct {
+// Room represents a Room which manage peers
+type Room struct {
 	sync.RWMutex
-	id    proto.SID
-	peers map[proto.UID]*Peer
+	sid    string
+	sfunid string
+	peers  map[string]*Peer
 }
 
 // newRoom creates a new room instance
-func newRoom(id proto.SID) *room {
-	r := &room{
-		id:    id,
-		peers: make(map[proto.UID]*Peer),
+func newRoom(sid string, sfunid string) *Room {
+	r := &Room{
+		sid:    sid,
+		sfunid: sfunid,
+		peers:  make(map[string]*Peer),
 	}
 	return r
 }
 
-// ID room id
-func (r *room) ID() proto.SID {
-	return r.id
+// SID room id
+func (r *Room) SID() string {
+	return r.sid
 }
 
 // addPeer add a peer to room
-func (r *room) addPeer(p *Peer) {
+func (r *Room) addPeer(p *Peer) {
 	r.Lock()
-	defer r.Unlock()
 	r.peers[p.uid] = p
+	r.Unlock()
+
+	event := &ion.PeerEvent{
+		State: ion.PeerEvent_JOIN,
+		Peer: &ion.Peer{
+			Sid:  r.sid,
+			Uid:  p.uid,
+			Info: p.info,
+		},
+	}
+
+	r.sendPeerEvent(event)
 }
 
 // getPeer get a peer by peer id
-func (r *room) getPeer(uid proto.UID) *Peer {
+func (r *Room) getPeer(uid string) *Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers[uid]
 }
 
 // getPeers get peers in the room
-func (r *room) getPeers() map[proto.UID]*Peer {
+func (r *Room) getPeers() map[string]*Peer {
 	r.RLock()
 	defer r.RUnlock()
 	return r.peers
 }
 
 // delPeer delete a peer in the room
-func (r *room) delPeer(uid proto.UID) int {
+func (r *Room) delPeer(uid string) int {
 	r.Lock()
-	defer r.Unlock()
 	delete(r.peers, uid)
+	r.Unlock()
+
+	event := &ion.PeerEvent{
+		State: ion.PeerEvent_LEAVE,
+		Peer: &ion.Peer{
+			Sid: r.sid,
+			Uid: uid,
+		},
+	}
+	r.sendPeerEvent(event)
+
 	return len(r.peers)
 }
 
 // count return count of peers in room
-func (r *room) count() int {
+func (r *Room) count() int {
 	r.RLock()
 	defer r.RUnlock()
 	return len(r.peers)
 }
 
-// send message to peers
-func (r *room) send(data interface{}, without proto.UID) {
+func (r *Room) sendPeerEvent(event *ion.PeerEvent) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.sendPeerEvent(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		}
+	}
+}
+
+func (r *Room) sendStreamEvent(event *ion.StreamEvent) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.sendStreamEvent(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		}
+	}
+}
+
+func (r *Room) sendMessage(msg *ion.Message) {
+	from := msg.From
+	to := msg.To
+	data := msg.Data
+	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
 	peers := r.getPeers()
 	for id, p := range peers {
-		if len(without) > 0 && id != without {
-			if err := p.send(data); err != nil {
-				log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		if id == to || to == "all" || to == r.sid {
+			if err := p.sendMessage(msg); err != nil {
+				log.Errorf("send msg to peer(%s) error: %v", p.uid, err)
 			}
 		}
 	}
