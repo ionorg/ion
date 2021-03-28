@@ -112,6 +112,12 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			peer.Close()
 			r.delPeer(peer.UID())
 		}
+
+		if r != nil && r.count() == 0 {
+			s.delRoom(r.SID())
+			r = nil
+		}
+
 		close(errCh)
 		close(repCh)
 		close(reqCh)

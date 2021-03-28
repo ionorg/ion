@@ -7,30 +7,16 @@ dc = "dc1"
 level = "info"
 # level = "debug"
 
-[etcd]
-# ["ip:port", "ip:port"]
-addrs = ["etcd:2379"]
-
 [nats]
 url = "nats://nats:4222"
 
-[signal]
+[signal.grpc]
 #listen ip port
 host = "0.0.0.0"
-port = "8443"
+port = "5551"
+allow_all_origins = true
 # cert= "configs/certs/cert.pem"
 # key= "configs/certs/key.pem"
-path = "/ws"
-
-[signal.auth_connection]
-enabled = false 
-key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.com/dgrijalva/jwt-go#SigningMethod
-key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
-
-[signal.auth_room]
-enabled = false
-key_type = "HMAC"
-key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 [avp]
 elements = ["webmsaver"]
