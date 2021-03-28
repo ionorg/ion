@@ -46,6 +46,22 @@ func (r *Room) addPeer(p *Peer) {
 	}
 
 	r.sendPeerEvent(event)
+
+	// Send the peer info in the existing room
+	// to the newly added peer.
+	for _, peer := range r.getPeers() {
+		if peer.uid != p.uid {
+			event := &ion.PeerEvent{
+				State: ion.PeerEvent_JOIN,
+				Peer: &ion.Peer{
+					Sid:  r.sid,
+					Uid:  peer.uid,
+					Info: peer.info,
+				},
+			}
+			p.sendPeerEvent(event)
+		}
+	}
 }
 
 // getPeer get a peer by peer id
