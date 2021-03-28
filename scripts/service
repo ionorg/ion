@@ -49,8 +49,8 @@ function start()
     go build -o $COMMAND
     cd $APP_DIR
 
-    echo "nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &"
-    nohup $COMMAND -c $CONFIG >>$LOG_FILE 2>&1 &
+    echo "nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &"
+    nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &
     pid=$!
     echo "$pid" > $PID_FILE
     rpid=`ps aux | grep $pid |grep -v "grep" | awk '{print $2}'`

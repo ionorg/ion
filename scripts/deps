@@ -45,7 +45,7 @@ LOG_FILE=$APP_DIR/logs/$SERVICE.log
 if [[ "$SERVICE" == "nats-server" && "$OS_TYPE" != "Darwin" ]]; then
     if [[ "$ACTION" == "start" ]]; then
         ## run command
-        echo "nohup $SERVICE>>$LOG_FILE 2>&1 &"
+        echo "nohup $SERVICE>$LOG_FILE 2>&1 &"
         nohup $SERVICE>>$LOG_FILE 2>&1 &
         pid=$!
         echo "$pid"
