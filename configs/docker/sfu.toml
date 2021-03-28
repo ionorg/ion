@@ -45,7 +45,7 @@ enabletemporallayer = false
 [webrtc]
 # Range of ports that ion accepts WebRTC traffic on
 # Format: [min, max]   and max - min >= 100
-portrange = [5000, 5200]
+portrange = [15000, 15200]
 # if sfu behind nat, set iceserver
 # [[webrtc.iceserver]]
 # urls = ["stun:stun.stunprotocol.org:3478"]
@@ -72,8 +72,8 @@ mdns = true
 # Multiple public IP addresses can be specified as a comma separated list
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
-# nat1to1 = ["1.2.3.4"]
-# icelite = true
+nat1to1 = ["127.0.0.1"]
+icelite = true
 
 [turn]
 # Enables embeded turn server

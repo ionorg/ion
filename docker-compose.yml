@@ -22,10 +22,11 @@ services:
     volumes:
       - "./configs/docker/sfu.toml:/configs/sfu.toml"
     ports:
-      - "5000-5200:5000-5200/udp"
+      - "15000-15200:15000-15200/udp"
       - 3478:3478
     depends_on:
       - nats
+      - islb
     networks:
       - ionnet
 
@@ -39,6 +40,7 @@ services:
       - "./out:/out/"
     depends_on:
       - nats
+      - islb
     networks:
       - ionnet
 
@@ -53,6 +55,7 @@ services:
       - 5551:5551
     depends_on:
       - nats
+      - islb
     networks:
       - ionnet
 
