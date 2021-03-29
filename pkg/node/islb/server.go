@@ -19,16 +19,16 @@ type islbServer struct {
 	nodes    map[string]discovery.Node
 	in       *ISLB
 	conf     Config
-	watchs   map[string]proto.ISLB_WatchISLBEventServer
+	watchers map[string]proto.ISLB_WatchISLBEventServer
 }
 
 func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
 	return &islbServer{
-		conf:   conf,
-		in:     in,
-		Redis:  redis,
-		nodes:  make(map[string]discovery.Node),
-		watchs: make(map[string]proto.ISLB_WatchISLBEventServer),
+		conf:     conf,
+		in:       in,
+		Redis:    redis,
+		nodes:    make(map[string]discovery.Node),
+		watchers: make(map[string]proto.ISLB_WatchISLBEventServer),
 	}
 }
 
@@ -117,9 +117,10 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 			s.Redis.Del(mkey)
 		}
 
-		for _, stream := range s.watchs {
-			stream.Send(event)
+		for _, wstream := range s.watchers {
+			wstream.Send(event)
 		}
+
 	case *proto.ISLBEvent_Session:
 		//session := payload.Session
 		//log.Infof("ISLBEvent_Session event %v", session.String())
@@ -130,6 +131,10 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 //WatchISLBEvent broadcast ISLBEvent to ion-biz node.
 //The stream metadata is forwarded to biz node and coupled with the peer in the client through UID
 func (s *islbServer) WatchISLBEvent(stream proto.ISLB_WatchISLBEventServer) error {
+	var sid string
+	defer func() {
+		delete(s.watchers, sid)
+	}()
 	for {
 		req, err := stream.Recv()
 		if err != nil {
@@ -137,9 +142,9 @@ func (s *islbServer) WatchISLBEvent(stream proto.ISLB_WatchISLBEventServer) erro
 			return err
 		}
 		log.Infof("ISLBServer.WatchISLBEvent req => %v", req)
-		sid := req.Sid
-		if _, found := s.watchs[sid]; !found {
-			s.watchs[sid] = stream
+		sid = req.Sid
+		if _, found := s.watchers[sid]; !found {
+			s.watchers[sid] = stream
 		}
 	}
 }

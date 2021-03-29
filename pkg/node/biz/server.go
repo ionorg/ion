@@ -229,7 +229,11 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			case *biz.SignalRequest_Msg:
 				log.Debugf("Message: from: %v => to: %v, data: %v", payload.Msg.From, payload.Msg.To, payload.Msg.Data)
 				// message broadcast
-				r.sendMessage(payload.Msg)
+				if r != nil {
+					r.sendMessage(payload.Msg)
+				} else {
+					log.Warnf("room not found, maybe the peer did not join")
+				}
 			default:
 				break
 			}
