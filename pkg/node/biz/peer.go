@@ -8,11 +8,12 @@ import (
 
 // Peer represents a peer for client
 type Peer struct {
-	uid    string
-	sid    string
-	info   []byte
-	closed util.AtomicBool
-	sndCh  chan *biz.SignalReply
+	uid             string
+	sid             string
+	info            []byte
+	lastStreamEvent *ion.StreamEvent
+	closed          util.AtomicBool
+	sndCh           chan *biz.SignalReply
 }
 
 func NewPeer(sid string, uid string, info []byte, senCh chan *biz.SignalReply) *Peer {

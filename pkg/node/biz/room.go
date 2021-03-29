@@ -32,9 +32,6 @@ func (r *Room) SID() string {
 
 // addPeer add a peer to room
 func (r *Room) addPeer(p *Peer) {
-	r.Lock()
-	r.peers[p.uid] = p
-	r.Unlock()
 
 	event := &ion.PeerEvent{
 		State: ion.PeerEvent_JOIN,
@@ -44,24 +41,29 @@ func (r *Room) addPeer(p *Peer) {
 			Info: p.info,
 		},
 	}
-
 	r.sendPeerEvent(event)
 
 	// Send the peer info in the existing room
 	// to the newly added peer.
 	for _, peer := range r.getPeers() {
-		if peer.uid != p.uid {
-			event := &ion.PeerEvent{
-				State: ion.PeerEvent_JOIN,
-				Peer: &ion.Peer{
-					Sid:  r.sid,
-					Uid:  peer.uid,
-					Info: peer.info,
-				},
-			}
-			p.sendPeerEvent(event)
+		event := &ion.PeerEvent{
+			State: ion.PeerEvent_JOIN,
+			Peer: &ion.Peer{
+				Sid:  r.sid,
+				Uid:  peer.uid,
+				Info: peer.info,
+			},
+		}
+		p.sendPeerEvent(event)
+
+		if peer.lastStreamEvent != nil {
+			p.sendStreamEvent(peer.lastStreamEvent)
 		}
 	}
+
+	r.Lock()
+	r.peers[p.uid] = p
+	r.Unlock()
 }
 
 // getPeer get a peer by peer id

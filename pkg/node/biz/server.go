@@ -91,6 +91,11 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 					r := s.getRoom(payload.Stream.Sid)
 					if r != nil {
 						r.sendStreamEvent(payload.Stream)
+						p := r.getPeer(payload.Stream.Uid)
+						// save last stream info.
+						if p != nil {
+							p.lastStreamEvent = payload.Stream
+						}
 					}
 				}
 			}
