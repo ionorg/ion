@@ -100,7 +100,7 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 // key = dc/ion-sfu-1/room1/uid
 // value = [...stream/track info ...]
 func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) (*ion.Empty, error) {
-	log.Infof("ISLBServer.PostISLBEvent: %v", event)
+	log.Infof("ISLBServer.PostISLBEvent")
 	switch payload := event.Payload.(type) {
 	case *proto.ISLBEvent_Stream:
 		stream := payload.Stream
@@ -110,6 +110,13 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 		if err != nil {
 			log.Errorf("json.Marshal err => %v", err)
 		}
+
+		jstr, err := json.MarshalIndent(stream.Streams, "", "  ")
+		if err != nil {
+			log.Errorf("json.MarshalIndent failed %v", err)
+		}
+		log.Infof("ISLBEvent:\nmkey=> %v\nstate = %v\nstreams => %v", mkey, state.String(), string(jstr))
+
 		switch state {
 		case ion.StreamEvent_ADD:
 			s.Redis.Set(mkey, string(data), redisLongKeyTTL)
