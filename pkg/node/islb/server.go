@@ -60,6 +60,10 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 
 	nodes := []*ion.Node{}
 
+	if nid == "" {
+		nid = "*"
+	}
+
 	// find node by sid from reids
 	mkey := s.conf.Global.Dc + "/" + nid + "/" + sid
 	log.Infof("islb.FindNode: mkey => %v", mkey)
