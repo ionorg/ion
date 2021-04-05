@@ -72,6 +72,15 @@ services:
       - 6379:6379
     networks:
       - ionnet
+  envoy:
+    image: grpc-envoy-proxy:latest
+    build:
+      dockerfile: ./envoy/Dockerfile
+      context: .
+    ports:
+      - 8080:8080
+    networks:
+      - ionnet
 
 networks:
   ionnet:
