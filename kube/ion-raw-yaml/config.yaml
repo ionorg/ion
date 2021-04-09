@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ion-config
+data:
+  biz.toml:  |-
+    [global]
+    pprof = ":6060"
+
+    # internet ip
+    addr = "127.0.0.1"
+
+    # data center id
+    dc = "dc1"
+
+    [log]
+    level = "info"
+    # level = "debug"
+
+    [etcd]
+    # ["ip:port", "ip:port"]
+    addrs = ["http://ion-etcd-headless:2379"]
+
+    [signal]
+    #listen ip port
+    host = "0.0.0.0"
+    port = "8443"
+    #allow_disconnected = true
+
+    [nats]
+    url = "nats://ion-nats-client:4222"
+
+  islb.toml: |-
+    [global]
+    pprof = ":6061"
+
+    # data center id
+    dc = "dc1"
+
+    [log]
+    level = "info"
+
+    [etcd]
+    # ["ip:port", "ip:port"]
+    addrs = ["http://ion-etcd-headless:2379"]
+
+    [nats]
+    url = "nats://ion-nats-client:4222"
+
+    [redis]
+    addrs = ["ion-redis-master:6379"]
+    password = ""
+    db = 0
+
+
+  sfu.toml: |-
+    [global]
+    pprof = ":6062"
+
+    # data center id
+    dc = "dc1"
+
+    # internet ip
+    addr = "127.0.0.1"
+
+    [plugins]
+    on = true
+
+    [plugins.jitterbuffer]
+    on = true
+    # the remb cycle sending to pub, this told the pub it's bandwidth
+    rembcycle = 2
+    # pli cycle sending to pub, and pub will send a key frame
+    plicycle = 1
+    # this limit the remb bandwidth
+    maxbandwidth = 1000
+    # max buffer time by ms
+    maxbuffertime = 1000
+
+    [plugins.rtpforwarder]
+    on = false
+    # remote address
+    addr = "avp:6668"
+    # kcp key
+    kcpkey = ""
+    # kcp salt
+    kcpsalt = ""
+
+    [webrtc]
+    # Range of ports that ion accepts WebRTC traffic on
+    portrange = [5000, 5200]
+
+    [webrtc.iceserver]
+    urls = ["stun:stun.l.google.com:19302"]
+
+    [rtp]
+    # listen port
+    port = 6666
+    # kcpkey = ""
+    # kcpsalt = ""
+
+    [log]
+    level = "info"
+    # level = "debug"
+
+    [etcd]
+    # ["ip:port", "ip:port"]
+    addrs = ["http://ion-etcd-headless:2379"]
+    
+    [nats]
+    url = "nats://ion-nats-client:4222"
+    
+  avp.toml: |-
+    [global]
+    pprof = ":6062"
+    # data center id
+    dc = "dc1"
+    # internet ip
+    addr = "127.0.0.1"
+
+    [plugins]
+    on = true
+
+    [plugins.samplebuilder]
+    on = true
+    # max late for audio rtp packets
+    audiomaxlate = 100
+    # max late for video rtp packets
+    videomaxlate = 200
+
+    [plugins.webmsaver]
+    on = true
+    # webm output path
+    path = "./out/"
+
+    [rtp]
+    # listen port
+    port = 6668
+    kcpkey = ""
+    kcpsalt = ""
+
+    [log]
+    level = "info"
+
+    # level = "debug"
+    [etcd]
+    # ["ip:port", "ip:port"]
+    addrs = ["http://ion-etcd-headless:2379"]
+
+    [nats]
+    url = "nats://ion-nats-client:4222"
