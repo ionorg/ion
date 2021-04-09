@@ -1,0 +1,84 @@
+
+@startuml ion-sequence
+
+Title: ion sequence diagram v1.0
+
+participant clientA
+participant biz
+participant islb
+participant sfu
+participant clientB
+
+Note left of clientA: 1
+Note over clientA: new WebSocket(newUID()) 
+Note over clientA: pc.setLocalDescription(cSDP)
+clientA->biz: join(sid,cSDP,info)
+Note over biz: addPeer(uid) & newMID()
+biz->islb: peer-join(uid,sid,mid,info)
+islb->>biz: broadcast peer-join(uid,sid,info)
+biz->>clientB: broadcast peer-join(uid,sid,info)
+islb-->biz: peer-join(peers,streams)
+biz->sfu: join(sid,mid,cSDP)
+Note over sfu: pc.SetRemoteDescription(cSDP)
+Note over sfu: pc.SetLocalDescription(sSDP)
+sfu-->biz: join(sSDP)
+loop for streamId := range cSDP.streams
+    biz->>islb: stream-add(uid,sid,mid,streamId)
+    islb->>biz: broadcast stream-add(sid,uid,stream)
+    biz->>clientB: broadcast stream-add(sid,uid,stream)
+end
+biz-->clientA: join(peers,streams,mid,sSDP)
+Note over clientA: pc.setRemoteDescription(sSDP)
+
+Note left of clientA: 2
+Note over clientA: pc.onicecandidate(cCandidate)
+clientA->biz: trickle(sid,mid,cCandidate)
+biz->sfu: trickle(mid,cCandidate)
+Note over sfu: pc.AddICECandidate(candidate)
+
+Note left of clientA: 3
+Note over sfu: pc.OnICECandidate(sCandidate)
+sfu->>biz: trickle(mid,sCandidate)
+biz->>clientA: trickle(sid,mid,sCandidate)
+Note over clientA: pc.addIceCandidate(sCandidate)
+
+Note left of clientA: 4
+Note over sfu: pc.OnNegotiationNeeded()
+Note over sfu: pc.SetLocalDescription(sSDP)
+sfu->>biz: offer(mid,sSDP)
+biz->>clientA: offer(sid,mid,sSDP)
+Note over clientA: pc.setRemoteDescription(sSDP)
+Note over clientA: pc.setLocalDescription(cSDP)
+clientA-->biz: answer(sid,mid,cSDP)
+biz-->sfu: answer(mid,cSDP)
+Note over sfu: pc.SetRemoteDescription(cSDP)
+
+Note left of clientA: 5
+Note over clientA: pc.onnegotiationneeded()
+Note over clientA: pc.setLocalDescription(cSDP)
+clientA->biz: offer(uid,sid,mid,cSDP)
+biz->sfu: offer(mid,cSDP)
+Note over sfu: pc.SetRemoteDescription(cSDP)
+Note over sfu: pc.SetLocalDescription(sSDP)
+sfu-->biz: answer(mid,sSDP)
+biz-->clientA: answer(uid,sid,mid,sSDP)
+Note over clientA: pc.setRemoteDescription(sSDP)
+
+Note left of clientA: 6
+clientA->biz: broadcast(sid,uid,info)
+biz->>islb: broadcast(sid,uid,info)
+islb->>biz: broadcast(sid,uid,info)
+biz->>clientB: broadcast(sid,uid,info)
+biz-->clientA:
+
+Note left of clientA: 8
+clientA->biz: leave(sid,uid)
+Note over biz: delPeer(sid, uid)
+biz->>islb: peer-leave(sid,uid)
+islb->>biz: broadcast peer-leave(sid,uid)
+biz->>clientB: broadcast peer-leave(sid,uid)
+biz->sfu: leave(sid,uid,mid)
+sfu-->biz:
+biz-->clientA:
+
+@enduml
