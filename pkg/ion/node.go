@@ -67,10 +67,15 @@ func (n *Node) KeepAlive(node discovery.Node) error {
 
 //Watch the neighbor nodes
 func (n *Node) Watch(service string) error {
-	resp, err := n.nd.Get(service)
-	if err != nil {
-		log.Errorf("Watch service %v error %v", service, err)
-		return err
+	var resp *discovery.GetResponse
+	var err error
+	for {
+		resp, err = n.nd.Get(service)
+		if err != nil {
+			log.Warnf("Watch service %v error %v", service, err)
+		} else {
+			break
+		}
 	}
 	for _, node := range resp.Nodes {
 		n.handleNeighborNodes(discovery.NodeUp, &node)
