@@ -22,7 +22,6 @@ var (
 			Addrs: []string{":6379"},
 		},
 	}
-	file string
 
 	nid = "islb-01"
 )

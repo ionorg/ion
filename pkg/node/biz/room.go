@@ -54,10 +54,16 @@ func (r *Room) addPeer(p *Peer) {
 				Info: peer.info,
 			},
 		}
-		p.sendPeerEvent(event)
+		err := p.sendPeerEvent(event)
+		if err != nil {
+			log.Errorf("p.sendPeerEvent() failed %v", err)
+		}
 
 		if peer.lastStreamEvent != nil {
-			p.sendStreamEvent(peer.lastStreamEvent)
+			err := p.sendStreamEvent(peer.lastStreamEvent)
+			if err != nil {
+				log.Errorf("p.sendStreamEvent() failed %v", err)
+			}
 		}
 	}
 

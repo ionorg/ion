@@ -36,15 +36,18 @@ func init() {
 func TestWatch(t *testing.T) {
 	n := NewNode(nid)
 
-	registry.Listen(func(action string, node discovery.Node) {
+	err := registry.Listen(func(action string, node discovery.Node) {
 		log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 		assert.Equal(t, node.NID, nid)
 		assert.Equal(t, node.Service, proto.ServiceBIZ)
 		wg.Done()
 	})
+	if err != nil {
+		t.Error(err)
+	}
 
 	wg.Add(1)
-	err := n.Start(natsURL)
+	err = n.Start(natsURL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,11 +63,20 @@ func TestWatch(t *testing.T) {
 		},
 	}
 
-	go n.KeepAlive(node)
+	go func() {
+		err := n.KeepAlive(node)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
 	wg.Wait()
 	assert.NotEmpty(t, n.ServiceRegistrar())
 
-	n.Watch(proto.ServiceBIZ)
+	err = n.Watch(proto.ServiceBIZ)
+	if err != nil {
+		t.Error(err)
+	}
 
 	n.Close()
 }

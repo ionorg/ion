@@ -43,7 +43,6 @@ type Config struct {
 
 // AVP represents avp node
 type AVP struct {
-	config Config
 	ion.Node
 	s *avpServer
 }
@@ -84,7 +83,12 @@ func (a *AVP) Start(conf Config) error {
 		},
 	}
 
-	go a.Node.KeepAlive(node)
+	go func() {
+		err := a.Node.KeepAlive(node)
+		if err != nil {
+			log.Errorf("avp.Node.KeepAlive: error => %v", err)
+		}
+	}()
 
 	elems := make(map[string]iavp.ElementFun)
 	if conf.Element.Webmsaver.On {
@@ -105,7 +109,12 @@ func (a *AVP) Start(conf Config) error {
 	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
 	//Watch ISLB nodes.
-	go a.Node.Watch(proto.ServiceISLB)
+	go func() {
+		err := a.Node.Watch(proto.ServiceISLB)
+		if err != nil {
+			log.Errorf("avp.Node.Watch: error => %v", err)
+		}
+	}()
 
 	return nil
 }

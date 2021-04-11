@@ -22,7 +22,6 @@ var (
 			URL: "nats://127.0.0.1:4222",
 		},
 	}
-	file string
 
 	nid = "sfu-01"
 )
@@ -77,7 +76,7 @@ func TestStart(t *testing.T) {
 		if err != nil {
 			log.Errorf("OnIceCandidate error %s", err)
 		}
-		stream.Send(&pb.SignalRequest{
+		err = stream.Send(&pb.SignalRequest{
 			Payload: &pb.SignalRequest_Trickle{
 				Trickle: &pb.Trickle{
 					Target: pb.Trickle_PUBLISHER,
@@ -85,9 +84,15 @@ func TestStart(t *testing.T) {
 				},
 			},
 		})
+		if err != nil {
+			t.Error(err)
+		}
 	})
 
 	_, err = pub.CreateDataChannel("ion-sfu", nil)
+	if err != nil {
+		t.Error(err)
+	}
 	offer, err := pub.CreateOffer(nil)
 	if err != nil {
 		t.Error(err)
@@ -95,8 +100,11 @@ func TestStart(t *testing.T) {
 	log.Infof("offer => %v", offer)
 
 	marshalled, err := json.Marshal(offer)
+	if err != nil {
+		t.Error(err)
+	}
 
-	stream.Send(&pb.SignalRequest{
+	err = stream.Send(&pb.SignalRequest{
 		Payload: &pb.SignalRequest_Join{
 			Join: &pb.JoinRequest{
 				Sid:         "room1",
@@ -105,7 +113,15 @@ func TestStart(t *testing.T) {
 		},
 	})
 
-	pub.SetLocalDescription(offer)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = pub.SetLocalDescription(offer)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	for {
 		reply, err := stream.Recv()
@@ -122,14 +138,20 @@ func TestStart(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			pub.SetRemoteDescription(sdp)
+			err = pub.SetRemoteDescription(sdp)
+			if err != nil {
+				t.Error(err)
+			}
 		case *pb.SignalReply_Trickle:
 			var candidate webrtc.ICECandidateInit
 			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
 			if err != nil {
 				t.Error(err)
 			}
-			pub.AddICECandidate(candidate)
+			err = pub.AddICECandidate(candidate)
+			if err != nil {
+				t.Error(err)
+			}
 			//return
 		}
 	}

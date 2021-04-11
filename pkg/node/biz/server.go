@@ -73,10 +73,13 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 		if err != nil {
 			return err
 		}
-		stream.Send(&islb.WatchRequest{
+		err = stream.Send(&islb.WatchRequest{
 			Nid: nid,
 			Sid: sid,
 		})
+		if err != nil {
+			return err
+		}
 
 		go func() {
 			for {
@@ -149,7 +152,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			if !ok {
 				return io.EOF
 			}
-			stream.Send(reply)
+			err := stream.Send(reply)
+			if err != nil {
+				return err
+			}
 		case req, ok := <-reqCh:
 			if !ok {
 				return io.EOF
@@ -191,7 +197,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 							reason = fmt.Sprintf("islbcli.FindNode(serivce = sfu, sid = %v) err %v", sid, err)
 						}
 
-						s.watchISLBEvent(nid, sid)
+						err = s.watchISLBEvent(nid, sid)
+						if err != nil {
+							log.Errorf("s.watchISLBEvent(req) failed %v", err)
+						}
 					}
 					if r != nil {
 						peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
@@ -203,7 +212,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 					reason = fmt.Sprintf("join [sid=%v] islb node not found", sid)
 				}
 
-				stream.Send(&biz.SignalReply{
+				err := stream.Send(&biz.SignalReply{
 					Payload: &biz.SignalReply_JoinReply{
 						JoinReply: &biz.JoinReply{
 							Success: success,
@@ -211,6 +220,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						},
 					},
 				})
+
+				if err != nil {
+					log.Errorf("stream.Send(&biz.SignalReply) failed %v", err)
+				}
 			case *biz.SignalRequest_Leave:
 				uid := payload.Leave.Uid
 				if peer != nil && peer.uid == uid {
@@ -223,13 +236,16 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						r = nil
 					}
 
-					stream.Send(&biz.SignalReply{
+					err := stream.Send(&biz.SignalReply{
 						Payload: &biz.SignalReply_LeaveReply{
 							LeaveReply: &biz.LeaveReply{
 								Reason: "closed",
 							},
 						},
 					})
+					if err != nil {
+						log.Errorf("stream.Send(&biz.SignalReply) failed %v", err)
+					}
 				}
 			case *biz.SignalRequest_Msg:
 				log.Debugf("Message: from: %v => to: %v, data: %v", payload.Msg.From, payload.Msg.To, payload.Msg.Data)
