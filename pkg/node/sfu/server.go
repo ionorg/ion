@@ -87,7 +87,7 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				return nil
 			}
 
-			log.Errorf("%v", fmt.Errorf(errStatus.Message()), "signal error", "code", errStatus.Code())
+			log.Errorf("%v signal error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
 			return err
 		}
 
@@ -293,6 +293,7 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				}
 
 			} else if sdp.Type == webrtc.SDPTypeAnswer {
+				log.Infof("sdp %v", sdp.SDP)
 				err := peer.SetRemoteDescription(sdp)
 				if err != nil {
 					switch err {

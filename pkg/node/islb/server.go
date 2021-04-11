@@ -60,6 +60,10 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 
 	nodes := []*ion.Node{}
 
+	if nid == "" {
+		nid = "*"
+	}
+
 	// find node by sid from reids
 	mkey := s.conf.Global.Dc + "/" + nid + "/" + sid
 	log.Infof("islb.FindNode: mkey => %v", mkey)
@@ -119,13 +123,22 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 
 		switch state {
 		case ion.StreamEvent_ADD:
-			s.Redis.Set(mkey, string(data), redisLongKeyTTL)
+			err := s.Redis.Set(mkey, string(data), redisLongKeyTTL)
+			if err != nil {
+				log.Errorf("s.Redis.Set failed %v", err)
+			}
 		case ion.StreamEvent_REMOVE:
-			s.Redis.Del(mkey)
+			err := s.Redis.Del(mkey)
+			if err != nil {
+				log.Errorf("s.Redis.Del failed %v", err)
+			}
 		}
 
 		for _, wstream := range s.watchers {
-			wstream.Send(event)
+			err := wstream.Send(event)
+			if err != nil {
+				log.Errorf("wstream.Send(event): failed %v", err)
+			}
 		}
 
 	case *proto.ISLBEvent_Session:

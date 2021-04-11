@@ -25,6 +25,10 @@ func ParseSDP(sdpstr string) ([]*ion.Stream, error) {
 			msid := m.Attributes.Get("msid")
 			//fmt.Printf("msid id = %v\n", msid)
 
+			if msid == "" {
+				continue
+			}
+
 			strs := strings.Split(msid, " ")
 			streamID := strs[0]
 			trackID := msid

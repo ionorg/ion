@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	pb "github.com/pion/ion-avp/cmd/signal/grpc/proto"
 	avp "github.com/pion/ion-avp/pkg"
 	log "github.com/pion/ion-log"
@@ -62,31 +61,12 @@ func (a *AVPProcesser) Process(ctx context.Context, addr, pid, sid, tid, eid str
 
 type avpServer struct {
 	pb.UnimplementedAVPServer
-	avp      *AVPProcesser
-	nodeLock sync.RWMutex
-	nodes    map[string]*discovery.Node
+	avp *AVPProcesser
 }
 
 func newAVPServer(conf avp.Config, elems map[string]avp.ElementFun) *avpServer {
 	return &avpServer{
-		avp:   NewAVPProcesser(conf, elems),
-		nodes: make(map[string]*discovery.Node),
-	}
-}
-
-// watchIslbNodes watch islb nodes up/down
-func (a *avpServer) watchIslbNodes(state discovery.NodeState, node *discovery.Node) {
-	a.nodeLock.Lock()
-	defer a.nodeLock.Unlock()
-	id := node.NID
-	if state == discovery.NodeUp {
-		log.Infof("islb node %v up", id)
-		if _, found := a.nodes[id]; !found {
-			a.nodes[id] = node
-		}
-	} else if state == discovery.NodeDown {
-		log.Infof("islb node %v down", id)
-		delete(a.nodes, id)
+		avp: NewAVPProcesser(conf, elems),
 	}
 }
 

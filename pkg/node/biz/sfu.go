@@ -17,7 +17,7 @@ type SFUSignalBridge struct {
 
 //Signal bridge SFU signaling between client and sfu node.
 func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
-	var peer *Peer = nil
+	var peer *Peer
 	var cstream sfu.SFU_SignalClient = nil
 	reqCh := make(chan *sfu.SignalRequest)
 	repCh := make(chan *sfu.SignalReply)
@@ -25,7 +25,10 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 
 	defer func() {
 		if cstream != nil {
-			cstream.CloseSend()
+			err := cstream.CloseSend()
+			if err != nil {
+				log.Errorf("cstream.CloseSend() failed %v", err)
+			}
 		}
 		close(errCh)
 		log.Infof("SFU.Signal loop done")
@@ -54,7 +57,10 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 			}
 
 			if cstream != nil {
-				cstream.Send(req)
+				err := cstream.Send(req)
+				if err != nil {
+					log.Errorf("cstream.Send(req) failed %v", err)
+				}
 				break
 			}
 
@@ -87,7 +93,10 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 							}
 						}()
 
-						cstream.Send(req)
+						err = cstream.Send(req)
+						if err != nil {
+							return fmt.Errorf("cstream.Send(req) failed %v", err)
+						}
 						break
 					} else {
 						return fmt.Errorf("peer [%v] not found", payload.Join.Uid)
@@ -98,7 +107,10 @@ func (s *SFUSignalBridge) Signal(sstream sfu.SFU_SignalServer) error {
 			}
 		case reply, ok := <-repCh:
 			if ok {
-				sstream.Send(reply)
+				err := sstream.Send(reply)
+				if err != nil {
+					return fmt.Errorf("sstream.Send(reply) failed %v", err)
+				}
 				break
 			}
 			return io.EOF
