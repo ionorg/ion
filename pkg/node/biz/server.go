@@ -126,10 +126,6 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			r = nil
 		}
 
-		// set channel = nil instead of closing
-		errCh = nil
-		repCh = nil
-		reqCh = nil
 		log.Infof("BizServer.Signal loop done")
 	}()
 
@@ -138,14 +134,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			req, err := stream.Recv()
 			if err != nil {
 				log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
-				if errCh != nil {
-					errCh <- err
-				}
+				errCh <- err
 				return
 			}
-			if reqCh != nil {
-				reqCh <- req
-			}
+			reqCh <- req
 		}
 	}()
 
