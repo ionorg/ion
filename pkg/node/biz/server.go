@@ -126,9 +126,6 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			r = nil
 		}
 
-		close(errCh)
-		close(repCh)
-		close(reqCh)
 		log.Infof("BizServer.Signal loop done")
 	}()
 
