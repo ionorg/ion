@@ -46,10 +46,10 @@ type WrapperedGRPCWebServer struct {
 	GRPCServer *grpc.Server
 }
 
-func NewWrapperedGRPCWebServer(options WrapperedServerOptions) *WrapperedGRPCWebServer {
+func NewWrapperedGRPCWebServer(options WrapperedServerOptions, s *grpc.Server) *WrapperedGRPCWebServer {
 	return &WrapperedGRPCWebServer{
 		options:    options,
-		GRPCServer: grpc.NewServer(),
+		GRPCServer: s,
 	}
 }
 

@@ -2,16 +2,23 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
+	"github.com/pion/ion/cmd/biz/proxy"
 	"github.com/pion/ion/cmd/biz/server"
 	bizpb "github.com/pion/ion/pkg/grpc/biz"
 	"github.com/pion/ion/pkg/node/biz"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -100,7 +107,31 @@ func main() {
 		options.TLSAddr = addr
 	}
 
-	s := server.NewWrapperedGRPCWebServer(options)
+	director := func(ctx context.Context, fullMethodName string) (context.Context, grpc.ClientConnInterface, error) {
+		// Make sure we never forward internal services.
+		if strings.HasPrefix(fullMethodName, "/com.example.internal.") {
+			return ctx, nil, status.Errorf(codes.Unimplemented, "Unknown method")
+		}
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok {
+			// Decide on which backend to dial
+			if val, exists := md[":authority"]; exists && val[0] == "staging.api.example.com" {
+				// Make sure we use DialContext so the dialing can be cancelled/time out together with the context.
+				conn, err := grpc.DialContext(ctx, "api-service.staging.svc.local", grpc.WithCodec(proxy.Codec()))
+				return ctx, conn, err
+			} else if val, exists := md[":authority"]; exists && val[0] == "api.example.com" {
+				conn, err := grpc.DialContext(ctx, "api-service.prod.svc.local", grpc.WithCodec(proxy.Codec()))
+				return ctx, conn, err
+			}
+		}
+		return ctx, nil, status.Errorf(codes.Unimplemented, "Unknown method")
+	}
+
+	srv := grpc.NewServer(
+		grpc.CustomCodec(proxy.Codec()),
+		grpc.UnknownServiceHandler(proxy.TransparentHandler(director)))
+
+	s := server.NewWrapperedGRPCWebServer(options, srv)
 
 	node := biz.NewBIZ("biz01")
 	if err := node.Start(conf); err != nil {
@@ -114,6 +145,7 @@ func main() {
 	sfusig := &biz.SFUSignalBridge{
 		BizServer: node.Service(),
 	}
+
 	s.GRPCServer.RegisterService(&pb.SFU_ServiceDesc, sfusig)
 
 	if err := s.Serve(); err != nil {
