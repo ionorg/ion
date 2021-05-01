@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-discovery/pkg/registry"
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	pb "github.com/pion/ion/pkg/grpc/islb"
@@ -43,7 +46,7 @@ type Config struct {
 type ISLB struct {
 	ion.Node
 	s        *islbServer
-	registry *discovery.Registry
+	registry *registry.Registry
 	redis    *db.Redis
 }
 
@@ -73,7 +76,7 @@ func (i *ISLB) Start(conf Config) error {
 	}
 
 	//registry for node discovery.
-	i.registry, err = discovery.NewRegistry(i.Node.NatsConn())
+	i.registry, err = registry.NewRegistry(i.Node.NatsConn())
 	if err != nil {
 		log.Errorf("%v", err)
 		return err
@@ -84,10 +87,13 @@ func (i *ISLB) Start(conf Config) error {
 		return errors.New("new redis error")
 	}
 
-	i.s = newISLBServer(conf, i, i.redis)
+	i.s = newISLBServer(conf, i, i.redis, i.registry)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
-	err = i.registry.Listen(i.s.handleNodeDiscovery)
+	// Register reflection service on nats-rpc server.
+	reflection.Register(i.Node.ServiceRegistrar().(*nrpc.Server))
+
+	err = i.registry.Listen(i.s.handleNodeDiscovery, i.s.handleGetNodes)
 
 	if err != nil {
 		log.Errorf("islb.registry.Listen: error => %v", err)

@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
@@ -69,6 +71,9 @@ func (s *SFU) Start(conf Config) error {
 	s.s = newSFUServer(s, nsfu, s.NatsConn())
 	//grpc service
 	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
+
+	// Register reflection service on nats-rpc server.
+	reflection.Register(s.Node.ServiceRegistrar().(*nrpc.Server))
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,

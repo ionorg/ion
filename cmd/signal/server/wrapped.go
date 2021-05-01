@@ -15,8 +15,6 @@ import (
 
 type WrapperedServerOptions struct {
 	Addr                  string
-	EnableTLS             bool
-	TLSAddr               string
 	Cert                  string
 	Key                   string
 	AllowAllOrigins       bool
@@ -29,11 +27,9 @@ type WrapperedServerOptions struct {
 func DefaultWrapperedServerOptions() WrapperedServerOptions {
 	return WrapperedServerOptions{
 		Addr:                  ":9090",
-		EnableTLS:             false,
-		TLSAddr:               ":9091",
 		Cert:                  "",
 		Key:                   "",
-		AllowAllOrigins:       false,
+		AllowAllOrigins:       true,
 		AllowedHeaders:        &[]string{},
 		AllowedOrigins:        &[]string{},
 		UseWebSocket:          true,
@@ -99,9 +95,7 @@ func (s *WrapperedGRPCWebServer) makeWebsocketOriginFunc(allowedOrigins *allowed
 
 func (s *WrapperedGRPCWebServer) Serve() error {
 	addr := s.options.Addr
-	if s.options.EnableTLS {
-		addr = s.options.TLSAddr
-	}
+
 	if s.options.AllowAllOrigins && s.options.AllowedOrigins != nil && len(*s.options.AllowedOrigins) != 0 {
 		log.Errorf("Ambiguous --allow_all_origins and --allow_origins configuration. Either set --allow_all_origins=true OR specify one or more origins to whitelist with --allow_origins, not both.")
 	}
@@ -149,7 +143,9 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 
 	var listener net.Listener
 
-	if s.options.EnableTLS {
+	enableTLS := s.options.Cert != "" && s.options.Key != ""
+
+	if enableTLS {
 		cer, err := tls.LoadX509KeyPair(s.options.Cert, s.options.Key)
 		if err != nil {
 			log.Panicf("failed to load x509 key pair: %v", err)
@@ -171,7 +167,7 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 		listener = tcp
 	}
 
-	log.Infof("Starting grpc/grpc-web server, bind: %s, with TLS: %v", addr, s.options.EnableTLS)
+	log.Infof("Starting grpc/grpc-web server, bind: %s, with TLS: %v", addr, enableTLS)
 
 	m := cmux.New(listener)
 	grpcListener := m.Match(cmux.HTTP2())

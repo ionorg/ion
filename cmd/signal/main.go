@@ -6,13 +6,17 @@ import (
 	"fmt"
 	"os"
 
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	nproxy "github.com/cloudwebrtc/nats-grpc/pkg/rpc/proxy"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/node/biz"
+	"github.com/pion/ion/cmd/signal/server"
+	"github.com/pion/ion/pkg/node/signal"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 var (
-	conf = biz.Config{}
+	conf = signal.Config{}
 	file string
 )
 
@@ -45,7 +49,7 @@ func load() bool {
 		return false
 	}
 
-	if !unmarshal(&conf) {
+	if !unmarshal(&conf) || !unmarshal(&conf.Signal) {
 		return false
 	}
 	if err != nil {
@@ -59,7 +63,7 @@ func load() bool {
 }
 
 func parse() bool {
-	flag.StringVar(&file, "c", "configs/biz.toml", "config file")
+	flag.StringVar(&file, "c", "configs/sig.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -78,13 +82,31 @@ func main() {
 		showHelp()
 		os.Exit(-1)
 	}
+
 	log.Init(conf.Log.Level)
-	log.Infof("--- Starting Biz Node ---\n")
-	node := biz.NewBIZ("biz01")
-	if err := node.Start(conf); err != nil {
-		log.Errorf("biz init start: %v", err)
+	addr := fmt.Sprintf("%s:%d", conf.Signal.GRPC.Host, conf.Signal.GRPC.Port)
+	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---\n %s", addr)
+
+	options := server.DefaultWrapperedServerOptions()
+	options.Addr = addr
+	options.Cert = conf.Signal.GRPC.Cert
+	options.Key = conf.Signal.GRPC.Key
+
+	sig, err := signal.NewSignal(conf)
+	if err != nil {
+		log.Errorf("new signal: %v", err)
 		os.Exit(-1)
 	}
-	defer node.Close()
+	defer sig.Close()
+	sig.Start()
+
+	srv := grpc.NewServer(
+		grpc.CustomCodec(nrpc.Codec()),
+		grpc.UnknownServiceHandler(nproxy.TransparentHandler(sig.Director)))
+
+	s := server.NewWrapperedGRPCWebServer(options, srv)
+	if err := s.Serve(); err != nil {
+		log.Panicf("failed to serve: %v", err)
+	}
 	select {}
 }

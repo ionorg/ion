@@ -4,23 +4,13 @@ import (
 	"net/http"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
+	pb "github.com/pion/ion/pkg/grpc/biz"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
-
-type signalConf struct {
-	GRPC grpcConf `mapstructure:"grpc"`
-}
-
-// signalConf represents signal server configuration
-type grpcConf struct {
-	Host            string `mapstructure:"host"`
-	Port            int    `mapstructure:"port"`
-	Cert            string `mapstructure:"cert"`
-	Key             string `mapstructure:"key"`
-	AllowAllOrigins bool   `mapstructure:"allow_all_origins"`
-}
 
 type global struct {
 	Pprof string `mapstructure:"pprof"`
@@ -41,11 +31,10 @@ type avpConf struct {
 
 // Config for biz node
 type Config struct {
-	Global global     `mapstructure:"global"`
-	Log    logConf    `mapstructure:"log"`
-	Nats   natsConf   `mapstructure:"nats"`
-	Avp    avpConf    `mapstructure:"avp"`
-	Signal signalConf `mapstructure:"signal"`
+	Global global   `mapstructure:"global"`
+	Log    logConf  `mapstructure:"log"`
+	Nats   natsConf `mapstructure:"nats"`
+	Avp    avpConf  `mapstructure:"avp"`
 }
 
 // BIZ represents biz node
@@ -82,6 +71,11 @@ func (b *BIZ) Start(conf Config) error {
 	}
 
 	b.s = newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+
+	pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
+
+	// Register reflection service on nats-rpc server.
+	reflection.Register(b.Node.ServiceRegistrar().(*nrpc.Server))
 
 	go b.s.stat()
 

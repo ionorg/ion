@@ -36,8 +36,8 @@ func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
 	if s.islbcli == nil {
 		nodes := s.sn.GetNeighborNodes()
 		for _, node := range nodes {
-			if node.Service == proto.ServiceISLB {
-				ncli := nrpc.NewClient(s.nc, node.NID)
+			if node.Info.Service == proto.ServiceISLB {
+				ncli := nrpc.NewClient(s.nc, node.Info.NID)
 				s.islbcli = islb.NewISLBClient(ncli)
 				break
 			}

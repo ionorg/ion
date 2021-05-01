@@ -14,6 +14,7 @@ import (
 	islb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	"google.golang.org/grpc/metadata"
 )
 
 // BizServer represents an BizServer instance
@@ -82,6 +83,10 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 		}
 
 		go func() {
+			defer func() {
+				s.stream = nil
+			}()
+
 			for {
 				req, err := stream.Recv()
 				if err != nil {
@@ -103,6 +108,8 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 				}
 			}
 		}()
+
+		s.stream = stream
 	}
 	return nil
 }
@@ -173,8 +180,8 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				if s.islbcli == nil {
 					nodes := s.bn.GetNeighborNodes()
 					for _, node := range nodes {
-						if node.Service == proto.ServiceISLB {
-							ncli := nrpc.NewClient(s.nc, node.NID)
+						if node.Info.Service == proto.ServiceISLB {
+							ncli := nrpc.NewClient(s.nc, node.Info.NID)
 							s.islbcli = islb.NewISLBClient(ncli)
 							break
 						}
@@ -196,6 +203,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						} else {
 							reason = fmt.Sprintf("islbcli.FindNode(serivce = sfu, sid = %v) err %v", sid, err)
 						}
+
+						//Generate necessary metadata for routing.
+						header := metadata.New(map[string]string{"service": "sfu", "nid": nid, "sid": sid, "uid": uid})
+						stream.SendHeader(header)
 
 						err = s.watchISLBEvent(nid, sid)
 						if err != nil {

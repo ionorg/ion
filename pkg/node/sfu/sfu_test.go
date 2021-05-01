@@ -27,9 +27,7 @@ var (
 )
 
 func init() {
-	fixByFile := []string{"asm_amd64.s", "proc.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	log.Init(conf.Log.Level)
 
 }
 

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-discovery/pkg/registry"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	ion "github.com/pion/ion/pkg/grpc/ion"
@@ -15,6 +16,7 @@ import (
 type islbServer struct {
 	proto.UnimplementedISLBServer
 	Redis    *db.Redis
+	registry *registry.Registry
 	nodeLock sync.Mutex
 	nodes    map[string]discovery.Node
 	in       *ISLB
@@ -22,11 +24,12 @@ type islbServer struct {
 	watchers map[string]proto.ISLB_WatchISLBEventServer
 }
 
-func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
+func newISLBServer(conf Config, in *ISLB, redis *db.Redis, registry *registry.Registry) *islbServer {
 	return &islbServer{
 		conf:     conf,
 		in:       in,
 		Redis:    redis,
+		registry: registry,
 		nodes:    make(map[string]discovery.Node),
 		watchers: make(map[string]proto.ISLB_WatchISLBEventServer),
 	}
@@ -36,8 +39,11 @@ func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
 // This callback can observe all nodes in the ion cluster,
 // TODO: Upload all node information to redis DB so that info
 // can be shared when there are more than one ISLB in the later.
-func (s *islbServer) handleNodeDiscovery(action string, node discovery.Node) {
+func (s *islbServer) handleNodeDiscovery(action discovery.Action, node discovery.Node) (bool, error) {
+	//Add authentication here
 	log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
+
+	//TODO: Put node info into the redis.
 	s.nodeLock.Lock()
 	defer s.nodeLock.Unlock()
 	switch action {
@@ -48,9 +54,21 @@ func (s *islbServer) handleNodeDiscovery(action string, node discovery.Node) {
 	case discovery.Delete:
 		delete(s.nodes, node.ID())
 	}
+
+	return true, nil
+}
+
+func (s *islbServer) handleGetNodes(service string, params map[string]interface{}) ([]discovery.Node, error) {
+	//Add load balancing here.
+	//TODO: Find node info from redis.
+	log.Infof("Get node by %v, params %v", service, params)
+	//nid := params["nid"]
+	//sid := params["sid"]
+	return s.registry.GetNodes(service)
 }
 
 // FindNode find service nodes by service|nid|sid, such as sfu|avp|sip-gateway|rtmp-gateway
+//TODO: Use handleGetNodes to replace this method
 func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
 	nid := req.GetNid()
 	sid := req.GetSid()
