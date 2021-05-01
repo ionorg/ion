@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	ndc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
@@ -25,14 +26,25 @@ type BizServer struct {
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
 	closed   chan bool
+	ndc      *ndc.Client
+	islbLock sync.Mutex
 	islbcli  islb.ISLBClient
 	bn       *BIZ
 	stream   islb.ISLB_WatchISLBEventClient
 }
 
 // newBizServer creates a new avp server instance
-func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Conn) *BizServer {
-	return &BizServer{
+func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Conn) (*BizServer, error) {
+
+	ndc, err := ndc.NewClient(nc)
+	if err != nil {
+		log.Errorf("failed to create discovery client: %v", err)
+		ndc.Close()
+		return nil, err
+	}
+
+	b := &BizServer{
+		ndc:      ndc,
 		bn:       bn,
 		nc:       nc,
 		elements: elements,
@@ -40,6 +52,8 @@ func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Con
 		closed:   make(chan bool),
 		stream:   nil,
 	}
+
+	return b, nil
 }
 
 func (s *BizServer) close() {
@@ -68,8 +82,20 @@ func (s *BizServer) delRoom(id string) {
 }
 
 func (s *BizServer) watchISLBEvent(nid string, sid string) error {
+	//s.islbLock.Lock()
+	//defer s.islbLock.Unlock()
 
-	if s.stream == nil {
+	if s.islbcli == nil {
+		nodes := s.bn.GetNeighborNodes()
+		for nid, node := range nodes {
+			if node.Info.Service == proto.ServiceISLB {
+				ncli := nrpc.NewClient(s.nc, nid)
+				s.islbcli = islb.NewISLBClient(ncli)
+			}
+		}
+	}
+
+	if s.stream == nil && s.islbcli != nil {
 		stream, err := s.islbcli.WatchISLBEvent(context.Background())
 		if err != nil {
 			return err
@@ -84,6 +110,8 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 
 		go func() {
 			defer func() {
+				//s.islbLock.Lock()
+				//defer s.islbLock.Unlock()
 				s.stream = nil
 			}()
 
@@ -176,33 +204,18 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 
 				success := false
 				reason := "unkown error."
+				r = s.getRoom(sid)
 
-				if s.islbcli == nil {
-					nodes := s.bn.GetNeighborNodes()
-					for _, node := range nodes {
-						if node.Info.Service == proto.ServiceISLB {
-							ncli := nrpc.NewClient(s.nc, node.Info.NID)
-							s.islbcli = islb.NewISLBClient(ncli)
-							break
-						}
+				if r == nil {
+					reason = fmt.Sprintf("room sid = %v not found", sid)
+					resp, err := s.ndc.Get(proto.ServiceSFU, map[string]interface{}{"sid": sid, "uid": uid})
+					if err != nil {
+						log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceSFU, err)
 					}
-				}
-
-				if s.islbcli != nil {
-					r = s.getRoom(sid)
-					if r == nil {
-						reason = fmt.Sprintf("room sid = %v not found", sid)
-						resp, err := s.islbcli.FindNode(context.TODO(), &islb.FindNodeRequest{
-							Service: proto.ServiceSFU,
-							Sid:     sid,
-						})
-						nid := ""
-						if err == nil && len(resp.Nodes) > 0 {
-							nid = resp.GetNodes()[0].Nid
-							r = s.createRoom(sid, nid)
-						} else {
-							reason = fmt.Sprintf("islbcli.FindNode(serivce = sfu, sid = %v) err %v", sid, err)
-						}
+					nid := ""
+					if err == nil && len(resp.Nodes) > 0 {
+						nid = resp.Nodes[0].NID
+						r = s.createRoom(sid, nid)
 
 						//Generate necessary metadata for routing.
 						header := metadata.New(map[string]string{"service": "sfu", "nid": nid, "sid": sid, "uid": uid})
@@ -212,15 +225,16 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 						if err != nil {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
 						}
+					} else {
+						reason = fmt.Sprintf("dnc.Get(serivce = sfu, sid = %v) err %v", sid, err)
 					}
-					if r != nil {
-						peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
-						r.addPeer(peer)
-						success = true
-						reason = "join success."
-					}
-				} else {
-					reason = fmt.Sprintf("join [sid=%v] islb node not found", sid)
+				}
+
+				if r != nil {
+					peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
+					r.addPeer(peer)
+					success = true
+					reason = "join success."
 				}
 
 				err := stream.Send(&biz.SignalReply{

@@ -19,7 +19,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ISLBClient interface {
-	FindNode(ctx context.Context, in *FindNodeRequest, opts ...grpc.CallOption) (*FindNodeReply, error)
 	PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...grpc.CallOption) (*ion.Empty, error)
 	WatchISLBEvent(ctx context.Context, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error)
 }
@@ -30,15 +29,6 @@ type iSLBClient struct {
 
 func NewISLBClient(cc grpc.ClientConnInterface) ISLBClient {
 	return &iSLBClient{cc}
-}
-
-func (c *iSLBClient) FindNode(ctx context.Context, in *FindNodeRequest, opts ...grpc.CallOption) (*FindNodeReply, error) {
-	out := new(FindNodeReply)
-	err := c.cc.Invoke(ctx, "/islb.ISLB/FindNode", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *iSLBClient) PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...grpc.CallOption) (*ion.Empty, error) {
@@ -85,7 +75,6 @@ func (x *iSLBWatchISLBEventClient) Recv() (*ISLBEvent, error) {
 // All implementations must embed UnimplementedISLBServer
 // for forward compatibility
 type ISLBServer interface {
-	FindNode(context.Context, *FindNodeRequest) (*FindNodeReply, error)
 	PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error)
 	WatchISLBEvent(ISLB_WatchISLBEventServer) error
 	mustEmbedUnimplementedISLBServer()
@@ -95,9 +84,6 @@ type ISLBServer interface {
 type UnimplementedISLBServer struct {
 }
 
-func (UnimplementedISLBServer) FindNode(context.Context, *FindNodeRequest) (*FindNodeReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindNode not implemented")
-}
 func (UnimplementedISLBServer) PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostISLBEvent not implemented")
 }
@@ -115,24 +101,6 @@ type UnsafeISLBServer interface {
 
 func RegisterISLBServer(s grpc.ServiceRegistrar, srv ISLBServer) {
 	s.RegisterService(&ISLB_ServiceDesc, srv)
-}
-
-func _ISLB_FindNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FindNodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ISLBServer).FindNode(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/islb.ISLB/FindNode",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISLBServer).FindNode(ctx, req.(*FindNodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _ISLB_PostISLBEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -186,10 +154,6 @@ var ISLB_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "islb.ISLB",
 	HandlerType: (*ISLBServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "FindNode",
-			Handler:    _ISLB_FindNode_Handler,
-		},
 		{
 			MethodName: "PostISLBEvent",
 			Handler:    _ISLB_PostISLBEvent_Handler,

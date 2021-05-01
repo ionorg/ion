@@ -9,19 +9,20 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
 	ion "github.com/pion/ion/pkg/grpc/ion"
-	proto "github.com/pion/ion/pkg/grpc/islb"
+	islb "github.com/pion/ion/pkg/grpc/islb"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/square/go-jose/v3/json"
 )
 
 type islbServer struct {
-	proto.UnimplementedISLBServer
+	islb.UnimplementedISLBServer
 	Redis    *db.Redis
 	registry *registry.Registry
 	nodeLock sync.Mutex
 	nodes    map[string]discovery.Node
 	in       *ISLB
 	conf     Config
-	watchers map[string]proto.ISLB_WatchISLBEventServer
+	watchers map[string]islb.ISLB_WatchISLBEventServer
 }
 
 func newISLBServer(conf Config, in *ISLB, redis *db.Redis, registry *registry.Registry) *islbServer {
@@ -31,7 +32,7 @@ func newISLBServer(conf Config, in *ISLB, redis *db.Redis, registry *registry.Re
 		Redis:    redis,
 		registry: registry,
 		nodes:    make(map[string]discovery.Node),
-		watchers: make(map[string]proto.ISLB_WatchISLBEventServer),
+		watchers: make(map[string]islb.ISLB_WatchISLBEventServer),
 	}
 }
 
@@ -60,60 +61,31 @@ func (s *islbServer) handleNodeDiscovery(action discovery.Action, node discovery
 
 func (s *islbServer) handleGetNodes(service string, params map[string]interface{}) ([]discovery.Node, error) {
 	//Add load balancing here.
-	//TODO: Find node info from redis.
 	log.Infof("Get node by %v, params %v", service, params)
-	//nid := params["nid"]
-	//sid := params["sid"]
-	return s.registry.GetNodes(service)
-}
 
-// FindNode find service nodes by service|nid|sid, such as sfu|avp|sip-gateway|rtmp-gateway
-//TODO: Use handleGetNodes to replace this method
-func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (*proto.FindNodeReply, error) {
-	nid := req.GetNid()
-	sid := req.GetSid()
-	service := req.GetService()
+	if service == proto.ServiceSFU {
 
-	log.Infof("islb.FindNode: nid => %v, sid => %v, service => %v", nid, sid, service)
+		nid := "*"
+		sid := ""
 
-	nodes := []*ion.Node{}
+		if val, ok := params["nid"]; ok {
+			nid = val.(string)
+		}
 
-	if nid == "" {
-		nid = "*"
-	}
+		if val, ok := params["sid"]; ok {
+			sid = val.(string)
+		}
 
-	// find node by sid from reids
-	mkey := s.conf.Global.Dc + "/" + nid + "/" + sid
-	log.Infof("islb.FindNode: mkey => %v", mkey)
-	for _, key := range s.Redis.Keys(mkey) {
-		value := s.Redis.Get(key)
-		log.Debugf("key: %v, value: %v", key, value)
-	}
-
-	if len(nodes) == 0 {
-		s.nodeLock.Lock()
-		defer s.nodeLock.Unlock()
-		// find node by nid or service
-		//TODO: Add load balancing algorithm to select SFU nodes
-		for _, node := range s.nodes {
-			if nid == node.NID || service == node.Service {
-				nodes = append(nodes, &ion.Node{
-					Dc:      node.DC,
-					Nid:     node.NID,
-					Service: node.Service,
-					Rpc: &ion.RPC{
-						Protocol: string(node.RPC.Protocol),
-						Addr:     node.RPC.Addr,
-						//Params:   node.RPC.Params,
-					},
-				})
-			}
+		// find node by nid/sid from reids
+		mkey := s.conf.Global.Dc + "/" + nid + "/" + sid
+		log.Infof("islb.FindNode: mkey => %v", mkey)
+		for _, key := range s.Redis.Keys(mkey) {
+			value := s.Redis.Get(key)
+			log.Debugf("key: %v, value: %v", key, value)
 		}
 	}
 
-	return &proto.FindNodeReply{
-		Nodes: nodes,
-	}, nil
+	return s.registry.GetNodes(service)
 }
 
 //PostISLBEvent Receive ISLBEvent(stream or session events) from ion-SFU, ion-AVP and ion-SIP
@@ -121,10 +93,10 @@ func (s *islbServer) FindNode(ctx context.Context, req *proto.FindNodeRequest) (
 //global location of the media stream
 // key = dc/ion-sfu-1/room1/uid
 // value = [...stream/track info ...]
-func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) (*ion.Empty, error) {
+func (s *islbServer) PostISLBEvent(ctx context.Context, event *islb.ISLBEvent) (*ion.Empty, error) {
 	log.Infof("ISLBServer.PostISLBEvent")
 	switch payload := event.Payload.(type) {
-	case *proto.ISLBEvent_Stream:
+	case *islb.ISLBEvent_Stream:
 		stream := payload.Stream
 		state := stream.State
 		mkey := s.conf.Global.Dc + "/" + stream.Nid + "/" + stream.Sid + "/" + stream.Uid
@@ -159,7 +131,7 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 			}
 		}
 
-	case *proto.ISLBEvent_Session:
+	case *islb.ISLBEvent_Session:
 		//session := payload.Session
 		//log.Infof("ISLBEvent_Session event %v", session.String())
 	}
@@ -168,7 +140,7 @@ func (s *islbServer) PostISLBEvent(ctx context.Context, event *proto.ISLBEvent) 
 
 //WatchISLBEvent broadcast ISLBEvent to ion-biz node.
 //The stream metadata is forwarded to biz node and coupled with the peer in the client through UID
-func (s *islbServer) WatchISLBEvent(stream proto.ISLB_WatchISLBEventServer) error {
+func (s *islbServer) WatchISLBEvent(stream islb.ISLB_WatchISLBEventServer) error {
 	var sid string
 	defer func() {
 		delete(s.watchers, sid)

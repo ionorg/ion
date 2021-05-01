@@ -55,7 +55,10 @@ func init() {
 		log.Panicf("failed to start biz node: %v", err)
 	}
 
-	bs = newBizServer(bn, dc, nid, []string{}, nc)
+	bs, err = newBizServer(bn, dc, nid, []string{}, nc)
+	if err != nil {
+		log.Panicf("failed to start biz node: %v", err)
+	}
 
 	//Watch ISLB nodes.
 	go func() {

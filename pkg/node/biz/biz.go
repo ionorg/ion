@@ -70,7 +70,11 @@ func (b *BIZ) Start(conf Config) error {
 		return err
 	}
 
-	b.s = newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+	b.s, err = newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+	if err != nil {
+		b.Close()
+		return err
+	}
 
 	pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
 

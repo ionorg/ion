@@ -7,8 +7,6 @@ option go_package = "github.com/pion/ion/pkg/grpc/islb";
 package islb;
 
 service ISLB {
-    rpc FindNode(FindNodeRequest) returns (FindNodeReply) {}
-
     rpc PostISLBEvent(ISLBEvent) returns (ion.Empty) {}
 
     rpc WatchISLBEvent(stream WatchRequest) returns (stream ISLBEvent) {}
