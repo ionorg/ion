@@ -18,8 +18,9 @@ type result struct {
 }
 
 type claims struct {
-	UID string `json:"uid"`
-	SID string `json:"sid"`
+	UID      string   `json:"uid"`
+	SID      string   `json:"sid"`
+	Services []string `json:"services"`
 	jwt.StandardClaims
 }
 
@@ -88,8 +89,9 @@ func sign(w http.ResponseWriter, r *http.Request) {
 	sid := values[0]
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
-		UID: uid,
-		SID: sid,
+		UID:      uid,
+		SID:      sid,
+		Services: []string{"sfu", "biz"},
 	})
 	tokenString, err := token.SignedString([]byte(key))
 	if err != nil {

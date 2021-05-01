@@ -1,4 +1,4 @@
-package jwt
+package signal
 
 import (
 	"context"
@@ -11,10 +11,9 @@ import (
 
 // AuthConfig auth config
 type AuthConfig struct {
-	Enabled         bool     `mapstructure:"enabled"`
-	Key             string   `mapstructure:"key"`
-	KeyType         string   `mapstructure:"key_type"`
-	AllowedServices []string `mapstructure:"allowed_services"`
+	Enabled bool   `mapstructure:"enabled"`
+	Key     string `mapstructure:"key"`
+	KeyType string `mapstructure:"key_type"`
 }
 
 // KeyFunc auth key types
@@ -28,13 +27,14 @@ func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 }
 
 // claims custom claims type for jwt
-type CustomClaims struct {
-	UID string `json:"uid"`
-	SID string `json:"sid"`
-	*jwt.StandardClaims
+type claims struct {
+	UID      string   `json:"uid"`
+	SID      string   `json:"sid"`
+	Services []string `json:"services"`
+	jwt.StandardClaims
 }
 
-func GetClaim(ctx context.Context, ac *AuthConfig) (*CustomClaims, error) {
+func getClaim(ctx context.Context, ac *AuthConfig) (*claims, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "valid JWT token required")
@@ -45,9 +45,9 @@ func GetClaim(ctx context.Context, ac *AuthConfig) (*CustomClaims, error) {
 		return nil, status.Errorf(codes.Unauthenticated, "valid JWT token required")
 	}
 
-	jwtToken, err := jwt.ParseWithClaims(token[0], &CustomClaims{}, ac.KeyFunc)
+	jwtToken, err := jwt.ParseWithClaims(token[0], &claims{}, ac.KeyFunc)
 
-	if claims, ok := jwtToken.Claims.(*CustomClaims); ok && jwtToken.Valid {
+	if claims, ok := jwtToken.Claims.(*claims); ok && jwtToken.Valid {
 		return claims, nil
 	}
 

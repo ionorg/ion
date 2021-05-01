@@ -11,7 +11,6 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/jwt"
 	"github.com/pion/ion/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,9 +23,9 @@ type svcConf struct {
 }
 
 type signalConf struct {
-	GRPC grpcConf       `mapstructure:"grpc"`
-	JWT  jwt.AuthConfig `mapstructure:"jwt"`
-	SVC  svcConf        `mapstructure:"svc"`
+	GRPC grpcConf   `mapstructure:"grpc"`
+	JWT  AuthConfig `mapstructure:"jwt"`
+	SVC  svcConf    `mapstructure:"svc"`
 }
 
 // signalConf represents signal server configuration
@@ -139,17 +138,30 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	//Authenticate here.
 	authConfig := &s.conf.Signal.JWT
 	if authConfig.Enabled {
-		claims, err := jwt.GetClaim(ctx, authConfig)
+		claims, err := getClaim(ctx, authConfig)
 		if err != nil {
 			return ctx, nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("Failed to Get Claims JWT : %v", err))
 		}
-		log.Infof("UID: %s, SID: %v", claims.UID, claims.SID)
+
+		log.Infof("claims: UID: %s, SID: %v, Services: %v", claims.UID, claims.SID, claims.Services)
+
+		allowed := false
+		for _, svc := range claims.Services {
+			if strings.Contains(fullMethodName, "/"+svc+".") {
+				allowed = true
+				break
+			}
+		}
+
+		if !allowed {
+			return ctx, nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("Service %v access denied!", fullMethodName))
+		}
 	}
 
 	//Find node id by existing node.
 	s.rwlock.RLock()
 	for svc, nid := range s.svc {
-		if strings.Contains(fullMethodName, svc) {
+		if strings.HasPrefix(fullMethodName, "/"+svc) {
 			cli := nrpc.NewClient(s.nc, nid)
 			return ctx, cli, nil
 		}
@@ -159,7 +171,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	//Find service in neighbor nodes.
 	svcConf := s.conf.Signal.SVC
 	for _, svc := range svcConf.Services {
-		if strings.Contains(fullMethodName, svc) {
+		if strings.HasPrefix(fullMethodName, "/"+svc+".") {
 			resp, err := s.ndc.Get(svc, map[string]interface{}{})
 			if err != nil || len(resp.Nodes) == 0 {
 				log.Errorf("failed to Get service [%v]: %v", svc, err)
