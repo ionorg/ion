@@ -68,8 +68,10 @@ function stop(){
     echo "stop $SERVICE..."
     PID=`cat $PID_FILE`
     if [ ! -n "$PID" ]; then
-        echo "pid not exist"
-        exit 1;
+        PID=`ps -ef | grep "$1" | grep -v "grep" | grep -v "service" | awk '{print $2}'`
+        if [ ! -n "$PID" ]; then
+            exit 1
+        fi
     fi
     SUB_PIDS=`pgrep -P $PID`
     if [ -n "$SUB_PIDS" ]; then
