@@ -87,7 +87,11 @@ func (i *ISLB) Start(conf Config) error {
 	i.s = newISLBServer(conf, i, i.redis)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
-	i.registry.Listen(i.s.handleNodeDiscovery)
+	err = i.registry.Listen(i.s.handleNodeDiscovery)
+
+	if err != nil {
+		log.Errorf("islb.registry.Listen: error => %v", err)
+	}
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
@@ -99,8 +103,12 @@ func (i *ISLB) Start(conf Config) error {
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
-
-	go i.Node.KeepAlive(node)
+	go func() {
+		err := i.Node.KeepAlive(node)
+		if err != nil {
+			log.Errorf("islb.Node.KeepAlive: error => %v", err)
+		}
+	}()
 
 	return nil
 }

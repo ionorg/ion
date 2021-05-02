@@ -96,11 +96,20 @@ func (b *BIZ) Start(conf Config) error {
 		},
 	}
 
-	go b.Node.KeepAlive(node)
+	go func() {
+		err := b.Node.KeepAlive(node)
+		if err != nil {
+			log.Errorf("biz.Node.KeepAlive(%v) error %v", b.Node.NID, err)
+		}
+	}()
 
 	//Watch ISLB nodes.
-	go b.Node.Watch(proto.ServiceISLB)
-
+	go func() {
+		err := b.Node.Watch(proto.ServiceISLB)
+		if err != nil {
+			log.Errorf("biz.Node.Watch(proto.ServiceISLB) error %v", err)
+		}
+	}()
 	return nil
 }
 

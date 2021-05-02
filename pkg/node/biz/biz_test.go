@@ -60,7 +60,12 @@ func init() {
 	bs = newBizServer(bn, dc, nid, []string{}, nc)
 
 	//Watch ISLB nodes.
-	go bn.Node.Watch(proto.ServiceISLB)
+	go func() {
+		err := bn.Node.Watch(proto.ServiceISLB)
+		if err != nil {
+			log.Panicf("failed to Watch: %v", err)
+		}
+	}()
 
 	pb.RegisterBizServer(s, bs)
 
@@ -90,7 +95,7 @@ func TestJBizJoin(t *testing.T) {
 		t.Error(err)
 	}
 
-	stream.Send(&pb.SignalRequest{
+	err = stream.Send(&pb.SignalRequest{
 		Payload: &pb.SignalRequest_Join{
 			Join: &pb.Join{
 				Peer: &ion.Peer{
@@ -100,6 +105,10 @@ func TestJBizJoin(t *testing.T) {
 			},
 		},
 	})
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	reply, err := stream.Recv()
 	if err != nil {
@@ -118,7 +127,7 @@ func TestJBizJoin(t *testing.T) {
 }
 
 func TestBizMessage(t *testing.T) {
-	stream.Send(&pb.SignalRequest{
+	err := stream.Send(&pb.SignalRequest{
 		Payload: &pb.SignalRequest_Msg{
 			Msg: &ion.Message{
 				From: uid,
@@ -127,6 +136,10 @@ func TestBizMessage(t *testing.T) {
 			},
 		},
 	})
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	reply, err := stream.Recv()
 	if err != nil {
@@ -138,13 +151,17 @@ func TestBizMessage(t *testing.T) {
 }
 
 func TestBizLeave(t *testing.T) {
-	stream.Send(&pb.SignalRequest{
+	err := stream.Send(&pb.SignalRequest{
 		Payload: &pb.SignalRequest_Leave{
 			Leave: &pb.Leave{
 				Uid: uid,
 			},
 		},
 	})
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	reply, err := stream.Recv()
 	if err != nil {
