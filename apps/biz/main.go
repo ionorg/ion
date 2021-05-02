@@ -7,7 +7,7 @@ import (
 	"os"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/node/biz"
+	biz "github.com/pion/ion/apps/biz/server"
 	"github.com/spf13/viper"
 )
 
@@ -80,7 +80,7 @@ func main() {
 	}
 	log.Init(conf.Log.Level)
 	log.Infof("--- Starting Biz Node ---\n")
-	node := biz.NewBIZ("biz01")
+	node := biz.NewBIZ(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("biz init start: %v", err)
 		os.Exit(-1)

@@ -10,5 +10,6 @@ level = "info"
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[avp]
-elements = ["webmsaver"]
+[node]
+# node id
+nid = "biz01"

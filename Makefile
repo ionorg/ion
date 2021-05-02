@@ -15,7 +15,7 @@ go_deps:
 	go generate ./...
 
 build: go_deps
-	go build -o bin/biz $(GO_LDFLAGS) cmd/biz/main.go
+	go build -o bin/app-biz $(GO_LDFLAGS) apps/biz/main.go
 	go build -o bin/islb $(GO_LDFLAGS) cmd/islb/main.go
 	go build -o bin/sfu $(GO_LDFLAGS) cmd/sfu/main.go
 	go build -o bin/avp $(GO_LDFLAGS) cmd/avp/main.go
@@ -42,5 +42,5 @@ proto:
 	protoc \
 	--go_opt=module=github.com/pion/ion --go_out=. \
 	--go-grpc_opt=module=github.com/pion/ion --go-grpc_out=. \
-	protos/*.proto
+	protos/*.proto apps/biz/proto/*.proto
 

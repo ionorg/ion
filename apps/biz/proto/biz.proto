@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "protos/ion.proto";
 
-option go_package = "github.com/pion/ion/pkg/grpc/biz";
+option go_package = "github.com/pion/ion/apps/biz/grpc";
 
 package biz;
 

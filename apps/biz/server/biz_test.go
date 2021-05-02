@@ -1,4 +1,4 @@
-package biz
+package server
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/pkg/grpc/biz"
+	pb "github.com/pion/ion/apps/biz/grpc"
 	"github.com/pion/ion/pkg/grpc/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -55,7 +55,7 @@ func init() {
 		log.Panicf("failed to start biz node: %v", err)
 	}
 
-	bs, err = newBizServer(bn, dc, nid, []string{}, nc)
+	bs, err = newBizServer(bn, dc, nid, nc)
 	if err != nil {
 		log.Panicf("failed to start biz node: %v", err)
 	}

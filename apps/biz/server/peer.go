@@ -1,7 +1,7 @@
-package biz
+package server
 
 import (
-	"github.com/pion/ion/pkg/grpc/biz"
+	biz "github.com/pion/ion/apps/biz/grpc"
 	"github.com/pion/ion/pkg/grpc/ion"
 	"github.com/pion/ion/pkg/util"
 )

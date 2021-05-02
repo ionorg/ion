@@ -1,4 +1,4 @@
-package biz
+package server
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	biz "github.com/pion/ion/pkg/grpc/biz"
+	biz "github.com/pion/ion/apps/biz/grpc"
 	islb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -22,19 +22,17 @@ import (
 type BizServer struct {
 	biz.UnimplementedBizServer
 	nc       *nats.Conn
-	elements []string
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
 	closed   chan bool
 	ndc      *ndc.Client
-	islbLock sync.Mutex
 	islbcli  islb.ISLBClient
 	bn       *BIZ
 	stream   islb.ISLB_WatchISLBEventClient
 }
 
 // newBizServer creates a new avp server instance
-func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Conn) (*BizServer, error) {
+func newBizServer(bn *BIZ, c string, nid string, nc *nats.Conn) (*BizServer, error) {
 
 	ndc, err := ndc.NewClient(nc)
 	if err != nil {
@@ -44,13 +42,12 @@ func newBizServer(bn *BIZ, c string, nid string, elements []string, nc *nats.Con
 	}
 
 	b := &BizServer{
-		ndc:      ndc,
-		bn:       bn,
-		nc:       nc,
-		elements: elements,
-		rooms:    make(map[string]*Room),
-		closed:   make(chan bool),
-		stream:   nil,
+		ndc:    ndc,
+		bn:     bn,
+		nc:     nc,
+		rooms:  make(map[string]*Room),
+		closed: make(chan bool),
+		stream: nil,
 	}
 
 	return b, nil

@@ -1,4 +1,4 @@
-package biz
+package server
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/pkg/grpc/biz"
+	pb "github.com/pion/ion/apps/biz/grpc"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )
@@ -25,8 +25,8 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
-type avpConf struct {
-	Elements []string `mapstructure:"elements"`
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
 }
 
 // Config for biz node
@@ -34,7 +34,7 @@ type Config struct {
 	Global global   `mapstructure:"global"`
 	Log    logConf  `mapstructure:"log"`
 	Nats   natsConf `mapstructure:"nats"`
-	Avp    avpConf  `mapstructure:"avp"`
+	Node   nodeConf `mapstructure:"node"`
 }
 
 // BIZ represents biz node
@@ -70,7 +70,7 @@ func (b *BIZ) Start(conf Config) error {
 		return err
 	}
 
-	b.s, err = newBizServer(b, conf.Global.Dc, b.NID, conf.Avp.Elements, b.NatsConn())
+	b.s, err = newBizServer(b, conf.Global.Dc, b.NID, b.NatsConn())
 	if err != nil {
 		b.Close()
 		return err

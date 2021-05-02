@@ -1,4 +1,4 @@
-package biz
+package server
 
 import (
 	"sync"
