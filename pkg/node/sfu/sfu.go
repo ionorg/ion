@@ -23,10 +23,15 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
 // Config for sfu node
 type Config struct {
 	Global global   `mapstructure:"global"`
 	Nats   natsConf `mapstructure:"nats"`
+	Node   nodeConf `mapstructure:"node"`
 	isfu.Config
 }
 

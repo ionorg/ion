@@ -33,10 +33,15 @@ type elementConf struct {
 	Webmsaver webmsaver `mapstructure:"webmsaver"`
 }
 
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
 // Config for avp node
 type Config struct {
 	Global      global      `mapstructure:"global"`
 	Nats        natsConf    `mapstructure:"nats"`
+	Node        nodeConf    `mapstructure:"node"`
 	Element     elementConf `mapstructure:"element"`
 	iavp.Config `mapstructure:"avp"`
 }

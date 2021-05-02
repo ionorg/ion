@@ -6,6 +6,10 @@ dc = "dc1"
 [nats]
 url = "nats://127.0.0.1:4222"
 
+[node]
+# node id
+nid = "avp01"
+
 [element.webmsaver]
 on = true
 # webm output path

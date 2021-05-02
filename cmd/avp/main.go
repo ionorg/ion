@@ -80,7 +80,7 @@ func main() {
 
 	log.Infof("--- starting avp node ---")
 
-	node := avp.NewAVP("avp")
+	node := avp.NewAVP(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("avp start error: %v", err)
 		os.Exit(-1)

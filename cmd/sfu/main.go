@@ -94,7 +94,7 @@ func main() {
 
 	log.Infof("--- starting sfu node ---")
 
-	node := sfu.NewSFU("sfu01")
+	node := sfu.NewSFU(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("sfu init start: %v", err)
 		os.Exit(-1)

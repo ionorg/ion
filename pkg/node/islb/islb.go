@@ -33,11 +33,16 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
 // Config for islb node
 type Config struct {
 	Global  global    `mapstructure:"global"`
 	Log     logConf   `mapstructure:"log"`
 	Nats    natsConf  `mapstructure:"nats"`
+	Node    nodeConf  `mapstructure:"node"`
 	Redis   db.Config `mapstructure:"redis"`
 	CfgFile string
 }

@@ -85,7 +85,8 @@ func main() {
 
 	log.Init(conf.Log.Level)
 	addr := fmt.Sprintf("%s:%d", conf.Signal.GRPC.Host, conf.Signal.GRPC.Port)
-	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---\n %s", addr)
+	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---")
+	log.Infof("--- Bind to %s, NID = %v ---", addr, conf.Node.NID)
 
 	options := server.DefaultWrapperedServerOptions()
 	options.Addr = addr

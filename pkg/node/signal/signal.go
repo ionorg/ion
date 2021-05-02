@@ -54,11 +54,16 @@ type avpConf struct {
 	Elements []string `mapstructure:"elements"`
 }
 
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
 // Config for biz node
 type Config struct {
 	Global global     `mapstructure:"global"`
 	Log    logConf    `mapstructure:"log"`
 	Nats   natsConf   `mapstructure:"nats"`
+	Node   nodeConf   `mapstructure:"node"`
 	Avp    avpConf    `mapstructure:"avp"`
 	Signal signalConf `mapstructure:"signal"`
 }
