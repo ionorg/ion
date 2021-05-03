@@ -121,16 +121,20 @@ func (s *Signal) Start() {
 		log.Infof("Watch svc %v", svc)
 		resp, err := s.ndc.Get(svc, map[string]interface{}{})
 		if err != nil {
-			log.Errorf("Watch service %v error %v", svc, err)
+			log.Errorf("Get service %v error %v", svc, err)
 			break
 		}
 		for _, node := range resp.Nodes {
 			s.saveServiceInfo(svc, discovery.NodeUp, &node)
 		}
-		s.ndc.Watch(svc, func(state discovery.NodeState, node *discovery.Node) {
+		err = s.ndc.Watch(svc, func(state discovery.NodeState, node *discovery.Node) {
 			log.Infof("svc %v => %v", svc, state)
 			s.saveServiceInfo(svc, state, node)
 		})
+		if err != nil {
+			log.Errorf("Watch service %v error %v", svc, err)
+			break
+		}
 	}
 }
 

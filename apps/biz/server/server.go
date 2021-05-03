@@ -213,8 +213,10 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 
 						//Generate necessary metadata for routing.
 						header := metadata.New(map[string]string{"service": "sfu", "nid": nid, "sid": sid, "uid": uid})
-						stream.SendHeader(header)
-
+						err = stream.SendHeader(header)
+						if err != nil {
+							log.Errorf("stream.SendHeader failed %v", err)
+						}
 						err = s.watchISLBEvent(nid, sid)
 						if err != nil {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
