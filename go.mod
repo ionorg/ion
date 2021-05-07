@@ -11,8 +11,8 @@ require (
 	github.com/nats-io/nats.go v1.10.0
 	github.com/pion/ion-avp v1.8.2
 	github.com/pion/ion-log v1.0.1
-	github.com/pion/ion-sfu v1.9.3
-	github.com/pion/webrtc/v3 v3.0.11
+	github.com/pion/ion-sfu v1.9.8
+	github.com/pion/webrtc/v3 v3.0.20
 	github.com/pixelbender/go-sdp v1.1.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/viper v1.7.1
@@ -20,7 +20,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 // indirect
 	google.golang.org/grpc v1.35.0
 	google.golang.org/protobuf v1.25.0
 )
