@@ -90,7 +90,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	log.Init(conf.Log.Level)
+	log.Init("info")
 
 	log.Infof("--- starting sfu node ---")
 

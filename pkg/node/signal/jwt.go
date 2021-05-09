@@ -47,6 +47,10 @@ func getClaim(ctx context.Context, ac *AuthConfig) (*claims, error) {
 
 	jwtToken, err := jwt.ParseWithClaims(token[0], &claims{}, ac.KeyFunc)
 
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "%v", err)
+	}
+
 	if claims, ok := jwtToken.Claims.(*claims); ok && jwtToken.Valid {
 		return claims, nil
 	}

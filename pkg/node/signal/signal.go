@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	dc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
@@ -69,11 +68,9 @@ type Config struct {
 }
 
 type Signal struct {
-	conf   Config
-	nc     *nats.Conn
-	ndc    *dc.Client
-	rwlock sync.RWMutex
-	svc    map[string]string
+	conf Config
+	nc   *nats.Conn
+	ndc  *dc.Client
 }
 
 func NewSignal(conf Config) (*Signal, error) {
@@ -93,55 +90,32 @@ func NewSignal(conf Config) (*Signal, error) {
 		conf: conf,
 		nc:   nc,
 		ndc:  ndc,
-		svc:  make(map[string]string),
 	}, nil
 }
 
-func (s *Signal) saveServiceInfo(svc string, state discovery.NodeState, node *discovery.Node) {
-	switch state {
-	case discovery.NodeUp:
-		nid := node.NID
-		log.Infof("svc %v => %v", svc, node)
-		info, err := util.GetServiceInfo(s.nc, nid)
-		if err != nil {
-			log.Errorf("Can't get service info for %v", nid)
-			return
-		}
-		for fullSvcName, mds := range info {
-			log.Infof("fullSvcName: %v, mds %v", fullSvcName, mds)
-			s.rwlock.Lock()
-			defer s.rwlock.Unlock()
-			s.svc[fullSvcName] = nid
-		}
+func (s *Signal) watchServiceDown(ctx context.Context, svc string, nid string, cli *nrpc.Client) {
+	ndc, err := dc.NewClient(s.nc)
+	if err != nil {
+		log.Errorf("failed to create discovery client: %v", err)
+		ndc.Close()
 	}
-}
-
-func (s *Signal) Start() {
-	for _, svc := range s.conf.Signal.SVC.Services {
-		log.Infof("Watch svc %v", svc)
-		resp, err := s.ndc.Get(svc, map[string]interface{}{})
-		if err != nil {
-			log.Errorf("Get service %v error %v", svc, err)
-			break
+	ndc.Watch(svc, func(state discovery.NodeState, node *discovery.Node) {
+		if state == discovery.NodeDown && node.NID == nid {
+			log.Infof("Service down: [%v]", svc)
+			cli.Close()
 		}
-		for _, node := range resp.Nodes {
-			s.saveServiceInfo(svc, discovery.NodeUp, &node)
-		}
-		err = s.ndc.Watch(svc, func(state discovery.NodeState, node *discovery.Node) {
-			log.Infof("svc %v => %v", svc, state)
-			s.saveServiceInfo(svc, state, node)
-		})
-		if err != nil {
-			log.Errorf("Watch service %v error %v", svc, err)
-			break
-		}
-	}
+	})
+	go func() {
+		<-ctx.Done()
+		log.Infof("Client down: [%v]", svc)
+		ndc.Close()
+	}()
 }
 
 func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.Context, grpc.ClientConnInterface, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
-		log.Infof("md %v", md)
+		log.Infof("fullMethodName: %v, md %v", fullMethodName, md)
 	}
 
 	//Authenticate here.
@@ -167,20 +141,11 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 		}
 	}
 
-	//Find node id by existing node.
-	s.rwlock.RLock()
-	for svc, nid := range s.svc {
-		if strings.HasPrefix(fullMethodName, "/"+svc) {
-			cli := nrpc.NewClient(s.nc, nid)
-			return ctx, cli, nil
-		}
-	}
-	s.rwlock.RUnlock()
-
 	//Find service in neighbor nodes.
 	svcConf := s.conf.Signal.SVC
 	for _, svc := range svcConf.Services {
 		if strings.HasPrefix(fullMethodName, "/"+svc+".") {
+			//TODO: using grpc.Metadata as Get parameters.
 			resp, err := s.ndc.Get(svc, map[string]interface{}{})
 			if err != nil || len(resp.Nodes) == 0 {
 				log.Errorf("failed to Get service [%v]: %v", svc, err)
@@ -188,6 +153,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 			}
 			nid := resp.Nodes[0].NID
 			cli := nrpc.NewClient(s.nc, nid)
+			s.watchServiceDown(ctx, svc, nid, cli)
 			return ctx, cli, nil
 		}
 	}

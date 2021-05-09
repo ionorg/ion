@@ -3,8 +3,8 @@ module github.com/pion/ion
 go 1.13
 
 require (
-	github.com/cloudwebrtc/nats-discovery v0.2.0
-	github.com/cloudwebrtc/nats-grpc v0.1.6
+	github.com/cloudwebrtc/nats-discovery v0.2.2
+	github.com/cloudwebrtc/nats-grpc v0.1.8
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/improbable-eng/grpc-web v0.13.0
@@ -12,9 +12,9 @@ require (
 	github.com/nats-io/nats-server/v2 v2.1.9
 	github.com/nats-io/nats.go v1.10.0
 	github.com/pion/ion-avp v1.8.2
-	github.com/pion/ion-log v1.1.0
-	github.com/pion/ion-sfu v1.9.3
-	github.com/pion/webrtc/v3 v3.0.11
+	github.com/pion/ion-log v1.2.0
+	github.com/pion/ion-sfu v1.9.8
+	github.com/pion/webrtc/v3 v3.0.20
 	github.com/pixelbender/go-sdp v1.1.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/viper v1.7.1
@@ -22,7 +22,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 // indirect
-	google.golang.org/grpc v1.35.0
-	google.golang.org/protobuf v1.25.1-0.20200805231151-a709e31e5d12
+	google.golang.org/grpc v1.36.1
+	google.golang.org/protobuf v1.26.0
 )

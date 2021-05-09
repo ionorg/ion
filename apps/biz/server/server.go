@@ -210,13 +210,6 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 					if err == nil && len(resp.Nodes) > 0 {
 						nid = resp.Nodes[0].NID
 						r = s.createRoom(sid, nid)
-
-						//Generate necessary metadata for routing.
-						header := metadata.New(map[string]string{"service": "sfu", "nid": nid, "sid": sid, "uid": uid})
-						err = stream.SendHeader(header)
-						if err != nil {
-							log.Errorf("stream.SendHeader failed %v", err)
-						}
 						err = s.watchISLBEvent(nid, sid)
 						if err != nil {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
@@ -231,6 +224,13 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 					r.addPeer(peer)
 					success = true
 					reason = "join success."
+
+					//Generate necessary metadata for routing.
+					header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
+					err := stream.SendHeader(header)
+					if err != nil {
+						log.Errorf("stream.SendHeader failed %v", err)
+					}
 				}
 
 				err := stream.Send(&biz.SignalReply{

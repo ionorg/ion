@@ -27,7 +27,7 @@ var (
 )
 
 func init() {
-	log.Init(conf.Log.Level)
+	log.Init("info")
 
 }
 

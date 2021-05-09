@@ -79,7 +79,7 @@ func main() {
 		os.Exit(-1)
 	}
 	log.Init(conf.Log.Level)
-	log.Infof("--- Starting Biz Node ---\n")
+	log.Infof("--- Starting Biz Node ---")
 	node := biz.NewBIZ(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("biz init start: %v", err)

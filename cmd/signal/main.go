@@ -99,7 +99,6 @@ func main() {
 		os.Exit(-1)
 	}
 	defer sig.Close()
-	sig.Start()
 
 	srv := grpc.NewServer(
 		grpc.CustomCodec(nrpc.Codec()),
