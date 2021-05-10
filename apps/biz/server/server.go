@@ -8,7 +8,6 @@ import (
 	"time"
 
 	ndc "github.com/cloudwebrtc/nats-discovery/pkg/client"
-	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	biz "github.com/pion/ion/apps/biz/grpc"
@@ -83,13 +82,11 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 	//defer s.islbLock.Unlock()
 
 	if s.islbcli == nil {
-		nodes := s.bn.GetNeighborNodes()
-		for nid, node := range nodes {
-			if node.Info.Service == proto.ServiceISLB {
-				ncli := nrpc.NewClient(s.nc, nid)
-				s.islbcli = islb.NewISLBClient(ncli)
-			}
+		ncli, err := s.bn.NewNatsRPCClient(proto.ServiceISLB, nid, map[string]interface{}{})
+		if err != nil {
+			return err
 		}
+		s.islbcli = islb.NewISLBClient(ncli)
 	}
 
 	if s.stream == nil && s.islbcli != nil {
@@ -215,7 +212,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
 						}
 					} else {
-						reason = fmt.Sprintf("dnc.Get(serivce = sfu, sid = %v) err %v", sid, err)
+						reason = fmt.Sprintf("get serivce [sfu], node cnt == 0")
 					}
 				}
 

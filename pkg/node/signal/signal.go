@@ -7,9 +7,10 @@ import (
 
 	dc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
-	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -68,6 +69,7 @@ type Config struct {
 }
 
 type Signal struct {
+	ion.Node
 	conf Config
 	nc   *nats.Conn
 	ndc  *dc.Client
@@ -90,26 +92,43 @@ func NewSignal(conf Config) (*Signal, error) {
 		conf: conf,
 		nc:   nc,
 		ndc:  ndc,
+		Node: ion.NewNode(conf.Node.NID),
 	}, nil
 }
 
-func (s *Signal) watchServiceDown(ctx context.Context, svc string, nid string, cli *nrpc.Client) {
-	ndc, err := dc.NewClient(s.nc)
+func (s *Signal) Start() error {
+	err := s.Node.Start(s.conf.Nats.URL)
 	if err != nil {
-		log.Errorf("failed to create discovery client: %v", err)
-		ndc.Close()
+		s.Close()
+		return err
 	}
-	ndc.Watch(svc, func(state discovery.NodeState, node *discovery.Node) {
-		if state == discovery.NodeDown && node.NID == nid {
-			log.Infof("Service down: [%v]", svc)
-			cli.Close()
-		}
-	})
+	node := discovery.Node{
+		DC:      s.conf.Global.Dc,
+		Service: proto.ServiceSignal,
+		NID:     s.Node.NID,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     s.conf.Nats.URL,
+			//Params:   map[string]string{"username": "foo", "password": "bar"},
+		},
+	}
+
 	go func() {
-		<-ctx.Done()
-		log.Infof("Client down: [%v]", svc)
-		ndc.Close()
+		err := s.Node.KeepAlive(node)
+		if err != nil {
+			log.Errorf("sig.Node.KeepAlive(%v) error %v", s.Node.NID, err)
+		}
 	}()
+
+	//Watch ALL nodes.
+	go func() {
+		err := s.Node.Watch(proto.ServiceALL)
+		if err != nil {
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
+		}
+	}()
+
+	return nil
 }
 
 func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.Context, grpc.ClientConnInterface, error) {
@@ -145,15 +164,16 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	svcConf := s.conf.Signal.SVC
 	for _, svc := range svcConf.Services {
 		if strings.HasPrefix(fullMethodName, "/"+svc+".") {
-			//TODO: using grpc.Metadata as Get parameters.
-			resp, err := s.ndc.Get(svc, map[string]interface{}{})
-			if err != nil || len(resp.Nodes) == 0 {
-				log.Errorf("failed to Get service [%v]: %v", svc, err)
-				return ctx, nil, status.Errorf(codes.Unavailable, "Service Unavailable")
+			//Using grpc.Metadata as a parameters for ndc.Get.
+			var parameters = make(map[string]interface{})
+			for key, value := range md {
+				parameters[key] = value[0]
 			}
-			nid := resp.Nodes[0].NID
-			cli := nrpc.NewClient(s.nc, nid)
-			s.watchServiceDown(ctx, svc, nid, cli)
+			cli, err := s.NewNatsRPCClient(svc, "*", parameters)
+			if err != nil {
+				log.Errorf("failed to Get service [%v]: %v", svc, err)
+				return ctx, nil, status.Errorf(codes.Unavailable, "Service Unavailable: %v", err)
+			}
 			return ctx, cli, nil
 		}
 	}

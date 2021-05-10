@@ -101,11 +101,11 @@ func (b *BIZ) Start(conf Config) error {
 		}
 	}()
 
-	//Watch ISLB nodes.
+	//Watch ALL nodes.
 	go func() {
-		err := b.Node.Watch(proto.ServiceISLB)
+		err := b.Node.Watch(proto.ServiceALL)
 		if err != nil {
-			log.Errorf("biz.Node.Watch(proto.ServiceISLB) error %v", err)
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
 	return nil

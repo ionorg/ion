@@ -32,7 +32,7 @@ func NewGRPCClientConnForNode(node discovery.Node) (ClientConnInterface, error) 
 			log.Errorf("new nats conn error %v", err)
 			return nil, err
 		}
-		conn := nrpc.NewClient(nc, node.NID)
+		conn := nrpc.NewClient(nc, node.NID, "unkown")
 		return conn, nil
 	case discovery.JSONRPC:
 		return nil, fmt.Errorf("%v not yet implementation", node.RPC.Protocol)

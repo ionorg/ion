@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
-	"github.com/cloudwebrtc/nats-discovery/pkg/registry"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
@@ -51,7 +50,7 @@ type Config struct {
 type ISLB struct {
 	ion.Node
 	s        *islbServer
-	registry *registry.Registry
+	registry *Registry
 	redis    *db.Redis
 }
 
@@ -80,29 +79,23 @@ func (i *ISLB) Start(conf Config) error {
 		return err
 	}
 
-	//registry for node discovery.
-	i.registry, err = registry.NewRegistry(i.Node.NatsConn())
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
 	i.redis = db.NewRedis(conf.Redis)
 	if i.redis == nil {
 		return errors.New("new redis error")
 	}
 
-	i.s = newISLBServer(conf, i, i.redis, i.registry)
+	//registry for node discovery.
+	i.registry, err = NewRegistry(conf.Global.Dc, i.Node.NatsConn(), i.redis)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	i.s = newISLBServer(conf, i, i.redis)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
 	// Register reflection service on nats-rpc server.
 	reflection.Register(i.Node.ServiceRegistrar().(*nrpc.Server))
-
-	err = i.registry.Listen(i.s.handleNodeDiscovery, i.s.handleGetNodes)
-
-	if err != nil {
-		log.Errorf("islb.registry.Listen: error => %v", err)
-	}
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
@@ -114,10 +107,19 @@ func (i *ISLB) Start(conf Config) error {
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
+
 	go func() {
 		err := i.Node.KeepAlive(node)
 		if err != nil {
 			log.Errorf("islb.Node.KeepAlive: error => %v", err)
+		}
+	}()
+
+	//Watch ALL nodes.
+	go func() {
+		err := i.Node.Watch(proto.ServiceALL)
+		if err != nil {
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
 

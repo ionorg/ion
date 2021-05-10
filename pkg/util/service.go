@@ -11,8 +11,8 @@ import (
 )
 
 // Get service information through reflection, this feature can be used to create json-rpc, restful API
-func GetServiceInfo(nc nrpc.NatsConn, nid string) (map[string][]*reflection.MethodDescriptor, error) {
-	ncli := nrpc.NewClient(nc, nid)
+func GetServiceInfo(nc nrpc.NatsConn, nid string, selfnid string) (map[string][]*reflection.MethodDescriptor, error) {
+	ncli := nrpc.NewClient(nc, nid, selfnid)
 	ctx, cancel := context.WithCancel(context.Background())
 	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(ncli))
 

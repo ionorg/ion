@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 
-	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
@@ -33,15 +32,14 @@ func newSFUServer(sn *SFU, sfu *isfu.SFU, nc *nats.Conn) *sfuServer {
 }
 
 func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
+
 	if s.islbcli == nil {
-		nodes := s.sn.GetNeighborNodes()
-		for _, node := range nodes {
-			if node.Info.Service == proto.ServiceISLB {
-				ncli := nrpc.NewClient(s.nc, node.Info.NID)
-				s.islbcli = islb.NewISLBClient(ncli)
-				break
-			}
+		ncli, err := s.sn.NewNatsRPCClient(proto.ServiceISLB, "*", map[string]interface{}{})
+		if err != nil {
+			log.Errorf("NewNatsRPCClient err %v", err)
+			return
 		}
+		s.islbcli = islb.NewISLBClient(ncli)
 	}
 
 	if s.islbcli != nil {

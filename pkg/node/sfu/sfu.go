@@ -94,15 +94,15 @@ func (s *SFU) Start(conf Config) error {
 	go func() {
 		err := s.Node.KeepAlive(node)
 		if err != nil {
-			log.Errorf("biz.sfu.Node.KeepAlive(%v) error %v", s.Node.NID, err)
+			log.Errorf("sfu.Node.KeepAlive(%v) error %v", s.Node.NID, err)
 		}
 	}()
 
-	//Watch ISLB nodes.
+	//Watch ALL nodes.
 	go func() {
-		err := s.Node.Watch(proto.ServiceISLB)
+		err := s.Node.Watch(proto.ServiceALL)
 		if err != nil {
-			log.Errorf("biz.sfu.Node.Watch(proto.ServiceISLB) error %v", err)
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
 

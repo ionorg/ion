@@ -47,7 +47,7 @@ func TestStart(t *testing.T) {
 	}
 	defer nc.Close()
 
-	ncli := rpc.NewClient(nc, nid)
+	ncli := rpc.NewClient(nc, nid, "unkown")
 	cli := pb.NewSFUClient(ncli)
 
 	stream, err := cli.Signal(context.Background())

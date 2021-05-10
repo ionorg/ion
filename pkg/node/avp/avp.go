@@ -113,11 +113,11 @@ func (a *AVP) Start(conf Config) error {
 	a.s = newAVPServer(conf.Config, elems)
 	pb.RegisterAVPServer(a.Node.ServiceRegistrar(), a.s)
 
-	//Watch ISLB nodes.
+	//Watch ALL nodes.
 	go func() {
-		err := a.Node.Watch(proto.ServiceISLB)
+		err := a.Node.Watch(proto.ServiceALL)
 		if err != nil {
-			log.Errorf("avp.Node.Watch: error => %v", err)
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
 

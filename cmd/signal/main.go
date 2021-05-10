@@ -98,6 +98,11 @@ func main() {
 		log.Errorf("new signal: %v", err)
 		os.Exit(-1)
 	}
+	err = sig.Start()
+	if err != nil {
+		log.Errorf("signal.Start: %v", err)
+		os.Exit(-1)
+	}
 	defer sig.Close()
 
 	srv := grpc.NewServer(
