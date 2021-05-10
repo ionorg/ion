@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
@@ -21,14 +20,13 @@ import (
 
 type sfuServer struct {
 	pb.UnimplementedSFUServer
-	nc      *nats.Conn
 	sfu     *isfu.SFU
 	islbcli islb.ISLBClient
 	sn      *SFU
 }
 
-func newSFUServer(sn *SFU, sfu *isfu.SFU, nc *nats.Conn) *sfuServer {
-	return &sfuServer{sn: sn, sfu: sfu, nc: nc}
+func newSFUServer(sn *SFU, sfu *isfu.SFU) *sfuServer {
+	return &sfuServer{sn: sn, sfu: sfu}
 }
 
 func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {

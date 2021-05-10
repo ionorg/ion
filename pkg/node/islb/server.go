@@ -13,7 +13,7 @@ import (
 type islbServer struct {
 	islb.UnimplementedISLBServer
 	redis    *db.Redis
-	in       *ISLB
+	islb     *ISLB
 	conf     Config
 	watchers map[string]islb.ISLB_WatchISLBEventServer
 }
@@ -21,7 +21,7 @@ type islbServer struct {
 func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
 	return &islbServer{
 		conf:     conf,
-		in:       in,
+		islb:     in,
 		redis:    redis,
 		watchers: make(map[string]islb.ISLB_WatchISLBEventServer),
 	}

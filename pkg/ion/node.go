@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	nd "github.com/cloudwebrtc/nats-discovery/pkg/client"
+	ndc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
@@ -23,7 +23,7 @@ type Node struct {
 	// gRPC Service Registrar
 	nrpc *nrpc.Server
 	// Service discovery client
-	nd *nd.Client
+	ndc *ndc.Client
 
 	nodeLock sync.RWMutex
 	//neighbor nodes
@@ -51,7 +51,7 @@ func (n *Node) Start(natURL string) error {
 		n.Close()
 		return err
 	}
-	n.nd, err = nd.NewClient(n.nc)
+	n.ndc, err = ndc.NewClient(n.nc)
 	if err != nil {
 		log.Errorf("new discovery client error %v", err)
 		n.Close()
@@ -68,7 +68,7 @@ func (n *Node) NatsConn() *nats.Conn {
 
 //KeepAlive Upload your node info to registry.
 func (n *Node) KeepAlive(node discovery.Node) error {
-	return n.nd.KeepAlive(node)
+	return n.ndc.KeepAlive(node)
 }
 
 func (n *Node) NewNatsRPCClient(service, peerNID string, parameters map[string]interface{}) (*nrpc.Client, error) {
@@ -81,7 +81,7 @@ func (n *Node) NewNatsRPCClient(service, peerNID string, parameters map[string]i
 	}
 
 	if cli == nil {
-		resp, err := n.nd.Get(service, parameters)
+		resp, err := n.ndc.Get(service, parameters)
 		if err != nil {
 			log.Errorf("failed to Get service [%v]: %v", service, err)
 			return nil, err
@@ -103,7 +103,7 @@ func (n *Node) NewNatsRPCClient(service, peerNID string, parameters map[string]i
 
 //Watch the neighbor nodes
 func (n *Node) Watch(service string) error {
-	resp, err := n.nd.Get(service, map[string]interface{}{})
+	resp, err := n.ndc.Get(service, map[string]interface{}{})
 	if err != nil {
 		log.Errorf("Watch service %v error %v", service, err)
 		return err
@@ -113,7 +113,7 @@ func (n *Node) Watch(service string) error {
 		n.handleNeighborNodes(discovery.NodeUp, &node)
 	}
 
-	return n.nd.Watch(context.Background(), service, n.handleNeighborNodes)
+	return n.ndc.Watch(context.Background(), service, n.handleNeighborNodes)
 }
 
 // GetNeighborNodes get neighbor nodes.
@@ -136,6 +136,7 @@ func (n *Node) handleNeighborNodes(state discovery.NodeState, node *discovery.No
 		}
 	} else if state == discovery.NodeDown {
 		log.Infof("Service down: "+service+" node id => [%v]", id)
+
 		n.nodeLock.Lock()
 		delete(n.neighborNodes, id)
 		n.nodeLock.Unlock()
@@ -164,7 +165,7 @@ func (n *Node) Close() {
 	if n.nc != nil {
 		n.nc.Close()
 	}
-	if n.nd != nil {
-		n.nd.Close()
+	if n.ndc != nil {
+		n.ndc.Close()
 	}
 }

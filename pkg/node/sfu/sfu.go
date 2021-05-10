@@ -73,7 +73,7 @@ func (s *SFU) Start(conf Config) error {
 	dc := nsfu.NewDatachannel(isfu.APIChannelLabel)
 	dc.Use(datachannel.SubscriberAPI)
 
-	s.s = newSFUServer(s, nsfu, s.NatsConn())
+	s.s = newSFUServer(s, nsfu)
 	//grpc service
 	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
 

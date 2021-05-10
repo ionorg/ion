@@ -104,7 +104,7 @@ func (s *Signal) Start() error {
 	}
 	node := discovery.Node{
 		DC:      s.conf.Global.Dc,
-		Service: proto.ServiceSignal,
+		Service: proto.ServiceSIG,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
