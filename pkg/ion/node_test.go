@@ -27,7 +27,7 @@ func init() {
 	wg = new(sync.WaitGroup)
 	nc, _ = util.NewNatsConn(natsURL)
 	var err error
-	reg, err = registry.NewRegistry(nc)
+	reg, err = registry.NewRegistry(nc, discovery.DefaultExpire)
 	if err != nil {
 		log.Errorf("%v", err)
 	}
@@ -43,7 +43,7 @@ func TestWatch(t *testing.T) {
 		wg.Done()
 		return true, nil
 	}, func(service string, params map[string]interface{}) ([]discovery.Node, error) {
-		return reg.GetNodes(service)
+		return []discovery.Node{}, nil
 	})
 	if err != nil {
 		t.Error(err)

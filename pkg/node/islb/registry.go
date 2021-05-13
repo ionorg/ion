@@ -12,16 +12,16 @@ import (
 )
 
 type Registry struct {
-	dc       string
-	redis    *db.Redis
-	reg      *registry.Registry
-	nodeLock sync.Mutex
-	nodes    map[string]discovery.Node
+	dc    string
+	redis *db.Redis
+	reg   *registry.Registry
+	mutex sync.Mutex
+	nodes map[string]discovery.Node
 }
 
 func NewRegistry(dc string, nc *nats.Conn, redis *db.Redis) (*Registry, error) {
 
-	reg, err := registry.NewRegistry(nc)
+	reg, err := registry.NewRegistry(nc, discovery.DefaultExpire)
 	if err != nil {
 		log.Errorf("registry.NewRegistry: error => %v", err)
 		return nil, err
@@ -58,8 +58,9 @@ func (r *Registry) handleNodeAction(action discovery.Action, node discovery.Node
 	log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 
 	//TODO: Put node info into the redis.
-	r.nodeLock.Lock()
-	defer r.nodeLock.Unlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	switch action {
 	case discovery.Save:
 		fallthrough
@@ -96,5 +97,15 @@ func (r *Registry) handleGetNodes(service string, params map[string]interface{})
 		}
 	}
 
-	return r.reg.GetNodes(service)
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	nodesResp := []discovery.Node{}
+	for _, item := range r.nodes {
+		if item.Service == service || service == "*" {
+			nodesResp = append(nodesResp, item)
+		}
+	}
+
+	return nodesResp, nil
 }

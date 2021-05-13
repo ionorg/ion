@@ -178,7 +178,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 		}
 	}
 
-	return ctx, nil, status.Errorf(codes.Unimplemented, "Unknown method")
+	return ctx, nil, status.Errorf(codes.Unimplemented, "Unknown Service.Method %v", fullMethodName)
 }
 
 func (s *Signal) Close() {
