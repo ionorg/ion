@@ -10,10 +10,10 @@ import (
 	ndc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	biz "github.com/pion/ion/apps/biz/grpc"
-	islb "github.com/pion/ion/pkg/grpc/islb"
+	biz "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	islb "github.com/pion/ion/proto/islb"
 	"google.golang.org/grpc/metadata"
 )
 

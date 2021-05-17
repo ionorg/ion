@@ -1,9 +1,9 @@
 package server
 
 import (
-	biz "github.com/pion/ion/apps/biz/grpc"
-	"github.com/pion/ion/pkg/grpc/ion"
+	biz "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/util"
+	"github.com/pion/ion/proto/ion"
 )
 
 // Peer represents a peer for client

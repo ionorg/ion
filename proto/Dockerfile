@@ -7,11 +7,11 @@ RUN echo $GOPATH
 
 FROM alpine:3.12.1
 
-RUN apk --no-cache add protobuf
+RUN apk --no-cache add protobuf make
 
 COPY --from=builder /go/bin/protoc-gen-go /usr/bin/
 COPY --from=builder /go/bin/protoc-gen-go-grpc /usr/bin/
 
 WORKDIR /workspace
 
-CMD ["protoc"]
+ENTRYPOINT ["make"]

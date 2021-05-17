@@ -4,7 +4,7 @@ package islb
 
 import (
 	context "context"
-	ion "github.com/pion/ion/pkg/grpc/ion"
+	ion "github.com/pion/ion/proto/ion"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -167,5 +167,5 @@ var ISLB_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "protos/islb.proto",
+	Metadata: "proto/islb/islb.proto",
 }

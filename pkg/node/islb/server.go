@@ -5,8 +5,8 @@ import (
 
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	ion "github.com/pion/ion/pkg/grpc/ion"
-	islb "github.com/pion/ion/pkg/grpc/islb"
+	ion "github.com/pion/ion/proto/ion"
+	islb "github.com/pion/ion/proto/islb"
 	"github.com/square/go-jose/v3/json"
 )
 

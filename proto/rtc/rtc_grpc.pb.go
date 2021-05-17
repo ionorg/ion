@@ -129,5 +129,5 @@ var RTC_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "protos/rtc.proto",
+	Metadata: "proto/rtc/rtc.proto",
 }

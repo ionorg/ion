@@ -12,10 +12,10 @@ require (
 	github.com/jhump/protoreflect v1.8.2
 	github.com/nats-io/nats-server/v2 v2.1.9
 	github.com/nats-io/nats.go v1.10.0
-	github.com/pion/ion-avp v1.8.2
+	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0
-	github.com/pion/ion-sfu v1.9.8
-	github.com/pion/webrtc/v3 v3.0.20
+	github.com/pion/ion-sfu v1.9.9
+	github.com/pion/webrtc/v3 v3.0.29
 	github.com/pixelbender/go-sdp v1.1.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/viper v1.7.1
@@ -24,5 +24,6 @@ require (
 	github.com/tj/assert v0.0.3
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.36.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.26.0
 )

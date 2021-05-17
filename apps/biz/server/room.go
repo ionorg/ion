@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/grpc/ion"
+	"github.com/pion/ion/proto/ion"
 )
 
 // Room represents a Room which manage peers

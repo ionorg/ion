@@ -7,7 +7,7 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/apps/biz/grpc"
+	pb "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 )

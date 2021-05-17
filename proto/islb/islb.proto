@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "protos/ion.proto";
+import "proto/ion/ion.proto";
 
-option go_package = "github.com/pion/ion/pkg/grpc/islb";
+option go_package = "github.com/pion/ion/proto/islb";
 
 package islb;
 

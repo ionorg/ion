@@ -27,9 +27,15 @@ type nodeConf struct {
 	NID string `mapstructure:"nid"`
 }
 
+// Config defines parameters for the logger
+type logConf struct {
+	Level string `mapstructure:"level"`
+}
+
 // Config for sfu node
 type Config struct {
 	Global global   `mapstructure:"global"`
+	Log    logConf  `mapstructure:"log"`
 	Nats   natsConf `mapstructure:"nats"`
 	Node   nodeConf `mapstructure:"node"`
 	isfu.Config

@@ -1,15 +1,10 @@
 syntax = "proto3";
 
-option go_package = "github.com/pion/ion/pkg/grpc/ion";
+option go_package = "github.com/pion/ion/proto/ion";
 
 package ion;
 
 message Empty {}
-
-message Error {
-    int32 code = 1;
-    string reason = 2;
-}
 
 message Track {
 	string id      = 1;

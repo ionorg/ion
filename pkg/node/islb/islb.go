@@ -10,9 +10,9 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	pb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
+	pb "github.com/pion/ion/proto/islb"
 )
 
 const (
