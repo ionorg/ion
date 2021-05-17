@@ -5,13 +5,13 @@ import (
 	"google.golang.org/grpc/status"
 
 	log "github.com/pion/ion-log"
-	ion "github.com/pion/ion/pkg/grpc/ion"
+	"github.com/pion/ion/proto/debug"
 )
 
 // err.NewGrpcIonError(codes.InvalidArgument, "GRPC error with custom error", -1, "custom error")
-func NewGrpcIonError(code codes.Code, msg string, errorCode int32, desc string, debugging *ion.Debugging) error {
+func NewGrpcIonError(code codes.Code, msg string, errorCode int32, desc string, debugging *debug.Debugging) error {
 	st := status.New(code, msg)
-	customErr := &ion.IonError{
+	customErr := &debug.IonError{
 		ErrorCode:   errorCode,
 		Description: desc,
 		Debugging:   debugging,
@@ -20,7 +20,7 @@ func NewGrpcIonError(code codes.Code, msg string, errorCode int32, desc string, 
 	return stDetails.Err()
 }
 
-func ParseGrpcIonError(err error) (*ion.IonError, bool) {
+func ParseGrpcIonError(err error) (*debug.IonError, bool) {
 	st, ok := status.FromError(err)
 	if !ok {
 		log.Errorf("Error: %v", err)
@@ -32,7 +32,7 @@ func ParseGrpcIonError(err error) (*ion.IonError, bool) {
 	if len(st.Details()) > 0 {
 		for _, detail := range st.Details() {
 			switch d := detail.(type) {
-			case *ion.IonError:
+			case *debug.IonError:
 				log.Infof("  - Details: IonError: %d, %s", d.ErrorCode, d.Description)
 				return d, true
 			default:

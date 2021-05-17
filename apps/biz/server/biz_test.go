@@ -9,10 +9,10 @@ import (
 
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/apps/biz/grpc"
-	"github.com/pion/ion/pkg/grpc/ion"
+	pb "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	"github.com/pion/ion/proto/ion"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )

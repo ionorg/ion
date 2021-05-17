@@ -7,12 +7,12 @@ import (
 	"io"
 
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/ion/proto/ion"
 	"github.com/pion/ion/proto/islb"
+	pb "github.com/pion/ion/proto/sfu"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
