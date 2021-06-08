@@ -141,7 +141,11 @@ func (n *Node) handleNeighborNodes(state discovery.NodeState, node *discovery.No
 		delete(n.neighborNodes, id)
 		n.nodeLock.Unlock()
 
-		n.nrpc.CloseStream(id)
+		err := n.nrpc.CloseStream(id)
+		if err != nil {
+			log.Errorf("nrpc.CloseStream: err %v", err)
+		}
+
 		n.cliLock.Lock()
 		defer n.cliLock.Unlock()
 		for cid, cli := range n.clis {

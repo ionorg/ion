@@ -212,7 +212,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
 						}
 					} else {
-						reason = fmt.Sprintf("get serivce [sfu], node cnt == 0")
+						reason = "get serivce [sfu], node cnt == 0"
 					}
 				}
 
