@@ -156,10 +156,12 @@ github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4
 github.com/fullstorydev/grpcurl v1.8.0 h1:ahuh/VkAhEWskGBawQT6N8efu463D7dOV3uEDav2Hqk=
 github.com/fullstorydev/grpcurl v1.8.0/go.mod h1:Mn2jWbdMrQGJQ8UD62uNyMumT2acsZUCkZIqFxsQf1o=
 github.com/gammazero/deque v0.0.0-20200721202602-07291166fe33/go.mod h1:D90+MBHVc9Sk1lJAbEVgws0eYEurY4mv2TDso3Nxh3w=
-github.com/gammazero/deque v0.0.0-20201010052221-3932da5530cc h1:F7BbnLACph7UYiz9ZHi6npcROwKaZUyviDjsNERsoMM=
 github.com/gammazero/deque v0.0.0-20201010052221-3932da5530cc/go.mod h1:IlBLfYXnuw9sspy1XS6ctu5exGb6WHGKQsyo4s7bOEA=
-github.com/gammazero/workerpool v1.1.1 h1:MN29GcZtZZAgzTU+Zk54Y+J9XkE54MoXON/NCZvNulo=
+github.com/gammazero/deque v0.1.0 h1:f9LnNmq66VDeuAlSAapemq/U7hJ2jpIWa4c09q8Dlik=
+github.com/gammazero/deque v0.1.0/go.mod h1:KQw7vFau1hHuM8xmI9RbgKFbAsQFWmBpqQ2KenFLk6M=
 github.com/gammazero/workerpool v1.1.1/go.mod h1:5BN0IJVRjSFAypo9QTJCaWdijjNz9Jjl6VFS1PRjCeg=
+github.com/gammazero/workerpool v1.1.2 h1:vuioDQbgrz4HoaCi2q1HLlOXdpbap5AET7xu5/qj87g=
+github.com/gammazero/workerpool v1.1.2/go.mod h1:UelbXcO0zCIGFcufcirHhq2/xtLXJdQ29qZNlXG9OjQ=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
@@ -444,8 +446,9 @@ github.com/pion/ion-avp v1.8.4/go.mod h1:hYbTSzIpT1UN8bg1wFlF3JDZPuY0WEWJXpTCdgS
 github.com/pion/ion-log v1.0.1/go.mod h1:jwcla9KoB9bB/4FxYDSRJPcPYSLp5XiUUMnOLaqwl4E=
 github.com/pion/ion-log v1.2.0 h1:FYJd+BWmg9FQYP729sgj9ctrr3KaLysnK2BILVpYL+Y=
 github.com/pion/ion-log v1.2.0/go.mod h1:oUlvCy7LZNPzOxmCZVraaMhcS/hB9XFog4m1A8QpVgM=
-github.com/pion/ion-sfu v1.9.9 h1:XPCRmozo8FBh7eDOxktfafY0kDhqYxIT1oVK9Y77zvA=
 github.com/pion/ion-sfu v1.9.9/go.mod h1:6UuluKIvv2GGXp6IgDcdiBJ0mogZJzgUkydZgUVEoFE=
+github.com/pion/ion-sfu v1.10.6 h1:gb9PaWSaBgN1JjkgZPc3CX+5lIDZTxbAlNlx+hzZraA=
+github.com/pion/ion-sfu v1.10.6/go.mod h1:Wx6b4qGUjvSo1kGl+/fHl0ZF48g2IJOjzUFg0yCo9qY=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
 github.com/pion/logging v0.2.2/go.mod h1:k0/tDVsRCX2Mb2ZEmTqNa7CWsQPc+YYCB7Q+5pahoms=
 github.com/pion/mdns v0.0.5 h1:Q2oj/JB3NqfzY9xGZ1fPzZzK7sDSD8rZPOvcIQ10BCw=
