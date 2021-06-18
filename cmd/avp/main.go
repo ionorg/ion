@@ -76,13 +76,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	log.Init("info")
 
 	log.Infof("--- starting avp node ---")
 
-	node := avp.NewAVP("avp")
+	node := avp.NewAVP(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("avp start error: %v", err)
 		os.Exit(-1)

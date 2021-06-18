@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-discovery/pkg/registry"
+
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
@@ -13,21 +15,19 @@ import (
 )
 
 var (
-	natsURL  = "nats://127.0.0.1:4222"
-	nc       *nats.Conn
-	registry *discovery.Registry
-	wg       *sync.WaitGroup
-	nid      = "testnid001"
+	natsURL = "nats://127.0.0.1:4222"
+	nc      *nats.Conn
+	reg     *registry.Registry
+	wg      *sync.WaitGroup
+	nid     = "testnid001"
 )
 
 func init() {
-	fixByFile := []string{"asm_amd64.s", "proc.go"}
-	fixByFunc := []string{}
-	log.Init("debug", fixByFile, fixByFunc)
+	log.Init("debug")
 	wg = new(sync.WaitGroup)
 	nc, _ = util.NewNatsConn(natsURL)
 	var err error
-	registry, err = discovery.NewRegistry(nc)
+	reg, err = registry.NewRegistry(nc, discovery.DefaultExpire)
 	if err != nil {
 		log.Errorf("%v", err)
 	}
@@ -36,11 +36,14 @@ func init() {
 func TestWatch(t *testing.T) {
 	n := NewNode(nid)
 
-	err := registry.Listen(func(action string, node discovery.Node) {
+	err := reg.Listen(func(action discovery.Action, node discovery.Node) (bool, error) {
 		log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 		assert.Equal(t, node.NID, nid)
 		assert.Equal(t, node.Service, proto.ServiceBIZ)
 		wg.Done()
+		return true, nil
+	}, func(service string, params map[string]interface{}) ([]discovery.Node, error) {
+		return []discovery.Node{}, nil
 	})
 	if err != nil {
 		t.Error(err)

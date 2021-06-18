@@ -68,13 +68,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	fixByFile := []string{"asm_amd64.s", "proc.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	log.Init(conf.Log.Level)
 
 	log.Infof("--- starting islb node ---")
 
-	node := islb.NewISLB("islb00")
+	node := islb.NewISLB(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("islb start error: %v", err)
 		os.Exit(-1)

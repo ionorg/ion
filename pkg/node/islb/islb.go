@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	pb "github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
+	pb "github.com/pion/ion/proto/islb"
 )
 
 const (
@@ -30,11 +32,16 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
 // Config for islb node
 type Config struct {
 	Global  global    `mapstructure:"global"`
 	Log     logConf   `mapstructure:"log"`
 	Nats    natsConf  `mapstructure:"nats"`
+	Node    nodeConf  `mapstructure:"node"`
 	Redis   db.Config `mapstructure:"redis"`
 	CfgFile string
 }
@@ -43,7 +50,7 @@ type Config struct {
 type ISLB struct {
 	ion.Node
 	s        *islbServer
-	registry *discovery.Registry
+	registry *Registry
 	redis    *db.Redis
 }
 
@@ -72,26 +79,23 @@ func (i *ISLB) Start(conf Config) error {
 		return err
 	}
 
-	//registry for node discovery.
-	i.registry, err = discovery.NewRegistry(i.Node.NatsConn())
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
 	i.redis = db.NewRedis(conf.Redis)
 	if i.redis == nil {
 		return errors.New("new redis error")
 	}
 
+	//registry for node discovery.
+	i.registry, err = NewRegistry(conf.Global.Dc, i.Node.NatsConn(), i.redis)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
 	i.s = newISLBServer(conf, i, i.redis)
 	pb.RegisterISLBServer(i.Node.ServiceRegistrar(), i.s)
 
-	err = i.registry.Listen(i.s.handleNodeDiscovery)
-
-	if err != nil {
-		log.Errorf("islb.registry.Listen: error => %v", err)
-	}
+	// Register reflection service on nats-rpc server.
+	reflection.Register(i.Node.ServiceRegistrar().(*nrpc.Server))
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
@@ -103,10 +107,19 @@ func (i *ISLB) Start(conf Config) error {
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
+
 	go func() {
 		err := i.Node.KeepAlive(node)
 		if err != nil {
 			log.Errorf("islb.Node.KeepAlive: error => %v", err)
+		}
+	}()
+
+	//Watch ALL nodes.
+	go func() {
+		err := i.Node.Watch(proto.ServiceALL)
+		if err != nil {
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
 

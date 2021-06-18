@@ -90,13 +90,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	fixByFile := []string{"asm_amd64.s", "proc.go", "icegatherer.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	log.Init("info")
 
 	log.Infof("--- starting sfu node ---")
 
-	node := sfu.NewSFU("sfu01")
+	node := sfu.NewSFU(conf.Node.NID)
 	if err := node.Start(conf); err != nil {
 		log.Errorf("sfu init start: %v", err)
 		os.Exit(-1)
