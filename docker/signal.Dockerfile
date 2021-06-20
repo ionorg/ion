@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /signal .
 FROM alpine:3.12.1
 
 RUN apk --no-cache add ca-certificates
-COPY --from=0 /sig /usr/local/bin/signal
+COPY --from=0 /signal /usr/local/bin/signal
 
 COPY configs/docker/signal.toml /configs/signal.toml
 
