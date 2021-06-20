@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/proto/debug";
+
+package debug;
+
+message Debugging {
+  string nid = 1;
+  string service = 2;
+  string file = 3;
+  int32 line = 4;
+  string function = 5;
+}
+
+message IonError {
+    int32 errorCode = 1;
+    string description = 2;
+    optional Debugging debugging = 3;
+}

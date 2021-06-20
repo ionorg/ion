@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "proto/ion/ion.proto";
+
+option go_package = "github.com/pion/ion/proto/islb";
+
+package islb;
+
+service ISLB {
+    rpc PostISLBEvent(ISLBEvent) returns (ion.Empty) {}
+
+    rpc WatchISLBEvent(stream WatchRequest) returns (stream ISLBEvent) {}
+}
+
+message FindNodeRequest {
+    string sid = 1;
+    string nid = 2;
+    string service = 3;
+}
+
+message FindNodeReply {
+    repeated ion.Node nodes = 1;
+}
+
+message WatchRequest {
+   string nid = 1;
+   string sid = 2;
+}
+
+message ISLBEvent {
+  oneof payload {
+    ion.SessionEvent session = 1;
+    ion.StreamEvent stream = 2;
+  }
+}

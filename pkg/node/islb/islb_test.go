@@ -1,14 +1,11 @@
 package islb
 
 import (
-	"context"
 	"testing"
 
-	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	proto "github.com/pion/ion/pkg/grpc/islb"
 )
 
 var (
@@ -27,9 +24,7 @@ var (
 )
 
 func init() {
-	fixByFile := []string{"asm_amd64.s", "proc.go"}
-	fixByFunc := []string{}
-	log.Init(conf.Log.Level, fixByFile, fixByFunc)
+	log.Init(conf.Log.Level)
 
 }
 
@@ -48,19 +43,6 @@ func TestStart(t *testing.T) {
 		t.Error(err)
 	}
 	defer nc.Close()
-
-	ncli := rpc.NewClient(nc, nid)
-	cli := proto.NewISLBClient(ncli)
-
-	reply, err := cli.FindNode(context.Background(), &proto.FindNodeRequest{
-		Nid: "sfu-001",
-	})
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	log.Debugf("reply => %v", reply)
 
 	i.Close()
 }

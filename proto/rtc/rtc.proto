@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/proto/rtc";
+
+package rtc;
+
+service RTC {
+    rpc Signal(stream Signalling) returns (stream Signalling) {}
+}
+
+message JoinRequest {
+    string sid = 1;
+    string uid = 2;
+    map<string,string> parameters = 3;
+}
+
+message JoinReply {
+    bool success = 1;
+    string error = 2; // room is full ?
+}
+
+message Join {
+    oneof payload {
+           JoinRequest req = 1;
+           JoinReply reply = 2;
+    }
+}
+
+message Signalling {
+    oneof payload {
+        Join join = 1;
+        Description description = 2;
+        Trickle trickle = 3;
+        Error error = 4;
+    }
+}
+
+enum Target {
+    PUBLISHER = 0;
+    SUBSCRIBER = 1;
+}
+
+message Description {
+    string id = 1;
+    Target target = 2;
+    bytes description = 3;
+}
+
+message Trickle {
+    string id = 1;
+    Target target = 2;
+    bytes candidate = 3;
+}
+
+message Error {
+    int32 code = 1;
+    string reason = 2;
+}

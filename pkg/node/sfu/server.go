@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"io"
 
-	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
-	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/ion/pkg/grpc/ion"
-	"github.com/pion/ion/pkg/grpc/islb"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
+	"github.com/pion/ion/proto/ion"
+	"github.com/pion/ion/proto/islb"
+	pb "github.com/pion/ion/proto/sfu"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,26 +20,24 @@ import (
 
 type sfuServer struct {
 	pb.UnimplementedSFUServer
-	nc      *nats.Conn
 	sfu     *isfu.SFU
 	islbcli islb.ISLBClient
 	sn      *SFU
 }
 
-func newSFUServer(sn *SFU, sfu *isfu.SFU, nc *nats.Conn) *sfuServer {
-	return &sfuServer{sn: sn, sfu: sfu, nc: nc}
+func newSFUServer(sn *SFU, sfu *isfu.SFU) *sfuServer {
+	return &sfuServer{sn: sn, sfu: sfu}
 }
 
 func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
+
 	if s.islbcli == nil {
-		nodes := s.sn.GetNeighborNodes()
-		for _, node := range nodes {
-			if node.Service == proto.ServiceISLB {
-				ncli := nrpc.NewClient(s.nc, node.NID)
-				s.islbcli = islb.NewISLBClient(ncli)
-				break
-			}
+		ncli, err := s.sn.NewNatsRPCClient(proto.ServiceISLB, "*", map[string]interface{}{})
+		if err != nil {
+			log.Errorf("NewNatsRPCClient err %v", err)
+			return
 		}
+		s.islbcli = islb.NewISLBClient(ncli)
 	}
 
 	if s.islbcli != nil {

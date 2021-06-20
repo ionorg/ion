@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "proto/ion/ion.proto";
+
+option go_package = "github.com/pion/ion/apps/biz/proto";
+
+package biz;
+
+service Biz {
+  rpc Signal(stream SignalRequest) returns (stream SignalReply);
+}
+
+message Join {
+    ion.Peer peer = 1;
+    string token = 2;
+}
+
+message JoinReply {
+    bool success = 1;
+    string reason = 2;
+}
+
+message Leave {
+    string uid = 1;
+}
+
+message LeaveReply {
+    string reason = 1;
+}
+
+message SignalRequest {
+  oneof payload {
+    Join join = 1;
+    Leave leave = 2;
+    ion.Message msg = 4;
+  }
+}
+
+message SignalReply {
+  oneof payload {
+        JoinReply joinReply = 1;
+        LeaveReply leaveReply = 2;
+        ion.PeerEvent peerEvent = 3;
+        ion.StreamEvent streamEvent = 4;
+        ion.Message msg = 5;
+    }
+}
