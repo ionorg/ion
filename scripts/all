@@ -29,8 +29,11 @@ function start()
     echo "------------islb--------------"
     $APP_DIR/scripts/service start islb
 
-    echo "------------biz--------------"
-    $APP_DIR/scripts/service start biz
+    echo "------------signal--------------"
+    $APP_DIR/scripts/service start signal
+
+    echo "------------app-biz--------------"
+    $APP_DIR/scripts/service start app-biz
 
     echo "------------sfu--------------"
     $APP_DIR/scripts/service start sfu
@@ -44,7 +47,10 @@ function start()
 function stop()
 {
     echo "------------biz--------------"
-    $APP_DIR/scripts/service stop biz
+    $APP_DIR/scripts/service stop app-biz
+
+    echo "------------signal--------------"
+    $APP_DIR/scripts/service stop signal
 
     echo "------------islb--------------"
     $APP_DIR/scripts/service stop islb

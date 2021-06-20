@@ -44,28 +44,28 @@ services:
     networks:
       - ionnet
 
-  sig:
-    image: pionwebrtc/ion:latest-sig
+  signal:
+    image: pionwebrtc/ion:latest-signal
     build:
-      dockerfile: ./docker/sig.Dockerfile
+      dockerfile: ./docker/signal.Dockerfile
       context: .
     volumes:
-      - "./configs/docker/sig.toml:/configs/sig.toml"
+      - "./configs/docker/signal.toml:/configs/signal.toml"
     ports:
       - 5551:5551
     depends_on:
       - islb
-      - biz
+      - app-biz
     networks:
       - ionnet
 
-  biz:
-    image: pionwebrtc/ion:latest-biz
+  app-biz:
+    image: pionwebrtc/ion:latest-app-biz
     build:
-      dockerfile: ./docker/biz.Dockerfile
+      dockerfile: ./docker/app-biz.Dockerfile
       context: .
     volumes:
-      - "./configs/docker/biz.toml:/configs/biz.toml"
+      - "./configs/docker/app-biz.toml:/configs/app-biz.toml"
     depends_on:
       - nats
       - islb
