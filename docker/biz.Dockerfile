@@ -8,9 +8,10 @@ COPY go.mod go.sum ./
 RUN cd $GOPATH/src/github.com/pion/ion && go mod download
 
 COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg
-COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
+COPY proto/ $GOPATH/src/github.com/pion/ion/proto
+COPY apps/ $GOPATH/src/github.com/pion/ion/apps
 
-WORKDIR $GOPATH/src/github.com/pion/ion/cmd/biz
+WORKDIR $GOPATH/src/github.com/pion/ion/apps/biz
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /biz .
 
 FROM alpine:3.12.1

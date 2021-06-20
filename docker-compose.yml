@@ -22,7 +22,7 @@ services:
     volumes:
       - "./configs/docker/sfu.toml:/configs/sfu.toml"
     ports:
-      - "15000-15200:15000-15200/udp"
+      - "5000:5000/udp"
       - 3478:3478
     depends_on:
       - nats
@@ -44,6 +44,21 @@ services:
     networks:
       - ionnet
 
+  sig:
+    image: pionwebrtc/ion:latest-sig
+    build:
+      dockerfile: ./docker/sig.Dockerfile
+      context: .
+    volumes:
+      - "./configs/docker/sig.toml:/configs/sig.toml"
+    ports:
+      - 5551:5551
+    depends_on:
+      - islb
+      - biz
+    networks:
+      - ionnet
+
   biz:
     image: pionwebrtc/ion:latest-biz
     build:
@@ -51,8 +66,6 @@ services:
       context: .
     volumes:
       - "./configs/docker/biz.toml:/configs/biz.toml"
-    ports:
-      - 5551:5551
     depends_on:
       - nats
       - islb

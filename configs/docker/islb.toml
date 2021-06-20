@@ -9,6 +9,10 @@ level = "info"
 [nats]
 url = "nats://nats:4222"
 
+[node]
+# node id
+nid = "islb01"
+
 [redis]
 addrs = ["redis:6379"]
 password = ""
