@@ -17,7 +17,7 @@ nid = "sig01"
 [signal.grpc]
 #listen ip port
 host = "0.0.0.0"
-port = "5552"
+port = "5551"
 allow_all_origins = true
 # cert= "configs/certs/cert.pem"
 # key= "configs/certs/key.pem"
