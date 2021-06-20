@@ -46,7 +46,7 @@ function start()
 
     BUILD_PATH=$APP_DIR/cmd/$SERVICE
     if [[ "$SERVICE" =~ app-* ]]; then
-        BUILD_PATH=$APP_DIR/apps/$SERVICE
+        BUILD_PATH=$APP_DIR/apps/${SERVICE: 4}
     fi
     cd $BUILD_PATH
     echo "go build -o $COMMAND"
