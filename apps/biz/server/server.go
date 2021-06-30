@@ -57,18 +57,20 @@ func (s *BizServer) close() {
 }
 
 func (s *BizServer) createRoom(sid string, sfuNID string) *Room {
-	s.roomLock.RLock()
-	defer s.roomLock.RUnlock()
+	s.roomLock.Lock()
+	defer s.roomLock.Unlock()
+	if r := s.rooms[sid]; r != nil {
+		return r
+	}
 	r := newRoom(sid, sfuNID)
 	s.rooms[sid] = r
 	return r
 }
 
 func (s *BizServer) getRoom(id string) *Room {
-	s.roomLock.Lock()
-	defer s.roomLock.Unlock()
-	r := s.rooms[id]
-	return r
+	s.roomLock.RLock()
+	defer s.roomLock.RUnlock()
+	return s.rooms[id]
 }
 
 func (s *BizServer) delRoom(id string) {
@@ -147,7 +149,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 	defer func() {
 		if peer != nil && r != nil {
 			peer.Close()
-			r.delPeer(peer.UID())
+			r.delPeer(peer)
 		}
 
 		if r != nil && r.count() == 0 {
@@ -245,7 +247,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			case *biz.SignalRequest_Leave:
 				uid := payload.Leave.Uid
 				if peer != nil && peer.uid == uid {
-					r.delPeer(uid)
+					r.delPeer(peer)
 					peer.Close()
 					peer = nil
 
