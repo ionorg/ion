@@ -8,13 +8,11 @@ type AtomicBool struct {
 }
 
 // Set atomic bool
-func (b *AtomicBool) Set(value bool) {
-	var i int32
+func (b *AtomicBool) Set(value bool) (swapped bool) {
 	if value {
-		i = 1
+		return atomic.SwapInt32(&(b.val), 1) == 0
 	}
-
-	atomic.StoreInt32(&(b.val), i)
+	return atomic.SwapInt32(&(b.val), 0) == 1
 }
 
 // Get atomic bool

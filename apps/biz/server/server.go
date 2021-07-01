@@ -73,10 +73,13 @@ func (s *BizServer) getRoom(id string) *Room {
 	return s.rooms[id]
 }
 
-func (s *BizServer) delRoom(id string) {
+func (s *BizServer) delRoom(r *Room) {
+	id := r.SID()
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
-	delete(s.rooms, id)
+	if s.rooms[id] == r {
+		delete(s.rooms, id)
+	}
 }
 
 func (s *BizServer) watchISLBEvent(nid string, sid string) error {
@@ -147,14 +150,14 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 	reqCh := make(chan *biz.SignalRequest)
 
 	defer func() {
-		if peer != nil && r != nil {
-			peer.Close()
-			r.delPeer(peer)
-		}
-
-		if r != nil && r.count() == 0 {
-			s.delRoom(r.SID())
-			r = nil
+		if r != nil {
+			if peer != nil {
+				peer.Close()
+				r.delPeer(peer)
+			}
+			if r.count() == 0 {
+				s.delRoom(r)
+			}
 		}
 
 		log.Infof("BizServer.Signal loop done")
@@ -247,14 +250,12 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			case *biz.SignalRequest_Leave:
 				uid := payload.Leave.Uid
 				if peer != nil && peer.uid == uid {
-					r.delPeer(peer)
-					peer.Close()
-					peer = nil
-
-					if r.count() == 0 {
-						s.delRoom(r.SID())
+					if r.delPeer(peer) == 0 {
+						s.delRoom(r)
 						r = nil
 					}
+					peer.Close()
+					peer = nil
 
 					err := stream.Send(&biz.SignalReply{
 						Payload: &biz.SignalReply_LeaveReply{
