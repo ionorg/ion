@@ -23,7 +23,7 @@ type BizServer struct {
 	nc       *nats.Conn
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
-	closed   chan bool
+	closed   chan struct{}
 	ndc      *ndc.Client
 	islbcli  islb.ISLBClient
 	bn       *BIZ
@@ -45,7 +45,7 @@ func newBizServer(bn *BIZ, c string, nid string, nc *nats.Conn) (*BizServer, err
 		bn:     bn,
 		nc:     nc,
 		rooms:  make(map[string]*Room),
-		closed: make(chan bool),
+		closed: make(chan struct{}),
 		stream: nil,
 	}
 
@@ -146,7 +146,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 	var r *Room = nil
 	var peer *Peer = nil
 	errCh := make(chan error)
-	repCh := make(chan *biz.SignalReply)
+	repCh := make(chan *biz.SignalReply, 1)
 	reqCh := make(chan *biz.SignalRequest)
 
 	defer func() {

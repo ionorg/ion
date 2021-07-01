@@ -44,9 +44,13 @@ func (p *Peer) SID() string {
 }
 
 func (p *Peer) send(data *biz.SignalReply) error {
-	go func() {
-		p.sndCh <- data
-	}()
+	select {
+	case p.sndCh <- data:
+	default:
+		go func() {
+			p.sndCh <- data
+		}()
+	}
 	return nil
 }
 
@@ -56,7 +60,6 @@ func (p *Peer) sendPeerEvent(event *ion.PeerEvent) error {
 			PeerEvent: event,
 		},
 	}
-
 	return p.send(data)
 }
 
