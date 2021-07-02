@@ -106,7 +106,7 @@ func main() {
 	defer sig.Close()
 
 	srv := grpc.NewServer(
-		grpc.CustomCodec(nrpc.Codec()),
+		grpc.CustomCodec(nrpc.Codec()), // nolint:staticcheck
 		grpc.UnknownServiceHandler(nproxy.TransparentHandler(sig.Director)))
 
 	s := server.NewWrapperedGRPCWebServer(options, srv)

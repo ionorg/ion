@@ -23,16 +23,14 @@ func NewPeer(sid string, uid string, info []byte, senCh chan *biz.SignalReply) *
 		info:  info,
 		sndCh: senCh,
 	}
-	p.closed.Set(false)
 	return p
 }
 
 // Close peer
 func (p *Peer) Close() {
-	if p.closed.Get() {
+	if !p.closed.Set(true) {
 		return
 	}
-	p.closed.Set(true)
 }
 
 // UID return peer uid
@@ -46,9 +44,13 @@ func (p *Peer) SID() string {
 }
 
 func (p *Peer) send(data *biz.SignalReply) error {
-	go func() {
-		p.sndCh <- data
-	}()
+	select {
+	case p.sndCh <- data:
+	default:
+		go func() {
+			p.sndCh <- data
+		}()
+	}
 	return nil
 }
 
@@ -58,7 +60,6 @@ func (p *Peer) sendPeerEvent(event *ion.PeerEvent) error {
 			PeerEvent: event,
 		},
 	}
-
 	return p.send(data)
 }
 

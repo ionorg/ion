@@ -23,7 +23,7 @@ type BizServer struct {
 	nc       *nats.Conn
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
-	closed   chan bool
+	closed   chan struct{}
 	ndc      *ndc.Client
 	islbcli  islb.ISLBClient
 	bn       *BIZ
@@ -45,7 +45,7 @@ func newBizServer(bn *BIZ, c string, nid string, nc *nats.Conn) (*BizServer, err
 		bn:     bn,
 		nc:     nc,
 		rooms:  make(map[string]*Room),
-		closed: make(chan bool),
+		closed: make(chan struct{}),
 		stream: nil,
 	}
 
@@ -57,24 +57,29 @@ func (s *BizServer) close() {
 }
 
 func (s *BizServer) createRoom(sid string, sfuNID string) *Room {
-	s.roomLock.RLock()
-	defer s.roomLock.RUnlock()
+	s.roomLock.Lock()
+	defer s.roomLock.Unlock()
+	if r := s.rooms[sid]; r != nil {
+		return r
+	}
 	r := newRoom(sid, sfuNID)
 	s.rooms[sid] = r
 	return r
 }
 
 func (s *BizServer) getRoom(id string) *Room {
-	s.roomLock.Lock()
-	defer s.roomLock.Unlock()
-	r := s.rooms[id]
-	return r
+	s.roomLock.RLock()
+	defer s.roomLock.RUnlock()
+	return s.rooms[id]
 }
 
-func (s *BizServer) delRoom(id string) {
+func (s *BizServer) delRoom(r *Room) {
+	id := r.SID()
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
-	delete(s.rooms, id)
+	if s.rooms[id] == r {
+		delete(s.rooms, id)
+	}
 }
 
 func (s *BizServer) watchISLBEvent(nid string, sid string) error {
@@ -141,18 +146,18 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 	var r *Room = nil
 	var peer *Peer = nil
 	errCh := make(chan error)
-	repCh := make(chan *biz.SignalReply)
+	repCh := make(chan *biz.SignalReply, 1)
 	reqCh := make(chan *biz.SignalRequest)
 
 	defer func() {
-		if peer != nil && r != nil {
-			peer.Close()
-			r.delPeer(peer.UID())
-		}
-
-		if r != nil && r.count() == 0 {
-			s.delRoom(r.SID())
-			r = nil
+		if r != nil {
+			if peer != nil {
+				peer.Close()
+				r.delPeer(peer)
+			}
+			if r.count() == 0 {
+				s.delRoom(r)
+			}
 		}
 
 		log.Infof("BizServer.Signal loop done")
@@ -245,14 +250,12 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 			case *biz.SignalRequest_Leave:
 				uid := payload.Leave.Uid
 				if peer != nil && peer.uid == uid {
-					r.delPeer(uid)
-					peer.Close()
-					peer = nil
-
-					if r.count() == 0 {
-						s.delRoom(r.SID())
+					if r.delPeer(peer) == 0 {
+						s.delRoom(r)
 						r = nil
 					}
+					peer.Close()
+					peer = nil
 
 					err := stream.Send(&biz.SignalReply{
 						Payload: &biz.SignalReply_LeaveReply{

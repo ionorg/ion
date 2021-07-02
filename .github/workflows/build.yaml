@@ -14,4 +14,4 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: build
-        run: make build
+        run: make all

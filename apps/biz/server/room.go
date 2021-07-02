@@ -80,28 +80,39 @@ func (r *Room) getPeer(uid string) *Peer {
 }
 
 // getPeers get peers in the room
-func (r *Room) getPeers() map[string]*Peer {
+func (r *Room) getPeers() []*Peer {
 	r.RLock()
 	defer r.RUnlock()
-	return r.peers
+	p := make([]*Peer, 0, len(r.peers))
+	for _, peer := range r.peers {
+		p = append(p, peer)
+	}
+	return p
 }
 
 // delPeer delete a peer in the room
-func (r *Room) delPeer(uid string) int {
+func (r *Room) delPeer(p *Peer) int {
+	uid := p.uid
 	r.Lock()
-	delete(r.peers, uid)
+	found := r.peers[uid] == p
+	if found {
+		delete(r.peers, uid)
+	}
+	peerCount := len(r.peers)
 	r.Unlock()
 
-	event := &ion.PeerEvent{
-		State: ion.PeerEvent_LEAVE,
-		Peer: &ion.Peer{
-			Sid: r.sid,
-			Uid: uid,
-		},
+	if found {
+		event := &ion.PeerEvent{
+			State: ion.PeerEvent_LEAVE,
+			Peer: &ion.Peer{
+				Sid: r.sid,
+				Uid: uid,
+			},
+		}
+		r.sendPeerEvent(event)
 	}
-	r.sendPeerEvent(event)
 
-	return len(r.peers)
+	return peerCount
 }
 
 // count return count of peers in room
@@ -135,8 +146,8 @@ func (r *Room) sendMessage(msg *ion.Message) {
 	data := msg.Data
 	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
 	peers := r.getPeers()
-	for id, p := range peers {
-		if id == to || to == "all" || to == r.sid {
+	for _, p := range peers {
+		if to == p.uid || to == "all" || to == r.sid {
 			if err := p.sendMessage(msg); err != nil {
 				log.Errorf("send msg to peer(%s) error: %v", p.uid, err)
 			}
