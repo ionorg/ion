@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
@@ -10,6 +11,10 @@ import (
 	pb "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/runner"
+	"github.com/pion/ion/pkg/util"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 type global struct {
@@ -25,52 +30,116 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for biz node
 type Config struct {
+	runner.ConfigBase
 	Global global   `mapstructure:"global"`
 	Log    logConf  `mapstructure:"log"`
 	Nats   natsConf `mapstructure:"nats"`
-	Node   nodeConf `mapstructure:"node"`
+}
+
+func unmarshal(rawVal interface{}) error {
+	if err := viper.Unmarshal(rawVal); err != nil {
+		log.Errorf("viper.Unmarshal failed. %v\n", err)
+		return nil
+	}
+	return nil
+}
+
+func (c *Config) Load(file string) error {
+	_, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+
+	viper.SetConfigFile(file)
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		log.Errorf("config file %s read failed. %v\n", file, err)
+		return err
+	}
+
+	err = unmarshal(c)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		log.Errorf("config file %s loaded failed. %v\n", file, err)
+		return err
+	}
+
+	log.Errorf("config %s load ok!\n", file)
+	return nil
 }
 
 // BIZ represents biz node
 type BIZ struct {
+	runner.Service
 	ion.Node
-	s *BizServer
+	s    *BizServer
+	conf Config
 }
 
-// NewBIZ create a biz node instance
-func NewBIZ(nid string) *BIZ {
+// New create a biz node instance
+func New(conf Config) *BIZ {
 	return &BIZ{
-		Node: ion.NewNode(nid),
+		conf: conf,
+		Node: ion.NewNode("biz-" + util.RandomString(4)),
 	}
 }
 
-// Start biz node
-func (b *BIZ) Start(conf Config) error {
+func (b *BIZ) ConfigBase() runner.ConfigBase {
+	return &b.conf
+}
+
+func (b *BIZ) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	var err error
 
-	if conf.Global.Pprof != "" {
+	if b.conf.Global.Pprof != "" {
 		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			log.Infof("start pprof on %s", b.conf.Global.Pprof)
+			err := http.ListenAndServe(b.conf.Global.Pprof, nil)
+			if err != nil {
+				log.Warnf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	b.s, err = newBizServer(b, b.conf.Global.Dc, b.NID, nil)
+	if err != nil {
+		log.Errorf("newBizServer err=%v", err)
+		b.Close()
+		return err
+	}
+
+	pb.RegisterBizServer(registrar, b.s)
+	go b.s.stat()
+
+	return nil
+}
+
+func (b *BIZ) Start() error {
+	var err error
+
+	if b.conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", b.conf.Global.Pprof)
+			err := http.ListenAndServe(b.conf.Global.Pprof, nil)
 			if err != nil {
 				log.Errorf("http.ListenAndServe err=%v", err)
 			}
 		}()
 	}
 
-	err = b.Node.Start(conf.Nats.URL)
+	err = b.Node.Start(b.conf.Nats.URL)
 	if err != nil {
 		b.Close()
 		return err
 	}
 
-	b.s, err = newBizServer(b, conf.Global.Dc, b.NID, b.NatsConn())
+	b.s, err = newBizServer(b, b.conf.Global.Dc, b.NID, b.NatsConn())
 	if err != nil {
 		b.Close()
 		return err
@@ -84,12 +153,12 @@ func (b *BIZ) Start(conf Config) error {
 	go b.s.stat()
 
 	node := discovery.Node{
-		DC:      conf.Global.Dc,
+		DC:      b.conf.Global.Dc,
 		Service: proto.ServiceBIZ,
 		NID:     b.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
-			Addr:     conf.Nats.URL,
+			Addr:     b.conf.Nats.URL,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
 	}
@@ -118,6 +187,6 @@ func (b *BIZ) Close() {
 }
 
 // Service return grpc services.
-func (b *BIZ) Service() *BizServer {
-	return b.s
-}
+// func (b *BIZ) Service() *BizServer {
+// return b.s
+// }

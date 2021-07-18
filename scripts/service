@@ -16,7 +16,7 @@ SERVICE=$2
 show_help()
 {
     echo ""
-    echo "Usage: ./service {start|stop} {app-biz|signal|islb|sfu|avp}"
+    echo "Usage: ./service {start|stop} {app-biz|ion-conference|signal|islb|sfu|avp}"
     echo ""
 }
 
@@ -39,24 +39,35 @@ function start()
         exit 1;
     fi
 
-    if [ ! -r $CONFIG ]; then
-        echo "$CONFIG not exsist"
-        exit 1;
-    fi
+    # if [ ! -r $CONFIG ]; then
+        # echo "$CONFIG not exsist"
+        # exit 1;
+    # fi
 
     BUILD_PATH=$APP_DIR/cmd/$SERVICE
     if [[ "$SERVICE" =~ app-* ]]; then
         BUILD_PATH=$APP_DIR/apps/${SERVICE: 4}
     fi
+    if [[ "$SERVICE" =~ ion-* ]]; then
+        BUILD_PATH=$APP_DIR/apps/${SERVICE}
+    fi
+
     cd $BUILD_PATH
     echo "go build -o $COMMAND"
     go build -o $COMMAND
     cd $APP_DIR
 
-    echo "nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &"
-    nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &
+    if [[ "$SERVICE" =~ ion* ]]; then
+        echo "nohup $COMMAND -bc $APP_DIR/configs/app-biz.toml -sc $APP_DIR/configs/sfu.toml >$LOG_FILE 2>&1 &"
+        nohup $COMMAND -bc $APP_DIR/configs/app-biz.toml -sc $APP_DIR/configs/sfu.toml >$LOG_FILE 2>&1 &
+    else
+        echo "nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &"
+        nohup $COMMAND -c $CONFIG >$LOG_FILE 2>&1 &
+    fi
     pid=$!
     echo "$pid" > $PID_FILE
+    echo "$pid"
+    echo "$PID_FILE"
     rpid=`ps aux | grep $pid |grep -v "grep" | awk '{print $2}'`
     if [[ $pid != $rpid ]];then
         echo "start failly."
@@ -93,7 +104,7 @@ if [[ "$ACTION" != "start" && "$ACTION" != "stop" ]]; then
     exit 1
 fi
 
-if [[ "$SERVICE" != "app-biz" && "$SERVICE" != "signal" && "$SERVICE" != "islb" && "$SERVICE" != "sfu" && "$SERVICE" != "avp" ]]; then
+if [[ "$SERVICE" != "ion-conference" &&"$SERVICE" != "app-biz" && "$SERVICE" != "signal" && "$SERVICE" != "islb" && "$SERVICE" != "sfu" && "$SERVICE" != "avp" ]]; then
     show_help
     exit 1
 fi

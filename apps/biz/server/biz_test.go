@@ -48,7 +48,8 @@ func init() {
 
 	s := grpc.NewServer()
 
-	bn := NewBIZ(nid)
+	c := Config{}
+	bn := New(c)
 
 	err = bn.Node.Start(natsURL)
 	if err != nil {

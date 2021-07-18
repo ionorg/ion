@@ -72,6 +72,17 @@ services:
     networks:
       - ionnet
 
+  ion-conference:
+    image: pionwebrtc/ion:latest-ion-conference
+    build:
+      dockerfile: ./docker/ion-conference.Dockerfile
+      context: .
+    volumes:
+      - "./configs/docker/app-biz.toml:/configs/app-biz.toml"
+      - "./configs/docker/sfu.toml:/configs/sfu.toml"
+    depends_on:
+    networks:
+
   nats:
     image: nats
     ports:

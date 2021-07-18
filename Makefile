@@ -18,6 +18,7 @@ core: go_deps
 
 app:
 	go build -o bin/app-biz $(GO_LDFLAGS) apps/biz/main.go
+	go build -o bin/ion-conference $(GO_LDFLAGS) apps/ion-conference/main.go
 
 clean:
 	rm -rf bin
