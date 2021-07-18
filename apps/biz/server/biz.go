@@ -70,7 +70,7 @@ func (c *Config) Load(file string) error {
 		return err
 	}
 
-	log.Errorf("config %s load ok!\n", file)
+	log.Infof("config %s load ok!\n", file)
 	return nil
 }
 
