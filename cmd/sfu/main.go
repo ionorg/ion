@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -11,21 +10,6 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/node/sfu"
 )
-
-const (
-	portRangeLimit = 100
-)
-
-var (
-	conf = sfu.Config{}
-	file string
-)
-
-func showHelp() {
-	fmt.Printf("Usage:%s {params}\n", os.Args[0])
-	fmt.Println("      -c {config file}")
-	fmt.Println("      -h (show help info)")
-}
 
 func main() {
 	var file string

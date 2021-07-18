@@ -1,7 +1,6 @@
 package sfu
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -83,12 +82,14 @@ func (c *Config) Load(file string) error {
 	}
 
 	if len(c.WebRTC.ICEPortRange) > 2 {
-		err = errors.New(fmt.Sprintf("config file %s loaded failed. range port must be [min,max]", file))
+		err = fmt.Errorf("config file %s loaded failed. range port must be [min,max]", file)
+		log.Errorf("err=%v", err)
 		return err
 	}
 
 	if len(c.WebRTC.ICEPortRange) != 0 && c.WebRTC.ICEPortRange[1]-c.WebRTC.ICEPortRange[0] < portRangeLimit {
-		err = errors.New(fmt.Sprintf("config file %s loaded failed. range port must be [min, max] and max - min >= %d", file, portRangeLimit))
+		err = fmt.Errorf("config file %s loaded failed. range port must be [min, max] and max - min >= %d", file, portRangeLimit)
+		log.Errorf("err=%v", err)
 		return err
 	}
 
