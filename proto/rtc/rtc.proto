@@ -5,54 +5,128 @@ option go_package = "github.com/pion/ion/proto/rtc";
 package rtc;
 
 service RTC {
-    rpc Signal(stream Signalling) returns (stream Signalling) {}
+  rpc Signal(stream Signalling) returns (stream Signalling) {}
 }
 
 message JoinRequest {
-    string sid = 1;
-    string uid = 2;
-    map<string,string> parameters = 3;
+  string sid = 1;
+  string uid = 2;
+  map<string, string> parameters = 3;
 }
 
 message JoinReply {
-    bool success = 1;
-    string error = 2; // room is full ?
-}
-
-message Join {
-    oneof payload {
-           JoinRequest req = 1;
-           JoinReply reply = 2;
-    }
-}
-
-message Signalling {
-    oneof payload {
-        Join join = 1;
-        Description description = 2;
-        Trickle trickle = 3;
-        Error error = 4;
-    }
+  bool success = 1;
+  Error error = 2;
+  repeated Stream otherStreams = 3;
 }
 
 enum Target {
-    PUBLISHER = 0;
-    SUBSCRIBER = 1;
+  PUBLISHER = 0;
+  SUBSCRIBER = 1;
 }
 
-message Description {
-    string id = 1;
-    Target target = 2;
-    bytes description = 3;
+message SessionDescription {
+  Target target = 1;
+  // 'offer' | 'answer'
+  string type = 2;
+  // sdp contents
+  string sdp = 3;
 }
 
 message Trickle {
-    string id = 1;
-    Target target = 2;
-    bytes candidate = 3;
+  Target target = 1;
+  bytes init = 3;
 }
 
 message Error {
-    int32 code = 1;
-    string reason = 2;
+  int32 code = 1;
+  string reason = 2;
+}
+
+message ScalabilityMode {
+  uint32 spatialLayers = 1;
+  uint32 temporalLayers = 2;
+};
+
+message Track {
+  // track id
+  string id = 1;
+  // 'audio' | 'video' | 'data'
+  string kind = 2;
+  // true | false
+  boolean muted = 3;
+  // Simulcast or SVC
+  repeated ScalabilityMode scalability = 4;
+}
+
+message Stream {
+  string uid = 1;
+  // media stream id
+  string msid = 2;
+  repeated Track tracks = 3;
+}
+
+message StreamEvent {
+  enum State {
+    ADD = 0;
+    UPDATE = 1;
+    REMOVE = 2;
+  }
+  State state = 3;
+  repeated Stream streams = 4;
+}
+
+/*
+message ActiveLayer {
+  string streamId = 1;
+  uint32 activeLayer = 2;
+  uint32 availableLayers = 3;
+}
+*/
+
+message Event {
+  oneof event {
+    StreamEvent streamEvent = 1;
+    // ActiveLayer activeLayer = 2;
+  }
+}
+
+message Subscription {
+  repeated string trackIds = 1;
+  boolean subscribe = 2;
+}
+
+/*
+message SwitchScalabilityLayer {
+  string trackId = 1;
+  uint32 spatialLayer = 2;
+  uint32 temporalLayer = 3;
+}
+
+message MuteTrack {
+  repeated string trackIds = 1;
+  boolean muted = 2;
+}
+*/
+
+message UpdateSettings {
+  oneof command {
+    Subscription subcription = 2;
+    // SwitchScalabilityLayer switchLayer = 2;
+    // MuteTrack muteTrack = 3;
+  }
+}
+
+message Signalling {
+  oneof payload {
+    JoinRequest join = 1;
+    JoinReply reply = 2;
+    Error error = 5;
+
+    SessionDescription description = 3;
+    Trickle trickle = 4;
+
+    UpdateSettings updateSettings = 6;
+    Event event = 7;
+  }
 }
