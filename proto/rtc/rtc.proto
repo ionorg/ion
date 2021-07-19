@@ -54,7 +54,7 @@ message Track {
   // 'audio' | 'video' | 'data'
   string kind = 2;
   // true | false
-  boolean muted = 3;
+  bool muted = 3;
   // Simulcast or SVC
   repeated ScalabilityMode scalability = 4;
 }
@@ -84,16 +84,10 @@ message ActiveLayer {
 }
 */
 
-message Event {
-  oneof event {
-    StreamEvent streamEvent = 1;
-    // ActiveLayer activeLayer = 2;
-  }
-}
 
 message Subscription {
   repeated string trackIds = 1;
-  boolean subscribe = 2;
+  bool subscribe = 2;
 }
 
 /*
@@ -127,6 +121,6 @@ message Signalling {
     Trickle trickle = 4;
 
     UpdateSettings updateSettings = 6;
-    Event event = 7;
+    StreamEvent streamEvent = 7;
   }
 }
