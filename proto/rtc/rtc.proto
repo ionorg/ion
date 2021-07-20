@@ -35,7 +35,7 @@ message SessionDescription {
 
 message Trickle {
   Target target = 1;
-  bytes init = 3;
+  string init = 3;
 }
 
 message Error {

@@ -1,7 +1,9 @@
 package sfu
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
@@ -12,6 +14,11 @@ import (
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	pb "github.com/pion/ion/proto/sfu"
+	"github.com/spf13/viper"
+)
+
+const (
+	portRangeLimit = 100
 )
 
 type global struct {
@@ -39,6 +46,57 @@ type Config struct {
 	Nats   natsConf `mapstructure:"nats"`
 	Node   nodeConf `mapstructure:"node"`
 	isfu.Config
+}
+
+func unmarshal(rawVal interface{}) error {
+	if err := viper.Unmarshal(rawVal); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) Load(file string) error {
+	_, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+
+	viper.SetConfigFile(file)
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		log.Errorf("config file %s read failed. %v\n", file, err)
+		return err
+	}
+
+	err = unmarshal(c)
+	if err != nil {
+		return err
+	}
+	err = unmarshal(&c.Config)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		log.Errorf("config file %s loaded failed. %v\n", file, err)
+		return err
+	}
+
+	if len(c.WebRTC.ICEPortRange) > 2 {
+		err = fmt.Errorf("config file %s loaded failed. range port must be [min,max]", file)
+		log.Errorf("err=%v", err)
+		return err
+	}
+
+	if len(c.WebRTC.ICEPortRange) != 0 && c.WebRTC.ICEPortRange[1]-c.WebRTC.ICEPortRange[0] < portRangeLimit {
+		err = fmt.Errorf("config file %s loaded failed. range port must be [min, max] and max - min >= %d", file, portRangeLimit)
+		log.Errorf("err=%v", err)
+		return err
+	}
+
+	log.Infof("config %s load ok!", file)
+	return nil
 }
 
 // SFU represents a sfu node

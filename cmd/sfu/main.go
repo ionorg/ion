@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -10,88 +10,40 @@ import (
 
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/node/sfu"
-	"github.com/spf13/viper"
 )
-
-const (
-	portRangeLimit = 100
-)
-
-var (
-	conf = sfu.Config{}
-	file string
-)
-
-func showHelp() {
-	fmt.Printf("Usage:%s {params}\n", os.Args[0])
-	fmt.Println("      -c {config file}")
-	fmt.Println("      -h (show help info)")
-}
-
-func unmarshal(rawVal interface{}) bool {
-	if err := viper.Unmarshal(rawVal); err != nil {
-		fmt.Printf("config file %s loaded failed. %v\n", file, err)
-		return false
-	}
-	return true
-}
-
-func load() bool {
-	_, err := os.Stat(file)
-	if err != nil {
-		return false
-	}
-
-	viper.SetConfigFile(file)
-	viper.SetConfigType("toml")
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		fmt.Printf("config file %s read failed. %v\n", file, err)
-		return false
-	}
-
-	if !unmarshal(&conf) || !unmarshal(&conf.Config) {
-		return false
-	}
-
-	if len(conf.WebRTC.ICEPortRange) > 2 {
-		fmt.Printf("config file %s loaded failed. range port must be [min,max]\n", file)
-		return false
-	}
-
-	if len(conf.WebRTC.ICEPortRange) != 0 && conf.WebRTC.ICEPortRange[1]-conf.WebRTC.ICEPortRange[0] < portRangeLimit {
-		fmt.Printf("config file %s loaded failed. range port must be [min, max] and max - min >= %d\n", file, portRangeLimit)
-		return false
-	}
-
-	fmt.Printf("config %s load ok!\n", file)
-	return true
-}
-
-func parse() bool {
-	flag.StringVar(&file, "c", "configs/sfu.toml", "config file")
-	help := flag.Bool("h", false, "help info")
-	flag.Parse()
-	if !load() {
-		return false
-	}
-
-	if *help {
-		showHelp()
-		return false
-	}
-	return true
-}
 
 func main() {
-	if !parse() {
-		showHelp()
-		os.Exit(-1)
+	var confFile, addr, cert, key, loglevel string
+	flag.StringVar(&confFile, "c", "", "sfu config file")
+	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
+	flag.StringVar(&cert, "cert", "", "cert for tls")
+	flag.StringVar(&key, "key", "", "key for tls")
+	flag.StringVar(&loglevel, "l", "info", "log level")
+	flag.Parse()
+
+	if confFile == "" {
+		flag.PrintDefaults()
+		return
 	}
 
-	log.Init("info")
+	conf := sfu.Config{}
+	err := conf.Load(confFile)
+	if err != nil {
+		log.Errorf("config load error: %v", err)
+		return
+	}
 
+	if conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", conf.Global.Pprof)
+			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	log.Init(conf.Log.Level)
 	log.Infof("--- starting sfu node ---")
 
 	node := sfu.NewSFU(conf.Node.NID)
