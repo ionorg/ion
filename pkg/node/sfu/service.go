@@ -61,18 +61,20 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 
 	defer func() {
 		if peer.Session() != nil {
+			log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
 
 			s.mutex.Lock()
 			delete(s.sigs, peer.ID())
 			s.mutex.Unlock()
 
-			event := &rtc.StreamEvent{
-				State:   rtc.StreamEvent_REMOVE,
-				Streams: streams,
+			if len(streams) > 0 {
+				event := &rtc.StreamEvent{
+					State:   rtc.StreamEvent_REMOVE,
+					Streams: streams,
+				}
+				s.BroadcastStreamEvent(event)
+				log.Infof("broadcast stream event %v, state = REMOVE", streams)
 			}
-
-			s.BroadcastStreamEvent(event)
-			log.Infof("broadcast stream event %v, state = REMOVE", event)
 		}
 	}()
 
@@ -97,11 +99,11 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 
 		switch payload := in.Payload.(type) {
 		case *rtc.Signalling_Join:
-			log.Infof("join: sid => %v, uid => %v", payload.Join.Sid, payload.Join.Uid)
+			log.Infof("[C=>S] join: sid => %v, uid => %v", payload.Join.Sid, payload.Join.Uid)
 
 			// Notify user of new ice candidate
 			peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
-				log.Infof("[S=>C] peer.OnIceCandidate: target = %v, candidate = %v", target, candidate.Candidate)
+				log.Debugf("[S=>C] peer.OnIceCandidate: target = %v, candidate = %v", target, candidate.Candidate)
 				bytes, err := json.Marshal(candidate)
 				if err != nil {
 					log.Errorf("OnIceCandidate error: %v", err)
@@ -121,7 +123,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 
 			// Notify user of new offer
 			peer.OnOffer = func(o *webrtc.SessionDescription) {
-				log.Infof("[S=>C] peer.OnOffer: %v", o.SDP)
+				log.Debugf("[S=>C] peer.OnOffer: %v", o.SDP)
 				err = stream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Description{
 						Description: &rtc.SessionDescription{
@@ -134,6 +136,11 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				if err != nil {
 					log.Errorf("negotiation error: %v", err)
 				}
+
+				/*subcriber := peer.Subscriber()
+				for _, track := range subcriber.GetDownTracks() {
+					log.Debugf("DownTrack %v", track.ID())
+				}*/
 			}
 
 			err = peer.Join(payload.Join.Sid, payload.Join.Uid)
@@ -183,13 +190,15 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 			var err error = nil
 			switch desc.Type {
 			case webrtc.SDPTypeOffer:
-				log.Infof("[C=>S] description: offer %v", desc.SDP)
+				log.Debugf("[C=>S] description: offer %v", desc.SDP)
 				answer, err := peer.Answer(desc)
 				if err != nil {
 					return status.Errorf(codes.Internal, fmt.Sprintf("answer error: %v", err))
 				}
 
 				// send answer
+				log.Debugf("[S=>C] description: answer %v", answer.SDP)
+
 				err = stream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Description{
 						Description: &rtc.SessionDescription{
@@ -216,12 +225,12 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 						State:   rtc.StreamEvent_ADD,
 					}
 					streams = newStreams
-					log.Infof("broadcast stream event %v, state = ADD", event)
+					log.Infof("broadcast stream event %v, state = ADD", streams)
 					s.BroadcastStreamEvent(event)
 				}
 
 			case webrtc.SDPTypeAnswer:
-				log.Infof("[C=>S] description: answer %v", desc.SDP)
+				log.Debugf("[C=>S] description: answer %v", desc.SDP)
 				err = peer.SetRemoteDescription(desc)
 			}
 
@@ -265,7 +274,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				}
 				continue
 			}
-			log.Infof("[C=>S] trickle: target %v, candidate %v", int(payload.Trickle.Target), candidate.Candidate)
+			log.Debugf("[C=>S] trickle: target %v, candidate %v", int(payload.Trickle.Target), candidate.Candidate)
 			err = peer.Trickle(candidate, int(payload.Trickle.Target))
 			if err != nil {
 				switch err {

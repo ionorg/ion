@@ -43,9 +43,10 @@ message Error {
   string reason = 2;
 }
 
-message ScalabilityMode {
-  uint32 spatialLayers = 1;
-  uint32 temporalLayers = 2;
+message Simulcast {
+  string rid = 1;
+  string direction = 2;
+  string parameters = 3;
 };
 
 message Track {
@@ -55,8 +56,8 @@ message Track {
   string kind = 2;
   // true | false
   bool muted = 3;
-  // Simulcast or SVC
-  repeated ScalabilityMode scalability = 4;
+  // Simulcast
+  repeated Simulcast simulcast = 4;
 }
 
 message Stream {

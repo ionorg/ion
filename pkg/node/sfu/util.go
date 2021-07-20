@@ -38,16 +38,23 @@ func ParseSDP(uid, sdpstr string) ([]*rtc.Stream, error) {
 				Id:   trackID,
 			}
 
-			simulcast := make(map[string]string)
-			for _, attr := range m.Attributes {
-				//fmt.Printf("attr name = %v, value = %v\n", attr.Name, attr.Value)
+			/*
+				a=rid:f send pt=96;max-width=1280;max-height=720
+				a=rid:h send pt=96;max-width=640;max-height=360
+				a=rid:q send pt=96;max-width=320;max-height=180
+				a=simulcast:send f;h;q
+			*/
 
+			for _, attr := range m.Attributes {
 				if attr.Name == "rid" {
 					strs := strings.Split(attr.Value, " ")
-					rid := strs[0]
-					dir := strs[1]
-					//fmt.Printf("rid: rid = %v, dir = %v\n", rid, dir)
-					simulcast[rid] = dir
+					layer := &rtc.Simulcast{}
+					layer.Rid = strs[0]
+					layer.Direction = strs[1]
+					if len(strs) > 2 {
+						layer.Parameters = strs[2]
+					}
+					track.Simulcast = append(track.Simulcast, layer)
 				}
 				/*
 					if attr.Name == "simulcast" {
@@ -58,7 +65,6 @@ func ParseSDP(uid, sdpstr string) ([]*rtc.Stream, error) {
 					}
 				*/
 			}
-			//TODO: track.Simulcast = simulcast
 
 			if stream, ok := streams[streamID]; ok {
 				stream.Tracks = append(stream.Tracks, track)
