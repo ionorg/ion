@@ -35,7 +35,7 @@ message SessionDescription {
 
 message Trickle {
   Target target = 1;
-  string init = 3;
+  string init = 2;
 }
 
 message Error {
@@ -44,7 +44,9 @@ message Error {
 }
 
 message Simulcast {
+  // 'f' | 'h' | 'q'
   string rid = 1;
+  // 'send' | 'recv'
   string direction = 2;
   string parameters = 3;
 };
@@ -61,6 +63,7 @@ message Track {
 }
 
 message Stream {
+  // user id
   string uid = 1;
   // media stream id
   string msid = 2;
@@ -84,7 +87,6 @@ message ActiveLayer {
   uint32 availableLayers = 3;
 }
 */
-
 
 message Subscription {
   repeated string trackIds = 1;
@@ -116,10 +118,10 @@ message Signalling {
   oneof payload {
     JoinRequest join = 1;
     JoinReply reply = 2;
-    Error error = 5;
+    Error error = 3;
 
-    SessionDescription description = 3;
-    Trickle trickle = 4;
+    SessionDescription description = 4;
+    Trickle trickle = 5;
 
     UpdateSettings updateSettings = 6;
     StreamEvent streamEvent = 7;
