@@ -49,6 +49,7 @@ func (s *sfuServer) postISLBEvent(event *islb.ISLBEvent) {
 }
 
 func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
+	recvCandidates := []webrtc.ICECandidateInit{}
 	peer := isfu.NewPeer(s.sfu)
 	var streams []*ion.Stream
 
@@ -326,20 +327,20 @@ func (s *sfuServer) Signal(stream pb.SFU_SignalServer) error {
 				continue
 			}
 
+			// trickle the old candidates
+			for _, candidate := range recvCandidates {
+				err = peer.Trickle(candidate, int(payload.Trickle.Target))
+				if err != nil {
+					log.Warnf("peer trickle error: %v", err)
+				}
+			}
 			err = peer.Trickle(candidate, int(payload.Trickle.Target))
 			if err != nil {
 				switch err {
 				case isfu.ErrNoTransportEstablished:
-					log.Errorf("peer hasn't joined, error -> %v", err)
-					err = stream.Send(&pb.SignalReply{
-						Payload: &pb.SignalReply_Error{
-							Error: fmt.Errorf("trickle error:  %w", err).Error(),
-						},
-					})
-					if err != nil {
-						log.Errorf("grpc send error: %v", err)
-						return status.Errorf(codes.Internal, err.Error())
-					}
+					// cadidate arrived before join, cache it
+					log.Infof("cadidate arrived before join, cache it: %v", candidate)
+					recvCandidates = append(recvCandidates, candidate)
 				default:
 					return status.Errorf(codes.Unknown, fmt.Sprintf("negotiate error: %v", err))
 				}
