@@ -45,28 +45,9 @@ func ParseSDP(uid, sdpstr string) ([]*rtc.Stream, error) {
 				a=simulcast:send f;h;q
 			*/
 
-			for _, attr := range m.Attributes {
-				if attr.Name == "rid" {
-					strs := strings.Split(attr.Value, " ")
-					layer := &rtc.Simulcast{}
-					layer.Rid = strs[0]
-					layer.Direction = strs[1]
-					if len(strs) > 2 {
-						layer.Parameters = strs[2]
-					}
-					track.Simulcast = append(track.Simulcast, layer)
-				}
-				/*
-					if attr.Name == "simulcast" {
-						strs := strings.Split(attr.Value, " ")
-						dir := strs[0]
-						rids := strs[1]
-						fmt.Printf("simulcast: rids = %v, dir = %v\n", rids, dir)
-					}
-				*/
-			}
+			stream, ok := streams[streamID]
 
-			if stream, ok := streams[streamID]; ok {
+			if ok {
 				stream.Tracks = append(stream.Tracks, track)
 			} else {
 				stream = &rtc.Stream{
@@ -75,6 +56,29 @@ func ParseSDP(uid, sdpstr string) ([]*rtc.Stream, error) {
 				}
 				stream.Tracks = append(stream.Tracks, track)
 				streams[streamID] = stream
+			}
+
+			if m.Type == "video" {
+				for _, attr := range m.Attributes {
+					if attr.Name == "rid" {
+						strs := strings.Split(attr.Value, " ")
+						layer := &rtc.Simulcast{}
+						layer.Rid = strs[0]
+						layer.Direction = strs[1]
+						if len(strs) > 2 {
+							layer.Parameters = strs[2]
+						}
+						stream.Simulcast = append(stream.Simulcast, layer)
+					}
+					/*
+						if attr.Name == "simulcast" {
+							strs := strings.Split(attr.Value, " ")
+							dir := strs[0]
+							rids := strs[1]
+							fmt.Printf("simulcast: rids = %v, dir = %v\n", rids, dir)
+						}
+					*/
+				}
 			}
 		}
 	}

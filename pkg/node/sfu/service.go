@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
+	ion_sfu_log "github.com/pion/ion-sfu/pkg/logger"
 	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	error_code "github.com/pion/ion/pkg/error"
@@ -16,6 +17,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func init() {
+	ion_sfu_log.SetGlobalOptions(ion_sfu_log.GlobalConfig{V: 1})
+}
 
 type SFUService struct {
 	rtc.UnimplementedRTCServer
@@ -55,7 +60,7 @@ func (s *SFUService) BroadcastStreamEvent(event *rtc.StreamEvent) {
 	}
 }
 
-func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
+func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 	peer := ion_sfu.NewPeer(s.sfu)
 	var streams []*rtc.Stream
 
@@ -79,7 +84,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 	}()
 
 	for {
-		in, err := stream.Recv()
+		in, err := sigStream.Recv()
 
 		if err != nil {
 			peer.Close()
@@ -99,7 +104,9 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 
 		switch payload := in.Payload.(type) {
 		case *rtc.Signalling_Join:
-			log.Infof("[C=>S] join: sid => %v, uid => %v", payload.Join.Sid, payload.Join.Uid)
+			sid := payload.Join.Sid
+			uid := payload.Join.Uid
+			log.Infof("[C=>S] join: sid => %v, uid => %v", sid, uid)
 
 			// Notify user of new ice candidate
 			peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
@@ -108,7 +115,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				if err != nil {
 					log.Errorf("OnIceCandidate error: %v", err)
 				}
-				err = stream.Send(&rtc.Signalling{
+				err = sigStream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Trickle{
 						Trickle: &rtc.Trickle{
 							Init:   string(bytes),
@@ -124,7 +131,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 			// Notify user of new offer
 			peer.OnOffer = func(o *webrtc.SessionDescription) {
 				log.Debugf("[S=>C] peer.OnOffer: %v", o.SDP)
-				err = stream.Send(&rtc.Signalling{
+				err = sigStream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Description{
 						Description: &rtc.SessionDescription{
 							Target: rtc.Target(rtc.Target_SUBSCRIBER),
@@ -136,20 +143,21 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				if err != nil {
 					log.Errorf("negotiation error: %v", err)
 				}
-
-				/*subcriber := peer.Subscriber()
-				for _, track := range subcriber.GetDownTracks() {
-					log.Debugf("DownTrack %v", track.ID())
-				}*/
 			}
 
-			err = peer.Join(payload.Join.Sid, payload.Join.Uid)
+			joinConf := ion_sfu.JoinConfig{
+				NoSubscribe:     false,
+				NoPublish:       false,
+				NoAutoSubscribe: true,
+			}
+
+			err = peer.Join(sid, uid, joinConf)
 			if err != nil {
 				switch err {
 				case ion_sfu.ErrTransportExists:
 					fallthrough
 				case ion_sfu.ErrOfferIgnored:
-					err = stream.Send(&rtc.Signalling{
+					err = sigStream.Send(&rtc.Signalling{
 						Payload: &rtc.Signalling_Error{
 							Error: &rtc.Error{
 								Code:   int32(error_code.InternalError),
@@ -166,9 +174,11 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				}
 			}
 
-			//TODO: Return error when the room is full, or locked, or permission denied
+			peer.Publisher().OnPublisherTrack(func(track ion_sfu.PublisherTrack) {
+				log.Debugf("peer.OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", track.Track.Kind(), uid, track.Track.Msid(), track.Track.ID())
+			})
 
-			stream.Send(&rtc.Signalling{
+			sigStream.Send(&rtc.Signalling{
 				Payload: &rtc.Signalling_Reply{
 					Reply: &rtc.JoinReply{
 						Success: true,
@@ -177,12 +187,52 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				},
 			})
 
+			streamMap := make(map[string]*rtc.Stream)
+			for _, p := range peer.Session().Peers() {
+				if peer.ID() != p.ID() {
+					for _, pubTrack := range p.Publisher().PublisherTracks() {
+						streamID := pubTrack.Track.StreamID()
+						stream, found := streamMap[streamID]
+						if !found {
+							stream = &rtc.Stream{
+								Uid:  uid,
+								Msid: streamID,
+							}
+							streamMap[streamID] = stream
+						}
+						stream.Tracks = append(stream.Tracks, &rtc.Track{
+							Id:    pubTrack.Track.ID(),
+							Kind:  pubTrack.Track.Kind().String(),
+							Muted: false,
+							Rid:   pubTrack.Track.RID(),
+						})
+					}
+				}
+			}
+
+			var otherStreams []*rtc.Stream
+			for _, stream := range streamMap {
+				otherStreams = append(otherStreams, stream)
+			}
+
+			event := &rtc.StreamEvent{
+				State:   rtc.StreamEvent_ADD,
+				Streams: otherStreams,
+			}
+
+			sigStream.Send(&rtc.Signalling{
+				Payload: &rtc.Signalling_StreamEvent{
+					StreamEvent: event,
+				},
+			})
+
+			//TODO: Return error when the room is full, or locked, or permission denied
+
 			s.mutex.Lock()
-			s.sigs[peer.ID()] = stream
+			s.sigs[peer.ID()] = sigStream
 			s.mutex.Unlock()
 
 		case *rtc.Signalling_Description:
-
 			desc := webrtc.SessionDescription{
 				SDP:  payload.Description.Sdp,
 				Type: webrtc.NewSDPType(payload.Description.Type),
@@ -199,7 +249,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				// send answer
 				log.Debugf("[S=>C] description: answer %v", answer.SDP)
 
-				err = stream.Send(&rtc.Signalling{
+				err = sigStream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Description{
 						Description: &rtc.SessionDescription{
 							Target: rtc.Target(rtc.Target_PUBLISHER),
@@ -237,7 +287,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 			if err != nil {
 				switch err {
 				case ion_sfu.ErrNoTransportEstablished:
-					err = stream.Send(&rtc.Signalling{
+					err = sigStream.Send(&rtc.Signalling{
 						Payload: &rtc.Signalling_Error{
 							Error: &rtc.Error{
 								Code:   int32(error_code.UnsupportedMediaType),
@@ -255,12 +305,11 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 			}
 
 		case *rtc.Signalling_Trickle:
-
 			var candidate webrtc.ICECandidateInit
 			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
 			if err != nil {
 				log.Errorf("error parsing ice candidate, error -> %v", err)
-				err = stream.Send(&rtc.Signalling{
+				err = sigStream.Send(&rtc.Signalling{
 					Payload: &rtc.Signalling_Error{
 						Error: &rtc.Error{
 							Code:   int32(error_code.InternalError),
@@ -280,7 +329,7 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 				switch err {
 				case ion_sfu.ErrNoTransportEstablished:
 					log.Errorf("peer hasn't joined, error -> %v", err)
-					err = stream.Send(&rtc.Signalling{
+					err = sigStream.Send(&rtc.Signalling{
 						Payload: &rtc.Signalling_Error{
 							Error: &rtc.Error{
 								Code:   int32(error_code.InternalError),
@@ -294,6 +343,44 @@ func (s *SFUService) Signal(stream rtc.RTC_SignalServer) error {
 					}
 				default:
 					return status.Errorf(codes.Unknown, fmt.Sprintf("negotiate error: %v", err))
+				}
+			}
+
+		case *rtc.Signalling_UpdateSettings:
+			switch payload.UpdateSettings.Command.(type) {
+			case *rtc.UpdateSettings_Subcription:
+				subscription := payload.UpdateSettings.GetSubcription()
+				subscribe := subscription.GetSubscribe()
+				needNegotiate := false
+				for _, trackId := range subscription.TrackIds {
+					if subscribe {
+						// Add down tracks
+						for _, p := range peer.Session().Peers() {
+							if p.ID() != peer.ID() {
+								for _, track := range p.Publisher().PublisherTracks() {
+									if track.Receiver.TrackID() == trackId {
+										log.Debugf("Add RemoteTrack: %v to peer %v", trackId, peer.ID())
+										peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
+										needNegotiate = true
+									}
+								}
+							}
+						}
+					} else {
+						// Remove down tracks
+						for streamID, downTracks := range peer.Subscriber().DownTracks() {
+							for _, downTrack := range downTracks {
+								if downTrack != nil && downTrack.ID() == trackId {
+									peer.Subscriber().RemoveDownTrack(streamID, downTrack)
+									downTrack.Stop()
+									needNegotiate = true
+								}
+							}
+						}
+					}
+				}
+				if needNegotiate {
+					peer.Subscriber().Negotiate()
 				}
 			}
 		}

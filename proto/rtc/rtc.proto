@@ -17,7 +17,6 @@ message JoinRequest {
 message JoinReply {
   bool success = 1;
   Error error = 2;
-  repeated Stream otherStreams = 3;
 }
 
 enum Target {
@@ -43,6 +42,17 @@ message Error {
   string reason = 2;
 }
 
+message Track {
+  // track id
+  string id = 1;
+  // 'audio' | 'video' | 'data'
+  string kind = 2;
+  // true | false
+  bool muted = 3;
+  // rid for video track
+  string rid = 4;
+}
+
 message Simulcast {
   // 'f' | 'h' | 'q'
   string rid = 1;
@@ -51,23 +61,14 @@ message Simulcast {
   string parameters = 3;
 };
 
-message Track {
-  // track id
-  string id = 1;
-  // 'audio' | 'video' | 'data'
-  string kind = 2;
-  // true | false
-  bool muted = 3;
-  // Simulcast
-  repeated Simulcast simulcast = 4;
-}
-
 message Stream {
   // user id
   string uid = 1;
   // media stream id
   string msid = 2;
   repeated Track tracks = 3;
+  // Simulcast
+  repeated Simulcast simulcast = 4;
 }
 
 message StreamEvent {
@@ -80,37 +81,27 @@ message StreamEvent {
   repeated Stream streams = 4;
 }
 
-/*
-message ActiveLayer {
-  string streamId = 1;
-  uint32 activeLayer = 2;
-  uint32 availableLayers = 3;
-}
-*/
-
 message Subscription {
   repeated string trackIds = 1;
   bool subscribe = 2;
 }
 
-/*
+message MuteTrack {
+  repeated string trackIds = 1;
+  bool muted = 2;
+}
+
 message SwitchScalabilityLayer {
   string trackId = 1;
   uint32 spatialLayer = 2;
   uint32 temporalLayer = 3;
 }
 
-message MuteTrack {
-  repeated string trackIds = 1;
-  boolean muted = 2;
-}
-*/
-
 message UpdateSettings {
   oneof command {
-    Subscription subcription = 2;
-    // SwitchScalabilityLayer switchLayer = 2;
-    // MuteTrack muteTrack = 3;
+    Subscription subcription = 1;
+    SwitchScalabilityLayer switchLayer = 2;
+    MuteTrack muteTrack = 3;
   }
 }
 

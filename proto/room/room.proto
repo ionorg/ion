@@ -19,9 +19,6 @@ service Room {
 
   rpc LockConference(LockConferenceRequest) returns (LockConferenceReply) {}
 
-  rpc UnlockConference(UnlockConferenceRequest)
-      returns (UnlockConferenceReply) {}
-
   rpc EndConference(EndConferenceRequest) returns (EndConferenceReply) {}
 
   rpc EditParticipantInfo(EditParticipantInfoRequest)
@@ -36,6 +33,8 @@ service Room {
 
   // */
 }
+
+message Empty {}
 
 message JoinRequest {
   string uid = 1;
@@ -52,6 +51,10 @@ message JoinReply {
   Configuration config = 2;
   Error error = 3;
 }
+
+message LeaveRequest {}
+
+message LeaveReply {}
 
 enum Role {
   RoleHost = 0;
@@ -107,28 +110,26 @@ enum StreamType {
 
 message Configuration {
   string uuid = 1; // unique id for the room.
-  boolean isAudioOnlyMode = 2;
+  bool isAudioOnlyMode = 2;
   Role role = 3;
   Permission yourPermission = 4;
 }
 
 message Permission {
-  boolean addParticipants = 1;
-  boolean removeParticipants = 2;
+  bool addParticipants = 1;
+  bool removeParticipants = 2;
 
-  boolean blockOthersAudio = 3;
-  boolean blockOthersVideo = 4;
+  bool blockOthersAudio = 3;
+  bool blockOthersVideo = 4;
 
-  boolean endConference = 7;
-  boolean lockConference = 8;
+  bool endConference = 7;
+  bool lockConference = 8;
 
-  boolean publish = 9;
-  boolean subscribe = 10;
+  bool publish = 9;
+  bool subscribe = 10;
 
-  boolean setImportance = 11;
+  bool setImportance = 11;
 }
-
-message SendMessageRequest { Message message = 1; }
 
 message Message {
   string origin = 1; // Name of the sending participant.
@@ -136,6 +137,9 @@ message Message {
   string type = 4;   // MIME content-type of the message, usually text/plain.
   bytes payload = 5; // Payload message contents.
 }
+
+message SendMessageRequest { Message message = 1; }
+message SendMessageReply {}
 
 message Disconnect { string reason = 1; }
 
@@ -150,9 +154,9 @@ message Notification {
 
 message AddParticipantRequest {
   Role role = 1;
-  String description = 2;
+  string description = 2;
   Protocol protocol = 3;
-  String source_display_name = 4;
+  string source_display_name = 4;
 }
 
 message AddParticipantReply {
@@ -162,3 +166,20 @@ message AddParticipantReply {
 }
 
 message SetImportanceRequest { repeated Participant participants = 1; }
+message SetImportanceReply {}
+
+message LockConferenceRequest {
+  bool lock = 1;
+  string password = 2;
+}
+
+message LockConferenceReply {}
+
+message EndConferenceRequest {}
+message EndConferenceReply {}
+
+message EditParticipantInfoRequest {}
+message EditParticipantInfoReply {}
+
+message RemoveParticipantRequest {}
+message RemoveParticipantReply {}
