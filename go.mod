@@ -7,6 +7,7 @@ require (
 	github.com/cloudwebrtc/nats-grpc v0.1.12
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v7 v7.4.0
+	github.com/golang/protobuf v1.5.2
 	github.com/improbable-eng/grpc-web v0.13.0
 	github.com/jhump/protoreflect v1.8.2
 	github.com/nats-io/nats.go v1.11.0
@@ -23,4 +24,7 @@ require (
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 )
+
+replace github.com/pion/ion-sfu => ../ion-sfu

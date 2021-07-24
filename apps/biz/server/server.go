@@ -2,24 +2,26 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
 	ndc "github.com/cloudwebrtc/nats-discovery/pkg/client"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	biz "github.com/pion/ion/apps/biz/proto"
+	room "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	islb "github.com/pion/ion/proto/islb"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // BizServer represents an BizServer instance
 type BizServer struct {
-	biz.UnimplementedBizServer
+	room.UnimplementedRoomServer
 	nc       *nats.Conn
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
@@ -54,6 +56,151 @@ func newBizServer(bn *BIZ, c string, nid string, nc *nats.Conn) (*BizServer, err
 
 func (s *BizServer) close() {
 	close(s.closed)
+}
+
+func (s *BizServer) Join(ctx context.Context, in *room.JoinRequest) (*room.JoinReply, error) {
+	success := false
+	reason := "unkown error."
+	sid := in.Sid
+	uid := in.Uid
+	info := in.ExtraInfo
+	r := s.getRoom(sid)
+
+	if r == nil {
+		reason = fmt.Sprintf("room sid = %v not found", sid)
+		resp, err := s.ndc.Get(proto.ServiceSFU, map[string]interface{}{"sid": sid, "uid": uid})
+		if err != nil {
+			log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceSFU, err)
+		}
+		nid := ""
+		if err == nil && len(resp.Nodes) > 0 {
+			nid = resp.Nodes[0].NID
+			r = s.createRoom(sid, nid)
+			err = s.watchISLBEvent(nid, sid)
+			if err != nil {
+				log.Errorf("s.watchISLBEvent(req) failed %v", err)
+			}
+		} else {
+			reason = "get serivce [sfu], node cnt == 0"
+		}
+	}
+
+	if r != nil {
+		peer := NewPeer(sid, uid, info /*repCh*/, nil) //TODO
+		r.addPeer(peer)
+		success = true
+		reason = "join success."
+
+		//Generate necessary metadata for routing.
+		header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
+		err := stream.SendHeader(header)
+		if err != nil {
+			log.Errorf("stream.SendHeader failed %v", err)
+		}
+	}
+
+	reply := &room.JoinReply{
+		Config: &room.Configuration{
+			Uuid:            "",
+			IsAudioOnlyMode: false,
+			Role:            room.Role_RoleHost,
+		},
+		Success: true,
+	}
+	return reply, nil
+}
+
+func (s *BizServer) Leave(ctx context.Context, in *room.LeaveRequest) (*room.LeaveReply, error) {
+	uid := in.Uid
+	sid := in.Sid
+	r := s.getRoom(sid)
+	if r == nil {
+		return &room.LeaveReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   int32(codes.Internal),
+				Reason: "room not exist",
+			},
+		}, status.Errorf(codes.Internal, "room not exist")
+	}
+	peer := r.getPeer(uid)
+	if peer != nil && peer.uid == uid {
+		if r.delPeer(peer) == 0 {
+			s.delRoom(r)
+			r = nil
+		}
+		peer.Close()
+		peer = nil
+
+	}
+
+	return &room.LeaveReply{
+		Success: true, Error: &room.Error{
+			Code:   int32(codes.OK),
+			Reason: "",
+		},
+	}, nil
+}
+
+func (s *BizServer) GetParticipants(ctx context.Context, in *room.Empty) (*room.GetParticipantsReply, error) {
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) ReceiveNotification(in *room.Empty, server room.Room_ReceiveNotificationServer) error {
+
+	//TODO
+	return nil
+}
+
+func (s *BizServer) SetImportance(ctx context.Context, in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) LockConference(ctx context.Context, in *room.LockConferenceRequest) (*room.LockConferenceReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) EndConference(ctx context.Context, in *room.EndConferenceRequest) (*room.EndConferenceReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) EditParticipantInfo(ctx context.Context, in *room.EditParticipantInfoRequest) (*room.EditParticipantInfoReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) AddParticipant(ctx context.Context, in *room.AddParticipantRequest) (*room.AddParticipantReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) RemoveParticipant(ctx context.Context, in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *BizServer) SendMessage(ctx context.Context, in *room.SendMessageRequest) (*room.SendMessageReply, error) {
+	msg := in.Message
+	sid := msg.Sid
+	log.Debugf("Message: %+v", msg)
+	// message broadcast
+	r := s.getRoom(sid)
+	if r == nil {
+		log.Warnf("room not found, maybe the peer did not join")
+		return &room.SendMessageReply{}, errors.New("room not exist")
+	}
+	r.sendMessage(in.Message)
+	return &room.SendMessageReply{}, nil
 }
 
 func (s *BizServer) createRoom(sid string, sfuNID string) *Room {
@@ -139,149 +286,6 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 		s.stream = stream
 	}
 	return nil
-}
-
-//Signal process biz request.
-func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
-	var r *Room = nil
-	var peer *Peer = nil
-	errCh := make(chan error)
-	repCh := make(chan *biz.SignalReply, 1)
-	reqCh := make(chan *biz.SignalRequest)
-
-	defer func() {
-		if r != nil {
-			if peer != nil {
-				peer.Close()
-				r.delPeer(peer)
-			}
-			if r.count() == 0 {
-				s.delRoom(r)
-			}
-		}
-
-		log.Infof("BizServer.Signal loop done")
-	}()
-
-	go func() {
-		for {
-			req, err := stream.Recv()
-			if err != nil {
-				log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
-				errCh <- err
-				return
-			}
-			reqCh <- req
-		}
-	}()
-
-	for {
-		select {
-		case err := <-errCh:
-			return err
-		case reply, ok := <-repCh:
-			if !ok {
-				return io.EOF
-			}
-			err := stream.Send(reply)
-			if err != nil {
-				return err
-			}
-		case req, ok := <-reqCh:
-			if !ok {
-				return io.EOF
-			}
-			log.Infof("Biz request => %v", req.String())
-
-			switch payload := req.Payload.(type) {
-			case *biz.SignalRequest_Join:
-				sid := payload.Join.Peer.Sid
-				uid := payload.Join.Peer.Uid
-
-				success := false
-				reason := "unkown error."
-				r = s.getRoom(sid)
-
-				if r == nil {
-					reason = fmt.Sprintf("room sid = %v not found", sid)
-					resp, err := s.ndc.Get(proto.ServiceSFU, map[string]interface{}{"sid": sid, "uid": uid})
-					if err != nil {
-						log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceSFU, err)
-					}
-					nid := ""
-					if err == nil && len(resp.Nodes) > 0 {
-						nid = resp.Nodes[0].NID
-						r = s.createRoom(sid, nid)
-						err = s.watchISLBEvent(nid, sid)
-						if err != nil {
-							log.Errorf("s.watchISLBEvent(req) failed %v", err)
-						}
-					} else {
-						reason = "get serivce [sfu], node cnt == 0"
-					}
-				}
-
-				if r != nil {
-					peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
-					r.addPeer(peer)
-					success = true
-					reason = "join success."
-
-					//Generate necessary metadata for routing.
-					header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
-					err := stream.SendHeader(header)
-					if err != nil {
-						log.Errorf("stream.SendHeader failed %v", err)
-					}
-				}
-
-				err := stream.Send(&biz.SignalReply{
-					Payload: &biz.SignalReply_JoinReply{
-						JoinReply: &biz.JoinReply{
-							Success: success,
-							Reason:  reason,
-						},
-					},
-				})
-
-				if err != nil {
-					log.Errorf("stream.Send(&biz.SignalReply) failed %v", err)
-				}
-			case *biz.SignalRequest_Leave:
-				uid := payload.Leave.Uid
-				if peer != nil && peer.uid == uid {
-					if r.delPeer(peer) == 0 {
-						s.delRoom(r)
-						r = nil
-					}
-					peer.Close()
-					peer = nil
-
-					err := stream.Send(&biz.SignalReply{
-						Payload: &biz.SignalReply_LeaveReply{
-							LeaveReply: &biz.LeaveReply{
-								Reason: "closed",
-							},
-						},
-					})
-					if err != nil {
-						log.Errorf("stream.Send(&biz.SignalReply) failed %v", err)
-					}
-				}
-			case *biz.SignalRequest_Msg:
-				log.Debugf("Message: from: %v => to: %v, data: %v", payload.Msg.From, payload.Msg.To, payload.Msg.Data)
-				// message broadcast
-				if r != nil {
-					r.sendMessage(payload.Msg)
-				} else {
-					log.Warnf("room not found, maybe the peer did not join")
-				}
-			default:
-				break
-			}
-
-		}
-	}
 }
 
 // stat peers

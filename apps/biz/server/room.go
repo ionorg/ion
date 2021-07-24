@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
+	room "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/proto/ion"
 )
 
@@ -32,27 +33,39 @@ func (r *Room) SID() string {
 
 // addPeer add a peer to room
 func (r *Room) addPeer(p *Peer) {
-
-	event := &ion.PeerEvent{
-		State: ion.PeerEvent_JOIN,
-		Peer: &ion.Peer{
-			Sid:  r.sid,
-			Uid:  p.uid,
-			Info: p.info,
+	event := &room.ParticipantEvent{
+		Participant: &room.Participant{
+			Sid:           r.sid,
+			Uid:           p.uid,
+			DisplayName:   "",                 //TODO
+			ExtraInfo:     nil,                //TODO
+			Role:          room.Role_RoleHost, //TODO
+			Protocol:      room.Protocol_ProtocolWebRTC,
+			Avatar:        "", //TODO
+			CallDirection: "", //TODO
+			Vendor:        "", //TODO
 		},
+		Status: room.ParticipantStatus_Create,
 	}
+
 	r.sendPeerEvent(event)
 
 	// Send the peer info in the existing room
 	// to the newly added peer.
 	for _, peer := range r.getPeers() {
-		event := &ion.PeerEvent{
-			State: ion.PeerEvent_JOIN,
-			Peer: &ion.Peer{
-				Sid:  r.sid,
-				Uid:  peer.uid,
-				Info: peer.info,
+		event := &room.ParticipantEvent{
+			Participant: &room.Participant{
+				Sid:           r.sid,
+				Uid:           peer.uid,
+				DisplayName:   "",                 //TODO
+				ExtraInfo:     peer.info,          //TODO
+				Role:          room.Role_RoleHost, //TODO
+				Protocol:      room.Protocol_ProtocolWebRTC,
+				Avatar:        "", //TODO
+				CallDirection: "", //TODO
+				Vendor:        "", //TODO
 			},
+			Status: room.ParticipantStatus_Create,
 		}
 		err := p.sendPeerEvent(event)
 		if err != nil {
@@ -102,12 +115,19 @@ func (r *Room) delPeer(p *Peer) int {
 	r.Unlock()
 
 	if found {
-		event := &ion.PeerEvent{
-			State: ion.PeerEvent_LEAVE,
-			Peer: &ion.Peer{
-				Sid: r.sid,
-				Uid: uid,
+		event := &room.ParticipantEvent{
+			Participant: &room.Participant{
+				Sid:           r.sid,
+				Uid:           uid,
+				DisplayName:   "",                 //TODO
+				ExtraInfo:     nil,                //TODO
+				Role:          room.Role_RoleHost, //TODO
+				Protocol:      room.Protocol_ProtocolWebRTC,
+				Avatar:        "", //TODO
+				CallDirection: "", //TODO
+				Vendor:        "", //TODO
 			},
+			Status: room.ParticipantStatus_Delete,
 		}
 		r.sendPeerEvent(event)
 	}
@@ -122,7 +142,7 @@ func (r *Room) count() int {
 	return len(r.peers)
 }
 
-func (r *Room) sendPeerEvent(event *ion.PeerEvent) {
+func (r *Room) sendPeerEvent(event *room.ParticipantEvent) {
 	peers := r.getPeers()
 	for _, p := range peers {
 		if err := p.sendPeerEvent(event); err != nil {
@@ -140,10 +160,11 @@ func (r *Room) sendStreamEvent(event *ion.StreamEvent) {
 	}
 }
 
-func (r *Room) sendMessage(msg *ion.Message) {
-	from := msg.From
-	to := msg.To
-	data := msg.Data
+func (r *Room) sendMessage(msg *room.Message) {
+	from := msg.Origin
+	// to := msg.To //TODO
+	to := ""
+	data := msg.Payload
 	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
 	peers := r.getPeers()
 	for _, p := range peers {
