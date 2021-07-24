@@ -42,17 +42,6 @@ message Error {
   string reason = 2;
 }
 
-message Track {
-  // track id
-  string id = 1;
-  // 'audio' | 'video' | 'data'
-  string kind = 2;
-  // true | false
-  bool muted = 3;
-  // rid for video track
-  string rid = 4;
-}
-
 message Simulcast {
   // 'f' | 'h' | 'q'
   string rid = 1;
@@ -61,24 +50,30 @@ message Simulcast {
   string parameters = 3;
 };
 
-message Stream {
-  // user id
-  string uid = 1;
-  // media stream id
-  string msid = 2;
-  repeated Track tracks = 3;
+message Track {
+  // track id
+  string id = 1;
+  // stream id
+  string stream_id = 2;
+  // 'audio' | 'video' | 'data'
+  string kind = 3;
+  // true | false
+  bool muted = 4;
+  // rid for video track
+  string rid = 5;
   // Simulcast
-  repeated Simulcast simulcast = 4;
+  repeated Simulcast simulcast = 6;
 }
 
-message StreamEvent {
+message TrackEvent {
   enum State {
     ADD = 0;
-    UPDATE = 1;
-    REMOVE = 2;
+    REMOVE = 1;
   }
-  State state = 3;
-  repeated Stream streams = 4;
+  State state = 2;
+   // user id
+  string uid = 3;
+  repeated Track tracks = 4;
 }
 
 message Subscription {
@@ -115,6 +110,6 @@ message Signalling {
     Trickle trickle = 5;
 
     UpdateSettings updateSettings = 6;
-    StreamEvent streamEvent = 7;
+    TrackEvent trackEvent = 7;
   }
 }

@@ -48,13 +48,17 @@ func (s *SFUService) Close() {
 	log.Infof("SFU service closed")
 }
 
-func (s *SFUService) BroadcastStreamEvent(event *rtc.StreamEvent) {
+func (s *SFUService) BroadcastStreamEvent(uid string, tracks []*rtc.Track, state rtc.TrackEvent_State) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, sig := range s.sigs {
 		sig.Send(&rtc.Signalling{
-			Payload: &rtc.Signalling_StreamEvent{
-				StreamEvent: event,
+			Payload: &rtc.Signalling_TrackEvent{
+				TrackEvent: &rtc.TrackEvent{
+					Uid:    uid,
+					Tracks: tracks,
+					State:  state,
+				},
 			},
 		})
 	}
@@ -62,23 +66,20 @@ func (s *SFUService) BroadcastStreamEvent(event *rtc.StreamEvent) {
 
 func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 	peer := ion_sfu.NewPeer(s.sfu)
-	var streams []*rtc.Stream
+	var tracks []*rtc.Track
 
 	defer func() {
 		if peer.Session() != nil {
 			log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
+			uid := peer.ID()
 
 			s.mutex.Lock()
 			delete(s.sigs, peer.ID())
 			s.mutex.Unlock()
 
-			if len(streams) > 0 {
-				event := &rtc.StreamEvent{
-					State:   rtc.StreamEvent_REMOVE,
-					Streams: streams,
-				}
-				s.BroadcastStreamEvent(event)
-				log.Infof("broadcast stream event %v, state = REMOVE", streams)
+			if len(tracks) > 0 {
+				s.BroadcastStreamEvent(uid, tracks, rtc.TrackEvent_REMOVE)
+				log.Infof("broadcast tracks event %v, state = REMOVE", tracks)
 			}
 		}
 	}()
@@ -145,13 +146,17 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				}
 			}
 
-			joinConf := ion_sfu.JoinConfig{
-				NoSubscribe:     false,
-				NoPublish:       false,
-				NoAutoSubscribe: true,
+			_, nopub := payload.Join.Parameters["NoPublish"]
+			_, nosub := payload.Join.Parameters["NoSubscribe"]
+			_, noautosub := payload.Join.Parameters["NoAutoSubscribe"]
+
+			cfg := ion_sfu.JoinConfig{
+				NoPublish:       nopub,
+				NoSubscribe:     nosub,
+				NoAutoSubscribe: noautosub,
 			}
 
-			err = peer.Join(sid, uid, joinConf)
+			err = peer.Join(sid, uid, cfg)
 			if err != nil {
 				switch err {
 				case ion_sfu.ErrTransportExists:
@@ -174,10 +179,6 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				}
 			}
 
-			peer.Publisher().OnPublisherTrack(func(track ion_sfu.PublisherTrack) {
-				log.Debugf("peer.OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", track.Track.Kind(), uid, track.Track.Msid(), track.Track.ID())
-			})
-
 			sigStream.Send(&rtc.Signalling{
 				Payload: &rtc.Signalling_Reply{
 					Reply: &rtc.JoinReply{
@@ -187,44 +188,52 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				},
 			})
 
-			streamMap := make(map[string]*rtc.Stream)
+			publisher := peer.Publisher()
+
+			if publisher != nil {
+				publisher.OnPublisherTrack(func(pt ion_sfu.PublisherTrack) {
+					log.Debugf("[S=>C] OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", pt.Track.Kind(), uid, pt.Track.Msid(), pt.Track.ID())
+					track := &rtc.Track{
+						Id:       pt.Track.ID(),
+						StreamId: pt.Track.StreamID(),
+						Kind:     pt.Track.Kind().String(),
+						Muted:    false,
+						Rid:      pt.Track.RID(),
+					}
+					log.Infof("[S=>C] broadcast track %v, state = ADD", track)
+					s.BroadcastStreamEvent(uid, []*rtc.Track{track}, rtc.TrackEvent_ADD)
+					tracks = append(tracks, track)
+				})
+			}
+
+			var peerTracks []*rtc.Track
 			for _, p := range peer.Session().Peers() {
 				if peer.ID() != p.ID() {
 					for _, pubTrack := range p.Publisher().PublisherTracks() {
-						streamID := pubTrack.Track.StreamID()
-						stream, found := streamMap[streamID]
-						if !found {
-							stream = &rtc.Stream{
-								Uid:  uid,
-								Msid: streamID,
-							}
-							streamMap[streamID] = stream
-						}
-						stream.Tracks = append(stream.Tracks, &rtc.Track{
-							Id:    pubTrack.Track.ID(),
-							Kind:  pubTrack.Track.Kind().String(),
-							Muted: false,
-							Rid:   pubTrack.Track.RID(),
+						peerTracks = append(peerTracks, &rtc.Track{
+							Id:       pubTrack.Track.ID(),
+							Kind:     pubTrack.Track.Kind().String(),
+							StreamId: pubTrack.Track.StreamID(),
+							Muted:    false,
+							Rid:      pubTrack.Track.RID(),
 						})
 					}
+
+					event := &rtc.TrackEvent{
+						Uid:    uid,
+						State:  rtc.TrackEvent_ADD,
+						Tracks: peerTracks,
+					}
+
+					// Send the existing tracks in the session to the new joined peer
+					log.Infof("[S=>C] send existing track %v, state = ADD", peerTracks)
+					sigStream.Send(&rtc.Signalling{
+						Payload: &rtc.Signalling_TrackEvent{
+							TrackEvent: event,
+						},
+					})
 				}
 			}
-
-			var otherStreams []*rtc.Stream
-			for _, stream := range streamMap {
-				otherStreams = append(otherStreams, stream)
-			}
-
-			event := &rtc.StreamEvent{
-				State:   rtc.StreamEvent_ADD,
-				Streams: otherStreams,
-			}
-
-			sigStream.Send(&rtc.Signalling{
-				Payload: &rtc.Signalling_StreamEvent{
-					StreamEvent: event,
-				},
-			})
 
 			//TODO: Return error when the room is full, or locked, or permission denied
 
@@ -262,21 +271,6 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				if err != nil {
 					log.Errorf("grpc send error: %v", err)
 					return status.Errorf(codes.Internal, err.Error())
-				}
-
-				newStreams, err := ParseSDP(peer.ID(), desc.SDP)
-				if err != nil {
-					log.Errorf("util.ParseSDP error: %v", err)
-				}
-
-				if len(newStreams) > 0 {
-					event := &rtc.StreamEvent{
-						Streams: newStreams,
-						State:   rtc.StreamEvent_ADD,
-					}
-					streams = newStreams
-					log.Infof("broadcast stream event %v, state = ADD", streams)
-					s.BroadcastStreamEvent(event)
 				}
 
 			case webrtc.SDPTypeAnswer:
