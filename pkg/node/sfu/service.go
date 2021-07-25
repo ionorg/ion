@@ -146,9 +146,9 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				}
 			}
 
-			_, nopub := payload.Join.Parameters["NoPublish"]
-			_, nosub := payload.Join.Parameters["NoSubscribe"]
-			_, noautosub := payload.Join.Parameters["NoAutoSubscribe"]
+			_, nopub := payload.Join.Config["NoPublish"]
+			_, nosub := payload.Join.Config["NoSubscribe"]
+			_, noautosub := payload.Join.Config["NoAutoSubscribe"]
 
 			cfg := ion_sfu.JoinConfig{
 				NoPublish:       nopub,

@@ -11,7 +11,7 @@ service RTC {
 message JoinRequest {
   string sid = 1;
   string uid = 2;
-  map<string, string> parameters = 3;
+  map<string, string> config = 3;
 }
 
 message JoinReply {
