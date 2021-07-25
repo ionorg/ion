@@ -205,9 +205,8 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 					tracks = append(tracks, track)
 				})
 			}
-
-			var peerTracks []*rtc.Track
 			for _, p := range peer.Session().Peers() {
+				var peerTracks []*rtc.Track
 				if peer.ID() != p.ID() {
 					for _, pubTrack := range p.Publisher().PublisherTracks() {
 						peerTracks = append(peerTracks, &rtc.Track{
@@ -220,7 +219,7 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 					}
 
 					event := &rtc.TrackEvent{
-						Uid:    uid,
+						Uid:    p.ID(),
 						State:  rtc.TrackEvent_ADD,
 						Tracks: peerTracks,
 					}
@@ -362,13 +361,12 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 						}
 					} else {
 						// Remove down tracks
-						for streamID, downTracks := range peer.Subscriber().DownTracks() {
-							for _, downTrack := range downTracks {
-								if downTrack != nil && downTrack.ID() == trackId {
-									peer.Subscriber().RemoveDownTrack(streamID, downTrack)
-									downTrack.Stop()
-									needNegotiate = true
-								}
+						for _, downTrack := range peer.Subscriber().DownTracks() {
+							streamID := downTrack.StreamID()
+							if downTrack != nil && downTrack.ID() == trackId {
+								peer.Subscriber().RemoveDownTrack(streamID, downTrack)
+								downTrack.Stop()
+								needNegotiate = true
 							}
 						}
 					}
