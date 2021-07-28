@@ -370,8 +370,8 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 
 		case *rtc.Signalling_UpdateSettings:
 			switch payload.UpdateSettings.Command.(type) {
-			case *rtc.UpdateSettings_Subcription:
-				subscription := payload.UpdateSettings.GetSubcription()
+			case *rtc.UpdateSettings_Subscription:
+				subscription := payload.UpdateSettings.GetSubscription()
 				subscribe := subscription.GetSubscribe()
 				needNegotiate := false
 				for _, trackId := range subscription.TrackIds {
@@ -382,7 +382,10 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 								for _, track := range p.Publisher().PublisherTracks() {
 									if track.Receiver.TrackID() == trackId {
 										log.Debugf("Add RemoteTrack: %v to peer %v", trackId, peer.ID())
-										peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
+										downTrack, _ := peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
+										downTrack.OnCloseHandler(func() {
+
+										})
 										needNegotiate = true
 									}
 								}

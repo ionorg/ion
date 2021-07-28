@@ -96,7 +96,7 @@ message SwitchScalabilityLayer {
 
 message UpdateSettings {
   oneof command {
-    Subscription subcription = 1;
+    Subscription subscription = 1;
     SwitchScalabilityLayer switchLayer = 2;
     MuteTrack muteTrack = 3;
   }
