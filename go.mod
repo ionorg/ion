@@ -7,12 +7,13 @@ require (
 	github.com/cloudwebrtc/nats-grpc v0.1.12
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v7 v7.4.0
+	github.com/golang/protobuf v1.5.2
 	github.com/improbable-eng/grpc-web v0.13.0
 	github.com/jhump/protoreflect v1.8.2
 	github.com/nats-io/nats.go v1.11.0
 	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0
-	github.com/pion/ion-sfu v1.10.6
+	github.com/pion/ion-sfu v1.10.8
 	github.com/pion/webrtc/v3 v3.0.29
 	github.com/pixelbender/go-sdp v1.1.0
 	github.com/soheilhy/cmux v0.1.4

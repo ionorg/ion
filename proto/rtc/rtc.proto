@@ -12,11 +12,13 @@ message JoinRequest {
   string sid = 1;
   string uid = 2;
   map<string, string> config = 3;
+  SessionDescription description = 4;
 }
 
 message JoinReply {
   bool success = 1;
   Error error = 2;
+  SessionDescription description = 3;
 }
 
 enum Target {

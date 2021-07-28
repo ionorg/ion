@@ -145,10 +145,20 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 					log.Errorf("negotiation error: %v", err)
 				}
 			}
+			nopub := false
+			if val, found := payload.Join.Config["NoPublish"]; found {
+				nopub = val == "true"
+			}
 
-			_, nopub := payload.Join.Config["NoPublish"]
-			_, nosub := payload.Join.Config["NoSubscribe"]
-			_, noautosub := payload.Join.Config["NoAutoSubscribe"]
+			nosub := false
+			if val, found := payload.Join.Config["NoSubscribe"]; found {
+				nosub = val == "true"
+			}
+
+			noautosub := false
+			if val, found := payload.Join.Config["NoAutoSubscribe"]; found {
+				noautosub = val == "true"
+			}
 
 			cfg := ion_sfu.JoinConfig{
 				NoPublish:       nopub,
@@ -179,11 +189,30 @@ func (s *SFUService) Signal(sigStream rtc.RTC_SignalServer) error {
 				}
 			}
 
+			desc := webrtc.SessionDescription{
+				SDP:  payload.Join.Description.Sdp,
+				Type: webrtc.NewSDPType(payload.Join.Description.Type),
+			}
+
+			log.Debugf("[C=>S] join.description: offer %v", desc.SDP)
+			answer, err := peer.Answer(desc)
+			if err != nil {
+				return status.Errorf(codes.Internal, fmt.Sprintf("answer error: %v", err))
+			}
+
+			// send answer
+			log.Debugf("[S=>C] join.description: answer %v", answer.SDP)
+
 			sigStream.Send(&rtc.Signalling{
 				Payload: &rtc.Signalling_Reply{
 					Reply: &rtc.JoinReply{
 						Success: true,
 						Error:   nil,
+						Description: &rtc.SessionDescription{
+							Target: rtc.Target(rtc.Target_PUBLISHER),
+							Sdp:    answer.SDP,
+							Type:   answer.Type.String(),
+						},
 					},
 				},
 			})
