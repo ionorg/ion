@@ -9,6 +9,7 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/auth"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -23,9 +24,9 @@ type svcConf struct {
 }
 
 type signalConf struct {
-	GRPC grpcConf   `mapstructure:"grpc"`
-	JWT  AuthConfig `mapstructure:"jwt"`
-	SVC  svcConf    `mapstructure:"svc"`
+	GRPC grpcConf        `mapstructure:"grpc"`
+	JWT  auth.AuthConfig `mapstructure:"jwt"`
+	SVC  svcConf         `mapstructure:"svc"`
 }
 
 // signalConf represents signal server configuration
@@ -140,7 +141,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	//Authenticate here.
 	authConfig := &s.conf.Signal.JWT
 	if authConfig.Enabled {
-		claims, err := getClaim(ctx, authConfig)
+		claims, err := auth.Claims(ctx, auth.AuthConfig)
 		if err != nil {
 			return ctx, nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("Failed to Get Claims JWT : %v", err))
 		}

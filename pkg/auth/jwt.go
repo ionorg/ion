@@ -1,4 +1,4 @@
-package signal
+package auth
 
 import (
 	"context"
@@ -27,14 +27,14 @@ func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 }
 
 // claims custom claims type for jwt
-type claims struct {
+type Claims struct {
 	UID      string   `json:"uid"`
 	SID      string   `json:"sid"`
 	Services []string `json:"services"`
 	jwt.StandardClaims
 }
 
-func getClaim(ctx context.Context, ac *AuthConfig) (*claims, error) {
+func GetClaim(ctx context.Context, ac *AuthConfig) (*Claims, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "valid JWT token required")
@@ -45,13 +45,13 @@ func getClaim(ctx context.Context, ac *AuthConfig) (*claims, error) {
 		return nil, status.Errorf(codes.Unauthenticated, "valid JWT token required")
 	}
 
-	jwtToken, err := jwt.ParseWithClaims(token[0], &claims{}, ac.KeyFunc)
+	jwtToken, err := jwt.ParseWithClaims(token[0], &Claims{}, ac.KeyFunc)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "%v", err)
 	}
 
-	if claims, ok := jwtToken.Claims.(*claims); ok && jwtToken.Valid {
+	if claims, ok := jwtToken.Claims.(*Claims); ok && jwtToken.Valid {
 		return claims, nil
 	}
 
