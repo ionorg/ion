@@ -9,11 +9,10 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
-	pb "github.com/pion/ion/proto/sfu"
+	pb "github.com/pion/ion/proto/rtc"
 	"github.com/spf13/viper"
 )
 
@@ -102,7 +101,7 @@ func (c *Config) Load(file string) error {
 // SFU represents a sfu node
 type SFU struct {
 	ion.Node
-	s *sfuServer
+	s *SFUService
 }
 
 // NewSFU create a sfu node instance
@@ -133,13 +132,9 @@ func (s *SFU) Start(conf Config) error {
 		return err
 	}
 
-	nsfu := isfu.NewSFU(conf.Config)
-	dc := nsfu.NewDatachannel(isfu.APIChannelLabel)
-	dc.Use(datachannel.SubscriberAPI)
-
-	s.s = newSFUServer(s, nsfu)
+	s.s = NewSFUService(conf.Config)
 	//grpc service
-	pb.RegisterSFUServer(s.Node.ServiceRegistrar(), s.s)
+	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
 
 	// Register reflection service on nats-rpc server.
 	reflection.Register(s.Node.ServiceRegistrar().(*nrpc.Server))

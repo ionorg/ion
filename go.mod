@@ -21,10 +21,8 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3
+	golang.org/x/net v0.0.0-20210420210106-798c2154c571
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
-	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 )
-
-replace github.com/pion/ion-sfu => ../ion-sfu

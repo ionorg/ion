@@ -141,7 +141,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	//Authenticate here.
 	authConfig := &s.conf.Signal.JWT
 	if authConfig.Enabled {
-		claims, err := auth.Claims(ctx, auth.AuthConfig)
+		claims, err := auth.GetClaim(ctx, authConfig)
 		if err != nil {
 			return ctx, nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("Failed to Get Claims JWT : %v", err))
 		}
