@@ -9,8 +9,8 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	nproxy "github.com/cloudwebrtc/nats-grpc/pkg/rpc/proxy"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/cmd/signal/server"
 	"github.com/pion/ion/pkg/node/signal"
+	"github.com/pion/ion/pkg/util"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
@@ -88,7 +88,7 @@ func main() {
 	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---")
 	log.Infof("--- Bind to %s, NID = %v ---", addr, conf.Node.NID)
 
-	options := server.DefaultWrapperedServerOptions()
+	options := util.DefaultWrapperedServerOptions()
 	options.Addr = addr
 	options.Cert = conf.Signal.GRPC.Cert
 	options.Key = conf.Signal.GRPC.Key
@@ -109,7 +109,7 @@ func main() {
 		grpc.CustomCodec(nrpc.Codec()), // nolint:staticcheck
 		grpc.UnknownServiceHandler(nproxy.TransparentHandler(sig.Director)))
 
-	s := server.NewWrapperedGRPCWebServer(options, srv)
+	s := util.NewWrapperedGRPCWebServer(options, srv)
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)
 	}
