@@ -68,9 +68,9 @@ func (s *BizServer) Join(ctx context.Context, in *room.JoinRequest) (*room.JoinR
 
 	if r == nil {
 		reason = fmt.Sprintf("room sid = %v not found", sid)
-		resp, err := s.ndc.Get(proto.ServiceSFU, map[string]interface{}{"sid": sid, "uid": uid})
+		resp, err := s.ndc.Get(proto.ServiceRTC, map[string]interface{}{"sid": sid, "uid": uid})
 		if err != nil {
-			log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceSFU, err)
+			log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceRTC, err)
 		}
 		nid := ""
 		if err == nil && len(resp.Nodes) > 0 {

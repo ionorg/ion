@@ -141,7 +141,7 @@ func (s *SFU) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: proto.ServiceSFU,
+		Service: proto.ServiceRTC,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,

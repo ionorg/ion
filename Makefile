@@ -52,4 +52,4 @@ proto_core:
 	protoc proto/rtc/rtc.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
 
 proto_app:
-	protoc apps/biz/proto/room.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
+	protoc apps/room/proto/room.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.

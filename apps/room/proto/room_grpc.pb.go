@@ -485,5 +485,5 @@ var Room_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "apps/biz/proto/room.proto",
+	Metadata: "apps/room/proto/room.proto",
 }

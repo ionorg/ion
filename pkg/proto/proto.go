@@ -4,7 +4,7 @@ const (
 	ServiceALL  = "*"
 	ServiceISLB = "islb"
 	ServiceBIZ  = "biz"
-	ServiceSFU  = "sfu"
+	ServiceRTC  = "rtc"
 	ServiceAVP  = "avp"
 	ServiceSIG  = "sig"
 )

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/pion/ion/apps/biz/proto";
+option go_package = "github.com/pion/ion/apps/room/proto";
 
 package room;
 
