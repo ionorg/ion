@@ -76,7 +76,7 @@ func (b *BIZ) Start(conf Config) error {
 		return err
 	}
 
-	pb.RegisterBizServer(b.Node.ServiceRegistrar(), b.s)
+	pb.RegisterRoomServer(b.Node.ServiceRegistrar(), b.s)
 
 	// Register reflection service on nats-rpc server.
 	reflection.Register(b.Node.ServiceRegistrar().(*nrpc.Server))

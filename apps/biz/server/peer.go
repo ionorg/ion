@@ -2,6 +2,7 @@ package server
 
 import (
 	biz "github.com/pion/ion/apps/biz/proto"
+	room "github.com/pion/ion/apps/biz/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/ion/proto/ion"
 )
@@ -54,7 +55,7 @@ func (p *Peer) send(data *biz.SignalReply) error {
 	return nil
 }
 
-func (p *Peer) sendPeerEvent(event *ion.PeerEvent) error {
+func (p *Peer) sendPeerEvent(event *room.ParticipantEvent) error {
 	data := &biz.SignalReply{
 		Payload: &biz.SignalReply_PeerEvent{
 			PeerEvent: event,
@@ -72,7 +73,7 @@ func (p *Peer) sendStreamEvent(event *ion.StreamEvent) error {
 	return p.send(data)
 }
 
-func (p *Peer) sendMessage(msg *ion.Message) error {
+func (p *Peer) sendMessage(msg *room.Message) error {
 	data := &biz.SignalReply{
 		Payload: &biz.SignalReply_Msg{
 			Msg: msg,

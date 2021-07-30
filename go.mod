@@ -24,4 +24,7 @@ require (
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 )
+
+replace github.com/pion/ion-sfu => ../ion-sfu
