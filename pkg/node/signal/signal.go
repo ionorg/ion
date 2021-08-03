@@ -35,6 +35,8 @@ type grpcConf struct {
 	Cert            string `mapstructure:"cert"`
 	Key             string `mapstructure:"key"`
 	AllowAllOrigins bool   `mapstructure:"allow_all_origins"`
+	AutoTLS         bool   `mapstructure:"autotls"`
+	Domain          string `mapstructure:"domain"`
 }
 
 type global struct {

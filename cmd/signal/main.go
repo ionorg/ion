@@ -63,7 +63,7 @@ func load() bool {
 }
 
 func parse() bool {
-	flag.StringVar(&file, "c", "configs/sig.toml", "config file")
+	flag.StringVar(&file, "c", "configs/signal.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -92,6 +92,8 @@ func main() {
 	options.Addr = addr
 	options.Cert = conf.Signal.GRPC.Cert
 	options.Key = conf.Signal.GRPC.Key
+	options.AutoTLS = conf.Signal.GRPC.AutoTLS
+	options.Domain = conf.Signal.GRPC.Domain
 
 	sig, err := signal.NewSignal(conf)
 	if err != nil {

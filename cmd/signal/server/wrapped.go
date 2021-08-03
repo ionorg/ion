@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/autotls"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	log "github.com/pion/ion-log"
 	"github.com/soheilhy/cmux"
@@ -18,6 +19,8 @@ type WrapperedServerOptions struct {
 	Cert                  string
 	Key                   string
 	AllowAllOrigins       bool
+	AutoTLS               bool
+	Domain                string
 	AllowedOrigins        *[]string
 	AllowedHeaders        *[]string
 	UseWebSocket          bool
@@ -159,6 +162,15 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 		}
 		listener = tls
 	} else {
+		log.Infof("s.options.AutoTLS=%v s.options.Domain=%v", s.options.AutoTLS, s.options.Domain)
+		if s.options.AutoTLS && s.options.Domain != "" {
+			err := autotls.Run(httpServer.Handler, s.options.Domain)
+			if err != nil {
+				log.Errorf("autotls.Run err=%v", err)
+				return err
+			}
+			log.Infof("autotls.Run on %v", s.options.Domain)
+		}
 		tcp, err := net.Listen("tcp", addr)
 		if err != nil {
 			log.Panicf("failed to listen: tcp %v", err)

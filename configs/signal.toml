@@ -21,6 +21,8 @@ port = "5551"
 allow_all_origins = true
 # cert= "configs/certs/cert.pem"
 # key= "configs/certs/key.pem"
+autotls = true
+domain = "localhost"
 
 [signal.jwt]
 enabled = false 

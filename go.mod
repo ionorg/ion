@@ -6,6 +6,7 @@ require (
 	github.com/cloudwebrtc/nats-discovery v0.3.0
 	github.com/cloudwebrtc/nats-grpc v0.1.12
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/gin-gonic/autotls v0.0.3
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/improbable-eng/grpc-web v0.13.0
 	github.com/jhump/protoreflect v1.8.2
