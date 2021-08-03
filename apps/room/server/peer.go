@@ -1,8 +1,7 @@
 package server
 
 import (
-	biz "github.com/pion/ion/apps/biz/proto"
-	room "github.com/pion/ion/apps/biz/proto"
+	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/ion/proto/ion"
 )
@@ -14,15 +13,13 @@ type Peer struct {
 	info            []byte
 	lastStreamEvent *ion.StreamEvent
 	closed          util.AtomicBool
-	sndCh           chan *biz.SignalReply
 }
 
-func NewPeer(sid string, uid string, info []byte, senCh chan *biz.SignalReply) *Peer {
+func NewPeer(sid string, uid string, info []byte) *Peer {
 	p := &Peer{
-		uid:   uid,
-		sid:   sid,
-		info:  info,
-		sndCh: senCh,
+		uid:  uid,
+		sid:  sid,
+		info: info,
 	}
 	return p
 }
@@ -44,39 +41,40 @@ func (p *Peer) SID() string {
 	return p.sid
 }
 
-func (p *Peer) send(data *biz.SignalReply) error {
-	select {
-	case p.sndCh <- data:
-	default:
-		go func() {
-			p.sndCh <- data
-		}()
-	}
+func (p *Peer) send(data *room.Reply) error {
+	/*
+		select {
+		case p.sndCh <- data:
+		default:
+			go func() {
+				p.sndCh <- data
+			}()
+		}
+	*/
 	return nil
 }
 
 func (p *Peer) sendPeerEvent(event *room.ParticipantEvent) error {
-	data := &biz.SignalReply{
-		Payload: &biz.SignalReply_PeerEvent{
-			PeerEvent: event,
-		},
-	}
-	return p.send(data)
-}
-
-func (p *Peer) sendStreamEvent(event *ion.StreamEvent) error {
-	data := &biz.SignalReply{
-		Payload: &biz.SignalReply_StreamEvent{
-			StreamEvent: event,
+	data := &room.Reply{
+		Payload: &room.Reply_Notification{
+			Notification: &room.Notification{
+				Payload: &room.Notification_Participant{
+					Participant: event,
+				},
+			},
 		},
 	}
 	return p.send(data)
 }
 
 func (p *Peer) sendMessage(msg *room.Message) error {
-	data := &biz.SignalReply{
-		Payload: &biz.SignalReply_Msg{
-			Msg: msg,
+	data := &room.Reply{
+		Payload: &room.Reply_Notification{
+			Notification: &room.Notification{
+				Payload: &room.Notification_Message{
+					Message: msg,
+				},
+			},
 		},
 	}
 	return p.send(data)

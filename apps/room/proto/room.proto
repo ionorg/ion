@@ -5,33 +5,38 @@ option go_package = "github.com/pion/ion/apps/room/proto";
 package room;
 
 service Room {
-  rpc Join(JoinRequest) returns (JoinReply) {}
+  rpc Signal(stream Request) returns (stream Reply) {}
+}
 
-  rpc Leave(LeaveRequest) returns (LeaveReply) {}
+message Request {
+  oneof payload {
+    JoinRequest join = 1;
+    LeaveRequest leave = 2;
+    AddParticipantRequest addParticipant = 3;
+    RemoveParticipantRequest removeParticipant = 4;
+    LockConferenceRequest lockConference = 5;
+    GetParticipantsRequest getParticipants = 6;
+    EndConferenceRequest endConference = 7;
+    SendMessageRequest sendMessage = 8;
+    SetImportanceRequest setImportance = 9;
+    EditParticipantInfoRequest editParticipantInfo = 10;
+  }
+}
 
-  rpc GetParticipants(Empty) returns (GetParticipantsReply) {}
-
-  rpc ReceiveNotification(Empty) returns (stream Notification) {}
-
-  // /* Requires: role = Host
-
-  rpc SetImportance(SetImportanceRequest) returns (SetImportanceReply) {}
-
-  rpc LockConference(LockConferenceRequest) returns (LockConferenceReply) {}
-
-  rpc EndConference(EndConferenceRequest) returns (EndConferenceReply) {}
-
-  rpc EditParticipantInfo(EditParticipantInfoRequest)
-      returns (EditParticipantInfoReply) {}
-
-  rpc AddParticipant(AddParticipantRequest) returns (AddParticipantReply) {}
-
-  rpc RemoveParticipant(RemoveParticipantRequest)
-      returns (RemoveParticipantReply) {}
-
-  rpc SendMessage(SendMessageRequest) returns (SendMessageReply) {}
-
-  // */
+message Reply {
+  oneof payload {
+    JoinReply join = 1;
+    LeaveReply leave = 2;
+    AddParticipantReply addParticipant = 3;
+    RemoveParticipantReply removeParticipant = 4;
+    LockConferenceReply lockConference = 5;
+    GetParticipantsReply getParticipants = 6;
+    EndConferenceReply endConference = 7;
+    SendMessageReply sendMessage = 8;
+    SetImportanceReply setImportance = 9;
+    EditParticipantInfoReply editParticipantInfo = 10;
+    Notification notification = 11;
+  }
 }
 
 message Empty {}
@@ -45,6 +50,29 @@ message JoinRequest {
   string avatar = 6;
   string vendor = 7;
   string token = 8;
+}
+
+message Permission {
+  bool addParticipants = 1;
+  bool removeParticipants = 2;
+
+  bool blockOthersAudio = 3;
+  bool blockOthersVideo = 4;
+
+  bool endConference = 7;
+  bool lockConference = 8;
+
+  bool publish = 9;
+  bool subscribe = 10;
+
+  bool setImportance = 11;
+}
+
+message Configuration {
+  string uuid = 1; // unique id for the room.
+  bool isAudioOnlyMode = 2;
+  Role role = 3;
+  Permission yourPermission = 4;
 }
 
 message JoinReply {
@@ -76,34 +104,19 @@ enum Protocol {
 }
 
 message Participant {
-  string sid = 1;
-  string uid = 2;
-  string displayName = 3;
-  bytes extraInfo = 4;
-  Role role = 5;
-  Protocol protocol = 6;
-  string avatar = 7;
-  string callDirection = 8; // 'in' or 'out'
-  string vendor = 9;        // device info
+  string uid = 1;
+  string displayName = 2;
+  bytes extraInfo = 3;
+  Role role = 4;
+  Protocol protocol = 5;
+  string avatar = 6;
+  string callDirection = 7; // 'in' or 'out'
+  string vendor = 8;        // device info
 }
 
-enum ParticipantStatus {
-  Create = 0;
-  Update = 1;
-  Delete = 2;
-}
+message GetParticipantsRequest {}
 
-message ParticipantEvent {
-  Participant participant = 1;
-  ParticipantStatus status = 2;
-}
-
-message ParticipantsReply {
-  Participant participants = 1;
-  Permission permission = 2;
-}
-
-message GetParticipantsReply { repeated ParticipantsReply participants = 1; }
+message GetParticipantsReply { Participant participants = 1; }
 
 message Error {
   int32 code = 1;
@@ -116,41 +129,31 @@ enum StreamType {
   Streaming = 2;
 }
 
-message Configuration {
-  string uuid = 1; // unique id for the room.
-  bool isAudioOnlyMode = 2;
-  Role role = 3;
-  Permission yourPermission = 4;
-}
-
-message Permission {
-  bool addParticipants = 1;
-  bool removeParticipants = 2;
-
-  bool blockOthersAudio = 3;
-  bool blockOthersVideo = 4;
-
-  bool endConference = 7;
-  bool lockConference = 8;
-
-  bool publish = 9;
-  bool subscribe = 10;
-
-  bool setImportance = 11;
-}
-
 message Message {
-  string sid = 1;    // Session id.
-  string uid = 2;    // UUID of the sending participant.
-  string origin = 3; // Name of the sending participant.
+  string origin = 1; // Name of the sending participant.
+  string uid = 3;    // UUID of the sending participant.
   string type = 4;   // MIME content-type of the message, usually text/plain.
   bytes payload = 5; // Payload message contents.
 }
 
 message SendMessageRequest { Message message = 1; }
-message SendMessageReply {}
+message SendMessageReply {
+  bool success = 1;
+  Error error = 2;
+}
 
 message Disconnect { string reason = 1; }
+
+enum ParticipantStatus {
+  Create = 0;
+  Update = 1;
+  Delete = 2;
+}
+
+message ParticipantEvent {
+  Participant participant = 1;
+  ParticipantStatus status = 2;
+}
 
 message Notification {
   oneof payload {
@@ -175,20 +178,40 @@ message AddParticipantReply {
 }
 
 message SetImportanceRequest { repeated Participant participants = 1; }
-message SetImportanceReply {}
+message SetImportanceReply {
+  bool success = 1;
+  Error error = 2;
+}
 
 message LockConferenceRequest {
   bool lock = 1;
   string password = 2;
 }
 
-message LockConferenceReply {}
+message LockConferenceReply {
+  bool success = 1;
+  Error error = 2;
+}
 
-message EndConferenceRequest {}
-message EndConferenceReply {}
+message EndConferenceRequest { string reason = 1; }
 
-message EditParticipantInfoRequest {}
-message EditParticipantInfoReply {}
+message EndConferenceReply {
+  bool success = 1;
+  Error error = 2;
+}
 
-message RemoveParticipantRequest {}
-message RemoveParticipantReply {}
+message EditParticipantInfoRequest {
+  string uid = 1;
+  string displayName = 2;
+}
+message EditParticipantInfoReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message RemoveParticipantRequest { string uid = 1; }
+
+message RemoveParticipantReply {
+  bool success = 1;
+  Error error = 2;
+}

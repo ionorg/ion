@@ -2,53 +2,195 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
 	log "github.com/pion/ion-log"
-	biz_pb "github.com/pion/ion/apps/biz/proto"
-	"github.com/pion/ion/pkg/proto"
+	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/pkg/util"
-	"github.com/pion/ion/proto/ion"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type SFUInteractive interface {
-	WatchStreamEvent(sid string) (chan *ion.StreamEvent, context.CancelFunc, error)
-	GetNode(service, sid, uid string) (string, error)
-}
-
-// BizService represents an BizService instance
-type BizService struct {
-	biz_pb.UnimplementedBizServer
+// BizServer represents an BizServer instance
+type RoomService struct {
+	room.UnimplementedRoomServer
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
 	closed   chan struct{}
-	sfu      SFUInteractive
 }
 
-// NewBizService creates a new avp server instance
-func NewBizService(sfu SFUInteractive) (*BizService, error) {
-	b := &BizService{
+// newBizServer creates a new avp server instance
+func NewRoomService() (*RoomService, error) {
+	b := &RoomService{
 		rooms:  make(map[string]*Room),
 		closed: make(chan struct{}),
-		sfu:    sfu,
 	}
+
 	return b, nil
 }
 
-func (b *BizService) RegisterService(registrar grpc.ServiceRegistrar) {
-	biz_pb.RegisterBizServer(registrar, b)
-}
-
-func (s *BizService) Close() {
+func (s *RoomService) close() {
 	close(s.closed)
 }
 
-func (s *BizService) createRoom(sid string, sfuNID string) *Room {
+func (s *RoomService) Signal(stream room.Room_SignalServer) error {
+	req, err := stream.Recv()
+	if err != nil {
+		log.Errorf("RoomService.Singal server stream.Recv() err: %v", err)
+		return err
+	}
+
+	switch payload := req.Payload.(type) {
+	case *room.Request_Join:
+		reply, err := s.Join(context.Background(), payload)
+		if err != nil {
+			log.Errorf("Join err: %v", err)
+			return err
+		}
+		stream.Send(&room.Reply{Payload: reply})
+	case *room.Request_Leave:
+		reply, err := s.Leave(context.Background(), payload)
+		if err != nil {
+			log.Errorf("Leave err: %v", err)
+			return err
+		}
+		stream.Send(&room.Reply{Payload: reply})
+	case *room.Request_LockConference:
+		reply, err := s.LockConference(context.Background(), payload)
+		if err != nil {
+			log.Errorf("LockConference err: %v", err)
+			return err
+		}
+		stream.Send(&room.Reply{Payload: reply})
+	}
+
+	return nil
+}
+
+func (s *RoomService) Join(ctx context.Context, in *room.Request_Join) (*room.Reply_Join, error) {
+	sid := in.Join.Sid
+	uid := in.Join.Uid
+	info := in.Join.ExtraInfo
+	r := s.getRoom(sid)
+
+	if r == nil {
+		r = s.createRoom(sid, "todo nid")
+	}
+
+	if r != nil {
+		peer := NewPeer(sid, uid, info) //TODO
+		r.addPeer(peer)
+		/*
+			//Generate necessary metadata for routing.
+			header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
+			err := stream.SendHeader(header)
+			if err != nil {
+				log.Errorf("stream.SendHeader failed %v", err)
+			}
+		*/
+	}
+
+	reply := &room.Reply_Join{
+		Join: &room.JoinReply{
+			Success: true,
+			Error:   nil,
+		},
+	}
+	return reply, nil
+}
+
+func (s *RoomService) Leave(ctx context.Context, in *room.Request_Leave) (*room.Reply_Leave, error) {
+	uid := in.Leave.Sid
+	sid := in.Leave.Uid
+	r := s.getRoom(sid)
+	if r == nil {
+		return &room.Reply_Leave{
+			Leave: &room.LeaveReply{
+				Success: false,
+				Error: &room.Error{
+					Code:   int32(codes.Internal),
+					Reason: "room not exist",
+				},
+			},
+		}, status.Errorf(codes.Internal, "room not exist")
+	}
+	peer := r.getPeer(uid)
+	if peer != nil && peer.uid == uid {
+		if r.delPeer(peer) == 0 {
+			s.delRoom(r)
+			r = nil
+		}
+		peer.Close()
+		peer = nil
+
+	}
+	return &room.Reply_Leave{
+		Leave: &room.LeaveReply{
+			Success: true,
+			Error:   nil,
+		},
+	}, nil
+}
+
+func (s *RoomService) GetParticipants(ctx context.Context, in *room.Empty) (*room.GetParticipantsReply, error) {
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) SetImportance(ctx context.Context, in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) LockConference(ctx context.Context, in *room.Request_LockConference) (*room.Reply_LockConference, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) EndConference(ctx context.Context, in *room.EndConferenceRequest) (*room.EndConferenceReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) EditParticipantInfo(ctx context.Context, in *room.EditParticipantInfoRequest) (*room.EditParticipantInfoReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) AddParticipant(ctx context.Context, in *room.AddParticipantRequest) (*room.AddParticipantReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) RemoveParticipant(ctx context.Context, in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) SendMessage(ctx context.Context, in *room.Request_SendMessage) (*room.Reply_SendMessage, error) {
+	msg := in.SendMessage.Message
+	sid := msg.Origin
+	log.Debugf("Message: %+v", msg)
+	// message broadcast
+	r := s.getRoom(sid)
+	if r == nil {
+		log.Warnf("room not found, maybe the peer did not join")
+		return &room.Reply_SendMessage{}, errors.New("room not exist")
+	}
+	r.sendMessage(msg)
+	return &room.Reply_SendMessage{}, nil
+}
+
+func (s *RoomService) createRoom(sid string, sfuNID string) *Room {
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
 	if r := s.rooms[sid]; r != nil {
@@ -59,13 +201,13 @@ func (s *BizService) createRoom(sid string, sfuNID string) *Room {
 	return r
 }
 
-func (s *BizService) getRoom(id string) *Room {
+func (s *RoomService) getRoom(id string) *Room {
 	s.roomLock.RLock()
 	defer s.roomLock.RUnlock()
 	return s.rooms[id]
 }
 
-func (s *BizService) delRoom(r *Room) {
+func (s *RoomService) delRoom(r *Room) {
 	id := r.SID()
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
@@ -74,175 +216,8 @@ func (s *BizService) delRoom(r *Room) {
 	}
 }
 
-func (s *BizService) watchStreamEvent(sid string) (context.CancelFunc, error) {
-	ch, cancel, err := s.sfu.WatchStreamEvent(sid)
-	if err != nil {
-		log.Errorf("s.watchStreamEvent failed %v", err)
-		return nil, err
-	}
-
-	go func() {
-		for event := range ch {
-			log.Infof("stream event %v", event)
-			r := s.getRoom(event.Sid)
-			if r != nil {
-				r.sendStreamEvent(event)
-				p := r.getPeer(event.Uid)
-				// save last stream info.
-				if p != nil {
-					p.lastStreamEvent = event
-				}
-			}
-			//TODO: add context for stop
-		}
-	}()
-	return cancel, nil
-}
-
-//Signal process biz request.
-func (s *BizService) Signal(stream biz_pb.Biz_SignalServer) error {
-	var cancel context.CancelFunc = nil
-	var r *Room = nil
-	var peer *Peer = nil
-	errCh := make(chan error)
-	repCh := make(chan *biz_pb.SignalReply, 1)
-	reqCh := make(chan *biz_pb.SignalRequest)
-
-	defer func() {
-		if r != nil {
-			if peer != nil {
-				peer.Close()
-				r.delPeer(peer)
-			}
-			if r.count() == 0 {
-				s.delRoom(r)
-				if cancel != nil {
-					cancel()
-				}
-			}
-		}
-		log.Infof("BizServer.Signal loop done")
-	}()
-
-	go func() {
-		for {
-			req, err := stream.Recv()
-			if err != nil {
-				log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
-				errCh <- err
-				return
-			}
-			reqCh <- req
-		}
-	}()
-
-	for {
-		select {
-		case err := <-errCh:
-			return err
-		case reply, ok := <-repCh:
-			if !ok {
-				return io.EOF
-			}
-			err := stream.Send(reply)
-			if err != nil {
-				return err
-			}
-		case req, ok := <-reqCh:
-			if !ok {
-				return io.EOF
-			}
-			log.Infof("Biz request => %v", req.String())
-
-			switch payload := req.Payload.(type) {
-			case *biz_pb.SignalRequest_Join:
-				sid := payload.Join.Peer.Sid
-				uid := payload.Join.Peer.Uid
-
-				success := false
-				reason := "unkown error."
-				r = s.getRoom(sid)
-
-				if r == nil {
-					reason = fmt.Sprintf("room sid = %v not found", sid)
-					nid, err := s.sfu.GetNode(proto.ServiceRTC, sid, uid)
-					if err != nil {
-						log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceRTC, err)
-						reason = "get serivce [sfu], node cnt == 0"
-					} else {
-						r = s.createRoom(sid, nid)
-						cancel, err = s.watchStreamEvent(sid)
-						if err != nil {
-							log.Warnf("failed to watch stream event %v", err)
-						}
-					}
-				}
-
-				if r != nil {
-					peer = NewPeer(sid, uid, payload.Join.Peer.Info, repCh)
-					r.addPeer(peer)
-					success = true
-					reason = "join success."
-
-					//Generate necessary metadata for routing.
-					header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
-					err := stream.SendHeader(header)
-					if err != nil {
-						log.Errorf("stream.SendHeader failed %v", err)
-					}
-				}
-
-				err := stream.Send(&biz_pb.SignalReply{
-					Payload: &biz_pb.SignalReply_JoinReply{
-						JoinReply: &biz_pb.JoinReply{
-							Success: success,
-							Reason:  reason,
-						},
-					},
-				})
-
-				if err != nil {
-					log.Errorf("stream.Send(&biz_pb.SignalReply) failed %v", err)
-				}
-			case *biz_pb.SignalRequest_Leave:
-				uid := payload.Leave.Uid
-				if peer != nil && peer.uid == uid {
-					if r.delPeer(peer) == 0 {
-						s.delRoom(r)
-						r = nil
-					}
-					peer.Close()
-					peer = nil
-
-					err := stream.Send(&biz_pb.SignalReply{
-						Payload: &biz_pb.SignalReply_LeaveReply{
-							LeaveReply: &biz_pb.LeaveReply{
-								Reason: "closed",
-							},
-						},
-					})
-					if err != nil {
-						log.Errorf("stream.Send(&biz_pb.SignalReply) failed %v", err)
-					}
-				}
-			case *biz_pb.SignalRequest_Msg:
-				log.Debugf("Message: from: %v => to: %v, data: %v", payload.Msg.From, payload.Msg.To, payload.Msg.Data)
-				// message broadcast
-				if r != nil {
-					r.sendMessage(payload.Msg)
-				} else {
-					log.Warnf("room not found, maybe the peer did not join")
-				}
-			default:
-				break
-			}
-
-		}
-	}
-}
-
 // stat peers
-func (s *BizService) stat() {
+func (s *RoomService) stat() {
 	t := time.NewTicker(util.DefaultStatCycle)
 	defer t.Stop()
 	for {

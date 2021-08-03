@@ -4,9 +4,34 @@ import (
 	"sync"
 
 	log "github.com/pion/ion-log"
-	room "github.com/pion/ion/apps/biz/proto"
+	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/proto/ion"
 )
+
+type global struct {
+	Pprof string `mapstructure:"pprof"`
+	Dc    string `mapstructure:"dc"`
+}
+
+type logConf struct {
+	Level string `mapstructure:"level"`
+}
+
+type natsConf struct {
+	URL string `mapstructure:"url"`
+}
+
+type nodeConf struct {
+	NID string `mapstructure:"nid"`
+}
+
+// Config for biz node
+type Config struct {
+	Global global   `mapstructure:"global"`
+	Log    logConf  `mapstructure:"log"`
+	Nats   natsConf `mapstructure:"nats"`
+	Node   nodeConf `mapstructure:"node"`
+}
 
 // Room represents a Room which manage peers
 type Room struct {
@@ -35,7 +60,6 @@ func (r *Room) SID() string {
 func (r *Room) addPeer(p *Peer) {
 	event := &room.ParticipantEvent{
 		Participant: &room.Participant{
-			Sid:           r.sid,
 			Uid:           p.uid,
 			DisplayName:   "",                 //TODO
 			ExtraInfo:     nil,                //TODO
@@ -55,7 +79,6 @@ func (r *Room) addPeer(p *Peer) {
 	for _, peer := range r.getPeers() {
 		event := &room.ParticipantEvent{
 			Participant: &room.Participant{
-				Sid:           r.sid,
 				Uid:           peer.uid,
 				DisplayName:   "",                 //TODO
 				ExtraInfo:     peer.info,          //TODO
@@ -73,10 +96,10 @@ func (r *Room) addPeer(p *Peer) {
 		}
 
 		if peer.lastStreamEvent != nil {
-			err := p.sendStreamEvent(peer.lastStreamEvent)
-			if err != nil {
-				log.Errorf("p.sendStreamEvent() failed %v", err)
-			}
+			//err := p.sendStreamEvent(peer.lastStreamEvent)
+			//if err != nil {
+			//	log.Errorf("p.sendStreamEvent() failed %v", err)
+			//}
 		}
 	}
 
@@ -117,7 +140,6 @@ func (r *Room) delPeer(p *Peer) int {
 	if found {
 		event := &room.ParticipantEvent{
 			Participant: &room.Participant{
-				Sid:           r.sid,
 				Uid:           uid,
 				DisplayName:   "",                 //TODO
 				ExtraInfo:     nil,                //TODO
@@ -152,12 +174,12 @@ func (r *Room) sendPeerEvent(event *room.ParticipantEvent) {
 }
 
 func (r *Room) sendStreamEvent(event *ion.StreamEvent) {
-	peers := r.getPeers()
-	for _, p := range peers {
-		if err := p.sendStreamEvent(event); err != nil {
-			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
-		}
-	}
+	//peers := r.getPeers()
+	//for _, p := range peers {
+	//if err := p.sendStreamEvent(event); err != nil {
+	//	log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+	//}
+	//}
 }
 
 func (r *Room) sendMessage(msg *room.Message) {

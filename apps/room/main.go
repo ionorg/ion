@@ -7,12 +7,12 @@ import (
 	"os"
 
 	log "github.com/pion/ion-log"
-	biz "github.com/pion/ion/apps/biz/server"
+	room "github.com/pion/ion/apps/room/server"
 	"github.com/spf13/viper"
 )
 
 var (
-	conf = biz.Config{}
+	conf = room.Config{}
 	file string
 )
 
@@ -59,7 +59,7 @@ func load() bool {
 }
 
 func parse() bool {
-	flag.StringVar(&file, "c", "configs/biz.toml", "config file")
+	flag.StringVar(&file, "c", "configs/room.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -80,11 +80,13 @@ func main() {
 	}
 	log.Init(conf.Log.Level)
 	log.Infof("--- Starting Biz Node ---")
-	node := biz.NewBIZ(conf.Node.NID)
-	if err := node.Start(conf); err != nil {
-		log.Errorf("biz init start: %v", err)
-		os.Exit(-1)
-	}
-	defer node.Close()
+	/*
+		node := room.NewRoomService(conf.Node.NID)
+		if err := node.Start(conf); err != nil {
+			log.Errorf("biz init start: %v", err)
+			os.Exit(-1)
+		}
+		defer node.Close()
+	*/
 	select {}
 }
