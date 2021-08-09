@@ -4,7 +4,7 @@ option go_package = "github.com/pion/ion/apps/room/proto";
 
 package room;
 
-service Room {
+service RoomService {
   // Manager API
   rpc CreateRoom(CreateRoomRequest) returns (CreateRoomReply) {}
   rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomReply) {}
@@ -17,7 +17,9 @@ service Room {
   rpc SetImportance(SetImportanceRequest) returns (SetImportanceReply) {}
   rpc EditParticipantInfo(EditParticipantInfoRequest)
       returns (EditParticipantInfoReply) {}
+}
 
+service RoomSignal {
   // Signal
   rpc Signal(stream Request) returns (stream Reply) {}
 }
@@ -58,13 +60,26 @@ message Reply {
   }
 }
 
-message CreateRoomRequest {}
+message CreateRoomRequest {
+  string name = 1;
+  string sid = 2;
+  string password = 3;
+  string description = 4;
+}
 
-message CreateRoomReply {}
+message CreateRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
 
-message DeleteRoomRequest {}
+message DeleteRoomRequest {
+  string sid = 1;
+}
 
-message DeleteRoomReply {}
+message DeleteRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
 
 message JoinRequest {
   string sid = 1;
@@ -200,12 +215,19 @@ message ParticipantEvent {
 }
 
 message AddParticipantRequest {
-  string sid = 1;               // session id for conference
-  string destination = 2;       // rtsp://192.168.1.1:8080/video1, rtmp://192.168.1.1/video1, sip:100@alice.com
-  string sourceDisplayName = 3;
-  Role role = 4;                // Host, Guest
+  enum Direction {
+    INCOMING = 0;
+    OUTGOING = 1;
+    BILATERAL = 2;
+  }
+  string sid = 3;         // session id for conference
+  string destination = 4; // rtsp://192.168.1.1:8080/video1,
+                          // rtmp://192.168.1.1/video1, sip:100@alice.com
+  string sourceDisplayName = 5;
+  Role role = 6; // Host, Guest
   Protocol protocol =
-      5; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
+      7; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
+  Direction direction = 8;
 }
 
 message AddParticipantReply {

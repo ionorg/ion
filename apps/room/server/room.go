@@ -5,7 +5,6 @@ import (
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
-	"github.com/pion/ion/proto/ion"
 )
 
 type global struct {
@@ -36,9 +35,11 @@ type Config struct {
 // Room represents a Room which manage peers
 type Room struct {
 	sync.RWMutex
-	sid   string
-	nid   string
-	peers map[string]*Peer
+	sid      string
+	nid      string
+	peers    map[string]*Peer
+	locked   bool
+	password string
 }
 
 // newRoom creates a new room instance
@@ -94,18 +95,17 @@ func (r *Room) addPeer(p *Peer) {
 		if err != nil {
 			log.Errorf("p.sendPeerEvent() failed %v", err)
 		}
-
-		if peer.lastStreamEvent != nil {
-			//err := p.sendStreamEvent(peer.lastStreamEvent)
-			//if err != nil {
-			//	log.Errorf("p.sendStreamEvent() failed %v", err)
-			//}
-		}
 	}
 
 	r.Lock()
 	r.peers[p.uid] = p
 	r.Unlock()
+}
+
+func (r *Room) roomLocked() bool {
+	r.RLock()
+	defer r.RUnlock()
+	return r.locked
 }
 
 // getPeer get a peer by peer id
@@ -173,17 +173,8 @@ func (r *Room) sendPeerEvent(event *room.ParticipantEvent) {
 	}
 }
 
-func (r *Room) sendStreamEvent(event *ion.StreamEvent) {
-	//peers := r.getPeers()
-	//for _, p := range peers {
-	//if err := p.sendStreamEvent(event); err != nil {
-	//	log.Errorf("send data to peer(%s) error: %v", p.uid, err)
-	//}
-	//}
-}
-
 func (r *Room) sendMessage(msg *room.Message) {
-	from := msg.Origin
+	from := msg.From
 	// to := msg.To //TODO
 	to := ""
 	data := msg.Payload
@@ -194,6 +185,15 @@ func (r *Room) sendMessage(msg *room.Message) {
 			if err := p.sendMessage(msg); err != nil {
 				log.Errorf("send msg to peer(%s) error: %v", p.uid, err)
 			}
+		}
+	}
+}
+
+func (r *Room) sendMediaPresentation(event *room.MediaPresentation) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.sendMediaPresentation(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
 		}
 	}
 }
