@@ -56,12 +56,8 @@ func (p *Peer) send(data *room.Reply) error {
 
 func (p *Peer) sendPeerEvent(event *room.ParticipantEvent) error {
 	data := &room.Reply{
-		Payload: &room.Reply_Notification{
-			Notification: &room.Notification{
-				Payload: &room.Notification_Participant{
-					Participant: event,
-				},
-			},
+		Payload: &room.Reply_Participant{
+			Participant: event,
 		},
 	}
 	return p.send(data)
@@ -69,12 +65,8 @@ func (p *Peer) sendPeerEvent(event *room.ParticipantEvent) error {
 
 func (p *Peer) sendMessage(msg *room.Message) error {
 	data := &room.Reply{
-		Payload: &room.Reply_Notification{
-			Notification: &room.Notification{
-				Payload: &room.Notification_Message{
-					Message: msg,
-				},
-			},
+		Payload: &room.Reply_Message{
+			Message: msg,
 		},
 	}
 	return p.send(data)

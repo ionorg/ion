@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -37,6 +36,13 @@ func (s *RoomService) close() {
 }
 
 func (s *RoomService) Signal(stream room.Room_SignalServer) error {
+	participant := participant{
+		sig: stream,
+		ctx: stream.Context(),
+	}
+
+	defer participant.Close()
+
 	req, err := stream.Recv()
 	if err != nil {
 		log.Errorf("RoomService.Singal server stream.Recv() err: %v", err)
@@ -45,21 +51,21 @@ func (s *RoomService) Signal(stream room.Room_SignalServer) error {
 
 	switch payload := req.Payload.(type) {
 	case *room.Request_Join:
-		reply, err := s.Join(context.Background(), payload)
+		reply, err := s.Join(payload)
 		if err != nil {
 			log.Errorf("Join err: %v", err)
 			return err
 		}
 		stream.Send(&room.Reply{Payload: reply})
 	case *room.Request_Leave:
-		reply, err := s.Leave(context.Background(), payload)
+		reply, err := s.Leave(payload)
 		if err != nil {
 			log.Errorf("Leave err: %v", err)
 			return err
 		}
 		stream.Send(&room.Reply{Payload: reply})
-	case *room.Request_LockConference:
-		reply, err := s.LockConference(context.Background(), payload)
+	case *room.Request_MediaPresentation:
+		reply, err := s.MediaPresentation(payload)
 		if err != nil {
 			log.Errorf("LockConference err: %v", err)
 			return err
@@ -70,7 +76,7 @@ func (s *RoomService) Signal(stream room.Room_SignalServer) error {
 	return nil
 }
 
-func (s *RoomService) Join(ctx context.Context, in *room.Request_Join) (*room.Reply_Join, error) {
+func (s *RoomService) Join(in *room.Request_Join) (*room.Reply_Join, error) {
 	sid := in.Join.Sid
 	uid := in.Join.Uid
 	info := in.Join.ExtraInfo
@@ -81,7 +87,7 @@ func (s *RoomService) Join(ctx context.Context, in *room.Request_Join) (*room.Re
 	}
 
 	if r != nil {
-		peer := NewPeer(sid, uid, info) //TODO
+		peer := NewPeer(sid, uid, info)
 		r.addPeer(peer)
 		/*
 			//Generate necessary metadata for routing.
@@ -102,7 +108,7 @@ func (s *RoomService) Join(ctx context.Context, in *room.Request_Join) (*room.Re
 	return reply, nil
 }
 
-func (s *RoomService) Leave(ctx context.Context, in *room.Request_Leave) (*room.Reply_Leave, error) {
+func (s *RoomService) Leave(in *room.Request_Leave) (*room.Reply_Leave, error) {
 	uid := in.Leave.Sid
 	sid := in.Leave.Uid
 	r := s.getRoom(sid)
@@ -111,7 +117,7 @@ func (s *RoomService) Leave(ctx context.Context, in *room.Request_Leave) (*room.
 			Leave: &room.LeaveReply{
 				Success: false,
 				Error: &room.Error{
-					Code:   int32(codes.Internal),
+					Code:   room.ErrorType_RoomNotExist,
 					Reason: "room not exist",
 				},
 			},
@@ -135,48 +141,52 @@ func (s *RoomService) Leave(ctx context.Context, in *room.Request_Leave) (*room.
 	}, nil
 }
 
-func (s *RoomService) GetParticipants(ctx context.Context, in *room.Empty) (*room.GetParticipantsReply, error) {
+func (s *RoomService) GetParticipants(in *room.GetParticipantsRequest) (*room.GetParticipantsReply, error) {
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) SetImportance(ctx context.Context, in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
-
-	//TODO
-	return nil, nil
-}
-
-func (s *RoomService) LockConference(ctx context.Context, in *room.Request_LockConference) (*room.Reply_LockConference, error) {
+func (s *RoomService) SetImportance(in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
 
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) EndConference(ctx context.Context, in *room.EndConferenceRequest) (*room.EndConferenceReply, error) {
+func (s *RoomService) MediaPresentation(in *room.Request_MediaPresentation) (*room.Reply_MediaPresentation, error) {
+	return nil, nil
+}
+
+func (s *RoomService) LockConference(in *room.LockConferenceRequest) (*room.LockConferenceReply, error) {
 
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) EditParticipantInfo(ctx context.Context, in *room.EditParticipantInfoRequest) (*room.EditParticipantInfoReply, error) {
+func (s *RoomService) EndConference(in *room.EndConferenceRequest) (*room.EndConferenceReply, error) {
 
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) AddParticipant(ctx context.Context, in *room.AddParticipantRequest) (*room.AddParticipantReply, error) {
+func (s *RoomService) EditParticipantInfo(in *room.EditParticipantInfoRequest) (*room.EditParticipantInfoReply, error) {
 
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) RemoveParticipant(ctx context.Context, in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
+func (s *RoomService) AddParticipant(in *room.AddParticipantRequest) (*room.AddParticipantReply, error) {
 
 	//TODO
 	return nil, nil
 }
 
-func (s *RoomService) SendMessage(ctx context.Context, in *room.Request_SendMessage) (*room.Reply_SendMessage, error) {
+func (s *RoomService) RemoveParticipant(in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
+
+	//TODO
+	return nil, nil
+}
+
+func (s *RoomService) SendMessage(in *room.Request_SendMessage) (*room.Reply_SendMessage, error) {
 	msg := in.SendMessage.Message
 	sid := msg.Origin
 	log.Debugf("Message: %+v", msg)

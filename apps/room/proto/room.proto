@@ -5,21 +5,43 @@ option go_package = "github.com/pion/ion/apps/room/proto";
 package room;
 
 service Room {
+  // Manager API
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomReply) {}
+  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomReply) {}
+  rpc AddParticipant(AddParticipantRequest) returns (AddParticipantReply) {}
+  rpc RemoveParticipant(RemoveParticipantRequest)
+      returns (RemoveParticipantReply) {}
+  rpc GetParticipants(GetParticipantsRequest) returns (GetParticipantsReply) {}
+  rpc LockConference(LockConferenceRequest) returns (LockConferenceReply) {}
+  rpc EndConference(EndConferenceRequest) returns (EndConferenceReply) {}
+  rpc SetImportance(SetImportanceRequest) returns (SetImportanceReply) {}
+  rpc EditParticipantInfo(EditParticipantInfoRequest)
+      returns (EditParticipantInfoReply) {}
+
+  // Signal
   rpc Signal(stream Request) returns (stream Reply) {}
+}
+
+enum ErrorType {
+  PermissionDenied = 0;
+  ServiceUnavailable = 1;
+  RoomLocked = 2;
+  PasswordRequired = 3;
+  RoomNotExist = 4;
+  UnkownError = 5;
+}
+
+message Error {
+  ErrorType code = 1;
+  string reason = 2;
 }
 
 message Request {
   oneof payload {
     JoinRequest join = 1;
     LeaveRequest leave = 2;
-    AddParticipantRequest addParticipant = 3;
-    RemoveParticipantRequest removeParticipant = 4;
-    LockConferenceRequest lockConference = 5;
-    GetParticipantsRequest getParticipants = 6;
-    EndConferenceRequest endConference = 7;
-    SendMessageRequest sendMessage = 8;
-    SetImportanceRequest setImportance = 9;
-    EditParticipantInfoRequest editParticipantInfo = 10;
+    SendMessageRequest sendMessage = 3;
+    MediaPresentationRequest mediaPresentation = 4;
   }
 }
 
@@ -27,19 +49,22 @@ message Reply {
   oneof payload {
     JoinReply join = 1;
     LeaveReply leave = 2;
-    AddParticipantReply addParticipant = 3;
-    RemoveParticipantReply removeParticipant = 4;
-    LockConferenceReply lockConference = 5;
-    GetParticipantsReply getParticipants = 6;
-    EndConferenceReply endConference = 7;
-    SendMessageReply sendMessage = 8;
-    SetImportanceReply setImportance = 9;
-    EditParticipantInfoReply editParticipantInfo = 10;
-    Notification notification = 11;
+    SendMessageReply sendMessage = 3;
+    MediaPresentationReply mediaPresentation = 4;
+    ParticipantEvent participant = 5;
+    MediaPresentation presentation = 6;
+    Message message = 7;
+    Disconnect disconnect = 8;
   }
 }
 
-message Empty {}
+message CreateRoomRequest {}
+
+message CreateRoomReply {}
+
+message DeleteRoomRequest {}
+
+message DeleteRoomReply {}
 
 message JoinRequest {
   string sid = 1;
@@ -49,36 +74,31 @@ message JoinRequest {
   Role role = 5;
   string avatar = 6;
   string vendor = 7;
-  string token = 8;
+  string password = 8;
 }
 
 message Permission {
-  bool addParticipants = 1;
-  bool removeParticipants = 2;
-
-  bool blockOthersAudio = 3;
-  bool blockOthersVideo = 4;
-
-  bool endConference = 7;
-  bool lockConference = 8;
-
-  bool publish = 9;
-  bool subscribe = 10;
-
-  bool setImportance = 11;
+  bool publish = 1;
+  bool subscribe = 2;
+  bool addParticipants = 3;
+  bool removeParticipants = 4;
+  bool endConference = 5;
+  bool lockConference = 6;
+  bool setImportance = 7;
 }
 
-message Configuration {
-  string uuid = 1; // unique id for the room.
-  bool isAudioOnlyMode = 2;
-  Role role = 3;
-  Permission yourPermission = 4;
+message RoomInfo {
+  string sid = 1;
+  string name = 2;
 }
 
 message JoinReply {
   bool success = 1;
-  Configuration config = 2;
-  Error error = 3;
+  Error error = 2;
+  Role role = 3;
+  RoomInfo roomInfo = 4;
+  Permission permission = 5;
+  bool isAudioOnlyMode = 6;
 }
 
 message LeaveRequest {
@@ -92,15 +112,42 @@ message LeaveReply {
 }
 
 enum Role {
-  RoleHost = 0;
-  RoleGuest = 1;
+  Host = 0;
+  Guest = 1;
 }
 
 enum Protocol {
-  ProtocolUnknown = 0;
-  ProtocolWebRTC = 1;
-  ProtocolSIP = 2;
-  ProtocolRTMP = 3;
+  ProtocolWebRTC = 0;
+  ProtocolSIP = 1;
+  ProtocolRTMP = 2;
+  ProtocolRTSP = 3;
+}
+
+enum MediaType {
+  UserMedia = 0;
+  ScreenCapture = 1;
+  Cavans = 2;
+  Streaming = 3;
+  Voip = 4;
+}
+
+message TrackInfo {
+  string id = 1;
+  string stream_id = 2;
+  MediaType type = 3;
+}
+
+message MediaPresentation {
+  string sid = 1;
+  string uid = 2;
+  repeated TrackInfo tracks = 3;
+}
+
+message MediaPresentationRequest { MediaPresentation request = 1; }
+
+message MediaPresentationReply {
+  bool success = 1;
+  Error error = 2;
 }
 
 message Participant {
@@ -110,82 +157,76 @@ message Participant {
   Role role = 4;
   Protocol protocol = 5;
   string avatar = 6;
-  string callDirection = 7; // 'in' or 'out'
-  string vendor = 8;        // device info
+  string callDirection = 7;
+  string vendor = 8;
+  repeated TrackInfo tracks = 9;
 }
 
-message GetParticipantsRequest {}
+message GetParticipantsRequest { string sid = 1; }
 
-message GetParticipantsReply { Participant participants = 1; }
-
-message Error {
-  int32 code = 1;
-  string reason = 2;
-}
-
-enum StreamType {
-  UserMedia = 0;
-  Presentation = 1;
-  Streaming = 2;
-}
+message GetParticipantsReply { repeated Participant participants = 1; }
 
 message Message {
-  string origin = 1; // Name of the sending participant.
-  string uid = 3;    // UUID of the sending participant.
-  string type = 4;   // MIME content-type of the message, usually text/plain.
-  bytes payload = 5; // Payload message contents.
+  string from = 1;   // UUID of the sending participant.
+  string to = 2;     // UUID of the receiving participant.
+  string type = 3;   // MIME content-type of the message, usually text/plain.
+  bytes payload = 4; // Payload message contents.
 }
 
-message SendMessageRequest { Message message = 1; }
+message SendMessageRequest {
+  string sid = 1;
+  Message message = 2;
+}
+
 message SendMessageReply {
   bool success = 1;
   Error error = 2;
 }
 
-message Disconnect { string reason = 1; }
+message Disconnect {
+  string sid = 1;
+  string reason = 2;
+}
 
-enum ParticipantStatus {
-  Create = 0;
-  Update = 1;
-  Delete = 2;
+enum ParticipantState {
+  JOIN = 0;
+  UPDATE = 1;
+  LEAVE = 2;
 }
 
 message ParticipantEvent {
   Participant participant = 1;
-  ParticipantStatus status = 2;
-}
-
-message Notification {
-  oneof payload {
-    ParticipantEvent participant = 1;
-    Message message = 2;
-    Disconnect disconnect = 3;
-    Error error = 4;
-  }
+  ParticipantState state = 2;
 }
 
 message AddParticipantRequest {
-  Role role = 1;
-  string description = 2;
-  Protocol protocol = 3;
-  string source_display_name = 4;
+  string sid = 1;               // session id for conference
+  string destination = 2;       // rtsp://192.168.1.1:8080/video1, rtmp://192.168.1.1/video1, sip:100@alice.com
+  string sourceDisplayName = 3;
+  Role role = 4;                // Host, Guest
+  Protocol protocol =
+      5; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
 }
 
 message AddParticipantReply {
   bool success = 1;
   Error error = 2;
-  Participant description = 3;
+  Participant participant = 3;
 }
 
-message SetImportanceRequest { repeated Participant participants = 1; }
+message SetImportanceRequest {
+  string sid = 1;
+  repeated string uids = 2;
+}
 message SetImportanceReply {
   bool success = 1;
   Error error = 2;
 }
 
 message LockConferenceRequest {
-  bool lock = 1;
-  string password = 2;
+  string sid = 1;
+  bool lock = 2;
+  string password = 3;
 }
 
 message LockConferenceReply {
@@ -193,7 +234,10 @@ message LockConferenceReply {
   Error error = 2;
 }
 
-message EndConferenceRequest { string reason = 1; }
+message EndConferenceRequest {
+  string sid = 1;
+  string reason = 2;
+}
 
 message EndConferenceReply {
   bool success = 1;
@@ -201,15 +245,21 @@ message EndConferenceReply {
 }
 
 message EditParticipantInfoRequest {
-  string uid = 1;
-  string displayName = 2;
+  string sid = 1;
+  string uid = 2;
+  string displayName = 3;
+  // Role role = 4;
 }
+
 message EditParticipantInfoReply {
   bool success = 1;
   Error error = 2;
 }
 
-message RemoveParticipantRequest { string uid = 1; }
+message RemoveParticipantRequest {
+  string sid = 1;
+  string uid = 2;
+}
 
 message RemoveParticipantReply {
   bool success = 1;

@@ -61,15 +61,15 @@ func (r *Room) addPeer(p *Peer) {
 	event := &room.ParticipantEvent{
 		Participant: &room.Participant{
 			Uid:           p.uid,
-			DisplayName:   "",                 //TODO
-			ExtraInfo:     nil,                //TODO
-			Role:          room.Role_RoleHost, //TODO
+			DisplayName:   "",             //TODO
+			ExtraInfo:     nil,            //TODO
+			Role:          room.Role_Host, //TODO
 			Protocol:      room.Protocol_ProtocolWebRTC,
 			Avatar:        "", //TODO
 			CallDirection: "", //TODO
 			Vendor:        "", //TODO
 		},
-		Status: room.ParticipantStatus_Create,
+		State: room.ParticipantState_JOIN,
 	}
 
 	r.sendPeerEvent(event)
@@ -80,15 +80,15 @@ func (r *Room) addPeer(p *Peer) {
 		event := &room.ParticipantEvent{
 			Participant: &room.Participant{
 				Uid:           peer.uid,
-				DisplayName:   "",                 //TODO
-				ExtraInfo:     peer.info,          //TODO
-				Role:          room.Role_RoleHost, //TODO
+				DisplayName:   "",             //TODO
+				ExtraInfo:     peer.info,      //TODO
+				Role:          room.Role_Host, //TODO
 				Protocol:      room.Protocol_ProtocolWebRTC,
 				Avatar:        "", //TODO
 				CallDirection: "", //TODO
 				Vendor:        "", //TODO
 			},
-			Status: room.ParticipantStatus_Create,
+			State: room.ParticipantState_JOIN,
 		}
 		err := p.sendPeerEvent(event)
 		if err != nil {
@@ -141,15 +141,15 @@ func (r *Room) delPeer(p *Peer) int {
 		event := &room.ParticipantEvent{
 			Participant: &room.Participant{
 				Uid:           uid,
-				DisplayName:   "",                 //TODO
-				ExtraInfo:     nil,                //TODO
-				Role:          room.Role_RoleHost, //TODO
+				DisplayName:   "",             //TODO
+				ExtraInfo:     nil,            //TODO
+				Role:          room.Role_Host, //TODO
 				Protocol:      room.Protocol_ProtocolWebRTC,
 				Avatar:        "", //TODO
 				CallDirection: "", //TODO
 				Vendor:        "", //TODO
 			},
-			Status: room.ParticipantStatus_Delete,
+			State: room.ParticipantState_LEAVE,
 		}
 		r.sendPeerEvent(event)
 	}
