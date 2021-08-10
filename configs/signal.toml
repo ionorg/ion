@@ -4,8 +4,8 @@ pprof = ":6064"
 dc = "dc1"
 
 [log]
-level = "info"
-# level = "debug"
+#level = "info"
+level = "debug"
 
 [nats]
 url = "nats://127.0.0.1:4222"
@@ -22,7 +22,7 @@ allow_all_origins = true
 # cert= "configs/certs/cert.pem"
 # key= "configs/certs/key.pem"
 autotls = true
-domain = "localhost"
+domain = "example.com"
 
 [signal.jwt]
 enabled = false 

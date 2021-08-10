@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/autotls"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	log "github.com/pion/ion-log"
 	"github.com/soheilhy/cmux"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -134,21 +134,45 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 		)
 	}
 
+	m := autocert.Manager{
+		Prompt: autocert.AcceptTOS,
+		// HostPolicy: autocert.HostWhitelist(*host),
+		Cache: autocert.DirCache("/certs"),
+	}
+
 	wrappedServer := grpcweb.WrapServer(s.GRPCServer, options...)
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		wrappedServer.ServeHTTP(resp, req)
 	}
 
+	log.Infof("s.options.AutoTLS=%v s.options.Domain=%v", s.options.AutoTLS, s.options.Domain)
+
 	httpServer := http.Server{
-		Addr:    addr,
-		Handler: http.HandlerFunc(handler),
+		Addr: addr,
+		// Handler: http.HandlerFunc(handler),
+		Handler: m.HTTPHandler(http.HandlerFunc(handler)),
 	}
 
+	httpServer.TLSConfig = m.TLSConfig()
+
+	// if s.options.AutoTLS && s.options.Domain != "" {
+	// log.Infof("autotls.Run!")
+	// // err := autotls.Run(httpServer.Handler, s.options.Domain)
+	// // Run support 1-line LetsEncrypt HTTPS servers
+	// err := http.Serve(autocert.NewListener(s.options.Domain), httpServer.Handler)
+	// log.Infof("autotls.Run!")
+	// if err != nil {
+	// log.Errorf("autotls.Run err=%v", err)
+	// return err
+	// }
+	// log.Infof("autotls.Run on %v", s.options.Domain)
+	// }
 	var listener net.Listener
 
 	enableTLS := s.options.Cert != "" && s.options.Key != ""
 
 	if enableTLS {
+		log.Infof("enableTLS!")
 		cer, err := tls.LoadX509KeyPair(s.options.Cert, s.options.Key)
 		if err != nil {
 			log.Panicf("failed to load x509 key pair: %v", err)
@@ -162,15 +186,6 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 		}
 		listener = tls
 	} else {
-		log.Infof("s.options.AutoTLS=%v s.options.Domain=%v", s.options.AutoTLS, s.options.Domain)
-		if s.options.AutoTLS && s.options.Domain != "" {
-			err := autotls.Run(httpServer.Handler, s.options.Domain)
-			if err != nil {
-				log.Errorf("autotls.Run err=%v", err)
-				return err
-			}
-			log.Infof("autotls.Run on %v", s.options.Domain)
-		}
 		tcp, err := net.Listen("tcp", addr)
 		if err != nil {
 			log.Panicf("failed to listen: tcp %v", err)
@@ -181,13 +196,13 @@ func (s *WrapperedGRPCWebServer) Serve() error {
 
 	log.Infof("Starting grpc/grpc-web server, bind: %s, with TLS: %v", addr, enableTLS)
 
-	m := cmux.New(listener)
-	grpcListener := m.Match(cmux.HTTP2())
-	httpListener := m.Match(cmux.HTTP1Fast())
+	mux := cmux.New(listener)
+	grpcListener := mux.Match(cmux.HTTP2())
+	httpListener := mux.Match(cmux.HTTP1Fast())
 	g := new(errgroup.Group)
 	g.Go(func() error { return s.GRPCServer.Serve(grpcListener) })
 	g.Go(func() error { return httpServer.Serve(httpListener) })
-	g.Go(m.Serve)
+	g.Go(mux.Serve)
 	log.Infof("Run server: %v", g.Wait())
 	return nil
 }
