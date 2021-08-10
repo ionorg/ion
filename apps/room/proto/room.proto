@@ -57,6 +57,7 @@ message Reply {
     MediaPresentation presentation = 6;
     Message message = 7;
     Disconnect disconnect = 8;
+    RoomInfo roomInfo = 9;
   }
 }
 
@@ -105,6 +106,7 @@ message Permission {
 message RoomInfo {
   string sid = 1;
   string name = 2;
+  bool locked = 3;
 }
 
 message JoinReply {
@@ -112,8 +114,7 @@ message JoinReply {
   Error error = 2;
   Role role = 3;
   RoomInfo roomInfo = 4;
-  Permission permission = 5;
-  bool isAudioOnlyMode = 6;
+  //Permission permission = 5;
 }
 
 message LeaveRequest {

@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
@@ -28,45 +29,46 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 		}
 	}()
 
-	req, err := stream.Recv()
-	if err != nil {
-		log.Errorf("RoomSignalService.Singal server stream.Recv() err: %v", err)
-		return err
-	}
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			log.Errorf("RoomSignalService.Singal server stream.Recv() err: %v", err)
+			return err
+		}
 
-	switch payload := req.Payload.(type) {
-	case *room.Request_Join:
-		reply, peer, err := s.Join(payload)
-		if err != nil {
-			log.Errorf("Join err: %v", err)
-			return err
+		switch payload := req.Payload.(type) {
+		case *room.Request_Join:
+			reply, peer, err := s.Join(payload)
+			if err != nil {
+				log.Errorf("Join err: %v", err)
+				return err
+			}
+			peer.sig = stream
+			p = peer
+			stream.Send(&room.Reply{Payload: reply})
+		case *room.Request_Leave:
+			reply, err := s.Leave(payload)
+			if err != nil {
+				log.Errorf("Leave err: %v", err)
+				return err
+			}
+			stream.Send(&room.Reply{Payload: reply})
+		case *room.Request_MediaPresentation:
+			reply, err := s.SendMediaPresentation(payload)
+			if err != nil {
+				log.Errorf("LockConference err: %v", err)
+				return err
+			}
+			stream.Send(&room.Reply{Payload: reply})
+		case *room.Request_SendMessage:
+			reply, err := s.SendMessage(payload)
+			if err != nil {
+				log.Errorf("LockConference err: %v", err)
+				return err
+			}
+			stream.Send(&room.Reply{Payload: reply})
 		}
-		p = peer
-		stream.Send(&room.Reply{Payload: reply})
-	case *room.Request_Leave:
-		reply, err := s.Leave(payload)
-		if err != nil {
-			log.Errorf("Leave err: %v", err)
-			return err
-		}
-		stream.Send(&room.Reply{Payload: reply})
-	case *room.Request_MediaPresentation:
-		reply, err := s.SendMediaPresentation(payload)
-		if err != nil {
-			log.Errorf("LockConference err: %v", err)
-			return err
-		}
-		stream.Send(&room.Reply{Payload: reply})
-	case *room.Request_SendMessage:
-		reply, err := s.SendMessage(payload)
-		if err != nil {
-			log.Errorf("LockConference err: %v", err)
-			return err
-		}
-		stream.Send(&room.Reply{Payload: reply})
 	}
-
-	return nil
 }
 
 func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer, error) {
@@ -77,21 +79,29 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	r := s.rs.getRoom(sid)
 
 	if r == nil {
-		r = s.rs.createRoom(sid, "todo nid")
+		//r = s.rs.createRoom(sid, "todo nid")
+		reply := &room.Reply_Join{
+			Join: &room.JoinReply{
+				Success: false,
+				Error: &room.Error{
+					Code:   room.ErrorType_RoomNotExist,
+					Reason: "room not exist",
+				},
+			},
+		}
+		return reply, nil, fmt.Errorf("room [%v] not exist", sid)
 	}
 
-	if r != nil {
-		peer = NewPeer(sid, uid, info)
-		r.addPeer(peer)
-		/*
-			//Generate necessary metadata for routing.
-			header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
-			err := stream.SendHeader(header)
-			if err != nil {
-				log.Errorf("stream.SendHeader failed %v", err)
-			}
-		*/
-	}
+	peer = NewPeer(sid, uid, info)
+	r.addPeer(peer)
+	/*
+		//Generate necessary metadata for routing.
+		header := metadata.New(map[string]string{"service": "sfu", "nid": r.nid, "sid": sid, "uid": uid})
+		err := stream.SendHeader(header)
+		if err != nil {
+			log.Errorf("stream.SendHeader failed %v", err)
+		}
+	*/
 
 	reply := &room.Reply_Join{
 		Join: &room.JoinReply{
@@ -123,9 +133,6 @@ func (s *RoomSignalService) Leave(in *room.Request_Leave) (*room.Reply_Leave, er
 			s.rs.delRoom(r)
 			r = nil
 		}
-		peer.Close()
-		peer = nil
-
 	}
 	return &room.Reply_Leave{
 		Leave: &room.LeaveReply{

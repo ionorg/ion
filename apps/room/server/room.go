@@ -38,6 +38,7 @@ type Room struct {
 	sid      string
 	nid      string
 	peers    map[string]*Peer
+	name     string
 	locked   bool
 	password string
 }
@@ -162,6 +163,15 @@ func (r *Room) count() int {
 	r.RLock()
 	defer r.RUnlock()
 	return len(r.peers)
+}
+
+func (r *Room) broadcast(event *room.Reply) {
+	peers := r.getPeers()
+	for _, p := range peers {
+		if err := p.send(event); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", p.uid, err)
+		}
+	}
 }
 
 func (r *Room) sendPeerEvent(event *room.ParticipantEvent) {

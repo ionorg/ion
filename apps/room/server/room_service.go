@@ -8,6 +8,7 @@ import (
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
+	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,6 +19,7 @@ type RoomService struct {
 	roomLock sync.RWMutex
 	rooms    map[string]*Room
 	closed   chan struct{}
+	redis    *db.Redis
 }
 
 func NewRoomService() *RoomService {
@@ -35,10 +37,19 @@ func (s *RoomService) Close() {
 
 func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest) (*room.CreateRoomReply, error) {
 	sid := in.Sid
+	name := in.Name
+	description := in.Description
+	password := in.Password
 	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
+	if r != nil {
+		return nil, fmt.Errorf("room already exists: %s", sid)
 	}
+
+	key := "/ion/room/" + sid
+	s.redis.HSet(key, "name", name)
+	s.redis.HSet(key, "description", description)
+	s.redis.HSet(key, "password", password)
+
 	//TODO
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRoom not implemented")
 }
@@ -49,6 +60,9 @@ func (s *RoomService) DeleteRoom(ctx context.Context, in *room.DeleteRoomRequest
 	if r == nil {
 		return nil, fmt.Errorf("room not found: %s", sid)
 	}
+	key := "/ion/room/" + sid
+	s.redis.HDel(key, "*")
+
 	//TODO
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoom not implemented")
 }
@@ -65,9 +79,23 @@ func (s *RoomService) AddParticipant(ctx context.Context, in *room.AddParticipan
 
 func (s *RoomService) RemoveParticipant(ctx context.Context, in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
 	sid := in.Sid
+	uid := in.Uid
 	r := s.getRoom(sid)
 	if r == nil {
 		return nil, fmt.Errorf("room not found: %s", sid)
+	}
+	p := r.getPeer(uid)
+	if p != nil {
+		//remove peer
+		p.send(&room.Reply{
+			Payload: &room.Reply_Disconnect{
+				Disconnect: &room.Disconnect{
+					Sid:    sid,
+					Reason: "kicked by host",
+				},
+			},
+		})
+		r.delPeer(p)
 	}
 	//TODO
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveParticipant not implemented")
@@ -89,6 +117,18 @@ func (s *RoomService) LockConference(ctx context.Context, in *room.LockConferenc
 	if r == nil {
 		return nil, fmt.Errorf("room not found: %s", sid)
 	}
+	r.locked = in.Lock
+	r.password = in.Password
+	info := &room.RoomInfo{
+		Sid:    sid,
+		Name:   r.name,
+		Locked: r.locked,
+	}
+	r.broadcast(&room.Reply{
+		Payload: &room.Reply_RoomInfo{
+			RoomInfo: info,
+		},
+	})
 	//TODO
 	return nil, status.Errorf(codes.Unimplemented, "method LockConference not implemented")
 }
@@ -99,6 +139,24 @@ func (s *RoomService) EndConference(ctx context.Context, in *room.EndConferenceR
 	if r == nil {
 		return nil, fmt.Errorf("room not found: %s", sid)
 	}
+	event := &room.Disconnect{
+		Sid:    sid,
+		Reason: "conference ended",
+	}
+
+	r.broadcast(&room.Reply{
+		Payload: &room.Reply_Disconnect{
+			Disconnect: event,
+		},
+	})
+
+	peers := r.getPeers()
+	for _, p := range peers {
+		p.sig.Context().Done()
+		r.delPeer(p)
+	}
+	s.delRoom(r)
+
 	//TODO
 	return nil, status.Errorf(codes.Unimplemented, "method EndConference not implemented")
 }

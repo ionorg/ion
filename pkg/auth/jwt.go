@@ -26,14 +26,6 @@ func (a AuthConfig) KeyFunc(t *jwt.Token) (interface{}, error) {
 	}
 }
 
-// claims custom claims type for jwt
-type Claims struct {
-	UID      string   `json:"uid"`
-	SID      string   `json:"sid"`
-	Services []string `json:"services"`
-	jwt.StandardClaims
-}
-
 func GetClaim(ctx context.Context, ac *AuthConfig) (*Claims, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

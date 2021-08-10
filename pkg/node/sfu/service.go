@@ -113,6 +113,8 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			uid := payload.Join.Uid
 			log.Infof("[C=>S] join: sid => %v, uid => %v", sid, uid)
 
+			//TODO: check auth info.
+
 			// Notify user of new ice candidate
 			peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
 				log.Debugf("[S=>C] peer.OnIceCandidate: target = %v, candidate = %v", target, candidate.Candidate)
