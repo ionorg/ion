@@ -12,13 +12,16 @@ import (
 
 // BizServer represents an BizServer instance
 type RoomSignalService struct {
+	room.UnimplementedRoomSignalServer
 	rs *RoomService
 }
 
 // NewRoomService creates a new room app server instance
-func NewRoomSignalService() (*RoomSignalService, error) {
-	s := &RoomSignalService{}
-	return s, nil
+func NewRoomSignalService(rs *RoomService) *RoomSignalService {
+	s := &RoomSignalService{
+		rs: rs,
+	}
+	return s
 }
 
 func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
