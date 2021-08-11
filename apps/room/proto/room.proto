@@ -221,7 +221,8 @@ message AddParticipantRequest {
     OUTGOING = 1;
     BILATERAL = 2;
   }
-  string sid = 3;         // session id for conference
+  string sid = 2;         // session id for conference
+  string uid = 3;         // user id for conference
   string destination = 4; // rtsp://192.168.1.1:8080/video1,
                           // rtmp://192.168.1.1/video1, sip:100@alice.com
   string sourceDisplayName = 5;
