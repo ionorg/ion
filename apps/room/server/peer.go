@@ -1,39 +1,56 @@
 package server
 
 import (
+	"errors"
+
 	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/pkg/util"
 )
 
-/*
-string sid = 1;
-string uid = 2;
-string displayName = 3;
-bytes extraInfo = 4;
-Role role = 5;
-string avatar = 6;
-string vendor = 7;
-string token = 8;
-*/
-
 // Peer represents a peer for client
 type Peer struct {
-	uid         string
-	sid         string
-	info        []byte
-	displayName string
-	sig         room.RoomSignal_SignalServer
-	closed      util.AtomicBool
+	uid    string
+	info   room.Peer
+	sig    room.RoomSignal_SignalServer
+	closed util.AtomicBool
 }
 
-func NewPeer(sid string, uid string, info []byte) *Peer {
+// NewPeer create a peer
+// args: sid, uid, dest, name, role, protocol, direction, info, avatar, vendor
+// at least sid and uid
+func NewPeer(uid string) *Peer {
 	p := &Peer{
-		uid:  uid,
-		sid:  sid,
-		info: info,
+		uid: uid,
 	}
+	p.info.Uid = uid
 	return p
 }
+
+// NewPeer create a peer
+// args: sid, uid, dest, name, role, protocol, direction, info, avatar, vendor
+// at least sid and uid
+// func NewPeer(args ...string) *Peer {
+// 	if len(args) < 2 {
+// 		return nil
+// 	}
+
+// 	sid, uid, dest, name, role, protocol, direction, info, avatar, vendor := util.GetArgs(args...)
+
+// 	log.Infof("args= %v  %v  %v  %v  %v  %v %v  %v ", sid, uid, dest, name, role, protocol, direction, info)
+// 	p := &Peer{
+// 		sid:         sid,
+// 		uid:         uid,
+// 		dest:        dest,
+// 		displayName: name,
+// 		role:        role,
+// 		protocol:    protocol,
+// 		direction:   direction,
+// 		info:        []byte(info),
+// 		avatar:      avatar,
+// 		vendor:      vendor,
+// 	}
+// 	return p
+// }
 
 // Close peer
 func (p *Peer) Close() {
@@ -44,15 +61,18 @@ func (p *Peer) Close() {
 
 // UID return peer uid
 func (p *Peer) UID() string {
-	return p.uid
+	return p.info.Uid
 }
 
 // SID return session id
 func (p *Peer) SID() string {
-	return p.sid
+	return p.info.Sid
 }
 
 func (p *Peer) send(data *room.Reply) error {
+	if p.sig == nil {
+		return errors.New("p.sig == nil maybe not join")
+	}
 	return p.sig.Send(data)
 }
 
@@ -65,10 +85,10 @@ func (p *Peer) sendMediaPresentation(event *room.MediaPresentation) error {
 	return p.send(data)
 }
 
-func (p *Peer) sendPeerEvent(event *room.ParticipantEvent) error {
+func (p *Peer) sendPeerEvent(event *room.PeerEvent) error {
 	data := &room.Reply{
-		Payload: &room.Reply_Participant{
-			Participant: event,
+		Payload: &room.Reply_Peer{
+			Peer: event,
 		},
 	}
 	return p.send(data)

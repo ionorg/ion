@@ -102,6 +102,15 @@ func (r *Redis) HSet(k, field string, value interface{}) error {
 	return r.single.HSet(k, field, value).Err()
 }
 
+func (r *Redis) HMSet(k, field string, values ...interface{}) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.clusterMode {
+		return r.cluster.HMSet(k, field, values).Err()
+	}
+	return r.single.HSet(k, field, values).Err()
+}
+
 func (r *Redis) HGet(k, field string) string {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -139,7 +148,7 @@ func (r *Redis) Expire(k string, t time.Duration) error {
 	return r.single.Expire(k, t).Err()
 }
 
-func (r *Redis) HSetTTL(k, field string, value interface{}, t time.Duration) error {
+func (r *Redis) HSetTTL(t time.Duration, k, field string, value interface{}) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if r.clusterMode {
@@ -149,6 +158,22 @@ func (r *Redis) HSetTTL(k, field string, value interface{}, t time.Duration) err
 		return r.cluster.Expire(k, t).Err()
 	}
 	if err := r.single.HSet(k, field, value).Err(); err != nil {
+		return err
+	}
+	return r.single.Expire(k, t).Err()
+}
+
+func (r *Redis) HMSetTTL(t time.Duration, k string, values ...interface{}) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.clusterMode {
+		if err := r.cluster.HMSet(k, values...).Err(); err != nil {
+			return err
+		}
+		return r.cluster.Expire(k, t).Err()
+	}
+
+	if err := r.single.HMSet(k, values...).Err(); err != nil {
 		return err
 	}
 	return r.single.Expire(k, t).Err()
@@ -198,4 +223,24 @@ func (r *Redis) Watch(ctx context.Context, key string) <-chan interface{} {
 	}()
 
 	return res
+}
+
+func (r *Redis) Lock(key string) bool {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.clusterMode {
+		ok, _ := r.cluster.SetNX("lock-"+key, 1, 10*time.Second).Result()
+		return ok
+	}
+	ok, _ := r.single.SetNX("lock-"+key, 1, 10*time.Second).Result()
+	return ok
+}
+
+func (r *Redis) UnLock(key string) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.clusterMode {
+		r.cluster.Del("lock-" + key).Result()
+	}
+	r.single.Del("lock-" + key).Result()
 }

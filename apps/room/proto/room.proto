@@ -1,22 +1,27 @@
 syntax = "proto3";
 
+import "proto/rtc/rtc.proto";
+
 option go_package = "github.com/pion/ion/apps/room/proto";
 
 package room;
 
 service RoomService {
   // Manager API
+  // Room API
   rpc CreateRoom(CreateRoomRequest) returns (CreateRoomReply) {}
-  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomReply) {}
-  rpc AddParticipant(AddParticipantRequest) returns (AddParticipantReply) {}
-  rpc RemoveParticipant(RemoveParticipantRequest)
-      returns (RemoveParticipantReply) {}
-  rpc GetParticipants(GetParticipantsRequest) returns (GetParticipantsReply) {}
-  rpc LockConference(LockConferenceRequest) returns (LockConferenceReply) {}
-  rpc EndConference(EndConferenceRequest) returns (EndConferenceReply) {}
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomReply) {}
+  rpc EndRoom(EndRoomRequest) returns (EndRoomReply) {}
+  rpc GetRooms(GetRoomsRequest) returns (GetRoomsReply) {}
+
+  // Peer API
+  rpc AddPeer(AddPeerRequest) returns (AddPeerReply) {}
+  rpc UpdatePeer(UpdatePeerRequest) returns (UpdatePeerReply) {}
+  rpc RemovePeer(RemovePeerRequest) returns (RemovePeerReply) {}
+  rpc GetPeers(GetPeersRequest) returns (GetPeersReply) {}
+
   rpc SetImportance(SetImportanceRequest) returns (SetImportanceReply) {}
-  rpc EditParticipantInfo(EditParticipantInfoRequest)
-      returns (EditParticipantInfoReply) {}
+
 }
 
 service RoomSignal {
@@ -25,12 +30,16 @@ service RoomSignal {
 }
 
 enum ErrorType {
-  PermissionDenied = 0;
-  ServiceUnavailable = 1;
-  RoomLocked = 2;
-  PasswordRequired = 3;
-  RoomNotExist = 4;
-  UnkownError = 5;
+  None = 0;
+  UnkownError = 1;
+  PermissionDenied = 2;
+  ServiceUnavailable = 3;
+  RoomLocked = 4;
+  PasswordRequired = 5;
+  RoomAlreadyExist = 6;
+  RoomNotExist = 7;
+  InvalidParams = 8;
+  PeerAlreadyExist = 9;
 }
 
 message Error {
@@ -53,19 +62,16 @@ message Reply {
     LeaveReply leave = 2;
     SendMessageReply sendMessage = 3;
     MediaPresentationReply mediaPresentation = 4;
-    ParticipantEvent participant = 5;
+    PeerEvent Peer = 5;
     MediaPresentation presentation = 6;
     Message message = 7;
     Disconnect disconnect = 8;
-    RoomInfo roomInfo = 9;
+    Room room = 9;
   }
 }
 
 message CreateRoomRequest {
-  string name = 1;
-  string sid = 2;
-  string password = 3;
-  string description = 4;
+  Room room = 1;
 }
 
 message CreateRoomReply {
@@ -96,24 +102,26 @@ message JoinRequest {
 message Permission {
   bool publish = 1;
   bool subscribe = 2;
-  bool addParticipants = 3;
-  bool removeParticipants = 4;
+  bool addPeers = 3;
+  bool removePeers = 4;
   bool endConference = 5;
-  bool lockConference = 6;
+  bool LockRoom = 6;
   bool setImportance = 7;
 }
 
-message RoomInfo {
+message Room {
   string sid = 1;
   string name = 2;
-  bool locked = 3;
+  bool lock = 3;
+  string password = 4;
+  string description = 5;
 }
 
 message JoinReply {
   bool success = 1;
   Error error = 2;
   Role role = 3;
-  RoomInfo roomInfo = 4;
+  Room room = 4;
   //Permission permission = 5;
 }
 
@@ -133,30 +141,33 @@ enum Role {
 }
 
 enum Protocol {
-  ProtocolWebRTC = 0;
-  ProtocolSIP = 1;
-  ProtocolRTMP = 2;
-  ProtocolRTSP = 3;
+  ProtocolUnknown = 0;
+  WebRTC = 1;
+  SIP = 2;
+  RTMP = 3;
+  RTSP = 4;
 }
 
 enum MediaType {
-  UserMedia = 0;
-  ScreenCapture = 1;
-  Cavans = 2;
-  Streaming = 3;
-  Voip = 4;
+  MediaUnknown = 0;
+  UserMedia = 1;
+  ScreenCapture = 2;
+  Cavans = 3;
+  Streaming =4;
+  VoIP = 5;
 }
 
-message TrackInfo {
+message Track {
   string id = 1;
   string stream_id = 2;
   MediaType type = 3;
+  rtc.Track track = 4;
 }
 
 message MediaPresentation {
   string sid = 1;
   string uid = 2;
-  repeated TrackInfo tracks = 3;
+  repeated Track tracks = 3;
 }
 
 message MediaPresentationRequest { MediaPresentation request = 1; }
@@ -166,25 +177,58 @@ message MediaPresentationReply {
   Error error = 2;
 }
 
-message Participant {
-  string uid = 1;
-  string displayName = 2;
-  bytes extraInfo = 3;
-  Role role = 4;
-  Protocol protocol = 5;
-  string avatar = 6;
-  string callDirection = 7;
-  string vendor = 8;
-  repeated TrackInfo tracks = 9;
+message Peer {
+  enum Direction {
+    INCOMING = 0;
+    OUTGOING = 1;
+    BILATERAL = 2;
+  }
+  string sid = 1;
+  string uid = 2;
+  string displayName = 3;
+  bytes extraInfo = 4;
+  string destination = 5; // rtsp/rtmp/sip url
+  Role role = 6;
+  Protocol protocol = 7;
+  string avatar = 8;
+  Direction direction  = 9;
+  string vendor = 10;
+
+  repeated Track tracks = 11;
 }
 
-message GetParticipantsRequest { string sid = 1; }
+message AddPeerRequest {
+  Peer peer = 1;
+}
 
-message GetParticipantsReply { repeated Participant participants = 1; }
+// message AddPeerRequest {
+//   enum Direction {
+//     INCOMING = 0;
+//     OUTGOING = 1;
+//     BILATERAL = 2;
+//   }
+//   string sid = 2;         // session id for conference
+//   string uid = 3;         // user id for conference
+//   string destination = 4; // rtsp://192.168.1.1:8080/video1,
+//                           // rtmp://192.168.1.1/video1, sip:100@alice.com
+//   string sourceDisplayName = 5;
+//   Role role = 6; // Host, Guest
+//   Protocol protocol = 7; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
+//   Direction direction = 8;
+// }
+
+
+message GetPeersRequest { string sid = 1; }
+
+message GetPeersReply { 
+  bool success = 1;
+  Error error = 2;
+  repeated Peer Peers = 3; 
+}
 
 message Message {
-  string from = 1;   // UUID of the sending participant.
-  string to = 2;     // UUID of the receiving participant.
+  string from = 1;   // UUID of the sending Peer.
+  string to = 2;     // UUID of the receiving Peer.
   string type = 3;   // MIME content-type of the message, usually text/plain.
   bytes payload = 4; // Payload message contents.
 }
@@ -204,38 +248,52 @@ message Disconnect {
   string reason = 2;
 }
 
-enum ParticipantState {
+enum PeerState {
   JOIN = 0;
   UPDATE = 1;
   LEAVE = 2;
 }
 
-message ParticipantEvent {
-  Participant participant = 1;
-  ParticipantState state = 2;
+message PeerEvent {
+  Peer Peer = 1;
+  PeerState state = 2;
 }
 
-message AddParticipantRequest {
-  enum Direction {
-    INCOMING = 0;
-    OUTGOING = 1;
-    BILATERAL = 2;
-  }
-  string sid = 2;         // session id for conference
-  string uid = 3;         // user id for conference
-  string destination = 4; // rtsp://192.168.1.1:8080/video1,
-                          // rtmp://192.168.1.1/video1, sip:100@alice.com
-  string sourceDisplayName = 5;
-  Role role = 6; // Host, Guest
-  Protocol protocol =
-      7; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
-  Direction direction = 8;
+
+
+message UpdateRoomRequest {
+  Room room = 1;
 }
 
-message AddParticipantReply {
+message UpdateRoomReply {
   bool success = 1;
   Error error = 2;
-  Participant participant = 3;
+}
+
+message EndRoomRequest {
+  string sid = 1;
+  string reason = 2;
+  bool delete = 3;
+}
+
+message EndRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message GetRoomsRequest {
+
+}
+
+message GetRoomsReply {
+  bool success = 1;
+  Error error = 2;
+  repeated Room rooms = 3;
+}
+
+message AddPeerReply {
+  bool success = 1;
+  Error error = 2;
 }
 
 message SetImportanceRequest {
@@ -247,45 +305,21 @@ message SetImportanceReply {
   Error error = 2;
 }
 
-message LockConferenceRequest {
-  string sid = 1;
-  bool lock = 2;
-  string password = 3;
+message UpdatePeerRequest {
+  Peer peer = 1;
 }
 
-message LockConferenceReply {
+message UpdatePeerReply {
   bool success = 1;
   Error error = 2;
 }
 
-message EndConferenceRequest {
-  string sid = 1;
-  string reason = 2;
-}
-
-message EndConferenceReply {
-  bool success = 1;
-  Error error = 2;
-}
-
-message EditParticipantInfoRequest {
-  string sid = 1;
-  string uid = 2;
-  string displayName = 3;
-  // Role role = 4;
-}
-
-message EditParticipantInfoReply {
-  bool success = 1;
-  Error error = 2;
-}
-
-message RemoveParticipantRequest {
+message RemovePeerRequest {
   string sid = 1;
   string uid = 2;
 }
 
-message RemoveParticipantReply {
+message RemovePeerReply {
   bool success = 1;
   Error error = 2;
 }

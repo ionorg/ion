@@ -34,3 +34,57 @@ func Recover(flag string) {
 		debug.PrintStack()
 	}
 }
+
+func GetRedisRoomKey(sid string) string {
+	return "/ion/room/" + sid
+}
+
+func GetRedisPeerKey(sid, uid string) string {
+	return "/ion/room/" + sid + "/" + uid
+}
+
+func GetRedisPeersPrefixKey(sid string) string {
+	return "/ion/room/" + sid + "/*"
+}
+
+func GetArgs(args ...string) (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 string){
+		// at least sid uid
+	if len(args) < 2 {
+			return "", "", "", "", "", "", "", "", "", ""
+	}
+	// parse args
+		for i, arg := range args {
+			switch i {
+			case 0:
+				arg1 = arg
+			case 1:
+				arg2 = arg
+			case 2:
+				arg3 = arg
+			case 3:
+				arg4 = arg
+			case 4:
+				arg5 = arg
+			case 5:
+				arg6 = arg
+			case 6:
+				arg7 = arg
+			case 7:
+				arg8 = arg
+			case 8:
+				arg9 = arg
+			case 9:
+				arg10 = arg
+			default:
+
+			}
+		}
+		return arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10
+}
+
+func BoolToString(flag bool) string{
+	if !flag{
+		return "false"
+	}
+	return "true"
+}

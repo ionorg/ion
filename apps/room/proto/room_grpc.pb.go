@@ -19,15 +19,17 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RoomServiceClient interface {
 	// Manager API
+	// Room API
 	CreateRoom(ctx context.Context, in *CreateRoomRequest, opts ...grpc.CallOption) (*CreateRoomReply, error)
-	DeleteRoom(ctx context.Context, in *DeleteRoomRequest, opts ...grpc.CallOption) (*DeleteRoomReply, error)
-	AddParticipant(ctx context.Context, in *AddParticipantRequest, opts ...grpc.CallOption) (*AddParticipantReply, error)
-	RemoveParticipant(ctx context.Context, in *RemoveParticipantRequest, opts ...grpc.CallOption) (*RemoveParticipantReply, error)
-	GetParticipants(ctx context.Context, in *GetParticipantsRequest, opts ...grpc.CallOption) (*GetParticipantsReply, error)
-	LockConference(ctx context.Context, in *LockConferenceRequest, opts ...grpc.CallOption) (*LockConferenceReply, error)
-	EndConference(ctx context.Context, in *EndConferenceRequest, opts ...grpc.CallOption) (*EndConferenceReply, error)
+	UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomReply, error)
+	EndRoom(ctx context.Context, in *EndRoomRequest, opts ...grpc.CallOption) (*EndRoomReply, error)
+	GetRooms(ctx context.Context, in *GetRoomsRequest, opts ...grpc.CallOption) (*GetRoomsReply, error)
+	// Peer API
+	AddPeer(ctx context.Context, in *AddPeerRequest, opts ...grpc.CallOption) (*AddPeerReply, error)
+	UpdatePeer(ctx context.Context, in *UpdatePeerRequest, opts ...grpc.CallOption) (*UpdatePeerReply, error)
+	RemovePeer(ctx context.Context, in *RemovePeerRequest, opts ...grpc.CallOption) (*RemovePeerReply, error)
+	GetPeers(ctx context.Context, in *GetPeersRequest, opts ...grpc.CallOption) (*GetPeersReply, error)
 	SetImportance(ctx context.Context, in *SetImportanceRequest, opts ...grpc.CallOption) (*SetImportanceReply, error)
-	EditParticipantInfo(ctx context.Context, in *EditParticipantInfoRequest, opts ...grpc.CallOption) (*EditParticipantInfoReply, error)
 }
 
 type roomServiceClient struct {
@@ -47,54 +49,63 @@ func (c *roomServiceClient) CreateRoom(ctx context.Context, in *CreateRoomReques
 	return out, nil
 }
 
-func (c *roomServiceClient) DeleteRoom(ctx context.Context, in *DeleteRoomRequest, opts ...grpc.CallOption) (*DeleteRoomReply, error) {
-	out := new(DeleteRoomReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/DeleteRoom", in, out, opts...)
+func (c *roomServiceClient) UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomReply, error) {
+	out := new(UpdateRoomReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/UpdateRoom", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *roomServiceClient) AddParticipant(ctx context.Context, in *AddParticipantRequest, opts ...grpc.CallOption) (*AddParticipantReply, error) {
-	out := new(AddParticipantReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/AddParticipant", in, out, opts...)
+func (c *roomServiceClient) EndRoom(ctx context.Context, in *EndRoomRequest, opts ...grpc.CallOption) (*EndRoomReply, error) {
+	out := new(EndRoomReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/EndRoom", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *roomServiceClient) RemoveParticipant(ctx context.Context, in *RemoveParticipantRequest, opts ...grpc.CallOption) (*RemoveParticipantReply, error) {
-	out := new(RemoveParticipantReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/RemoveParticipant", in, out, opts...)
+func (c *roomServiceClient) GetRooms(ctx context.Context, in *GetRoomsRequest, opts ...grpc.CallOption) (*GetRoomsReply, error) {
+	out := new(GetRoomsReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/GetRooms", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *roomServiceClient) GetParticipants(ctx context.Context, in *GetParticipantsRequest, opts ...grpc.CallOption) (*GetParticipantsReply, error) {
-	out := new(GetParticipantsReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/GetParticipants", in, out, opts...)
+func (c *roomServiceClient) AddPeer(ctx context.Context, in *AddPeerRequest, opts ...grpc.CallOption) (*AddPeerReply, error) {
+	out := new(AddPeerReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/AddPeer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *roomServiceClient) LockConference(ctx context.Context, in *LockConferenceRequest, opts ...grpc.CallOption) (*LockConferenceReply, error) {
-	out := new(LockConferenceReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/LockConference", in, out, opts...)
+func (c *roomServiceClient) UpdatePeer(ctx context.Context, in *UpdatePeerRequest, opts ...grpc.CallOption) (*UpdatePeerReply, error) {
+	out := new(UpdatePeerReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/UpdatePeer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *roomServiceClient) EndConference(ctx context.Context, in *EndConferenceRequest, opts ...grpc.CallOption) (*EndConferenceReply, error) {
-	out := new(EndConferenceReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/EndConference", in, out, opts...)
+func (c *roomServiceClient) RemovePeer(ctx context.Context, in *RemovePeerRequest, opts ...grpc.CallOption) (*RemovePeerReply, error) {
+	out := new(RemovePeerReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/RemovePeer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *roomServiceClient) GetPeers(ctx context.Context, in *GetPeersRequest, opts ...grpc.CallOption) (*GetPeersReply, error) {
+	out := new(GetPeersReply)
+	err := c.cc.Invoke(ctx, "/room.RoomService/GetPeers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,29 +121,22 @@ func (c *roomServiceClient) SetImportance(ctx context.Context, in *SetImportance
 	return out, nil
 }
 
-func (c *roomServiceClient) EditParticipantInfo(ctx context.Context, in *EditParticipantInfoRequest, opts ...grpc.CallOption) (*EditParticipantInfoReply, error) {
-	out := new(EditParticipantInfoReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/EditParticipantInfo", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RoomServiceServer is the server API for RoomService service.
 // All implementations must embed UnimplementedRoomServiceServer
 // for forward compatibility
 type RoomServiceServer interface {
 	// Manager API
+	// Room API
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomReply, error)
-	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomReply, error)
-	AddParticipant(context.Context, *AddParticipantRequest) (*AddParticipantReply, error)
-	RemoveParticipant(context.Context, *RemoveParticipantRequest) (*RemoveParticipantReply, error)
-	GetParticipants(context.Context, *GetParticipantsRequest) (*GetParticipantsReply, error)
-	LockConference(context.Context, *LockConferenceRequest) (*LockConferenceReply, error)
-	EndConference(context.Context, *EndConferenceRequest) (*EndConferenceReply, error)
+	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomReply, error)
+	EndRoom(context.Context, *EndRoomRequest) (*EndRoomReply, error)
+	GetRooms(context.Context, *GetRoomsRequest) (*GetRoomsReply, error)
+	// Peer API
+	AddPeer(context.Context, *AddPeerRequest) (*AddPeerReply, error)
+	UpdatePeer(context.Context, *UpdatePeerRequest) (*UpdatePeerReply, error)
+	RemovePeer(context.Context, *RemovePeerRequest) (*RemovePeerReply, error)
+	GetPeers(context.Context, *GetPeersRequest) (*GetPeersReply, error)
 	SetImportance(context.Context, *SetImportanceRequest) (*SetImportanceReply, error)
-	EditParticipantInfo(context.Context, *EditParticipantInfoRequest) (*EditParticipantInfoReply, error)
 	mustEmbedUnimplementedRoomServiceServer()
 }
 
@@ -143,29 +147,29 @@ type UnimplementedRoomServiceServer struct {
 func (UnimplementedRoomServiceServer) CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRoom not implemented")
 }
-func (UnimplementedRoomServiceServer) DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoom not implemented")
+func (UnimplementedRoomServiceServer) UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRoom not implemented")
 }
-func (UnimplementedRoomServiceServer) AddParticipant(context.Context, *AddParticipantRequest) (*AddParticipantReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddParticipant not implemented")
+func (UnimplementedRoomServiceServer) EndRoom(context.Context, *EndRoomRequest) (*EndRoomReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EndRoom not implemented")
 }
-func (UnimplementedRoomServiceServer) RemoveParticipant(context.Context, *RemoveParticipantRequest) (*RemoveParticipantReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveParticipant not implemented")
+func (UnimplementedRoomServiceServer) GetRooms(context.Context, *GetRoomsRequest) (*GetRoomsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRooms not implemented")
 }
-func (UnimplementedRoomServiceServer) GetParticipants(context.Context, *GetParticipantsRequest) (*GetParticipantsReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetParticipants not implemented")
+func (UnimplementedRoomServiceServer) AddPeer(context.Context, *AddPeerRequest) (*AddPeerReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddPeer not implemented")
 }
-func (UnimplementedRoomServiceServer) LockConference(context.Context, *LockConferenceRequest) (*LockConferenceReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LockConference not implemented")
+func (UnimplementedRoomServiceServer) UpdatePeer(context.Context, *UpdatePeerRequest) (*UpdatePeerReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePeer not implemented")
 }
-func (UnimplementedRoomServiceServer) EndConference(context.Context, *EndConferenceRequest) (*EndConferenceReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EndConference not implemented")
+func (UnimplementedRoomServiceServer) RemovePeer(context.Context, *RemovePeerRequest) (*RemovePeerReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemovePeer not implemented")
+}
+func (UnimplementedRoomServiceServer) GetPeers(context.Context, *GetPeersRequest) (*GetPeersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeers not implemented")
 }
 func (UnimplementedRoomServiceServer) SetImportance(context.Context, *SetImportanceRequest) (*SetImportanceReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetImportance not implemented")
-}
-func (UnimplementedRoomServiceServer) EditParticipantInfo(context.Context, *EditParticipantInfoRequest) (*EditParticipantInfoReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EditParticipantInfo not implemented")
 }
 func (UnimplementedRoomServiceServer) mustEmbedUnimplementedRoomServiceServer() {}
 
@@ -198,110 +202,128 @@ func _RoomService_CreateRoom_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_DeleteRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteRoomRequest)
+func _RoomService_UpdateRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRoomRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).DeleteRoom(ctx, in)
+		return srv.(RoomServiceServer).UpdateRoom(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/DeleteRoom",
+		FullMethod: "/room.RoomService/UpdateRoom",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).DeleteRoom(ctx, req.(*DeleteRoomRequest))
+		return srv.(RoomServiceServer).UpdateRoom(ctx, req.(*UpdateRoomRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_AddParticipant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddParticipantRequest)
+func _RoomService_EndRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndRoomRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).AddParticipant(ctx, in)
+		return srv.(RoomServiceServer).EndRoom(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/AddParticipant",
+		FullMethod: "/room.RoomService/EndRoom",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).AddParticipant(ctx, req.(*AddParticipantRequest))
+		return srv.(RoomServiceServer).EndRoom(ctx, req.(*EndRoomRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_RemoveParticipant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveParticipantRequest)
+func _RoomService_GetRooms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoomsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).RemoveParticipant(ctx, in)
+		return srv.(RoomServiceServer).GetRooms(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/RemoveParticipant",
+		FullMethod: "/room.RoomService/GetRooms",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).RemoveParticipant(ctx, req.(*RemoveParticipantRequest))
+		return srv.(RoomServiceServer).GetRooms(ctx, req.(*GetRoomsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_GetParticipants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetParticipantsRequest)
+func _RoomService_AddPeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddPeerRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).GetParticipants(ctx, in)
+		return srv.(RoomServiceServer).AddPeer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/GetParticipants",
+		FullMethod: "/room.RoomService/AddPeer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).GetParticipants(ctx, req.(*GetParticipantsRequest))
+		return srv.(RoomServiceServer).AddPeer(ctx, req.(*AddPeerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_LockConference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LockConferenceRequest)
+func _RoomService_UpdatePeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePeerRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).LockConference(ctx, in)
+		return srv.(RoomServiceServer).UpdatePeer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/LockConference",
+		FullMethod: "/room.RoomService/UpdatePeer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).LockConference(ctx, req.(*LockConferenceRequest))
+		return srv.(RoomServiceServer).UpdatePeer(ctx, req.(*UpdatePeerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_EndConference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EndConferenceRequest)
+func _RoomService_RemovePeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemovePeerRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoomServiceServer).EndConference(ctx, in)
+		return srv.(RoomServiceServer).RemovePeer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/room.RoomService/EndConference",
+		FullMethod: "/room.RoomService/RemovePeer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).EndConference(ctx, req.(*EndConferenceRequest))
+		return srv.(RoomServiceServer).RemovePeer(ctx, req.(*RemovePeerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RoomService_GetPeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPeersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServiceServer).GetPeers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/room.RoomService/GetPeers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServiceServer).GetPeers(ctx, req.(*GetPeersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -324,24 +346,6 @@ func _RoomService_SetImportance_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_EditParticipantInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EditParticipantInfoRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RoomServiceServer).EditParticipantInfo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/room.RoomService/EditParticipantInfo",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).EditParticipantInfo(ctx, req.(*EditParticipantInfoRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RoomService_ServiceDesc is the grpc.ServiceDesc for RoomService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -354,36 +358,36 @@ var RoomService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RoomService_CreateRoom_Handler,
 		},
 		{
-			MethodName: "DeleteRoom",
-			Handler:    _RoomService_DeleteRoom_Handler,
+			MethodName: "UpdateRoom",
+			Handler:    _RoomService_UpdateRoom_Handler,
 		},
 		{
-			MethodName: "AddParticipant",
-			Handler:    _RoomService_AddParticipant_Handler,
+			MethodName: "EndRoom",
+			Handler:    _RoomService_EndRoom_Handler,
 		},
 		{
-			MethodName: "RemoveParticipant",
-			Handler:    _RoomService_RemoveParticipant_Handler,
+			MethodName: "GetRooms",
+			Handler:    _RoomService_GetRooms_Handler,
 		},
 		{
-			MethodName: "GetParticipants",
-			Handler:    _RoomService_GetParticipants_Handler,
+			MethodName: "AddPeer",
+			Handler:    _RoomService_AddPeer_Handler,
 		},
 		{
-			MethodName: "LockConference",
-			Handler:    _RoomService_LockConference_Handler,
+			MethodName: "UpdatePeer",
+			Handler:    _RoomService_UpdatePeer_Handler,
 		},
 		{
-			MethodName: "EndConference",
-			Handler:    _RoomService_EndConference_Handler,
+			MethodName: "RemovePeer",
+			Handler:    _RoomService_RemovePeer_Handler,
+		},
+		{
+			MethodName: "GetPeers",
+			Handler:    _RoomService_GetPeers_Handler,
 		},
 		{
 			MethodName: "SetImportance",
 			Handler:    _RoomService_SetImportance_Handler,
-		},
-		{
-			MethodName: "EditParticipantInfo",
-			Handler:    _RoomService_EditParticipantInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

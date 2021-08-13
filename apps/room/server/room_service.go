@@ -22,10 +22,11 @@ type RoomService struct {
 	redis    *db.Redis
 }
 
-func NewRoomService() *RoomService {
+func NewRoomService(config db.Config) *RoomService {
 	s := &RoomService{
 		rooms:  make(map[string]*Room),
 		closed: make(chan struct{}),
+		redis:  db.NewRedis(config),
 	}
 	go s.stat()
 	return s
@@ -35,59 +36,400 @@ func (s *RoomService) Close() {
 	close(s.closed)
 }
 
+// CreateRoom create a room
 func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest) (*room.CreateRoomReply, error) {
-	sid := in.Sid
-	name := in.Name
-	description := in.Description
-	password := in.Password
-	r := s.getRoom(sid)
-	if r != nil {
-		return nil, fmt.Errorf("room already exists: %s", sid)
+	info := in.Room
+	log.Infof("info=%+v", info)
+	if info == nil || info.Sid == "" {
+		return &room.CreateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_InvalidParams,
+				Reason: "sid not exist",
+			},
+		}, nil
 	}
 
-	key := "/ion/room/" + sid
-	s.redis.HSet(key, "name", name)
-	s.redis.HSet(key, "description", description)
-	s.redis.HSet(key, "password", password)
+	// return if room exist in redis
+	sid := info.Sid
+	key := util.GetRedisRoomKey(sid)
 
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method CreateRoom not implemented")
+	if s.redis.HGet(key, "sid") != "" {
+		// create room if not exist in memroy but exist in redis
+		if r := s.getRoom(sid); r == nil {
+			s.createRoom(sid)
+		}
+		return &room.CreateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomAlreadyExist,
+				Reason: "room already exist",
+			},
+		}, nil
+	}
+
+	// create local room if room not found locally
+	r := s.getRoom(info.Sid)
+	if r == nil {
+		r = s.createRoom(info.Sid)
+	}
+	r.info = *info //copy mutex?
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	// store room info
+	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", r.info.Sid, "name", r.info.Name,
+		"password", r.info.Password, "description", r.info.Description, "lock", r.info.Lock)
+	if err != nil {
+		return &room.CreateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+
+	log.Infof("create room ok sid=%v", sid)
+
+	// success
+	return &room.CreateRoomReply{Success: true}, err
 }
 
-func (s *RoomService) DeleteRoom(ctx context.Context, in *room.DeleteRoomRequest) (*room.DeleteRoomReply, error) {
+// UpdateRoom update a room.
+// can lock room and change password
+func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest) (*room.UpdateRoomReply, error) {
+	info := in.Room
+	log.Infof("info=%+v", info)
+	if info == nil || info.Sid == "" {
+		return &room.UpdateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_InvalidParams,
+				Reason: "sid not exist",
+			},
+		}, nil
+	}
+
+	sid := info.Sid
+
+	// check room in redis
+	key := util.GetRedisRoomKey(sid)
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	if s.redis.HGet(key, "sid") == "" {
+		return &room.UpdateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomNotExist,
+				Reason: "room not exist",
+			},
+		}, nil
+	}
+
+	// check local room
+	r := s.getRoom(info.Sid)
+	if r == nil {
+		r = s.createRoom(info.Sid)
+	}
+	r.info = *info
+	// update redis
+	log.Infof("update room info=%+v", r.info)
+	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", r.info.Sid, "name", r.info.Name,
+		"password", r.info.Password, "description", r.info.Description, "lock", r.info.Lock)
+	if err != nil {
+		return &room.UpdateRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+
+	event := &room.Reply{
+		Payload: &room.Reply_Room{
+			Room: info,
+		},
+	}
+
+	// broadcast to others
+	r.broadcastRoomEvent(event)
+	log.Infof("update room ok sid=%v", sid)
+	return &room.UpdateRoomReply{Success: true}, nil
+}
+
+// EndRoom end a room
+func (s *RoomService) EndRoom(ctx context.Context, in *room.EndRoomRequest) (*room.EndRoomReply, error) {
 	sid := in.Sid
 	r := s.getRoom(sid)
 	if r == nil {
 		return nil, fmt.Errorf("room not found: %s", sid)
 	}
-	key := "/ion/room/" + sid
-	s.redis.HDel(key, "*")
 
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoom not implemented")
+	// delete redis key
+	key := util.GetRedisRoomKey(sid)
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	err := s.redis.Del(key)
+	if err != nil {
+		return &room.EndRoomReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+
+	// broadcast end message
+	event := &room.Disconnect{
+		Sid:    sid,
+		Reason: "Room ended",
+	}
+
+	r.broadcastRoomEvent(
+		&room.Reply{
+			Payload: &room.Reply_Disconnect{
+				Disconnect: event,
+			},
+		},
+	)
+
+	// delete all peers and room
+	peers := r.getPeers()
+	for _, p := range peers {
+		if p.sig == nil {
+			continue
+		}
+		p.sig.Context().Done()
+		r.delPeer(p)
+	}
+	s.delRoom(r)
+
+	log.Infof("end room ok sid=%v", sid)
+	return &room.EndRoomReply{Success: true}, nil
 }
 
-func (s *RoomService) AddParticipant(ctx context.Context, in *room.AddParticipantRequest) (*room.AddParticipantReply, error) {
-	sid := in.Sid
+// AddPeer invite a peer (webrtc/rtsp/rtmp/.. stream)
+func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*room.AddPeerReply, error) {
+	log.Infof("AddPeer in=%+v", in)
+	info := in.Peer
+	if info == nil || info.Uid == "" || info.Sid == "" {
+		return &room.AddPeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_InvalidParams,
+				Reason: "sid or uid not exist",
+			},
+		}, nil
+	}
+
+	sid := in.Peer.Sid
+	uid := in.Peer.Uid
+	dest := in.Peer.Destination
+	name := in.Peer.DisplayName
+	role := in.Peer.Role.String()
+	protocol := in.Peer.Protocol.String()
+	direction := in.Peer.Direction.String()
+
+	// check room exist
+	key := util.GetRedisRoomKey(sid)
+	if s.redis.HGet(key, "sid") == "" {
+		return &room.AddPeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomAlreadyExist,
+				Reason: "room not exist",
+			},
+		}, nil
+	}
+
+	// check peer exist
+	key = util.GetRedisPeerKey(sid, uid)
+	if s.redis.HGet(key, "uid") != "" {
+		return &room.AddPeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_PeerAlreadyExist,
+				Reason: "peer already exist",
+			},
+		}, nil
+	}
+
+	// create room if not exist locally
 	r := s.getRoom(sid)
 	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
+		r = s.createRoom(sid)
 	}
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method AddParticipant not implemented")
+
+	// create peer and add to room
+	p := NewPeer(sid)
+	p.info = *info
+	r.addPeer(p)
+
+	// store peer to redis
+	key = util.GetRedisPeerKey(sid, uid)
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "dest", dest,
+		"name", name, "role", role, "protocol", protocol, "direction", direction)
+
+	if err != nil {
+		return &room.AddPeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+	log.Infof("add peer ok sid=%v", sid)
+	return &room.AddPeerReply{Success: true}, nil
 }
 
-func (s *RoomService) RemoveParticipant(ctx context.Context, in *room.RemoveParticipantRequest) (*room.RemoveParticipantReply, error) {
+// UpdatePeer update a peer
+func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest) (*room.UpdatePeerReply, error) {
+	log.Infof("UpdatePeer in=%+v", in)
+	info := in.Peer
+	if info == nil || info.Uid == "" || info.Sid == "" {
+		return &room.UpdatePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_InvalidParams,
+				Reason: "sid or uid not exist",
+			},
+		}, nil
+	}
+	sid := in.Peer.Sid
+	uid := in.Peer.Uid
+	destination := in.Peer.Destination
+	name := in.Peer.DisplayName
+	role := in.Peer.Role.String()
+	protocol := in.Peer.Protocol.String()
+	direction := in.Peer.Direction.String()
+
+	// check room exist
+	key := util.GetRedisRoomKey(sid)
+	if s.redis.HGet(key, "sid") == "" {
+		return &room.UpdatePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomAlreadyExist,
+				Reason: "room not exist",
+			},
+		}, nil
+	}
+
+	// check peer exist
+	key = util.GetRedisPeerKey(sid, uid)
+	if s.redis.HGet(key, "uid") != "" {
+		return &room.UpdatePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_PeerAlreadyExist,
+				Reason: "peer already exist",
+			},
+		}, nil
+	}
+
+	// create room if not exist locally
+	r := s.getRoom(sid)
+	if r == nil {
+		r = s.createRoom(sid)
+	}
+
+	// update local peer if exist
+	p := r.getPeer(uid)
+	if p == nil {
+		p = NewPeer(sid)
+		r.addPeer(p)
+	}
+	p.info = *info
+
+	// store peer to redis
+	key = util.GetRedisPeerKey(sid, uid)
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "destination", destination,
+		"name", name, "role", role, "protocol", protocol, "direction", direction)
+
+	if err != nil {
+		return &room.UpdatePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+
+	// broadcast to others
+	r.broadcastPeerEvent(
+		&room.PeerEvent{
+			Peer:  &p.info,
+			State: room.PeerState_UPDATE,
+		},
+	)
+	log.Infof("update peer ok sid=%v", sid)
+	return &room.UpdatePeerReply{Success: true}, nil
+}
+
+// RemovePeer delete a peer
+func (s *RoomService) RemovePeer(ctx context.Context, in *room.RemovePeerRequest) (*room.RemovePeerReply, error) {
 	sid := in.Sid
 	uid := in.Uid
+
+	// find room
 	r := s.getRoom(sid)
 	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
+		return &room.RemovePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomNotExist,
+				Reason: "room not exist",
+			},
+		}, nil
 	}
+
+	// rm peer in db
+	// store peer to redis
+	key := util.GetRedisPeerKey(sid, uid)
+
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	err := s.redis.Del(key)
+	if err != nil {
+		return &room.RemovePeerReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_ServiceUnavailable,
+				Reason: err.Error(),
+			},
+		}, nil
+	}
+
+	// rm peer in room
 	p := r.getPeer(uid)
 	if p != nil {
 		//remove peer
-		p.send(&room.Reply{
+		_ = p.send(&room.Reply{
 			Payload: &room.Reply_Disconnect{
 				Disconnect: &room.Disconnect{
 					Sid:    sid,
@@ -97,68 +439,54 @@ func (s *RoomService) RemoveParticipant(ctx context.Context, in *room.RemovePart
 		})
 		r.delPeer(p)
 	}
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveParticipant not implemented")
+	log.Infof("remove peer ok sid=%v", sid)
+	return &room.RemovePeerReply{Success: true}, nil
 }
 
-func (s *RoomService) GetParticipants(ctx context.Context, in *room.GetParticipantsRequest) (*room.GetParticipantsReply, error) {
+// GetPeers get all peers in room
+func (s *RoomService) GetPeers(ctx context.Context, in *room.GetPeersRequest) (*room.GetPeersReply, error) {
 	sid := in.Sid
+	// get room and check
 	r := s.getRoom(sid)
 	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-	//TODO
-	return nil, nil
-}
-
-func (s *RoomService) LockConference(ctx context.Context, in *room.LockConferenceRequest) (*room.LockConferenceReply, error) {
-	sid := in.Sid
-	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-	r.locked = in.Lock
-	r.password = in.Password
-	info := &room.RoomInfo{
-		Sid:    sid,
-		Name:   r.name,
-		Locked: r.locked,
-	}
-	r.broadcast(&room.Reply{
-		Payload: &room.Reply_RoomInfo{
-			RoomInfo: info,
-		},
-	})
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method LockConference not implemented")
-}
-
-func (s *RoomService) EndConference(ctx context.Context, in *room.EndConferenceRequest) (*room.EndConferenceReply, error) {
-	sid := in.Sid
-	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-	event := &room.Disconnect{
-		Sid:    sid,
-		Reason: "conference ended",
+		return &room.GetPeersReply{
+			Success: false,
+			Error: &room.Error{
+				Code:   room.ErrorType_RoomNotExist,
+				Reason: "room not exist",
+			},
+		}, nil
 	}
 
-	r.broadcast(&room.Reply{
-		Payload: &room.Reply_Disconnect{
-			Disconnect: event,
-		},
-	})
+	// store peer to redis
+	key := util.GetRedisPeersPrefixKey(sid)
 
-	peers := r.getPeers()
-	for _, p := range peers {
-		p.sig.Context().Done()
-		r.delPeer(p)
+	// destributed lock
+	s.redis.Lock(key)
+	defer s.redis.UnLock(key)
+
+	peersKeys := s.redis.Keys(key)
+	var roomPeers []*room.Peer
+	for _, pkey := range peersKeys {
+		res := s.redis.HGetAll(pkey)
+		roomPeer := &room.Peer{
+			Sid:         res["sid"],
+			Uid:         res["uid"],
+			DisplayName: res["name"],
+			ExtraInfo:   []byte(res["info"]),
+			Role:        room.Role(room.Role_value[res["role"]]),
+			Protocol:    room.Protocol(room.Protocol_value[res["protocol"]]),
+			Avatar:      res["avatar"],
+			Direction:   room.Peer_Direction(room.Peer_Direction_value["direction"]),
+			Vendor:      res["vendor"],
+		}
+		roomPeers = append(roomPeers, roomPeer)
 	}
-	s.delRoom(r)
-
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method EndConference not implemented")
+	log.Infof("get peers ok roomPeers=%+v", roomPeers)
+	return &room.GetPeersReply{
+		Success: true,
+		Peers:   roomPeers,
+	}, nil
 }
 
 func (s *RoomService) SetImportance(ctx context.Context, in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
@@ -171,23 +499,13 @@ func (s *RoomService) SetImportance(ctx context.Context, in *room.SetImportanceR
 	return nil, status.Errorf(codes.Unimplemented, "method SetImportance not implemented")
 }
 
-func (s *RoomService) EditParticipantInfo(ctx context.Context, in *room.EditParticipantInfoRequest) (*room.EditParticipantInfoReply, error) {
-	sid := in.Sid
-	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method EditParticipantInfo not implemented")
-}
-
-func (s *RoomService) createRoom(sid string, sfuNID string) *Room {
+func (s *RoomService) createRoom(sid string) *Room {
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
 	if r := s.rooms[sid]; r != nil {
 		return r
 	}
-	r := newRoom(sid, sfuNID)
+	r := newRoom(sid)
 	s.rooms[sid] = r
 	return r
 }
@@ -222,6 +540,10 @@ func (s *RoomService) stat() {
 		var info string
 		s.roomLock.RLock()
 		for sid, room := range s.rooms {
+			//clean after room is clean and expired
+			if time.Since(room.update) > 10*time.Second && room.count() == 0 {
+				delete(s.rooms, sid)
+			}
 			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
 		}
 		s.roomLock.RUnlock()
