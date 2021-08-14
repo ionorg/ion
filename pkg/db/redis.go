@@ -76,16 +76,16 @@ func (r *Redis) Close() {
 	}
 }
 
-func (r *Redis) Set(k, v string, t time.Duration) error {
-	r.Acquire(k)
-	defer r.Release(k)
+func (r *Redis) Set(key string, value interface{}, t time.Duration) error {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.Set(k, v, t).Err()
+		return r.cluster.Set(key, value, t).Err()
 	}
-	return r.single.Set(k, v, t).Err()
+	return r.single.Set(key, value, t).Err()
 }
 
-func (r *Redis) Get(k string) interface{} {
+func (r *Redis) Get(k string) string {
 	r.Acquire(k)
 	defer r.Release(k)
 	if r.clusterMode {
@@ -103,15 +103,6 @@ func (r *Redis) HSet(key, field string, value interface{}) error {
 	return r.single.HSet(key, field, value).Err()
 }
 
-func (r *Redis) HMSet(key, field string, values ...interface{}) error {
-	r.Acquire(key)
-	defer r.Release(key)
-	if r.clusterMode {
-		return r.cluster.HMSet(key, field, values).Err()
-	}
-	return r.single.HSet(key, field, values).Err()
-}
-
 func (r *Redis) HGet(key, field string) string {
 	r.Acquire(key)
 	defer r.Release(key)
@@ -119,6 +110,24 @@ func (r *Redis) HGet(key, field string) string {
 		return r.cluster.HGet(key, field).Val()
 	}
 	return r.single.HGet(key, field).Val()
+}
+
+func (r *Redis) HMSet(key string, values ...string) error {
+	r.Acquire(key)
+	defer r.Release(key)
+	if r.clusterMode {
+		return r.cluster.HMSet(key, values).Err()
+	}
+	return r.single.HMSet(key, values).Err()
+}
+
+func (r *Redis) HMGet(key string, fields ...string) []interface{} {
+	r.Acquire(key)
+	defer r.Release(key)
+	if r.clusterMode {
+		return r.cluster.HMGet(key, fields...).Val()
+	}
+	return r.single.HMGet(key, fields...).Val()
 }
 
 func (r *Redis) HGetAll(key string) map[string]string {
