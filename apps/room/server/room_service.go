@@ -14,6 +14,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	roomExpire = time.Second * 10
+)
+
 type RoomService struct {
 	room.UnimplementedRoomServiceServer
 	roomLock sync.RWMutex
@@ -55,9 +59,14 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 	key := util.GetRedisRoomKey(sid)
 
 	if s.redis.HGet(key, "sid") != "" {
-		// create room if not exist in memroy but exist in redis
+		// recover room if not exist in memroy but exist in redis
 		if r := s.getRoom(sid); r == nil {
-			s.createRoom(sid)
+			r = s.createRoom(sid)
+			res := s.redis.HGetAll(key)
+			r.info.Sid = res["sid"]
+			r.info.Name = res["name"]
+			r.info.Lock = util.StringToBool(res["lock"])
+			r.info.Password = res["password"]
 		}
 		return &room.CreateRoomReply{
 			Success: false,
@@ -74,10 +83,6 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 		r = s.createRoom(info.Sid)
 	}
 	r.info = *info //copy mutex?
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
 
 	// store room info
 	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", r.info.Sid, "name", r.info.Name,
@@ -117,10 +122,6 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 
 	// check room in redis
 	key := util.GetRedisRoomKey(sid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
 
 	if s.redis.HGet(key, "sid") == "" {
 		return &room.UpdateRoomReply{
@@ -167,33 +168,51 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 // EndRoom end a room
 func (s *RoomService) EndRoom(ctx context.Context, in *room.EndRoomRequest) (*room.EndRoomReply, error) {
 	sid := in.Sid
-	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-
-	// delete redis key
-	key := util.GetRedisRoomKey(sid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
-
-	err := s.redis.Del(key)
-	if err != nil {
+	log.Infof("sid=%+v", sid)
+	if sid == "" {
 		return &room.EndRoomReply{
 			Success: false,
 			Error: &room.Error{
-				Code:   room.ErrorType_ServiceUnavailable,
-				Reason: err.Error(),
+				Code:   room.ErrorType_InvalidParams,
+				Reason: "sid not exist",
 			},
 		}, nil
 	}
 
-	// broadcast end message
+	// delete room in redis
+	key := util.GetRedisRoomKey(sid)
+
+	if in.Delete {
+		err := s.redis.Del(key)
+		if err != nil {
+			return &room.EndRoomReply{
+				Success: false,
+				Error: &room.Error{
+					Code:   room.ErrorType_ServiceUnavailable,
+					Reason: err.Error(),
+				},
+			}, nil
+		}
+	}
+
+	// broadcast end message if delete room in redis ok
 	event := &room.Disconnect{
 		Sid:    sid,
 		Reason: "Room ended",
+	}
+
+	r := s.getRoom(sid)
+	if r != nil {
+		// delete all peers and room
+		peers := r.getPeers()
+		for _, p := range peers {
+			if p.sig == nil {
+				continue
+			}
+			p.sig.Context().Done()
+			r.delPeer(p)
+		}
+		s.delRoom(r)
 	}
 
 	r.broadcastRoomEvent(
@@ -203,17 +222,6 @@ func (s *RoomService) EndRoom(ctx context.Context, in *room.EndRoomRequest) (*ro
 			},
 		},
 	)
-
-	// delete all peers and room
-	peers := r.getPeers()
-	for _, p := range peers {
-		if p.sig == nil {
-			continue
-		}
-		p.sig.Context().Done()
-		r.delPeer(p)
-	}
-	s.delRoom(r)
 
 	log.Infof("end room ok sid=%v", sid)
 	return &room.EndRoomReply{Success: true}, nil
@@ -268,7 +276,14 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 	// create room if not exist locally
 	r := s.getRoom(sid)
 	if r == nil {
+		// recover room and info
 		r = s.createRoom(sid)
+		key = util.GetRedisRoomKey(sid)
+		res := s.redis.HGetAll(key)
+		r.info.Sid = res["sid"]
+		r.info.Name = res["name"]
+		r.info.Lock = util.StringToBool(res["lock"])
+		r.info.Password = res["password"]
 	}
 
 	// create peer and add to room
@@ -278,11 +293,6 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
-
 	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "dest", dest,
 		"name", name, "role", role, "protocol", protocol, "direction", direction)
 
@@ -338,8 +348,8 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 		return &room.UpdatePeerReply{
 			Success: false,
 			Error: &room.Error{
-				Code:   room.ErrorType_PeerAlreadyExist,
-				Reason: "peer already exist",
+				Code:   room.ErrorType_PeerNotExist,
+				Reason: "peer not exist",
 			},
 		}, nil
 	}
@@ -347,7 +357,14 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	// create room if not exist locally
 	r := s.getRoom(sid)
 	if r == nil {
+		// recover room and info
 		r = s.createRoom(sid)
+		key = util.GetRedisRoomKey(sid)
+		res := s.redis.HGetAll(key)
+		r.info.Sid = res["sid"]
+		r.info.Name = res["name"]
+		r.info.Lock = util.StringToBool(res["lock"])
+		r.info.Password = res["password"]
 	}
 
 	// update local peer if exist
@@ -360,10 +377,6 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
 
 	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "destination", destination,
 		"name", name, "role", role, "protocol", protocol, "direction", direction)
@@ -409,10 +422,6 @@ func (s *RoomService) RemovePeer(ctx context.Context, in *room.RemovePeerRequest
 	// rm peer in db
 	// store peer to redis
 	key := util.GetRedisPeerKey(sid, uid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
 
 	err := s.redis.Del(key)
 	if err != nil {
@@ -460,11 +469,6 @@ func (s *RoomService) GetPeers(ctx context.Context, in *room.GetPeersRequest) (*
 
 	// store peer to redis
 	key := util.GetRedisPeersPrefixKey(sid)
-
-	// destributed lock
-	s.redis.Lock(key)
-	defer s.redis.UnLock(key)
-
 	peersKeys := s.redis.Keys(key)
 	var roomPeers []*room.Peer
 	for _, pkey := range peersKeys {
@@ -541,7 +545,7 @@ func (s *RoomService) stat() {
 		s.roomLock.RLock()
 		for sid, room := range s.rooms {
 			//clean after room is clean and expired
-			if time.Since(room.update) > 10*time.Second && room.count() == 0 {
+			if time.Since(room.update) > roomExpire && room.count() == 0 {
 				delete(s.rooms, sid)
 			}
 			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())

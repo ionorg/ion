@@ -40,6 +40,7 @@ enum ErrorType {
   RoomNotExist = 7;
   InvalidParams = 8;
   PeerAlreadyExist = 9;
+  PeerNotExist = 10;
 }
 
 message Error {
