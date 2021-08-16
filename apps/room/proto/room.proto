@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "proto/rtc/rtc.proto";
-
 option go_package = "github.com/pion/ion/apps/room/proto";
 
 package room;
@@ -94,15 +92,6 @@ message JoinRequest {
   string password = 8;
 }
 
-message Permission {
-  bool publish = 1;
-  bool subscribe = 2;
-  bool addPeers = 3;
-  bool removePeers = 4;
-  bool endConference = 5;
-  bool LockRoom = 6;
-}
-
 message Room {
   string sid = 1;
   string name = 2;
@@ -117,7 +106,6 @@ message JoinReply {
   Error error = 2;
   Role role = 3;
   Room room = 4;
-  //Permission permission = 5;
 }
 
 message LeaveRequest {
@@ -159,8 +147,6 @@ message Peer {
   string avatar = 8;
   Direction direction  = 9;
   string vendor = 10;
-
-  repeated rtc.Track tracks = 11;
 }
 
 message AddPeerRequest {
@@ -171,23 +157,6 @@ message AddPeerReply {
   bool success = 1;
   Error error = 2;
 }
-
-// message AddPeerRequest {
-//   enum Direction {
-//     INCOMING = 0;
-//     OUTGOING = 1;
-//     BILATERAL = 2;
-//   }
-//   string sid = 2;         // session id for conference
-//   string uid = 3;         // user id for conference
-//   string destination = 4; // rtsp://192.168.1.1:8080/video1,
-//                           // rtmp://192.168.1.1/video1, sip:100@alice.com
-//   string sourceDisplayName = 5;
-//   Role role = 6; // Host, Guest
-//   Protocol protocol = 7; // ProtocolWebRTC, ProtocolSIP, ProtocolRTMP, ProtocolRTSP
-//   Direction direction = 8;
-// }
-
 
 message GetPeersRequest { string sid = 1; }
 
