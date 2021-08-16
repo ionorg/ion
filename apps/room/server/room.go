@@ -216,13 +216,3 @@ func (r *Room) sendMessage(msg *room.Message) {
 		}
 	}
 }
-
-func (r *Room) sendMediaPresentation(event *room.MediaPresentation) {
-	r.update = time.Now()
-	peers := r.getPeers()
-	for _, p := range peers {
-		if err := p.sendMediaPresentation(event); err != nil {
-			log.Errorf("send data to peer(%s) error: %v", p.info.Uid, err)
-		}
-	}
-}

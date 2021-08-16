@@ -5,19 +5,19 @@ GO_COVERPKGS:=$(shell echo $(GO_TESTPKGS) | paste -s -d ',')
 TEST_UID:=$(shell id -u)
 TEST_GID:=$(shell id -g)
 
-all: core app
+all: go_deps core app
 
 go_deps:
 	go mod download
 
-core: go_deps
+core:
 	go build -o bin/islb $(GO_LDFLAGS) cmd/islb/main.go
 	go build -o bin/sfu $(GO_LDFLAGS) cmd/sfu/main.go
 	go build -o bin/avp $(GO_LDFLAGS) cmd/avp/main.go
 	go build -o bin/signal $(GO_LDFLAGS) cmd/signal/main.go
 
 app:
-	go build -o bin/app-biz $(GO_LDFLAGS) apps/biz/main.go
+	go build -o bin/app-room $(GO_LDFLAGS) apps/room/main.go
 
 clean:
 	rm -rf bin
@@ -48,6 +48,7 @@ proto: proto_core proto_app
 
 proto_core: 
 	protoc proto/debug/debug.proto --experimental_allow_proto3_optional --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
+	protoc proto/ion/ion.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
 	protoc proto/islb/islb.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
 	protoc proto/rtc/rtc.proto --go_opt=module=github.com/pion/ion --go_out=. --go-grpc_opt=module=github.com/pion/ion --go-grpc_out=.
 

@@ -76,15 +76,6 @@ func (p *Peer) send(data *room.Reply) error {
 	return p.sig.Send(data)
 }
 
-func (p *Peer) sendMediaPresentation(event *room.MediaPresentation) error {
-	data := &room.Reply{
-		Payload: &room.Reply_Presentation{
-			Presentation: event,
-		},
-	}
-	return p.send(data)
-}
-
 func (p *Peer) sendPeerEvent(event *room.PeerEvent) error {
 	data := &room.Reply{
 		Payload: &room.Reply_Peer{

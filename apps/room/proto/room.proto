@@ -19,9 +19,6 @@ service RoomService {
   rpc UpdatePeer(UpdatePeerRequest) returns (UpdatePeerReply) {}
   rpc RemovePeer(RemovePeerRequest) returns (RemovePeerReply) {}
   rpc GetPeers(GetPeersRequest) returns (GetPeersReply) {}
-
-  rpc SetImportance(SetImportanceRequest) returns (SetImportanceReply) {}
-
 }
 
 service RoomSignal {
@@ -53,7 +50,6 @@ message Request {
     JoinRequest join = 1;
     LeaveRequest leave = 2;
     SendMessageRequest sendMessage = 3;
-    MediaPresentationRequest mediaPresentation = 4;
   }
 }
 
@@ -62,12 +58,10 @@ message Reply {
     JoinReply join = 1;
     LeaveReply leave = 2;
     SendMessageReply sendMessage = 3;
-    MediaPresentationReply mediaPresentation = 4;
-    PeerEvent Peer = 5;
-    MediaPresentation presentation = 6;
-    Message message = 7;
-    Disconnect disconnect = 8;
-    Room room = 9;
+    PeerEvent Peer = 4;
+    Message message = 5;
+    Disconnect disconnect = 6;
+    Room room = 7;
   }
 }
 
@@ -107,7 +101,6 @@ message Permission {
   bool removePeers = 4;
   bool endConference = 5;
   bool LockRoom = 6;
-  bool setImportance = 7;
 }
 
 message Room {
@@ -116,6 +109,7 @@ message Room {
   bool lock = 3;
   string password = 4;
   string description = 5;
+  uint32 maxPeers = 6;
 }
 
 message JoinReply {
@@ -149,35 +143,6 @@ enum Protocol {
   RTSP = 4;
 }
 
-enum MediaType {
-  MediaUnknown = 0;
-  UserMedia = 1;
-  ScreenCapture = 2;
-  Cavans = 3;
-  Streaming =4;
-  VoIP = 5;
-}
-
-message Track {
-  string id = 1;
-  string stream_id = 2;
-  MediaType type = 3;
-  rtc.Track track = 4;
-}
-
-message MediaPresentation {
-  string sid = 1;
-  string uid = 2;
-  repeated Track tracks = 3;
-}
-
-message MediaPresentationRequest { MediaPresentation request = 1; }
-
-message MediaPresentationReply {
-  bool success = 1;
-  Error error = 2;
-}
-
 message Peer {
   enum Direction {
     INCOMING = 0;
@@ -195,11 +160,16 @@ message Peer {
   Direction direction  = 9;
   string vendor = 10;
 
-  repeated Track tracks = 11;
+  repeated rtc.Track tracks = 11;
 }
 
 message AddPeerRequest {
   Peer peer = 1;
+}
+
+message AddPeerReply {
+  bool success = 1;
+  Error error = 2;
 }
 
 // message AddPeerRequest {
@@ -260,8 +230,6 @@ message PeerEvent {
   PeerState state = 2;
 }
 
-
-
 message UpdateRoomRequest {
   Room room = 1;
 }
@@ -290,20 +258,6 @@ message GetRoomsReply {
   bool success = 1;
   Error error = 2;
   repeated Room rooms = 3;
-}
-
-message AddPeerReply {
-  bool success = 1;
-  Error error = 2;
-}
-
-message SetImportanceRequest {
-  string sid = 1;
-  repeated string uids = 2;
-}
-message SetImportanceReply {
-  bool success = 1;
-  Error error = 2;
 }
 
 message UpdatePeerRequest {

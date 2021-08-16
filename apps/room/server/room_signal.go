@@ -56,13 +56,6 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 				return err
 			}
 			stream.Send(&room.Reply{Payload: reply})
-		case *room.Request_MediaPresentation:
-			reply, err := s.SendMediaPresentation(payload)
-			if err != nil {
-				log.Errorf("LockConference err: %v", err)
-				return err
-			}
-			stream.Send(&room.Reply{Payload: reply})
 		case *room.Request_SendMessage:
 			reply, err := s.SendMessage(payload)
 			if err != nil {
@@ -152,19 +145,6 @@ func (s *RoomSignalService) Leave(in *room.Request_Leave) (*room.Reply_Leave, er
 			Error:   nil,
 		},
 	}, nil
-}
-
-func (s *RoomSignalService) SendMediaPresentation(in *room.Request_MediaPresentation) (*room.Reply_MediaPresentation, error) {
-	event := in.MediaPresentation.Request
-	sid := in.MediaPresentation.Request.Sid
-	log.Debugf("MediaPresentation: %+v", event)
-	r := s.rs.getRoom(sid)
-	if r == nil {
-		log.Warnf("room not found, maybe the peer did not join")
-		return &room.Reply_MediaPresentation{}, errors.New("room not exist")
-	}
-	r.sendMediaPresentation(event)
-	return &room.Reply_MediaPresentation{}, nil
 }
 
 func (s *RoomSignalService) SendMessage(in *room.Request_SendMessage) (*room.Reply_SendMessage, error) {

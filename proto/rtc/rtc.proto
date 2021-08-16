@@ -5,7 +5,7 @@ option go_package = "github.com/pion/ion/proto/rtc";
 package rtc;
 
 service RTC {
-  rpc Signal(stream Signalling) returns (stream Signalling) {}
+  rpc Signal(stream Request) returns (stream Reply) {}
 }
 
 message JoinRequest {
@@ -52,66 +52,107 @@ message Simulcast {
   string parameters = 3;
 };
 
+enum MediaType {
+  MediaUnknown = 0;
+  UserMedia = 1;
+  ScreenCapture = 2;
+  Cavans = 3;
+  Streaming =4;
+  VoIP = 5;
+}
+
 message Track {
   // track id
   string id = 1;
+  // MediaType
+  MediaType type = 2;
   // stream id
-  string stream_id = 2;
+  string stream_id = 3;
   // 'audio' | 'video' | 'data'
-  string kind = 3;
+  string kind = 4;
   // true | false
-  bool muted = 4;
+  bool muted = 5;
   // rid for video track
-  string rid = 5;
+  string rid = 6;
   // Simulcast
-  repeated Simulcast simulcast = 6;
+  repeated Simulcast simulcast = 7;
 }
 
 message TrackEvent {
   enum State {
     ADD = 0;
-    REMOVE = 1;
+    UPDATE = 1;
+    REMOVE = 2;
   }
-  State state = 2;
+  State state = 1;
    // user id
-  string uid = 3;
-  repeated Track tracks = 4;
+  string uid = 2;
+  repeated Track tracks = 3;
 }
 
-message Subscription {
+message SubscriptionRequest {
   repeated string trackIds = 1;
   bool subscribe = 2;
 }
 
-message MuteTrack {
-  repeated string trackIds = 1;
-  bool muted = 2;
+message SubscriptionReply {
+  bool success = 1;
+  Error error = 2;
 }
 
-message SwitchScalabilityLayer {
-  string trackId = 1;
-  uint32 spatialLayer = 2;
-  uint32 temporalLayer = 3;
+message AddTrackRequest {
+  repeated Track tracks = 1;
 }
 
-message UpdateSettings {
-  oneof command {
-    Subscription subscription = 1;
-    SwitchScalabilityLayer switchLayer = 2;
-    MuteTrack muteTrack = 3;
+message AddTrackReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message UpdateTrackRequest {
+  message TrackInfo {
+    string id = 1;
+    bool muted = 2;
+    MediaType type = 3;
+  }
+  repeated TrackInfo tracks = 1;
+}
+
+message UpdateTrackReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message Request {
+  oneof payload {
+    // Basic API Request
+    JoinRequest join = 1;
+    SessionDescription description = 2;
+    Trickle trickle = 3;
+
+    // Command
+    SubscriptionRequest subscription = 4;
+    AddTrackRequest addTrack = 5;
+    UpdateTrackRequest updateTrack = 6;
   }
 }
 
-message Signalling {
+message Reply {
   oneof payload {
-    JoinRequest join = 1;
-    JoinReply reply = 2;
-    Error error = 3;
+    // Basic API Reply
+    JoinReply join = 1;
+    SessionDescription description = 2;
+    Trickle trickle = 3;
 
-    SessionDescription description = 4;
-    Trickle trickle = 5;
+    // Event
+    TrackEvent trackEvent = 4;
 
-    UpdateSettings updateSettings = 6;
-    TrackEvent trackEvent = 7;
+    // Command Reply
+    SubscriptionReply subscription = 5;
+    AddTrackReply addTrack = 6;
+    UpdateTrackReply updateTrack = 7;
+
+    // Error
+    Error error = 8;
   }
 }

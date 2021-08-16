@@ -29,7 +29,6 @@ type RoomServiceClient interface {
 	UpdatePeer(ctx context.Context, in *UpdatePeerRequest, opts ...grpc.CallOption) (*UpdatePeerReply, error)
 	RemovePeer(ctx context.Context, in *RemovePeerRequest, opts ...grpc.CallOption) (*RemovePeerReply, error)
 	GetPeers(ctx context.Context, in *GetPeersRequest, opts ...grpc.CallOption) (*GetPeersReply, error)
-	SetImportance(ctx context.Context, in *SetImportanceRequest, opts ...grpc.CallOption) (*SetImportanceReply, error)
 }
 
 type roomServiceClient struct {
@@ -112,15 +111,6 @@ func (c *roomServiceClient) GetPeers(ctx context.Context, in *GetPeersRequest, o
 	return out, nil
 }
 
-func (c *roomServiceClient) SetImportance(ctx context.Context, in *SetImportanceRequest, opts ...grpc.CallOption) (*SetImportanceReply, error) {
-	out := new(SetImportanceReply)
-	err := c.cc.Invoke(ctx, "/room.RoomService/SetImportance", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RoomServiceServer is the server API for RoomService service.
 // All implementations must embed UnimplementedRoomServiceServer
 // for forward compatibility
@@ -136,7 +126,6 @@ type RoomServiceServer interface {
 	UpdatePeer(context.Context, *UpdatePeerRequest) (*UpdatePeerReply, error)
 	RemovePeer(context.Context, *RemovePeerRequest) (*RemovePeerReply, error)
 	GetPeers(context.Context, *GetPeersRequest) (*GetPeersReply, error)
-	SetImportance(context.Context, *SetImportanceRequest) (*SetImportanceReply, error)
 	mustEmbedUnimplementedRoomServiceServer()
 }
 
@@ -167,9 +156,6 @@ func (UnimplementedRoomServiceServer) RemovePeer(context.Context, *RemovePeerReq
 }
 func (UnimplementedRoomServiceServer) GetPeers(context.Context, *GetPeersRequest) (*GetPeersReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPeers not implemented")
-}
-func (UnimplementedRoomServiceServer) SetImportance(context.Context, *SetImportanceRequest) (*SetImportanceReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetImportance not implemented")
 }
 func (UnimplementedRoomServiceServer) mustEmbedUnimplementedRoomServiceServer() {}
 
@@ -328,24 +314,6 @@ func _RoomService_GetPeers_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoomService_SetImportance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetImportanceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RoomServiceServer).SetImportance(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/room.RoomService/SetImportance",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoomServiceServer).SetImportance(ctx, req.(*SetImportanceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RoomService_ServiceDesc is the grpc.ServiceDesc for RoomService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -384,10 +352,6 @@ var RoomService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPeers",
 			Handler:    _RoomService_GetPeers_Handler,
-		},
-		{
-			MethodName: "SetImportance",
-			Handler:    _RoomService_SetImportance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -10,8 +10,6 @@ import (
 	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/util"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -491,16 +489,6 @@ func (s *RoomService) GetPeers(ctx context.Context, in *room.GetPeersRequest) (*
 		Success: true,
 		Peers:   roomPeers,
 	}, nil
-}
-
-func (s *RoomService) SetImportance(ctx context.Context, in *room.SetImportanceRequest) (*room.SetImportanceReply, error) {
-	sid := in.Sid
-	r := s.getRoom(sid)
-	if r == nil {
-		return nil, fmt.Errorf("room not found: %s", sid)
-	}
-	//TODO
-	return nil, status.Errorf(codes.Unimplemented, "method SetImportance not implemented")
 }
 
 func (s *RoomService) createRoom(sid string) *Room {
