@@ -56,7 +56,7 @@ enum MediaType {
   MediaUnknown = 0;
   UserMedia = 1;
   ScreenCapture = 2;
-  Cavans = 3;
+  Canvas = 3;
   Streaming =4;
   VoIP = 5;
 }
