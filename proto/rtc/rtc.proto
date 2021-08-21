@@ -38,10 +38,11 @@ enum MediaType {
 message VideoInfo {
   uint32 width = 1;
   uint32 height = 2;
+  uint32 framerate = 3;
   // Simulcast
   // {'f': 'send', 'h': 'send', 'q': 'send'}
   // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
-  map<string, string> simulcast = 3;
+  map<string, string> simulcast = 4;
 }
 
 message TrackInfo {
