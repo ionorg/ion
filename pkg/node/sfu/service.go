@@ -48,7 +48,7 @@ func (s *SFUService) Close() {
 	log.Infof("SFU service closed")
 }
 
-func (s *SFUService) BroadcastStreamEvent(uid string, tracks []*rtc.Track, state rtc.TrackEvent_State) {
+func (s *SFUService) BroadcastStreamEvent(uid string, tracks []*rtc.TrackInfo, state rtc.TrackEvent_State) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, sig := range s.sigs {
@@ -69,7 +69,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 	//log.Infof("context val %v", val)
 
 	peer := ion_sfu.NewPeer(s.sfu)
-	var tracks []*rtc.Track
+	var tracks []*rtc.TrackInfo
 	var pubTracks []ion_sfu.PublisherTrack
 
 	defer func() {
@@ -203,6 +203,9 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 				Type: webrtc.NewSDPType(payload.Join.Description.Type),
 			}
 
+			tracksInfos := payload.Join.Description.Trackinfos
+			log.Debugf("[C=>S] join.description tracksInfos %v", tracksInfos)
+
 			log.Debugf("[C=>S] join.description: offer %v", desc.SDP)
 			answer, err := peer.Answer(desc)
 			if err != nil {
@@ -231,30 +234,28 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			if publisher != nil {
 				publisher.OnPublisherTrack(func(pt ion_sfu.PublisherTrack) {
 					log.Debugf("[S=>C] OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", pt.Track.Kind(), uid, pt.Track.Msid(), pt.Track.ID())
-					track := &rtc.Track{
+					track := &rtc.TrackInfo{
 						Id:       pt.Track.ID(),
 						StreamId: pt.Track.StreamID(),
 						Kind:     pt.Track.Kind().String(),
 						Muted:    false,
-						Rid:      pt.Track.RID(),
 					}
 					log.Infof("[S=>C] broadcast track %v, state = ADD", track)
-					s.BroadcastStreamEvent(uid, []*rtc.Track{track}, rtc.TrackEvent_ADD)
+					s.BroadcastStreamEvent(uid, []*rtc.TrackInfo{track}, rtc.TrackEvent_ADD)
 					tracks = append(tracks, track)
 					pubTracks = append(pubTracks, pt)
 				})
 			}
 
 			for _, p := range peer.Session().Peers() {
-				var peerTracks []*rtc.Track
+				var peerTracks []*rtc.TrackInfo
 				if peer.ID() != p.ID() {
 					for _, pubTrack := range p.Publisher().PublisherTracks() {
-						peerTracks = append(peerTracks, &rtc.Track{
+						peerTracks = append(peerTracks, &rtc.TrackInfo{
 							Id:       pubTrack.Track.ID(),
 							Kind:     pubTrack.Track.Kind().String(),
 							StreamId: pubTrack.Track.StreamID(),
 							Muted:    false,
-							Rid:      pubTrack.Track.RID(),
 						})
 					}
 
@@ -285,6 +286,10 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 				SDP:  payload.Description.Sdp,
 				Type: webrtc.NewSDPType(payload.Description.Type),
 			}
+
+			tracksInfos := payload.Description.Trackinfos
+			log.Debugf("[C=>S] description tracksInfos %v", tracksInfos)
+
 			var err error = nil
 			switch desc.Type {
 			case webrtc.SDPTypeOffer:

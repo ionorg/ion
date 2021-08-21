@@ -26,12 +26,42 @@ enum Target {
   SUBSCRIBER = 1;
 }
 
+enum MediaType {
+  MediaUnknown = 0;
+  UserMedia = 1;
+  ScreenCapture = 2;
+  Cavans = 3;
+  Streaming = 4;
+  VoIP = 5;
+}
+
+message VideoInfo {
+  uint32 width = 1;
+  uint32 height = 2;
+  // Simulcast
+  // {'f': 'send', 'h': 'send', 'q': 'send'}
+  // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
+  map<string, string> simulcast = 3;
+}
+
+message TrackInfo {
+  string id = 1;
+  string kind = 2;
+  bool muted = 3;
+  MediaType type = 4;
+  string stream_id = 5;
+  string label = 6;
+  VideoInfo video_info = 7;
+}
+
 message SessionDescription {
   Target target = 1;
   // 'offer' | 'answer'
   string type = 2;
   // sdp contents
   string sdp = 3;
+  // sdp metdata
+  repeated TrackInfo trackinfos = 4;
 }
 
 message Trickle {
@@ -44,40 +74,6 @@ message Error {
   string reason = 2;
 }
 
-message Simulcast {
-  // 'f' | 'h' | 'q'
-  string rid = 1;
-  // 'send' | 'recv'
-  string direction = 2;
-  string parameters = 3;
-};
-
-enum MediaType {
-  MediaUnknown = 0;
-  UserMedia = 1;
-  ScreenCapture = 2;
-  Canvas = 3;
-  Streaming =4;
-  VoIP = 5;
-}
-
-message Track {
-  // track id
-  string id = 1;
-  // MediaType
-  MediaType type = 2;
-  // stream id
-  string stream_id = 3;
-  // 'audio' | 'video' | 'data'
-  string kind = 4;
-  // true | false
-  bool muted = 5;
-  // rid for video track
-  string rid = 6;
-  // Simulcast
-  repeated Simulcast simulcast = 7;
-}
-
 message TrackEvent {
   enum State {
     ADD = 0;
@@ -85,9 +81,9 @@ message TrackEvent {
     REMOVE = 2;
   }
   State state = 1;
-   // user id
+  // user id
   string uid = 2;
-  repeated Track tracks = 3;
+  repeated TrackInfo tracks = 3;
 }
 
 message SubscriptionRequest {
@@ -100,23 +96,7 @@ message SubscriptionReply {
   Error error = 2;
 }
 
-message AddTrackRequest {
-  repeated Track tracks = 1;
-}
-
-message AddTrackReply {
-  bool success = 1;
-  Error error = 2;
-}
-
-message UpdateTrackRequest {
-  message TrackInfo {
-    string id = 1;
-    bool muted = 2;
-    MediaType type = 3;
-  }
-  repeated TrackInfo tracks = 1;
-}
+message UpdateTrackRequest { repeated TrackInfo tracks = 1; }
 
 message UpdateTrackReply {
   bool success = 1;
@@ -131,8 +111,7 @@ message Request {
     Trickle trickle = 3;
 
     // Command
-    SubscriptionRequest subscription = 4;
-    AddTrackRequest addTrack = 5;
+    SubscriptionRequest subscription = 5;
     UpdateTrackRequest updateTrack = 6;
   }
 }
@@ -149,7 +128,6 @@ message Reply {
 
     // Command Reply
     SubscriptionReply subscription = 5;
-    AddTrackReply addTrack = 6;
     UpdateTrackReply updateTrack = 7;
 
     // Error
