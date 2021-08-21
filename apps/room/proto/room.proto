@@ -82,14 +82,8 @@ message DeleteRoomReply {
 }
 
 message JoinRequest {
-  string sid = 1;
-  string uid = 2;
-  string displayName = 3;
-  bytes extraInfo = 4;
-  Role role = 5;
-  string avatar = 6;
-  string vendor = 7;
-  string password = 8;
+  Peer peer = 1;
+  string password = 2;
 }
 
 message Room {

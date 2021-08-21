@@ -76,11 +76,8 @@ func (c *Config) Load(file string) error {
 // Room represents a Room which manage peers
 type Room struct {
 	sync.RWMutex
-	sid   string
-	peers map[string]*Peer
-	// name     string
-	// locked   bool
-	// password string
+	sid    string
+	peers  map[string]*Peer
 	info   room.Room
 	update time.Time
 }
@@ -93,6 +90,11 @@ func newRoom(sid string) *Room {
 		update: time.Now(),
 	}
 	return r
+}
+
+// Room name
+func (r *Room) Name() string {
+	return r.info.Name
 }
 
 // SID room id
@@ -111,6 +113,7 @@ func (r *Room) addPeer(p *Peer) {
 	r.broadcastPeerEvent(event)
 
 	r.Lock()
+	p.room = r
 	r.peers[p.info.Uid] = p
 	r.update = time.Now()
 	r.Unlock()
@@ -203,10 +206,10 @@ func (r *Room) sendMessage(msg *room.Message) {
 	log.Infof("msg=%+v", msg)
 	r.update = time.Now()
 	from := msg.From
-	// to := msg.To //TODO
-	to := ""
+	to := msg.To
+	dtype := msg.Type
 	data := msg.Payload
-	log.Debugf("Room.onMessage %v => %v, data: %v", from, to, data)
+	log.Debugf("Room.onMessage %v => %v, type: %v, data: %v", from, to, dtype, data)
 	peers := r.getPeers()
 	for _, p := range peers {
 		if to == p.info.Uid || to == "all" || to == r.sid {

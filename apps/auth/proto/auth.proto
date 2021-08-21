@@ -9,6 +9,6 @@ message Permission {
   bool subscribe = 2;
   bool addPeers = 3;
   bool removePeers = 4;
-  bool endConference = 5;
-  bool LockRoom = 6;
+  bool endSession = 5;
+  bool lockRoom = 6;
 }

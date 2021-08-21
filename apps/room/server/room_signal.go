@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
@@ -68,33 +67,33 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 }
 
 func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer, error) {
-	sid := in.Join.Sid
-	uid := in.Join.Uid
-	// info := in.Join.ExtraInfo
-	// name := in.Join.DisplayName
-	// role := in.Join.Role.String()
+	pinfo := in.Join.Peer
+	sid := pinfo.Sid
+	uid := pinfo.Uid
+
 	var peer *Peer = nil
 	r := s.rs.getRoom(sid)
 
 	log.Infof("s.rs.getRoom======%+v sid=%v", r, sid)
 	if r == nil {
-		//r = s.rs.createRoom(sid, "todo nid")
-		reply := &room.Reply_Join{
-			Join: &room.JoinReply{
-				Success: false,
-				Error: &room.Error{
-					Code:   room.ErrorType_RoomNotExist,
-					Reason: "room not exist",
+		r = s.rs.createRoom(sid)
+		/*
+			reply := &room.Reply_Join{
+				Join: &room.JoinReply{
+					Success: false,
+					Error: &room.Error{
+						Code:   room.ErrorType_RoomNotExist,
+						Reason: "room not exist",
+					},
 				},
-			},
-		}
-		return reply, nil, fmt.Errorf("room [%v] not exist", sid)
+			}
+			return reply, nil, fmt.Errorf("room [%v] not exist", sid)
+		*/
 	}
 
 	peer = NewPeer(uid)
-	peer.info.Sid = sid
+	peer.info = *pinfo
 	r.addPeer(peer)
-
 	// TODO
 	/*
 		//Generate necessary metadata for routing.

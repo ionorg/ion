@@ -12,6 +12,7 @@ type Peer struct {
 	uid    string
 	info   room.Peer
 	sig    room.RoomSignal_SignalServer
+	room   *Room
 	closed util.AtomicBool
 }
 
@@ -57,6 +58,7 @@ func (p *Peer) Close() {
 	if !p.closed.Set(true) {
 		return
 	}
+	p.room.delPeer(p)
 }
 
 // UID return peer uid
