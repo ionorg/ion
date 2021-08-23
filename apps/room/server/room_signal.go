@@ -2,9 +2,11 @@ package server
 
 import (
 	"errors"
+	"time"
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
+	"github.com/pion/ion/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -68,8 +70,31 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 
 func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer, error) {
 	pinfo := in.Join.Peer
-	sid := pinfo.Sid
-	uid := pinfo.Uid
+
+	key := util.GetRedisRoomKey(pinfo.Sid)
+	infos := s.rs.redis.HGetAll(key)
+	sid := infos["sid"]
+	uid := infos["uid"]
+
+	// create in redis if room not exist
+	if sid == "" {
+		// store room info
+		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", pinfo.Sid, "name", "",
+			"password", "", "description", "", "lock", "0")
+		if err != nil {
+			reply := &room.Reply_Join{
+				Join: &room.JoinReply{
+					Success: false,
+					Room:    nil,
+					Error: &room.Error{
+						Code:   room.ErrorType_ServiceUnavailable,
+						Reason: err.Error(),
+					},
+				},
+			}
+			return reply, nil, err
+		}
+	}
 
 	var peer *Peer = nil
 	r := s.rs.getRoom(sid)
@@ -77,18 +102,6 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	log.Infof("s.rs.getRoom======%+v sid=%v", r, sid)
 	if r == nil {
 		r = s.rs.createRoom(sid)
-		/*
-			reply := &room.Reply_Join{
-				Join: &room.JoinReply{
-					Success: false,
-					Error: &room.Error{
-						Code:   room.ErrorType_RoomNotExist,
-						Reason: "room not exist",
-					},
-				},
-			}
-			return reply, nil, fmt.Errorf("room [%v] not exist", sid)
-		*/
 	}
 
 	peer = NewPeer(uid)
@@ -104,7 +117,23 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 		}
 	*/
 
-	// TODO get from db
+	// store peer to redis
+	key = util.GetRedisPeerKey(sid, uid)
+	err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "dest", in.Join.Peer.Destination,
+		"name", in.Join.Peer.DisplayName, "role", in.Join.Peer.Role.String(), "protocol", in.Join.Peer.Protocol.String(), "direction", in.Join.Peer.Direction.String())
+	if err != nil {
+		reply := &room.Reply_Join{
+			Join: &room.JoinReply{
+				Success: false,
+				Room:    nil,
+				Error: &room.Error{
+					Code:   room.ErrorType_ServiceUnavailable,
+					Reason: err.Error(),
+				},
+			},
+		}
+		return reply, nil, err
+	}
 
 	reply := &room.Reply_Join{
 		Join: &room.JoinReply{

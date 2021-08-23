@@ -201,7 +201,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 				Type: webrtc.NewSDPType(payload.Join.Description.Type),
 			}
 
-			tracksInfo := payload.Join.Description.Trackinfos
+			tracksInfo := payload.Join.Description.TrackInfos
 			log.Debugf("[C=>S] join.description tracksInfos %v", tracksInfo)
 
 			log.Debugf("[C=>S] join.description: offer %v", desc.SDP)
@@ -288,7 +288,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			case webrtc.SDPTypeOffer:
 				log.Debugf("[C=>S] description: offer %v", desc.SDP)
 
-				tracksInfo := payload.Description.Trackinfos
+				tracksInfo := payload.Description.TrackInfos
 				log.Debugf("[C=>S] description tracksInfos %v", tracksInfo)
 
 				answer, err := peer.Answer(desc)

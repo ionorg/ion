@@ -53,27 +53,27 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 	}
 
 	// return if room exist in redis
-	sid := info.Sid
-	key := util.GetRedisRoomKey(sid)
+	key := util.GetRedisRoomKey(info.Sid)
 
-	if s.redis.HGet(key, "sid") != "" {
-		// recover room if not exist in memroy but exist in redis
-		if r := s.getRoom(sid); r == nil {
-			r = s.createRoom(sid)
-			res := s.redis.HGetAll(key)
-			r.info.Sid = res["sid"]
-			r.info.Name = res["name"]
-			r.info.Lock = util.StringToBool(res["lock"])
-			r.info.Password = res["password"]
-		}
-		return &room.CreateRoomReply{
-			Success: false,
-			Error: &room.Error{
-				Code:   room.ErrorType_RoomAlreadyExist,
-				Reason: "room already exist",
-			},
-		}, nil
-	}
+	// NOT CHECK
+	// if s.redis.HGet(key, "sid") != "" {
+	// 	// recover room if not exist in memroy but exist in redis
+	// 	if r := s.getRoom(sid); r == nil {
+	// 		r = s.createRoom(sid)
+	// 		res := s.redis.HGetAll(key)
+	// 		r.info.Sid = res["sid"]
+	// 		r.info.Name = res["name"]
+	// 		r.info.Lock = util.StringToBool(res["lock"])
+	// 		r.info.Password = res["password"]
+	// 	}
+	// 	return &room.CreateRoomReply{
+	// 		Success: false,
+	// 		Error: &room.Error{
+	// 			Code:   room.ErrorType_RoomAlreadyExist,
+	// 			Reason: "room already exist",
+	// 		},
+	// 	}, nil
+	// }
 
 	// create local room if room not found locally
 	r := s.getRoom(info.Sid)
@@ -95,7 +95,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 		}, nil
 	}
 
-	log.Infof("create room ok sid=%v", sid)
+	log.Infof("create room ok sid=%v", info.Sid)
 
 	// success
 	return &room.CreateRoomReply{Success: true}, err
@@ -116,20 +116,19 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 		}, nil
 	}
 
-	sid := info.Sid
-
 	// check room in redis
-	key := util.GetRedisRoomKey(sid)
+	key := util.GetRedisRoomKey(info.Sid)
 
-	if s.redis.HGet(key, "sid") == "" {
-		return &room.UpdateRoomReply{
-			Success: false,
-			Error: &room.Error{
-				Code:   room.ErrorType_RoomNotExist,
-				Reason: "room not exist",
-			},
-		}, nil
-	}
+	// NOT CHECK
+	// if s.redis.HGet(key, "sid") == "" {
+	// 	return &room.UpdateRoomReply{
+	// 		Success: false,
+	// 		Error: &room.Error{
+	// 			Code:   room.ErrorType_RoomNotExist,
+	// 			Reason: "room not exist",
+	// 		},
+	// 	}, nil
+	// }
 
 	// check local room
 	r := s.getRoom(info.Sid)
@@ -159,7 +158,7 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 
 	// broadcast to others
 	r.broadcastRoomEvent(event)
-	log.Infof("update room ok sid=%v", sid)
+	log.Infof("update room ok sid=%v", info.Sid)
 	return &room.UpdateRoomReply{Success: true}, nil
 }
 
@@ -260,16 +259,16 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 	}
 
 	// check peer exist
-	key = util.GetRedisPeerKey(sid, uid)
-	if s.redis.HGet(key, "uid") != "" {
-		return &room.AddPeerReply{
-			Success: false,
-			Error: &room.Error{
-				Code:   room.ErrorType_PeerAlreadyExist,
-				Reason: "peer already exist",
-			},
-		}, nil
-	}
+	// key = util.GetRedisPeerKey(sid, uid)
+	// if s.redis.HGet(key, "uid") != "" {
+	// 	return &room.AddPeerReply{
+	// 		Success: false,
+	// 		Error: &room.Error{
+	// 			Code:   room.ErrorType_PeerAlreadyExist,
+	// 			Reason: "peer already exist",
+	// 		},
+	// 	}, nil
+	// }
 
 	// create room if not exist locally
 	r := s.getRoom(sid)
@@ -341,8 +340,9 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	}
 
 	// check peer exist
+	log.Infof("sid=%v  uid======%v", sid, uid)
 	key = util.GetRedisPeerKey(sid, uid)
-	if s.redis.HGet(key, "uid") != "" {
+	if s.redis.HGet(key, "uid") == "" {
 		return &room.UpdatePeerReply{
 			Success: false,
 			Error: &room.Error{

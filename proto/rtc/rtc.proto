@@ -38,7 +38,7 @@ enum MediaType {
 message VideoInfo {
   uint32 width = 1;
   uint32 height = 2;
-  uint32 framerate = 3;
+  uint32 frameRate = 3;
   // Simulcast
   // {'f': 'send', 'h': 'send', 'q': 'send'}
   // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
@@ -50,9 +50,9 @@ message TrackInfo {
   string kind = 2;
   bool muted = 3;
   MediaType type = 4;
-  string stream_id = 5;
+  string streamId = 5;
   string label = 6;
-  VideoInfo video_info = 7;
+  VideoInfo videoInfo = 7;
 }
 
 message SessionDescription {
@@ -62,7 +62,7 @@ message SessionDescription {
   // sdp contents
   string sdp = 3;
   // sdp metdata
-  repeated TrackInfo trackinfos = 4;
+  repeated TrackInfo trackInfos = 4;
 }
 
 message Trickle {
@@ -82,7 +82,6 @@ message TrackEvent {
     REMOVE = 2;
   }
   State state = 1;
-  // user id
   string uid = 2;
   repeated TrackInfo tracks = 3;
 }
@@ -97,7 +96,9 @@ message SubscriptionReply {
   Error error = 2;
 }
 
-message UpdateTrackRequest { repeated TrackInfo tracks = 1; }
+message UpdateTrackRequest {
+  repeated TrackInfo tracks = 1;
+}
 
 message UpdateTrackReply {
   bool success = 1;
@@ -112,8 +113,8 @@ message Request {
     Trickle trickle = 3;
 
     // Command
-    SubscriptionRequest subscription = 5;
-    UpdateTrackRequest updateTrack = 6;
+    SubscriptionRequest subscription = 4;
+    UpdateTrackRequest updateTrack = 5;
   }
 }
 
@@ -129,9 +130,9 @@ message Reply {
 
     // Command Reply
     SubscriptionReply subscription = 5;
-    UpdateTrackReply updateTrack = 7;
+    UpdateTrackReply updateTrack = 6;
 
     // Error
-    Error error = 8;
+    Error error = 7;
   }
 }
