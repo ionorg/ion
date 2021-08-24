@@ -117,7 +117,7 @@ func (s *BizServer) watchISLBEvent(nid string, sid string) error {
 			for {
 				req, err := stream.Recv()
 				if err != nil {
-					log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
+					log.Errorf("BizServer.Signal server stream.Recv() err: %v", err)
 					return
 				}
 				log.Infof("watchISLBEvent req => %v", req)
@@ -167,7 +167,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 		for {
 			req, err := stream.Recv()
 			if err != nil {
-				log.Errorf("BizServer.Singal server stream.Recv() err: %v", err)
+				log.Errorf("BizServer.Signal server stream.Recv() err: %v", err)
 				errCh <- err
 				return
 			}
@@ -199,14 +199,14 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 				uid := payload.Join.Peer.Uid
 
 				success := false
-				reason := "unkown error."
+				reason := "unknown error."
 				r = s.getRoom(sid)
 
 				if r == nil {
 					reason = fmt.Sprintf("room sid = %v not found", sid)
 					resp, err := s.ndc.Get(proto.ServiceSFU, map[string]interface{}{"sid": sid, "uid": uid})
 					if err != nil {
-						log.Errorf("dnc.Get: serivce = %v error %v", proto.ServiceSFU, err)
+						log.Errorf("dnc.Get: service = %v error %v", proto.ServiceSFU, err)
 					}
 					nid := ""
 					if err == nil && len(resp.Nodes) > 0 {
@@ -217,7 +217,7 @@ func (s *BizServer) Signal(stream biz.Biz_SignalServer) error {
 							log.Errorf("s.watchISLBEvent(req) failed %v", err)
 						}
 					} else {
-						reason = "get serivce [sfu], node cnt == 0"
+						reason = "get service [sfu], node cnt == 0"
 					}
 				}
 
