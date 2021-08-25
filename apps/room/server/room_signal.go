@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// BizServer represents an BizServer instance
+// RoomSignalService represents an RoomSignalService instance
 type RoomSignalService struct {
 	room.UnimplementedRoomSignalServer
 	rs *RoomService
@@ -42,6 +42,7 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 
 		switch payload := req.Payload.(type) {
 		case *room.Request_Join:
+			log.Infof("[C->S]=%+v", payload)
 			reply, peer, err := s.Join(payload)
 			if err != nil {
 				log.Errorf("Join err: %v", err)
@@ -49,21 +50,35 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 			}
 			peer.sig = stream
 			p = peer
-			stream.Send(&room.Reply{Payload: reply})
+			log.Infof("[S->C]=%+v", reply)
+			err = stream.Send(&room.Reply{Payload: reply})
+			if err != nil {
+				log.Errorf("stream send error: %v", err)
+			}
 		case *room.Request_Leave:
+			log.Infof("[C->S]=%+v", payload)
 			reply, err := s.Leave(payload)
 			if err != nil {
 				log.Errorf("Leave err: %v", err)
 				return err
 			}
-			stream.Send(&room.Reply{Payload: reply})
+			log.Infof("[S->C]=%+v", reply)
+			err = stream.Send(&room.Reply{Payload: reply})
+			if err != nil {
+				log.Errorf("stream send error: %v", err)
+			}
 		case *room.Request_SendMessage:
+			log.Infof("[C->S]=%+v", payload)
 			reply, err := s.SendMessage(payload)
 			if err != nil {
 				log.Errorf("LockConference err: %v", err)
 				return err
 			}
-			stream.Send(&room.Reply{Payload: reply})
+			log.Infof("[S->C]=%+v", reply)
+			err = stream.Send(&room.Reply{Payload: reply})
+			if err != nil {
+				log.Errorf("stream send error: %v", err)
+			}
 		}
 	}
 }
@@ -71,6 +86,19 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer, error) {
 	pinfo := in.Join.Peer
 
+	if pinfo == nil || pinfo.Sid == "" && pinfo.Uid == "" {
+		reply := &room.Reply_Join{
+			Join: &room.JoinReply{
+				Success: false,
+				Room:    nil,
+				Error: &room.Error{
+					Code:   room.ErrorType_InvalidParams,
+					Reason: "sid/uid is empty",
+				},
+			},
+		}
+		return reply, nil, status.Errorf(codes.Internal, "sid/uid is empty")
+	}
 	key := util.GetRedisRoomKey(pinfo.Sid)
 	infos := s.rs.redis.HGetAll(key)
 	sid := infos["sid"]
@@ -99,12 +127,11 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	var peer *Peer = nil
 	r := s.rs.getRoom(sid)
 
-	log.Infof("s.rs.getRoom======%+v sid=%v", r, sid)
 	if r == nil {
 		r = s.rs.createRoom(sid)
 	}
 
-	peer = NewPeer(uid)
+	peer = NewPeer()
 	peer.info = *pinfo
 	r.addPeer(peer)
 	// TODO
@@ -142,12 +169,25 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 			Error:   nil,
 		},
 	}
+
 	return reply, peer, nil
 }
 
 func (s *RoomSignalService) Leave(in *room.Request_Leave) (*room.Reply_Leave, error) {
-	uid := in.Leave.Sid
-	sid := in.Leave.Uid
+	sid := in.Leave.Sid
+	uid := in.Leave.Uid
+	if sid == "" || uid == "" {
+		return &room.Reply_Leave{
+			Leave: &room.LeaveReply{
+				Success: false,
+				Error: &room.Error{
+					Code:   room.ErrorType_RoomNotExist,
+					Reason: "sid/uid is empty",
+				},
+			},
+		}, status.Errorf(codes.Internal, "sid/uid is empty")
+	}
+
 	r := s.rs.getRoom(sid)
 	if r == nil {
 		return &room.Reply_Leave{
@@ -160,25 +200,29 @@ func (s *RoomSignalService) Leave(in *room.Request_Leave) (*room.Reply_Leave, er
 			},
 		}, status.Errorf(codes.Internal, "room not exist")
 	}
+
 	peer := r.getPeer(uid)
-	if peer != nil && peer.uid == uid {
+	if peer != nil && peer.info.Uid == uid {
 		if r.delPeer(peer) == 0 {
 			s.rs.delRoom(r)
 			r = nil
 		}
 	}
-	return &room.Reply_Leave{
+
+	reply := &room.Reply_Leave{
 		Leave: &room.LeaveReply{
 			Success: true,
 			Error:   nil,
 		},
-	}, nil
+	}
+
+	return reply, nil
 }
 
 func (s *RoomSignalService) SendMessage(in *room.Request_SendMessage) (*room.Reply_SendMessage, error) {
 	msg := in.SendMessage.Message
 	sid := in.SendMessage.Sid
-	log.Debugf("Message: %+v", msg)
+	log.Infof("Message: %+v", msg)
 	r := s.rs.getRoom(sid)
 	if r == nil {
 		log.Warnf("room not found, maybe the peer did not join")

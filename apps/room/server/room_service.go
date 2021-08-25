@@ -31,10 +31,12 @@ func NewRoomService(config db.Config) *RoomService {
 		redis:  db.NewRedis(config),
 	}
 	go s.stat()
+	log.Infof("NewRoomService config========%+v redis=%v", config, s.redis)
 	return s
 }
 
 func (s *RoomService) Close() {
+	log.Infof("Close====== s.closed==%v", s.closed)
 	close(s.closed)
 }
 
@@ -284,7 +286,7 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 	}
 
 	// create peer and add to room
-	p := NewPeer(sid)
+	p := NewPeer()
 	p.info = *info
 	r.addPeer(p)
 
@@ -368,7 +370,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	// update local peer if exist
 	p := r.getPeer(uid)
 	if p == nil {
-		p = NewPeer(sid)
+		p = NewPeer()
 		r.addPeer(p)
 	}
 	p.info = *info

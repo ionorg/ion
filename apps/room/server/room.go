@@ -1,14 +1,26 @@
 package server
 
 import (
+	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	natsDiscoveryClient "github.com/cloudwebrtc/nats-discovery/pkg/client"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	natsRPC "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
+	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+
 	room "github.com/pion/ion/apps/room/proto"
 	"github.com/pion/ion/pkg/db"
+	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/runner"
+	"github.com/pion/ion/pkg/util"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 type global struct {
@@ -28,8 +40,9 @@ type nodeConf struct {
 	NID string `mapstructure:"nid"`
 }
 
-// Config for biz node
+// Config for room node
 type Config struct {
+	runner.ConfigBase
 	Global global    `mapstructure:"global"`
 	Log    logConf   `mapstructure:"log"`
 	Nats   natsConf  `mapstructure:"nats"`
@@ -80,6 +93,155 @@ type Room struct {
 	peers  map[string]*Peer
 	info   room.Room
 	update time.Time
+}
+
+type RoomServer struct {
+	// for standalone running
+	runner.Service
+
+	// grpc room service
+	RoomService
+	RoomSignalService
+
+	// for distributed node running
+	ion.Node
+	natsConn         *nats.Conn
+	natsDiscoveryCli *natsDiscoveryClient.Client
+
+	// config
+	conf Config
+}
+
+// New create a room node instance
+func New() *RoomServer {
+	return &RoomServer{
+		Node: ion.NewNode("room-" + util.RandomString(4)),
+	}
+}
+
+// Load load config file
+func (r *RoomServer) Load(confFile string) error {
+	err := r.conf.Load(confFile)
+	if err != nil {
+		log.Errorf("config load error: %v", err)
+		return err
+	}
+	return nil
+}
+
+// ConfigBase used for runner
+func (r *RoomServer) ConfigBase() runner.ConfigBase {
+	return &r.conf
+}
+
+// StartGRPC for standalone bin
+func (r *RoomServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
+	var err error
+
+	if r.conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", r.conf.Global.Pprof)
+			err := http.ListenAndServe(r.conf.Global.Pprof, nil)
+			if err != nil {
+				log.Warnf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	ndc, err := natsDiscoveryClient.NewClient(nil)
+	if err != nil {
+		log.Errorf("failed to create discovery client: %v", err)
+		ndc.Close()
+		return err
+	}
+
+	r.natsDiscoveryCli = ndc
+	r.natsConn = nil
+	r.RoomService = *NewRoomService(r.conf.Redis)
+	r.RoomSignalService = *NewRoomSignalService(&r.RoomService)
+
+	room.RegisterRoomServiceServer(registrar, &r.RoomService)
+	room.RegisterRoomSignalServer(registrar, &r.RoomSignalService)
+	go r.RoomService.stat()
+
+	return nil
+}
+
+// Start for distributed node
+func (r *RoomServer) Start() error {
+	var err error
+
+	if r.conf.Global.Pprof != "" {
+		go func() {
+			log.Infof("start pprof on %s", r.conf.Global.Pprof)
+			err := http.ListenAndServe(r.conf.Global.Pprof, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
+	log.Infof("r.conf.Nats.URL===%+v", r.conf.Nats.URL)
+	err = r.Node.Start(r.conf.Nats.URL)
+	if err != nil {
+		r.Close()
+		return err
+	}
+
+	ndc, err := natsDiscoveryClient.NewClient(r.NatsConn())
+	if err != nil {
+		log.Errorf("failed to create discovery client: %v", err)
+		ndc.Close()
+		return err
+	}
+
+	r.natsDiscoveryCli = ndc
+	r.natsConn = r.NatsConn()
+	r.RoomService = *NewRoomService(r.conf.Redis)
+	r.RoomSignalService = *NewRoomSignalService(&r.RoomService)
+
+	if err != nil {
+		r.Close()
+		return err
+	}
+
+	room.RegisterRoomServiceServer(r.Node.ServiceRegistrar(), &r.RoomService)
+	room.RegisterRoomSignalServer(r.Node.ServiceRegistrar(), &r.RoomSignalService)
+	// Register reflection service on nats-rpc server.
+	reflection.Register(r.Node.ServiceRegistrar().(*natsRPC.Server))
+
+	go r.stat()
+
+	node := discovery.Node{
+		DC:      r.conf.Global.Dc,
+		Service: proto.ServiceROOM,
+		NID:     r.Node.NID,
+		RPC: discovery.RPC{
+			Protocol: discovery.NGRPC,
+			Addr:     r.conf.Nats.URL,
+		},
+	}
+
+	go func() {
+		err := r.Node.KeepAlive(node)
+		if err != nil {
+			log.Errorf("Room.Node.KeepAlive(%v) error %v", r.Node.NID, err)
+		}
+	}()
+
+	//Watch ALL nodes.
+	go func() {
+		err := r.Node.Watch(proto.ServiceALL)
+		if err != nil {
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
+		}
+	}()
+	return nil
+}
+
+func (s *RoomServer) Close() {
+	s.RoomService.Close()
+	s.Node.Close()
 }
 
 // newRoom creates a new room instance

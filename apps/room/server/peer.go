@@ -9,7 +9,6 @@ import (
 
 // Peer represents a peer for client
 type Peer struct {
-	uid    string
 	info   room.Peer
 	sig    room.RoomSignal_SignalServer
 	room   *Room
@@ -19,11 +18,8 @@ type Peer struct {
 // NewPeer create a peer
 // args: sid, uid, dest, name, role, protocol, direction, info, avatar, vendor
 // at least sid and uid
-func NewPeer(uid string) *Peer {
-	p := &Peer{
-		uid: uid,
-	}
-	p.info.Uid = uid
+func NewPeer() *Peer {
+	p := &Peer{}
 	return p
 }
 

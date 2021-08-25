@@ -3,14 +3,57 @@ package main
 
 import (
 	"flag"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion/apps/room/proto"
 	room "github.com/pion/ion/apps/room/server"
-	"github.com/pion/ion/pkg/util"
-	"google.golang.org/grpc"
 )
 
+// func main() {
+// 	var confFile, addr, cert, key, loglevel string
+// 	flag.StringVar(&confFile, "c", "", "config file")
+// 	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
+// 	flag.StringVar(&cert, "cert", "", "cert for tls")
+// 	flag.StringVar(&key, "key", "", "key for tls")
+// 	flag.StringVar(&loglevel, "l", "info", "log level")
+// 	flag.Parse()
+
+// 	if confFile == "" {
+// 		flag.PrintDefaults()
+// 		return
+// 	}
+// 	conf := room.Config{}
+// 	err := conf.Load(confFile)
+// 	if err != nil {
+// 		log.Errorf("config load error: %v", err)
+// 		return
+// 	}
+
+// 	log.Init(loglevel)
+// 	log.Infof("--- Starting Room Service ---")
+
+// 	grpcServer := grpc.NewServer()
+// 	options := util.DefaultWrapperedServerOptions()
+// 	options.Addr = addr
+// 	options.Cert = cert
+// 	options.Key = key
+
+// 	roomService := room.NewRoomService(conf.Redis)
+// 	pb.RegisterRoomServiceServer(grpcServer, roomService)
+
+// 	roomSignalSerivce := room.NewRoomSignalService(roomService)
+// 	pb.RegisterRoomSignalServer(grpcServer, roomSignalSerivce)
+
+// 	wrapperedSrv := util.NewWrapperedGRPCWebServer(options, grpcServer)
+// 	if err := wrapperedSrv.Serve(); err != nil {
+// 		log.Panicf("failed to serve: %v", err)
+// 	}
+// 	select {}
+// }
+
+// run as distributed node
 func main() {
 	var confFile, addr, cert, key, loglevel string
 	flag.StringVar(&confFile, "c", "", "config file")
@@ -24,31 +67,27 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	conf := room.Config{}
-	err := conf.Load(confFile)
-	if err != nil {
-		log.Errorf("config load error: %v", err)
-		return
-	}
 
 	log.Init(loglevel)
 	log.Infof("--- Starting Room Service ---")
 
-	grpcServer := grpc.NewServer()
-	options := util.DefaultWrapperedServerOptions()
-	options.Addr = addr
-	options.Cert = cert
-	options.Key = key
-
-	roomService := room.NewRoomService(conf.Redis)
-	pb.RegisterRoomServiceServer(grpcServer, roomService)
-
-	roomSignalSerivce := room.NewRoomSignalService(roomService)
-	pb.RegisterRoomSignalServer(grpcServer, roomSignalSerivce)
-
-	wrapperedSrv := util.NewWrapperedGRPCWebServer(options, grpcServer)
-	if err := wrapperedSrv.Serve(); err != nil {
-		log.Panicf("failed to serve: %v", err)
+	node := room.New()
+	err := node.Load(confFile)
+	if err != nil {
+		log.Errorf("node load error: %v", err)
+		os.Exit(-1)
 	}
-	select {}
+
+	err = node.Start()
+	if err != nil {
+		log.Errorf("node init start: %v", err)
+		os.Exit(-1)
+	}
+
+	defer node.Close()
+
+	// Press Ctrl+C to exit the process
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	<-ch
 }
