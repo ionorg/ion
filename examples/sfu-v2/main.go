@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
-	var confFile, addr, cert, key, loglevel string
+	var confFile, addr, cert, key, logLevel string
 	flag.StringVar(&confFile, "c", "", "sfu config file")
 	flag.StringVar(&addr, "addr", ":9090", "grpc listening addr")
 	flag.StringVar(&cert, "cert", "", "cert for tls")
 	flag.StringVar(&key, "key", "", "key for tls")
-	flag.StringVar(&loglevel, "l", "info", "log level")
+	flag.StringVar(&logLevel, "l", "info", "log level")
 	flag.Parse()
 
 	if confFile == "" {

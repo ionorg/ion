@@ -535,7 +535,8 @@ func (s *RoomService) stat() {
 		s.roomLock.RLock()
 		for sid, room := range s.rooms {
 			//clean after room is clean and expired
-			if time.Since(room.update) > roomExpire && room.count() == 0 {
+			duration := time.Since(room.update)
+			if duration > roomExpire && room.count() == 0 {
 				delete(s.rooms, sid)
 			}
 			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())

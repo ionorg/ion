@@ -27,18 +27,6 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	// roomConf, sfuConf := room.Config{}, sfu.Config{}
-	// err := roomConf.Load(roomConfFile)
-	// if err != nil {
-	// 	log.Errorf("config load error: %v", err)
-	// 	return
-	// }
-
-	// err = sfuConf.Load(sfuConfFile)
-	// if err != nil {
-	// 	log.Errorf("config load error: %v", err)
-	// 	return
-	// }
 
 	log.Init(logLevel)
 	log.Infof("--- Starting Conference ---")

@@ -11,56 +11,14 @@ import (
 	room "github.com/pion/ion/apps/room/server"
 )
 
-// func main() {
-// 	var confFile, addr, cert, key, loglevel string
-// 	flag.StringVar(&confFile, "c", "", "config file")
-// 	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
-// 	flag.StringVar(&cert, "cert", "", "cert for tls")
-// 	flag.StringVar(&key, "key", "", "key for tls")
-// 	flag.StringVar(&loglevel, "l", "info", "log level")
-// 	flag.Parse()
-
-// 	if confFile == "" {
-// 		flag.PrintDefaults()
-// 		return
-// 	}
-// 	conf := room.Config{}
-// 	err := conf.Load(confFile)
-// 	if err != nil {
-// 		log.Errorf("config load error: %v", err)
-// 		return
-// 	}
-
-// 	log.Init(loglevel)
-// 	log.Infof("--- Starting Room Service ---")
-
-// 	grpcServer := grpc.NewServer()
-// 	options := util.DefaultWrapperedServerOptions()
-// 	options.Addr = addr
-// 	options.Cert = cert
-// 	options.Key = key
-
-// 	roomService := room.NewRoomService(conf.Redis)
-// 	pb.RegisterRoomServiceServer(grpcServer, roomService)
-
-// 	roomSignalSerivce := room.NewRoomSignalService(roomService)
-// 	pb.RegisterRoomSignalServer(grpcServer, roomSignalSerivce)
-
-// 	wrapperedSrv := util.NewWrapperedGRPCWebServer(options, grpcServer)
-// 	if err := wrapperedSrv.Serve(); err != nil {
-// 		log.Panicf("failed to serve: %v", err)
-// 	}
-// 	select {}
-// }
-
 // run as distributed node
 func main() {
-	var confFile, addr, cert, key, loglevel string
+	var confFile, addr, cert, key, logLevel string
 	flag.StringVar(&confFile, "c", "", "config file")
 	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
 	flag.StringVar(&cert, "cert", "", "cert for tls")
 	flag.StringVar(&key, "key", "", "key for tls")
-	flag.StringVar(&loglevel, "l", "info", "log level")
+	flag.StringVar(&logLevel, "l", "info", "log level")
 	flag.Parse()
 
 	if confFile == "" {
@@ -68,7 +26,7 @@ func main() {
 		return
 	}
 
-	log.Init(loglevel)
+	log.Init(logLevel)
 	log.Infof("--- Starting Room Service ---")
 
 	node := room.New()

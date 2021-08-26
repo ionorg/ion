@@ -261,7 +261,6 @@ func (r *Room) Name() string {
 
 // SID room id
 func (r *Room) SID() string {
-	r.update = time.Now()
 	return r.sid
 }
 
@@ -292,7 +291,6 @@ func (r *Room) roomLocked() bool {
 func (r *Room) getPeer(uid string) *Peer {
 	r.RLock()
 	defer r.RUnlock()
-	r.update = time.Now()
 	return r.peers[uid]
 }
 
@@ -335,7 +333,6 @@ func (r *Room) delPeer(p *Peer) int {
 func (r *Room) count() int {
 	r.RLock()
 	defer r.RUnlock()
-	r.update = time.Now()
 	return len(r.peers)
 }
 

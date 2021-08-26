@@ -213,7 +213,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			// send answer
 			log.Debugf("[S=>C] join.description: answer %v", answer.SDP)
 
-			sig.Send(&rtc.Reply{
+			err = sig.Send(&rtc.Reply{
 				Payload: &rtc.Reply_Join{
 					Join: &rtc.JoinReply{
 						Success: true,
@@ -226,6 +226,9 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 					},
 				},
 			})
+			if err != nil {
+				log.Errorf("signal send error: %v", err)
+			}
 
 			publisher := peer.Publisher()
 
@@ -253,6 +256,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 							Kind:     pubTrack.Track.Kind().String(),
 							StreamId: pubTrack.Track.StreamID(),
 							Muted:    false,
+							// VideoInfo: nil, //TODO how to get
 						})
 					}
 
@@ -264,11 +268,14 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 
 					// Send the existing tracks in the session to the new joined peer
 					log.Infof("[S=>C] send existing track %v, state = ADD", peerTracks)
-					sig.Send(&rtc.Reply{
+					err = sig.Send(&rtc.Reply{
 						Payload: &rtc.Reply_TrackEvent{
 							TrackEvent: event,
 						},
 					})
+					if err != nil {
+						log.Errorf("signal send error: %v", err)
+					}
 				}
 			}
 
