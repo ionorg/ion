@@ -250,6 +250,11 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			for _, p := range peer.Session().Peers() {
 				var peerTracks []*rtc.TrackInfo
 				if peer.ID() != p.ID() {
+					pubTracks := p.Publisher().PublisherTracks()
+					if len(pubTracks) == 0 {
+						continue
+					}
+
 					for _, pubTrack := range p.Publisher().PublisherTracks() {
 						peerTracks = append(peerTracks, &rtc.TrackInfo{
 							Id:       pubTrack.Track.ID(),
