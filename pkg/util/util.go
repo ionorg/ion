@@ -94,5 +94,8 @@ func StringToBool(flag string) bool {
 	if strings.ToUpper(flag) == "TRUE" {
 		return true
 	}
+	if flag == "1" {
+		return true
+	}
 	return false
 }

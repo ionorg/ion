@@ -35,25 +35,33 @@ enum MediaType {
   VoIP = 5;
 }
 
-message VideoInfo {
-  uint32 width = 1;
-  uint32 height = 2;
-  uint32 frameRate = 3;
-  // Simulcast
-  // {'f': 'send', 'h': 'send', 'q': 'send'}
-  // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
-  map<string, string> simulcast = 4;
-}
-
 message TrackInfo {
+  // basic info
   string id = 1;
   string kind = 2;
   bool muted = 3;
   MediaType type = 4;
   string streamId = 5;
   string label = 6;
-  VideoInfo videoInfo = 7;
+
+  // extra info
+  bool subscribed = 7;
+  string layer = 8;  // simulcast or svc layer
+  uint32 width = 9;
+  uint32 height = 10;
+  uint32 frameRate = 11;
 }
+// message VideoInfo {
+//   uint32 width = 1;
+//   uint32 height = 2;
+//   uint32 frameRate = 3;
+//   // Simulcast
+//   // {'f': 'send', 'h': 'send', 'q': 'send'}
+//   // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
+//   // map<string, string> simulcast = 4;
+//   string layer = 4;
+//   string direction = 5;
+// }
 
 message SessionDescription {
   Target target = 1;
@@ -86,9 +94,15 @@ message TrackEvent {
   repeated TrackInfo tracks = 3;
 }
 
+message Subscription{
+  string trackId = 2;
+  bool mute = 3; // mute track or not
+  bool subscribe = 4; // sub track or not
+  string layer = 5;  // simulcast or svc layer
+}
+
 message SubscriptionRequest {
-  repeated string trackIds = 1;
-  bool subscribe = 2;
+  repeated Subscription subscriptions = 1;
 }
 
 message SubscriptionReply {
@@ -103,6 +117,18 @@ message UpdateTrackRequest {
 message UpdateTrackReply {
   bool success = 1;
   Error error = 2;
+}
+
+message ActiveSpeaker {
+  repeated AudioLevel speakers = 1;
+}
+
+message AudioLevel {
+  string sid = 1;
+  // audio level, 0-1.0, 1 is loudest
+  float level = 2;
+  // true if speaker is currently active
+  bool active = 3;
 }
 
 message Request {

@@ -31,12 +31,10 @@ func NewRoomService(config db.Config) *RoomService {
 		redis:  db.NewRedis(config),
 	}
 	go s.stat()
-	log.Infof("NewRoomService config========%+v redis=%v", config, s.redis)
 	return s
 }
 
 func (s *RoomService) Close() {
-	log.Infof("Close====== s.closed==%v", s.closed)
 	close(s.closed)
 }
 

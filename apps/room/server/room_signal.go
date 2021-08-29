@@ -107,13 +107,19 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	// create in redis if room not exist
 	if sid == "" {
 		// store room info
-		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", pinfo.Sid, "name", "",
+		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", pinfo.Sid, "name", pinfo.DisplayName,
 			"password", "", "description", "", "lock", "0")
 		if err != nil {
 			reply := &room.Reply_Join{
 				Join: &room.JoinReply{
-					Success: false,
-					Room:    nil,
+					Success: true,
+					Room: &room.Room{
+						Sid:         sid,
+						Name:        "",
+						Lock:        false,
+						Password:    "",
+						Description: "",
+					},
 					Error: &room.Error{
 						Code:   room.ErrorType_ServiceUnavailable,
 						Reason: err.Error(),
