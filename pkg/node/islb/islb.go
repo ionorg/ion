@@ -2,7 +2,6 @@ package islb
 
 import (
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
@@ -12,6 +11,7 @@ import (
 	"github.com/pion/ion/pkg/db"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/util"
 	pb "github.com/pion/ion/proto/islb"
 )
 
@@ -20,8 +20,7 @@ const (
 )
 
 type global struct {
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Dc string `mapstructure:"dc"`
 }
 
 type logConf struct {
@@ -32,16 +31,11 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for islb node
 type Config struct {
 	Global  global    `mapstructure:"global"`
 	Log     logConf   `mapstructure:"log"`
 	Nats    natsConf  `mapstructure:"nats"`
-	Node    nodeConf  `mapstructure:"node"`
 	Redis   db.Config `mapstructure:"redis"`
 	CfgFile string
 }
@@ -55,23 +49,13 @@ type ISLB struct {
 }
 
 // NewISLB create a islb node instance
-func NewISLB(nid string) *ISLB {
-	return &ISLB{Node: ion.NewNode(nid)}
+func NewISLB() *ISLB {
+	return &ISLB{Node: ion.NewNode("islb-" + util.RandomString(6))}
 }
 
 // Start islb node
 func (i *ISLB) Start(conf Config) error {
 	var err error
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
 
 	err = i.Node.Start(conf.Nats.URL)
 	if err != nil {

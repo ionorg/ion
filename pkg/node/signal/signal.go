@@ -39,8 +39,7 @@ type grpcConf struct {
 }
 
 type global struct {
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Dc string `mapstructure:"dc"`
 }
 
 type logConf struct {
@@ -55,16 +54,11 @@ type avpConf struct {
 	Elements []string `mapstructure:"elements"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for biz node
 type Config struct {
 	Global global     `mapstructure:"global"`
 	Log    logConf    `mapstructure:"log"`
 	Nats   natsConf   `mapstructure:"nats"`
-	Node   nodeConf   `mapstructure:"node"`
 	Avp    avpConf    `mapstructure:"avp"`
 	Signal signalConf `mapstructure:"signal"`
 }
@@ -93,7 +87,7 @@ func NewSignal(conf Config) (*Signal, error) {
 		conf: conf,
 		nc:   nc,
 		ndc:  ndc,
-		Node: ion.NewNode(conf.Node.NID),
+		Node: ion.NewNode("signal-" + util.RandomString(6)),
 	}, nil
 }
 

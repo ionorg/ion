@@ -1,5 +1,4 @@
 [global]
-pprof = ":6063"
 # data center id
 dc = "dc1"
 

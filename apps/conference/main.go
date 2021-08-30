@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,13 +16,14 @@ import (
 )
 
 func main() {
-	var roomConfFile, sfuConfFile, addr, logLevel, certFile, keyFile string
+	var roomConfFile, sfuConfFile, addr, logLevel, certFile, keyFile, paddr string
 	flag.StringVar(&roomConfFile, "bc", "", "room config file")
 	flag.StringVar(&sfuConfFile, "sc", "", "sfu config file")
 	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
 	flag.StringVar(&certFile, "cert", "", "cert file")
 	flag.StringVar(&keyFile, "key", "", "key file")
 	flag.StringVar(&logLevel, "l", "info", "log level")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
 	flag.Parse()
 	if roomConfFile == "" && sfuConfFile == "" {
 		flag.PrintDefaults()
@@ -30,6 +32,15 @@ func main() {
 
 	log.Init(logLevel)
 	log.Infof("--- Starting Conference ---")
+	if paddr != "" {
+		go func() {
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
 
 	options := util.DefaultWrapperedServerOptions()
 	options.Addr = addr

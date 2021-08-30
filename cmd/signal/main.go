@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
@@ -16,8 +17,8 @@ import (
 )
 
 var (
-	conf = signal.Config{}
-	file string
+	conf        = signal.Config{}
+	file, paddr string
 )
 
 func showHelp() {
@@ -64,6 +65,8 @@ func load() bool {
 
 func parse() bool {
 	flag.StringVar(&file, "c", "configs/sig.toml", "config file")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
+
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -84,9 +87,20 @@ func main() {
 	}
 
 	log.Init(conf.Log.Level)
+
+	if paddr != "" {
+		go func() {
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
 	addr := fmt.Sprintf("%s:%d", conf.Signal.GRPC.Host, conf.Signal.GRPC.Port)
 	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---")
-	log.Infof("--- Bind to %s, NID = %v ---", addr, conf.Node.NID)
+	log.Infof("--- Bind to %s  ---", addr)
 
 	options := util.DefaultWrapperedServerOptions()
 	options.Addr = addr

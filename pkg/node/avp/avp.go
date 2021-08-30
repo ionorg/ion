@@ -2,7 +2,6 @@ package avp
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path"
 
@@ -13,12 +12,12 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/pion/ion/pkg/util"
 )
 
 type global struct {
-	Addr  string `mapstructure:"addr"`
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Addr string `mapstructure:"addr"`
+	Dc   string `mapstructure:"dc"`
 }
 
 type natsConf struct {
@@ -33,15 +32,10 @@ type elementConf struct {
 	Webmsaver webmsaver `mapstructure:"webmsaver"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for avp node
 type Config struct {
 	Global      global      `mapstructure:"global"`
 	Nats        natsConf    `mapstructure:"nats"`
-	Node        nodeConf    `mapstructure:"node"`
 	Element     elementConf `mapstructure:"element"`
 	iavp.Config `mapstructure:"avp"`
 }
@@ -53,23 +47,13 @@ type AVP struct {
 }
 
 // NewAVP create a avp node instance
-func NewAVP(nid string) *AVP {
-	return &AVP{Node: ion.NewNode(nid)}
+func NewAVP() *AVP {
+	return &AVP{Node: ion.NewNode("avp-" + util.RandomString(6))}
 }
 
 // Start avp node
 func (a *AVP) Start(conf Config) error {
 	var err error
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
 
 	err = a.Node.Start(conf.Nats.URL)
 	if err != nil {

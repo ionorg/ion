@@ -1,14 +1,10 @@
 [global]
-pprof = ":6062"
 # data center id
 dc = "dc1"
 
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[node]
-# node id
-nid = "sfu01"
 
 [sfu]
 # Ballast size in MiB, will allocate memory to reduce the GC trigger upto 2x the

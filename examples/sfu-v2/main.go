@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/node/sfu"
@@ -29,16 +28,6 @@ func main() {
 	if err != nil {
 		log.Errorf("config load error: %v", err)
 		return
-	}
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
 	}
 
 	log.Init(conf.Log.Level)

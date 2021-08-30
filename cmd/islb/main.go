@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "net/http/pprof"
+	"net/http"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,8 +15,8 @@ import (
 )
 
 var (
-	conf = islb.Config{}
-	file string
+	conf        = islb.Config{}
+	file, paddr string
 )
 
 func showHelp() {
@@ -49,6 +50,8 @@ func load() bool {
 
 func parse() bool {
 	flag.StringVar(&file, "c", "configs/islb.toml", "config file")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
+
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -71,8 +74,16 @@ func main() {
 	log.Init(conf.Log.Level)
 
 	log.Infof("--- starting islb node ---")
-
-	node := islb.NewISLB(conf.Node.NID)
+	if paddr != "" {
+		go func() {
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+	node := islb.NewISLB()
 	if err := node.Start(conf); err != nil {
 		log.Errorf("islb start error: %v", err)
 		os.Exit(-1)

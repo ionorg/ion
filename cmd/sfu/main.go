@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
-	_ "net/http/pprof"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,12 +13,14 @@ import (
 )
 
 func main() {
-	var confFile, addr, cert, key, logLevel string
+	var confFile, addr, cert, key, logLevel, paddr string
 	flag.StringVar(&confFile, "c", "", "sfu config file")
 	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
 	flag.StringVar(&cert, "cert", "", "cert for tls")
 	flag.StringVar(&key, "key", "", "key for tls")
 	flag.StringVar(&logLevel, "l", "info", "log level")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
+
 	flag.Parse()
 
 	if confFile == "" {
@@ -33,10 +35,10 @@ func main() {
 		return
 	}
 
-	if conf.Global.Pprof != "" {
+	if paddr != "" {
 		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
 			if err != nil {
 				log.Errorf("http.ListenAndServe err=%v", err)
 			}
@@ -46,7 +48,7 @@ func main() {
 	log.Init(conf.Log.Level)
 	log.Infof("--- starting sfu node ---")
 
-	node := sfu.NewSFU(conf.Node.NID)
+	node := sfu.NewSFU()
 	if err := node.Start(conf); err != nil {
 		log.Errorf("sfu init start: %v", err)
 		os.Exit(-1)

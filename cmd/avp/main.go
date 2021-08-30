@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "net/http/pprof"
+	"net/http"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,8 +15,8 @@ import (
 )
 
 var (
-	conf = avp.Config{}
-	file string
+	conf        = avp.Config{}
+	file, paddr string
 )
 
 func showHelp() {
@@ -57,6 +58,8 @@ func load() bool {
 func parse() bool {
 
 	flag.StringVar(&file, "c", "configs/avp.toml", "config file")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
+
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -79,8 +82,16 @@ func main() {
 	log.Init("info")
 
 	log.Infof("--- starting avp node ---")
-
-	node := avp.NewAVP(conf.Node.NID)
+	if paddr != "" {
+		go func() {
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+	node := avp.NewAVP()
 	if err := node.Start(conf); err != nil {
 		log.Errorf("avp start error: %v", err)
 		os.Exit(-1)

@@ -2,7 +2,6 @@ package sfu
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
@@ -24,16 +23,11 @@ const (
 )
 
 type global struct {
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Dc string `mapstructure:"dc"`
 }
 
 type natsConf struct {
 	URL string `mapstructure:"url"`
-}
-
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
 }
 
 // Config defines parameters for the logger
@@ -46,7 +40,6 @@ type Config struct {
 	Global global   `mapstructure:"global"`
 	Log    logConf  `mapstructure:"log"`
 	Nats   natsConf `mapstructure:"nats"`
-	Node   nodeConf `mapstructure:"node"`
 	isfu.Config
 }
 
@@ -112,7 +105,7 @@ type SFU struct {
 // New create a sfu node instance
 func New() *SFU {
 	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(4)),
+		Node: ion.NewNode("sfu-" + util.RandomString(6)),
 	}
 	return s
 }
@@ -122,9 +115,9 @@ func (s *SFU) ConfigBase() runner.ConfigBase {
 }
 
 // NewSFU create a sfu node instance
-func NewSFU(nid string) *SFU {
+func NewSFU() *SFU {
 	s := &SFU{
-		Node: ion.NewNode(nid),
+		Node: ion.NewNode("sfu-" + util.RandomString(6)),
 	}
 	return s
 }
@@ -141,16 +134,6 @@ func (s *SFU) Load(confFile string) error {
 
 // StartGRPC start with grpc.ServiceRegistrar
 func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
-	if s.conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", s.conf.Global.Pprof)
-			err := http.ListenAndServe(s.conf.Global.Pprof, nil)
-			if err != nil {
-				log.Warnf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
-
 	s.s = NewSFUService(s.conf.Config)
 	pb.RegisterRTCServer(registrar, s.s)
 	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
@@ -160,16 +143,6 @@ func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 // Start sfu node
 func (s *SFU) Start(conf Config) error {
 	var err error
-
-	if conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", conf.Global.Pprof)
-			err := http.ListenAndServe(conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
 
 	err = s.Node.Start(conf.Nats.URL)
 	if err != nil {

@@ -1,5 +1,4 @@
 [global]
-pprof = ":6061"
 # data center id
 dc = "dc1"
 
@@ -9,9 +8,6 @@ level = "info"
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[node]
-# node id
-nid = "islb01"
 
 [redis]
 addrs = [":6379"]

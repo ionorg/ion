@@ -1,7 +1,6 @@
 package server
 
 import (
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -24,8 +23,7 @@ import (
 )
 
 type global struct {
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Dc string `mapstructure:"dc"`
 }
 
 type logConf struct {
@@ -36,17 +34,12 @@ type natsConf struct {
 	URL string `mapstructure:"url"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for room node
 type Config struct {
 	runner.ConfigBase
 	Global global    `mapstructure:"global"`
 	Log    logConf   `mapstructure:"log"`
 	Nats   natsConf  `mapstructure:"nats"`
-	Node   nodeConf  `mapstructure:"node"`
 	Redis  db.Config `mapstructure:"redis"`
 }
 
@@ -115,7 +108,7 @@ type RoomServer struct {
 // New create a room node instance
 func New() *RoomServer {
 	return &RoomServer{
-		Node: ion.NewNode("room-" + util.RandomString(4)),
+		Node: ion.NewNode("room-" + util.RandomString(6)),
 	}
 }
 
@@ -137,16 +130,6 @@ func (r *RoomServer) ConfigBase() runner.ConfigBase {
 // StartGRPC for standalone bin
 func (r *RoomServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	var err error
-
-	if r.conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", r.conf.Global.Pprof)
-			err := http.ListenAndServe(r.conf.Global.Pprof, nil)
-			if err != nil {
-				log.Warnf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
 
 	ndc, err := natsDiscoveryClient.NewClient(nil)
 	if err != nil {
@@ -170,16 +153,6 @@ func (r *RoomServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
 // Start for distributed node
 func (r *RoomServer) Start() error {
 	var err error
-
-	if r.conf.Global.Pprof != "" {
-		go func() {
-			log.Infof("start pprof on %s", r.conf.Global.Pprof)
-			err := http.ListenAndServe(r.conf.Global.Pprof, nil)
-			if err != nil {
-				log.Errorf("http.ListenAndServe err=%v", err)
-			}
-		}()
-	}
 
 	log.Infof("r.conf.Nats.URL===%+v", r.conf.Nats.URL)
 	err = r.Node.Start(r.conf.Nats.URL)

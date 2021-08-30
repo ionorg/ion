@@ -134,8 +134,25 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	r := s.rs.getRoom(sid)
 
 	if r == nil {
+		// create room and store
 		r = s.rs.createRoom(sid)
+		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "name", "",
+			"password", "", "description", "", "lock", false)
+		if err != nil {
+			reply := &room.Reply_Join{
+				Join: &room.JoinReply{
+					Success: false,
+					Room:    nil,
+					Error: &room.Error{
+						Code:   room.ErrorType_ServiceUnavailable,
+						Reason: err.Error(),
+					},
+				},
+			}
+			return reply, nil, err
+		}
 	}
+	r.info.Sid = sid
 
 	peer = NewPeer()
 	peer.info = *pinfo
