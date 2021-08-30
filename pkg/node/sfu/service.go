@@ -57,7 +57,10 @@ func (s *SFUService) Close() {
 func (s *SFUService) BroadcastTrackEvent(uid string, tracks []*rtc.TrackInfo, state rtc.TrackEvent_State) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	for _, sig := range s.sigs {
+	for id, sig := range s.sigs {
+		if id == uid {
+			continue
+		}
 		err := sig.Send(&rtc.Reply{
 			Payload: &rtc.Reply_TrackEvent{
 				TrackEvent: &rtc.TrackEvent{
@@ -223,11 +226,6 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 				Type: webrtc.NewSDPType(payload.Join.Description.Type),
 			}
 
-			// tracksMutex.Lock()
-			// tracksInfo = payload.Join.Description.TrackInfos
-			// log.Debugf("[C=>S] join.description tracksInfos %v", tracksInfo)
-			// tracksMutex.Unlock()
-
 			log.Debugf("[C=>S] join.description: offer %v", desc.SDP)
 			answer, err := peer.Answer(desc)
 			if err != nil {
@@ -262,7 +260,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 					log.Debugf("[S=>C] OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", pt.Track.Kind(), uid, pt.Track.Msid(), pt.Track.ID())
 
 					once.Do(func() {
-						debounced := debounce.New(500 * time.Millisecond)
+						debounced := debounce.New(600 * time.Millisecond)
 						debounced(func() {
 							var peerTracks []*rtc.TrackInfo
 							pubTracks := publisher.PublisherTracks()
@@ -280,19 +278,9 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 								})
 							}
 
-							event := &rtc.TrackEvent{
-								Uid:    peer.ID(),
-								State:  rtc.TrackEvent_ADD,
-								Tracks: peerTracks,
-							}
-
-							// Send the existing tracks in the session to the new joined peer
-							log.Infof("[S=>C] send existing track %v, state = ADD", peerTracks)
-							err = sig.Send(&rtc.Reply{
-								Payload: &rtc.Reply_TrackEvent{
-									TrackEvent: event,
-								},
-							})
+							// broadcast the existing tracks in the session
+							log.Infof("[S=>C] BroadcastTrackEvent existing track %v, state = ADD", peerTracks)
+							s.BroadcastTrackEvent(uid, peerTracks, rtc.TrackEvent_REMOVE)
 							if err != nil {
 								log.Errorf("signal send error: %v", err)
 							}
@@ -353,11 +341,6 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			switch desc.Type {
 			case webrtc.SDPTypeOffer:
 				log.Debugf("[C=>S] description: offer %v", desc.SDP)
-
-				// tracksMutex.Lock()
-				// tracksInfo = payload.Description.TrackInfos
-				// log.Debugf("[C=>S] description tracksInfos %v", tracksInfo)
-				// tracksMutex.Unlock()
 
 				answer, err := peer.Answer(desc)
 				if err != nil {
@@ -463,7 +446,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 						if p.ID() != peer.ID() {
 							for _, track := range p.Publisher().PublisherTracks() {
 								if track.Receiver.TrackID() == trackInfo.TrackId {
-									log.Debugf("Add RemoteTrack: %v to peer %v", trackInfo.TrackId, peer.ID())
+									log.Infof("Add RemoteTrack: %v to peer %v", trackInfo.TrackId, peer.ID())
 									_, err = peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
 									needNegotiate = true
 								}
@@ -489,20 +472,6 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			_ = sig.Send(&rtc.Reply{
 				Payload: &rtc.Reply_Subscription{
 					Subscription: &rtc.SubscriptionReply{
-						Success: true,
-						Error:   nil,
-					},
-				},
-			})
-		case *rtc.Request_UpdateTrack:
-			updateTrack := payload.UpdateTrack
-			log.Debugf("[C=>S] request update track: %v", updateTrack)
-			for _, trackInfo := range updateTrack.Tracks {
-				log.Debugf("[C=>S] track info: %v", trackInfo)
-			}
-			_ = sig.Send(&rtc.Reply{
-				Payload: &rtc.Reply_UpdateTrack{
-					UpdateTrack: &rtc.UpdateTrackReply{
 						Success: true,
 						Error:   nil,
 					},

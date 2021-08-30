@@ -45,23 +45,11 @@ message TrackInfo {
   string label = 6;
 
   // extra info
-  bool subscribed = 7;
-  string layer = 8;  // simulcast or svc layer
-  uint32 width = 9;
-  uint32 height = 10;
-  uint32 frameRate = 11;
+  string layer = 7;  // simulcast or svc layer
+  uint32 width = 8;
+  uint32 height = 9;
+  uint32 frameRate = 10;
 }
-// message VideoInfo {
-//   uint32 width = 1;
-//   uint32 height = 2;
-//   uint32 frameRate = 3;
-//   // Simulcast
-//   // {'f': 'send', 'h': 'send', 'q': 'send'}
-//   // {'f': 'recv', 'h': 'recv', 'q': 'recv'}
-//   // map<string, string> simulcast = 4;
-//   string layer = 4;
-//   string direction = 5;
-// }
 
 message SessionDescription {
   Target target = 1;
@@ -110,24 +98,20 @@ message SubscriptionReply {
   Error error = 2;
 }
 
-message UpdateTrackRequest {
-  repeated TrackInfo tracks = 1;
-}
-
 message UpdateTrackReply {
   bool success = 1;
   Error error = 2;
 }
 
 message ActiveSpeaker {
-  repeated AudioLevel speakers = 1;
+  repeated AudioLevelSpeaker speakers = 1;
 }
 
-message AudioLevel {
+message AudioLevelSpeaker {
   string sid = 1;
-  // audio level, 0-1.0, 1 is loudest
+  // audio level
   float level = 2;
-  // true if speaker is currently active
+  // speaker active or not
   bool active = 3;
 }
 
@@ -140,7 +124,6 @@ message Request {
 
     // Command
     SubscriptionRequest subscription = 4;
-    UpdateTrackRequest updateTrack = 5;
   }
 }
 
@@ -156,7 +139,6 @@ message Reply {
 
     // Command Reply
     SubscriptionReply subscription = 5;
-    UpdateTrackReply updateTrack = 6;
 
     // Error
     Error error = 7;
