@@ -34,15 +34,11 @@ func main() {
 	log.Infof("--- Starting ION SFU ---")
 
 	grpcServer := grpc.NewServer()
-	options := util.DefaultWrapperedServerOptions()
-	options.Addr = addr
-	options.Cert = cert
-	options.Key = key
 
 	sfu := sfu.NewSFUService(conf.Config)
 
 	sfu.RegisterService(grpcServer)
-
+	options := util.NewWrapperedServerOptions(addr, cert, key, true)
 	wrapperedSrv := util.NewWrapperedGRPCWebServer(options, grpcServer)
 	if err := wrapperedSrv.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)

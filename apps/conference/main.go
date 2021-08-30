@@ -42,12 +42,7 @@ func main() {
 		}()
 	}
 
-	options := util.DefaultWrapperedServerOptions()
-	options.Addr = addr
-	options.Cert = certFile
-	options.Key = keyFile
-
-	r := runner.New(options)
+	r := runner.New(util.NewWrapperedServerOptions(addr, certFile, keyFile, true))
 	err := r.AddService(
 		runner.ServiceUnit{
 			Service:    room.New(),
@@ -56,11 +51,14 @@ func main() {
 		runner.ServiceUnit{
 			Service:    sfu.New(),
 			ConfigFile: sfuConfFile,
-		})
+		},
+	)
+
 	if err != nil {
 		log.Errorf("runner AddService error: %v", err)
 		return
 	}
+
 	defer r.Close()
 
 	// Press Ctrl+C to exit the process

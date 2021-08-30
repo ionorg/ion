@@ -39,7 +39,7 @@ func TestWatch(t *testing.T) {
 	err := reg.Listen(func(action discovery.Action, node discovery.Node) (bool, error) {
 		log.Debugf("handleNode: service %v, action %v => id %v, RPC %v", node.Service, action, node.ID(), node.RPC)
 		assert.Equal(t, node.NID, nid)
-		assert.Equal(t, node.Service, proto.ServiceBIZ)
+		assert.Equal(t, node.Service, proto.ServiceROOM)
 		wg.Done()
 		return true, nil
 	}, func(service string, params map[string]interface{}) ([]discovery.Node, error) {
@@ -57,7 +57,7 @@ func TestWatch(t *testing.T) {
 
 	node := discovery.Node{
 		DC:      "dc",
-		Service: proto.ServiceBIZ,
+		Service: proto.ServiceROOM,
 		NID:     nid,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
@@ -76,7 +76,7 @@ func TestWatch(t *testing.T) {
 	wg.Wait()
 	assert.NotEmpty(t, n.ServiceRegistrar())
 
-	err = n.Watch(proto.ServiceBIZ)
+	err = n.Watch(proto.ServiceROOM)
 	if err != nil {
 		t.Error(err)
 	}

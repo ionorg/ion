@@ -52,28 +52,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 		}, nil
 	}
 
-	// return if room exist in redis
 	key := util.GetRedisRoomKey(info.Sid)
-
-	// NOT CHECK
-	// if s.redis.HGet(key, "sid") != "" {
-	// 	// recover room if not exist in memroy but exist in redis
-	// 	if r := s.getRoom(sid); r == nil {
-	// 		r = s.createRoom(sid)
-	// 		res := s.redis.HGetAll(key)
-	// 		r.info.Sid = res["sid"]
-	// 		r.info.Name = res["name"]
-	// 		r.info.Lock = util.StringToBool(res["lock"])
-	// 		r.info.Password = res["password"]
-	// 	}
-	// 	return &room.CreateRoomReply{
-	// 		Success: false,
-	// 		Error: &room.Error{
-	// 			Code:   room.ErrorType_RoomAlreadyExist,
-	// 			Reason: "room already exist",
-	// 		},
-	// 	}, nil
-	// }
 
 	// create local room if room not found locally
 	r := s.getRoom(info.Sid)

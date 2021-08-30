@@ -37,6 +37,19 @@ func DefaultWrapperedServerOptions() WrapperedServerOptions {
 	}
 }
 
+func NewWrapperedServerOptions(addr, cert, key string, websocket bool) WrapperedServerOptions {
+	return WrapperedServerOptions{
+		Addr:                  ":9090",
+		Cert:                  "",
+		Key:                   "",
+		AllowAllOrigins:       true,
+		AllowedHeaders:        &[]string{},
+		AllowedOrigins:        &[]string{},
+		UseWebSocket:          true,
+		WebsocketPingInterval: 0,
+	}
+}
+
 type WrapperedGRPCWebServer struct {
 	options    WrapperedServerOptions
 	GRPCServer *grpc.Server

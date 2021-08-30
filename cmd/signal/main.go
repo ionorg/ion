@@ -102,11 +102,6 @@ func main() {
 	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---")
 	log.Infof("--- Bind to %s  ---", addr)
 
-	options := util.DefaultWrapperedServerOptions()
-	options.Addr = addr
-	options.Cert = conf.Signal.GRPC.Cert
-	options.Key = conf.Signal.GRPC.Key
-
 	sig, err := signal.NewSignal(conf)
 	if err != nil {
 		log.Errorf("new signal: %v", err)
@@ -123,7 +118,9 @@ func main() {
 		grpc.CustomCodec(nrpc.Codec()), // nolint:staticcheck
 		grpc.UnknownServiceHandler(nproxy.TransparentHandler(sig.Director)))
 
-	s := util.NewWrapperedGRPCWebServer(options, srv)
+	s := util.NewWrapperedGRPCWebServer(util.NewWrapperedServerOptions(
+		addr, conf.Signal.GRPC.Cert, conf.Signal.GRPC.Key, true), srv)
+
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)
 	}
