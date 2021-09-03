@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	roomExpire = time.Second * 10
+	roomExpire      = time.Second * 10
+	roomRedisExpire = 24 * time.Hour
 )
 
 type RoomService struct {
@@ -62,7 +63,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 	r.info = *info //copy mutex?
 
 	// store room info
-	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", r.info.Sid, "name", r.info.Name,
+	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", r.info.Sid, "name", r.info.Name,
 		"password", r.info.Password, "description", r.info.Description, "lock", r.info.Lock)
 	if err != nil {
 		return &room.CreateRoomReply{
@@ -117,7 +118,7 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 	r.info = *info
 	// update redis
 	log.Infof("update room info=%+v", r.info)
-	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", r.info.Sid, "name", r.info.Name,
+	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", r.info.Sid, "name", r.info.Name,
 		"password", r.info.Password, "description", r.info.Description, "lock", r.info.Lock)
 	if err != nil {
 		return &room.UpdateRoomReply{
@@ -269,7 +270,7 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
-	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "dest", dest,
+	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "dest", dest,
 		"name", name, "role", role, "protocol", protocol, "direction", direction)
 
 	if err != nil {
@@ -355,7 +356,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
 
-	err := s.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "destination", destination,
+	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "destination", destination,
 		"name", name, "role", role, "protocol", protocol, "direction", direction)
 
 	if err != nil {
@@ -509,7 +510,7 @@ func (s *RoomService) stat() {
 		}
 
 		var info string
-		s.roomLock.RLock()
+		s.roomLock.Lock()
 		for sid, room := range s.rooms {
 			//clean after room is clean and expired
 			duration := time.Since(room.update)
@@ -518,7 +519,7 @@ func (s *RoomService) stat() {
 			}
 			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
 		}
-		s.roomLock.RUnlock()
+		s.roomLock.Unlock()
 		if len(info) > 0 {
 			log.Infof("\n----------------signal-----------------\n" + info)
 		}

@@ -39,9 +39,9 @@ func DefaultWrapperedServerOptions() WrapperedServerOptions {
 
 func NewWrapperedServerOptions(addr, cert, key string, websocket bool) WrapperedServerOptions {
 	return WrapperedServerOptions{
-		Addr:                  ":9090",
-		Cert:                  "",
-		Key:                   "",
+		Addr:                  addr,
+		Cert:                  cert,
+		Key:                   key,
 		AllowAllOrigins:       true,
 		AllowedHeaders:        &[]string{},
 		AllowedOrigins:        &[]string{},

@@ -12,7 +12,7 @@ import (
 func main() {
 	var confFile, addr, cert, key, logLevel string
 	flag.StringVar(&confFile, "c", "", "sfu config file")
-	flag.StringVar(&addr, "addr", ":9090", "grpc listening addr")
+	flag.StringVar(&addr, "addr", ":5551", "grpc listening addr")
 	flag.StringVar(&cert, "cert", "", "cert for tls")
 	flag.StringVar(&key, "key", "", "key for tls")
 	flag.StringVar(&logLevel, "l", "info", "log level")

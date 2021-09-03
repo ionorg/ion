@@ -2,7 +2,7 @@ package server
 
 import (
 	"errors"
-	"time"
+	"io"
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
@@ -35,8 +35,18 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 
 	for {
 		req, err := stream.Recv()
+
 		if err != nil {
-			log.Errorf("RoomSignalService.Singal server stream.Recv() err: %v", err)
+			if err == io.EOF {
+				return nil
+			}
+
+			errStatus, _ := status.FromError(err)
+			if errStatus.Code() == codes.Canceled {
+				return nil
+			}
+
+			log.Errorf("signal error %v %v", errStatus.Message(), errStatus.Code())
 			return err
 		}
 
@@ -107,19 +117,14 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	// create in redis if room not exist
 	if sid == "" {
 		// store room info
-		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", pinfo.Sid, "name", pinfo.DisplayName,
+		sid = pinfo.Sid
+		err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", pinfo.Sid, "name", pinfo.DisplayName,
 			"password", "", "description", "", "lock", "0")
 		if err != nil {
 			reply := &room.Reply_Join{
 				Join: &room.JoinReply{
-					Success: true,
-					Room: &room.Room{
-						Sid:         sid,
-						Name:        "",
-						Lock:        false,
-						Password:    "",
-						Description: "",
-					},
+					Success: false,
+					Room:    nil,
 					Error: &room.Error{
 						Code:   room.ErrorType_ServiceUnavailable,
 						Reason: err.Error(),
@@ -136,7 +141,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	if r == nil {
 		// create room and store
 		r = s.rs.createRoom(sid)
-		err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "name", "",
+		err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "name", "",
 			"password", "", "description", "", "lock", false)
 		if err != nil {
 			reply := &room.Reply_Join{
@@ -169,7 +174,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
-	err := s.rs.redis.HMSetTTL(24*time.Hour, key, "sid", sid, "uid", uid, "dest", in.Join.Peer.Destination,
+	err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "dest", in.Join.Peer.Destination,
 		"name", in.Join.Peer.DisplayName, "role", in.Join.Peer.Role.String(), "protocol", in.Join.Peer.Protocol.String(), "direction", in.Join.Peer.Direction.String())
 	if err != nil {
 		reply := &room.Reply_Join{
