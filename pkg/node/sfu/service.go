@@ -279,8 +279,9 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 							}
 
 							// broadcast the existing tracks in the session
+							tracksInfo = append(tracksInfo, peerTracks...)
 							log.Infof("[S=>C] BroadcastTrackEvent existing track %v, state = ADD", peerTracks)
-							s.BroadcastTrackEvent(uid, peerTracks, rtc.TrackEvent_REMOVE)
+							s.BroadcastTrackEvent(uid, peerTracks, rtc.TrackEvent_ADD)
 							if err != nil {
 								log.Errorf("signal send error: %v", err)
 							}
