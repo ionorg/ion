@@ -446,8 +446,8 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 					for _, p := range peer.Session().Peers() {
 						if p.ID() != peer.ID() {
 							for _, track := range p.Publisher().PublisherTracks() {
-								if track.Receiver.TrackID() == trackInfo.TrackId {
-									log.Infof("Add RemoteTrack: %v to peer %v", trackInfo.TrackId, peer.ID())
+								if track.Receiver.TrackID() == trackInfo.TrackId && track.Track.RID() == trackInfo.Layer {
+									log.Infof("Add RemoteTrack: %v to peer %v %v %v", trackInfo.TrackId, peer.ID(), track.Track.Kind(), track.Track.RID())
 									_, err = peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
 									needNegotiate = true
 								}
