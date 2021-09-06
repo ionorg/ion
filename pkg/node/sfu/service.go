@@ -97,14 +97,32 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			if len(tracksInfo) > 0 {
 				s.BroadcastTrackEvent(uid, tracksInfo, rtc.TrackEvent_REMOVE)
 				log.Infof("broadcast tracks event %v, state = REMOVE", tracksInfo)
-				// Remove down tracks
-				for _, downTrack := range peer.Subscriber().DownTracks() {
-					streamID := downTrack.StreamID()
-					for _, t := range tracksInfo {
-						if downTrack != nil && downTrack.ID() == t.Id {
-							peer.Subscriber().RemoveDownTrack(streamID, downTrack)
-							_ = downTrack.Stop()
+				// Remove down tracks that this peer subscribed from other peers
+				for _, p := range peer.Session().Peers() {
+					if p.ID() == peer.ID() {
+						continue
+					}
+					for _, downTrack := range p.Subscriber().DownTracks() {
+						streamID := downTrack.StreamID()
+						for _, t := range tracksInfo {
+							if downTrack != nil && downTrack.ID() == t.Id {
+								log.Infof("remove down track[%v] from peer[%v]", downTrack.ID(), p.ID())
+								peer.Subscriber().RemoveDownTrack(streamID, downTrack)
+								_ = downTrack.Stop()
+							}
 						}
+					}
+				}
+			}
+
+			// Remove down tracks that other peers subscribed from this peer
+			for _, downTrack := range peer.Subscriber().DownTracks() {
+				streamID := downTrack.StreamID()
+				for _, t := range tracksInfo {
+					if downTrack != nil && downTrack.ID() == t.Id {
+						log.Infof("remove down track[%v] from peer[%v]", downTrack.ID(), peer.ID())
+						peer.Subscriber().RemoveDownTrack(streamID, downTrack)
+						_ = downTrack.Stop()
 					}
 				}
 			}
@@ -260,7 +278,7 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 					log.Debugf("[S=>C] OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", pt.Track.Kind(), uid, pt.Track.Msid(), pt.Track.ID())
 
 					once.Do(func() {
-						debounced := debounce.New(600 * time.Millisecond)
+						debounced := debounce.New(800 * time.Millisecond)
 						debounced(func() {
 							var peerTracks []*rtc.TrackInfo
 							pubTracks := publisher.PublisherTracks()

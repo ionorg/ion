@@ -16,15 +16,14 @@ require (
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0
-	github.com/pion/ion-sfu v1.10.8
-	github.com/pion/webrtc/v3 v3.0.29
+	github.com/pion/ion-sfu v1.10.9-0.20210811163924-d7b670b037fb
+	github.com/pion/webrtc/v3 v3.1.0-beta.2.0.20210808020610-5253475ec730
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
 )
