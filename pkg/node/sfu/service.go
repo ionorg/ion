@@ -97,22 +97,6 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			if len(tracksInfo) > 0 {
 				s.BroadcastTrackEvent(uid, tracksInfo, rtc.TrackEvent_REMOVE)
 				log.Infof("broadcast tracks event %v, state = REMOVE", tracksInfo)
-				// Remove down tracks that this peer subscribed from other peers
-				for _, p := range peer.Session().Peers() {
-					if p.ID() == peer.ID() {
-						continue
-					}
-					for _, downTrack := range p.Subscriber().DownTracks() {
-						streamID := downTrack.StreamID()
-						for _, t := range tracksInfo {
-							if downTrack != nil && downTrack.ID() == t.Id {
-								log.Infof("remove down track[%v] from peer[%v]", downTrack.ID(), p.ID())
-								peer.Subscriber().RemoveDownTrack(streamID, downTrack)
-								_ = downTrack.Stop()
-							}
-						}
-					}
-				}
 			}
 
 			// Remove down tracks that other peers subscribed from this peer
@@ -466,7 +450,25 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 							for _, track := range p.Publisher().PublisherTracks() {
 								if track.Receiver.TrackID() == trackInfo.TrackId && track.Track.RID() == trackInfo.Layer {
 									log.Infof("Add RemoteTrack: %v to peer %v %v %v", trackInfo.TrackId, peer.ID(), track.Track.Kind(), track.Track.RID())
-									_, err = peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
+									dt, err := peer.Publisher().GetRouter().AddDownTrack(peer.Subscriber(), track.Receiver)
+									if err != nil {
+										log.Errorf("AddDownTrack error: %v", err)
+									}
+									// switchlayer
+									switch trackInfo.Layer {
+									case "f":
+										dt.Mute(false)
+										_ = dt.SwitchSpatialLayer(2, true)
+										log.Infof("%v SwitchSpatialLayer:  2", trackInfo.TrackId)
+									case "h":
+										dt.Mute(false)
+										_ = dt.SwitchSpatialLayer(1, true)
+										log.Infof("%v SwitchSpatialLayer:  1", trackInfo.TrackId)
+									case "q":
+										dt.Mute(false)
+										_ = dt.SwitchSpatialLayer(0, true)
+										log.Infof("%v SwitchSpatialLayer:  0", trackInfo.TrackId)
+									}
 									needNegotiate = true
 								}
 							}
