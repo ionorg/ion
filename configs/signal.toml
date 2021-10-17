@@ -24,4 +24,4 @@ key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.co
 key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 [signal.svc]
-services = ["rtc","biz","avp"]
+services = ["rtc","biz","avp", "room"]

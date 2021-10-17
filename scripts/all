@@ -32,8 +32,8 @@ function start()
     echo "------------signal--------------"
     $APP_DIR/scripts/service start signal
 
-    echo "------------app-biz--------------"
-    $APP_DIR/scripts/service start app-biz
+    echo "------------room--------------"
+    $APP_DIR/scripts/service start room
 
     echo "------------sfu--------------"
     $APP_DIR/scripts/service start sfu
@@ -46,8 +46,8 @@ function start()
 
 function stop()
 {
-    echo "------------biz--------------"
-    $APP_DIR/scripts/service stop app-biz
+    echo "------------room--------------"
+    $APP_DIR/scripts/service stop room
 
     echo "------------signal--------------"
     $APP_DIR/scripts/service stop signal
