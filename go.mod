@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0
-	github.com/pion/ion-sfu v1.10.9-0.20210811163924-d7b670b037fb
+	github.com/pion/ion-sfu v1.10.10-0.20211021002833-d609161bbff8
 	github.com/pion/webrtc/v3 v3.1.0-beta.2.0.20210808020610-5253475ec730
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/viper v1.7.1

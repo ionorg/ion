@@ -33,7 +33,7 @@ function start()
     $APP_DIR/scripts/service start signal
 
     echo "------------room--------------"
-    $APP_DIR/scripts/service start room
+    $APP_DIR/scripts/service start app-room
 
     echo "------------sfu--------------"
     $APP_DIR/scripts/service start sfu
