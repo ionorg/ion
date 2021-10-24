@@ -74,8 +74,8 @@ mdns = true
 # Multiple public IP addresses can be specified as a comma separated list
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
-# nat1to1 = ["1.2.3.4"]
-# icelite = true
+nat1to1 = ["127.0.0.1"]
+icelite = true
 
 [webrtc.timeouts]
 # The duration in [sec] without network activity before a ICE Agent is considered disconnected
