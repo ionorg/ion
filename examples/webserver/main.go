@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // key under [signal.auth_connection] of configs/biz.toml

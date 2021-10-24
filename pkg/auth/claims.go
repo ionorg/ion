@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/dgrijalva/jwt-go"
+import "github.com/golang-jwt/jwt/v4"
 
 // claims custom claims type for jwt
 type Claims struct {
