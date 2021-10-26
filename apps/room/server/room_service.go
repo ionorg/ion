@@ -75,7 +75,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 		}, nil
 	}
 
-	log.Infof("create room ok sid=%v", info.Sid)
+	log.Infof("create room ok sid=%v err=%v", info.Sid, err)
 
 	// success
 	return &room.CreateRoomReply{Success: true}, err

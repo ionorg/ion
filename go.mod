@@ -6,14 +6,15 @@ require (
 	github.com/apex/log v1.1.4
 	github.com/bep/debounce v1.2.0
 	github.com/cloudwebrtc/nats-discovery v0.3.0
-	github.com/cloudwebrtc/nats-grpc v0.1.12
+	github.com/cloudwebrtc/nats-grpc v0.1.13-0.20211012020214-7f5b0ca48938
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-jwt/jwt/v4 v4.1.0
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/improbable-eng/grpc-web v0.13.0
 	github.com/jhump/protoreflect v1.8.2
-	github.com/nats-io/nats.go v1.11.0
+	github.com/nats-io/nats.go v1.12.0
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0

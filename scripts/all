@@ -38,8 +38,8 @@ function start()
     echo "------------sfu--------------"
     $APP_DIR/scripts/service start sfu
 
-    echo "------------avp--------------"
-    $APP_DIR/scripts/service start avp
+    # echo "------------avp--------------"
+    # $APP_DIR/scripts/service start avp
 
     echo "--------------------------"
 }
@@ -58,8 +58,8 @@ function stop()
     echo "------------sfu--------------"
     $APP_DIR/scripts/service stop sfu
 
-    echo "------------avp--------------"
-    $APP_DIR/scripts/service stop avp
+    # echo "------------avp--------------"
+    # $APP_DIR/scripts/service stop avp
 
     echo "------------nats-server--------------"
     $APP_DIR/scripts/deps stop nats-server
