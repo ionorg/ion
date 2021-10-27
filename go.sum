@@ -110,6 +110,8 @@ github.com/cloudwebrtc/nats-grpc v0.1.12 h1:QO0FoD8yjhZF2MPyLA382PJC2Ky9UVL/RFcD
 github.com/cloudwebrtc/nats-grpc v0.1.12/go.mod h1:cDsSCyUir+5tMMsDbkne/XBtUomHlvW554xuFuQ2nCQ=
 github.com/cloudwebrtc/nats-grpc v0.1.13-0.20211012020214-7f5b0ca48938 h1:hH3XIWKV1om8jbH2IVke9KSu7Tk31xX3pnTzov3wPF8=
 github.com/cloudwebrtc/nats-grpc v0.1.13-0.20211012020214-7f5b0ca48938/go.mod h1:zLT0CZd/ilNE0C92/F+7xwbPPl/Ff3eq+LuedTp9wug=
+github.com/cloudwebrtc/nats-grpc v0.1.13-0.20211027084514-16bd2964a13f h1:eYuUM77Fli+VEIlS07TcaYW7NoRPu+5M6N67jj9zCs0=
+github.com/cloudwebrtc/nats-grpc v0.1.13-0.20211027084514-16bd2964a13f/go.mod h1:zLT0CZd/ilNE0C92/F+7xwbPPl/Ff3eq+LuedTp9wug=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
