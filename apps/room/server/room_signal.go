@@ -89,6 +89,8 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 			if err != nil {
 				log.Errorf("stream send error: %v", err)
 			}
+		default:
+			log.Errorf("unknown signal!! payload=%+v", payload)
 		}
 	}
 }

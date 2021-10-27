@@ -6,5 +6,5 @@ const (
 	ServiceROOM = "room"
 	ServiceRTC  = "rtc"
 	ServiceAVP  = "avp"
-	ServiceSIG  = "sig"
+	ServiceSIG  = "signal"
 )
