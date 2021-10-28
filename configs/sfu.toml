@@ -76,7 +76,7 @@ mdns = true
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
 nat1to1 = ["127.0.0.1"]
-icelite = true
+#icelite = true
 
 [webrtc.timeouts]
 # The duration in [sec] without network activity before a ICE Agent is considered disconnected
