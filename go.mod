@@ -1,6 +1,6 @@
 module github.com/pion/ion
 
-go 1.13
+go 1.15
 
 require (
 	github.com/apex/log v1.1.4

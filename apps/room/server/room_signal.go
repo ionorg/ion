@@ -159,6 +159,11 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 			return reply, nil, err
 		}
 	}
+
+	// some one didn't create room before join
+	if r.info == nil {
+		r.info = new(room.Room)
+	}
 	r.info.Sid = sid
 
 	peer = NewPeer()
