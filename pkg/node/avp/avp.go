@@ -53,9 +53,7 @@ func NewAVP() *AVP {
 
 // Start avp node
 func (a *AVP) Start(conf Config) error {
-	var err error
-
-	err = a.Node.Start(conf.Nats.URL)
+	err := a.Node.Start(conf.Nats.URL)
 	if err != nil {
 		a.Close()
 		return err

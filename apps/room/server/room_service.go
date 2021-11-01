@@ -60,7 +60,8 @@ func (s *RoomService) CreateRoom(ctx context.Context, in *room.CreateRoomRequest
 	if r == nil {
 		r = s.createRoom(info.Sid)
 	}
-	r.info = *info //copy mutex?
+
+	r.info = info //copy mutex?
 
 	// store room info
 	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", r.info.Sid, "name", r.info.Name,
@@ -115,7 +116,7 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 	if r == nil {
 		r = s.createRoom(info.Sid)
 	}
-	r.info = *info
+	r.info = info
 	// update redis
 	log.Infof("update room info=%+v", r.info)
 	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", r.info.Sid, "name", r.info.Name,
@@ -265,7 +266,7 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 
 	// create peer and add to room
 	p := NewPeer()
-	p.info = *info
+	p.info = info
 	r.addPeer(p)
 
 	// store peer to redis
@@ -351,7 +352,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 		p = NewPeer()
 		r.addPeer(p)
 	}
-	p.info = *info
+	p.info = info
 
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
@@ -372,7 +373,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	// broadcast to others
 	r.broadcastPeerEvent(
 		&room.PeerEvent{
-			Peer:  &p.info,
+			Peer:  p.info,
 			State: room.PeerState_UPDATE,
 		},
 	)

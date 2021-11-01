@@ -142,9 +142,7 @@ func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 
 // Start sfu node
 func (s *SFU) Start(conf Config) error {
-	var err error
-
-	err = s.Node.Start(conf.Nats.URL)
+	err := s.Node.Start(conf.Nats.URL)
 	if err != nil {
 		s.Close()
 		return err

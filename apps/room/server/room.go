@@ -84,7 +84,7 @@ type Room struct {
 	sync.RWMutex
 	sid    string
 	peers  map[string]*Peer
-	info   room.Room
+	info   *room.Room
 	update time.Time
 }
 
@@ -240,7 +240,7 @@ func (r *Room) SID() string {
 // addPeer add a peer to room
 func (r *Room) addPeer(p *Peer) {
 	event := &room.PeerEvent{
-		Peer:  &p.info,
+		Peer:  p.info,
 		State: room.PeerState_JOIN,
 	}
 
@@ -253,12 +253,12 @@ func (r *Room) addPeer(p *Peer) {
 	r.Unlock()
 }
 
-func (r *Room) roomLocked() bool {
-	r.RLock()
-	defer r.RUnlock()
-	r.update = time.Now()
-	return r.info.Lock
-}
+// func (r *Room) roomLocked() bool {
+// 	r.RLock()
+// 	defer r.RUnlock()
+// 	r.update = time.Now()
+// 	return r.info.Lock
+// }
 
 // getPeer get a peer by peer id
 func (r *Room) getPeer(uid string) *Peer {
@@ -294,7 +294,7 @@ func (r *Room) delPeer(p *Peer) int {
 	r.Unlock()
 
 	event := &room.PeerEvent{
-		Peer:  &p.info,
+		Peer:  p.info,
 		State: room.PeerState_LEAVE,
 	}
 	r.broadcastPeerEvent(event)

@@ -162,7 +162,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	r.info.Sid = sid
 
 	peer = NewPeer()
-	peer.info = *pinfo
+	peer.info = pinfo
 	r.addPeer(peer)
 	// TODO
 	/*
@@ -195,7 +195,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 	reply := &room.Reply_Join{
 		Join: &room.JoinReply{
 			Success: true,
-			Room:    &r.info,
+			Room:    r.info,
 			Error:   nil,
 		},
 	}

@@ -2,7 +2,6 @@ package islb
 
 import (
 	"errors"
-	"time"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-	redisLongKeyTTL = 24 * time.Hour
+// redisLongKeyTTL = 24 * time.Hour
 )
 
 type global struct {

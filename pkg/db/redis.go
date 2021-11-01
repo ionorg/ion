@@ -241,18 +241,18 @@ func (r *Redis) lock(key string) bool {
 	// Tips: use ("lock-"+key) as lock key is better than (key+"-lock")
 	// this avoid "keys /xxxxx/*" to get this lock
 	if r.clusterMode {
-		ok, _ := r.cluster.SetNX("lock-"+key, 1, 3*time.Second).Result()
+		ok, _ := r.cluster.SetNX("lock-"+key, 1, lockExpire).Result()
 		return ok
 	}
-	ok, _ := r.single.SetNX("lock-"+key, 1, 3*time.Second).Result()
+	ok, _ := r.single.SetNX("lock-"+key, 1, lockExpire).Result()
 	return ok
 }
 
 func (r *Redis) unlock(key string) {
 	if r.clusterMode {
-		r.cluster.Del("lock-" + key).Result()
+		_, _ = r.cluster.Del("lock-" + key).Result()
 	}
-	r.single.Del("lock-" + key).Result()
+	_, _ = r.single.Del("lock-" + key).Result()
 }
 
 // Acquire a destributed lock

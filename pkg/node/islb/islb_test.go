@@ -19,8 +19,6 @@ var (
 			Addrs: []string{":6379"},
 		},
 	}
-
-	nid = "islb-01"
 )
 
 func init() {

@@ -9,7 +9,7 @@ import (
 
 // Peer represents a peer for client
 type Peer struct {
-	info   room.Peer
+	info   *room.Peer
 	sig    room.RoomSignal_SignalServer
 	room   *Room
 	closed util.AtomicBool
