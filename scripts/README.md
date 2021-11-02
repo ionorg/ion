@@ -38,11 +38,11 @@ Next Time, just restart:
 
 ## 4. How to run a ion module
 
-Usage: ./service {start|stop} {biz|islb|sfu|avp}
+Usage: ./service {start|stop} {app-room|signal|islb|sfu}
 
 example:
 ```
-./scripts/service start biz
+./scripts/service start app-room
 ```
 
 ## 5. How to run a deps module

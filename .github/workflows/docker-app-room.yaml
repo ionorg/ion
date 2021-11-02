@@ -1,4 +1,4 @@
-name: app-biz docker
+name: app-room docker
 on:
   push:
     branches:
