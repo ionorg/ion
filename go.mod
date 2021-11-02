@@ -17,7 +17,7 @@ require (
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-avp v1.8.4
 	github.com/pion/ion-log v1.2.0
-	github.com/pion/ion-sfu v1.10.10-0.20211026031444-641234512081
+	github.com/pion/ion-sfu v1.10.10
 	github.com/pion/webrtc/v3 v3.1.7
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/viper v1.9.0
@@ -28,5 +28,3 @@ require (
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
 )
-
-replace github.com/pion/ion-sfu v1.10.10-0.20211026031444-641234512081 => ../ion-sfu
