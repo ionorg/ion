@@ -5,54 +5,142 @@ option go_package = "github.com/pion/ion/proto/rtc";
 package rtc;
 
 service RTC {
-    rpc Signal(stream Signalling) returns (stream Signalling) {}
+  rpc Signal(stream Request) returns (stream Reply) {}
 }
 
 message JoinRequest {
-    string sid = 1;
-    string uid = 2;
-    map<string,string> parameters = 3;
+  string sid = 1;
+  string uid = 2;
+  map<string, string> config = 3;
+  SessionDescription description = 4;
 }
 
 message JoinReply {
-    bool success = 1;
-    string error = 2; // room is full ?
-}
-
-message Join {
-    oneof payload {
-           JoinRequest req = 1;
-           JoinReply reply = 2;
-    }
-}
-
-message Signalling {
-    oneof payload {
-        Join join = 1;
-        Description description = 2;
-        Trickle trickle = 3;
-        Error error = 4;
-    }
+  bool success = 1;
+  Error error = 2;
+  SessionDescription description = 3;
 }
 
 enum Target {
-    PUBLISHER = 0;
-    SUBSCRIBER = 1;
+  PUBLISHER = 0;
+  SUBSCRIBER = 1;
 }
 
-message Description {
-    string id = 1;
-    Target target = 2;
-    bytes description = 3;
+enum MediaType {
+  MediaUnknown = 0;
+  UserMedia = 1;
+  ScreenCapture = 2;
+  Cavans = 3;
+  Streaming = 4;
+  VoIP = 5;
+}
+
+message TrackInfo {
+  // basic info
+  string id = 1;
+  string kind = 2;
+  bool muted = 3;
+  MediaType type = 4;
+  string streamId = 5;
+  string label = 6;
+
+  // extra info
+  string layer = 7;  // simulcast or svc layer
+  uint32 width = 8;
+  uint32 height = 9;
+  uint32 frameRate = 10;
+}
+
+message SessionDescription {
+  Target target = 1;
+  // 'offer' | 'answer'
+  string type = 2;
+  // sdp contents
+  string sdp = 3;
+  // sdp metdata
+  repeated TrackInfo trackInfos = 4;
 }
 
 message Trickle {
-    string id = 1;
-    Target target = 2;
-    bytes candidate = 3;
+  Target target = 1;
+  string init = 2;
 }
 
 message Error {
-    int32 code = 1;
-    string reason = 2;
+  int32 code = 1;
+  string reason = 2;
+}
+
+message TrackEvent {
+  enum State {
+    ADD = 0;
+    UPDATE = 1;
+    REMOVE = 2;
+  }
+  State state = 1;
+  string uid = 2;
+  repeated TrackInfo tracks = 3;
+}
+
+message Subscription{
+  string trackId = 2;
+  bool mute = 3; // mute track or not
+  bool subscribe = 4; // sub track or not
+  string layer = 5;  // simulcast or svc layer
+}
+
+message SubscriptionRequest {
+  repeated Subscription subscriptions = 1;
+}
+
+message SubscriptionReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message UpdateTrackReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message ActiveSpeaker {
+  repeated AudioLevelSpeaker speakers = 1;
+}
+
+message AudioLevelSpeaker {
+  string sid = 1;
+  // audio level
+  float level = 2;
+  // speaker active or not
+  bool active = 3;
+}
+
+message Request {
+  oneof payload {
+    // Basic API Request
+    JoinRequest join = 1;
+    SessionDescription description = 2;
+    Trickle trickle = 3;
+
+    // Command
+    SubscriptionRequest subscription = 4;
+  }
+}
+
+message Reply {
+  oneof payload {
+    // Basic API Reply
+    JoinReply join = 1;
+    SessionDescription description = 2;
+    Trickle trickle = 3;
+
+    // Event
+    TrackEvent trackEvent = 4;
+
+    // Command Reply
+    SubscriptionReply subscription = 5;
+
+    // Error
+    Error error = 7;
+  }
 }

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/apps/auth/proto";
+
+package auth;
+
+message Permission {
+  bool publish = 1;
+  bool subscribe = 2;
+  bool addPeers = 3;
+  bool removePeers = 4;
+  bool endSession = 5;
+  bool lockRoom = 6;
+}

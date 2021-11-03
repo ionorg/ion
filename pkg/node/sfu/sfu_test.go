@@ -32,7 +32,7 @@ func init() {
 }
 
 func TestStart(t *testing.T) {
-	s := NewSFU(nid)
+	s := NewSFU()
 
 	err := s.Start(conf)
 	if err != nil {

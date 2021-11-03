@@ -4,20 +4,21 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	nproxy "github.com/cloudwebrtc/nats-grpc/pkg/rpc/proxy"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/cmd/signal/server"
 	"github.com/pion/ion/pkg/node/signal"
+	"github.com/pion/ion/pkg/util"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
 var (
-	conf = signal.Config{}
-	file string
+	conf        = signal.Config{}
+	file, paddr string
 )
 
 func showHelp() {
@@ -64,6 +65,8 @@ func load() bool {
 
 func parse() bool {
 	flag.StringVar(&file, "c", "configs/sig.toml", "config file")
+	flag.StringVar(&paddr, "paddr", ":6060", "pprof listening addr")
+
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if !load() {
@@ -84,14 +87,20 @@ func main() {
 	}
 
 	log.Init(conf.Log.Level)
+
+	if paddr != "" {
+		go func() {
+			log.Infof("start pprof on %s", paddr)
+			err := http.ListenAndServe(paddr, nil)
+			if err != nil {
+				log.Errorf("http.ListenAndServe err=%v", err)
+			}
+		}()
+	}
+
 	addr := fmt.Sprintf("%s:%d", conf.Signal.GRPC.Host, conf.Signal.GRPC.Port)
 	log.Infof("--- Starting Signal (gRPC + gRPC-Web) Server ---")
-	log.Infof("--- Bind to %s, NID = %v ---", addr, conf.Node.NID)
-
-	options := server.DefaultWrapperedServerOptions()
-	options.Addr = addr
-	options.Cert = conf.Signal.GRPC.Cert
-	options.Key = conf.Signal.GRPC.Key
+	log.Infof("--- Bind to %s  ---", addr)
 
 	sig, err := signal.NewSignal(conf)
 	if err != nil {
@@ -107,9 +116,11 @@ func main() {
 
 	srv := grpc.NewServer(
 		grpc.CustomCodec(nrpc.Codec()), // nolint:staticcheck
-		grpc.UnknownServiceHandler(nproxy.TransparentHandler(sig.Director)))
+		grpc.UnknownServiceHandler(nproxy.TransparentLongConnectionHandler(sig.Director)))
 
-	s := server.NewWrapperedGRPCWebServer(options, srv)
+	s := util.NewWrapperedGRPCWebServer(util.NewWrapperedServerOptions(
+		addr, conf.Signal.GRPC.Cert, conf.Signal.GRPC.Key, true), srv)
+
 	if err := s.Serve(); err != nil {
 		log.Panicf("failed to serve: %v", err)
 	}

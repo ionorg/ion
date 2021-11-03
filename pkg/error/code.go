@@ -1,6 +1,6 @@
 package error
 
-type Code uint32
+type Code int32
 
 const (
 	/*

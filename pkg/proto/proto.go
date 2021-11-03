@@ -3,8 +3,8 @@ package proto
 const (
 	ServiceALL  = "*"
 	ServiceISLB = "islb"
-	ServiceBIZ  = "biz"
-	ServiceSFU  = "sfu"
+	ServiceROOM = "room"
+	ServiceRTC  = "rtc"
 	ServiceAVP  = "avp"
-	ServiceSIG  = "sig"
+	ServiceSIG  = "signal"
 )

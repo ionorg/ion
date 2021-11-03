@@ -19,8 +19,6 @@ var (
 			Addrs: []string{":6379"},
 		},
 	}
-
-	nid = "islb-01"
 )
 
 func init() {
@@ -29,7 +27,7 @@ func init() {
 }
 
 func TestStart(t *testing.T) {
-	i := NewISLB(nid)
+	i := NewISLB()
 
 	err := i.Start(conf)
 	if err != nil {

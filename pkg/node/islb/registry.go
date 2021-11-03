@@ -77,7 +77,7 @@ func (r *Registry) handleGetNodes(service string, params map[string]interface{})
 	//Add load balancing here.
 	log.Infof("Get node by %v, params %v", service, params)
 
-	if service == proto.ServiceSFU {
+	if service == proto.ServiceRTC {
 		nid := "*"
 		sid := ""
 		if val, ok := params["nid"]; ok {

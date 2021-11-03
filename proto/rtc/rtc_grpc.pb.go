@@ -39,8 +39,8 @@ func (c *rTCClient) Signal(ctx context.Context, opts ...grpc.CallOption) (RTC_Si
 }
 
 type RTC_SignalClient interface {
-	Send(*Signalling) error
-	Recv() (*Signalling, error)
+	Send(*Request) error
+	Recv() (*Reply, error)
 	grpc.ClientStream
 }
 
@@ -48,12 +48,12 @@ type rTCSignalClient struct {
 	grpc.ClientStream
 }
 
-func (x *rTCSignalClient) Send(m *Signalling) error {
+func (x *rTCSignalClient) Send(m *Request) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *rTCSignalClient) Recv() (*Signalling, error) {
-	m := new(Signalling)
+func (x *rTCSignalClient) Recv() (*Reply, error) {
+	m := new(Reply)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -93,8 +93,8 @@ func _RTC_Signal_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type RTC_SignalServer interface {
-	Send(*Signalling) error
-	Recv() (*Signalling, error)
+	Send(*Reply) error
+	Recv() (*Request, error)
 	grpc.ServerStream
 }
 
@@ -102,12 +102,12 @@ type rTCSignalServer struct {
 	grpc.ServerStream
 }
 
-func (x *rTCSignalServer) Send(m *Signalling) error {
+func (x *rTCSignalServer) Send(m *Reply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *rTCSignalServer) Recv() (*Signalling, error) {
-	m := new(Signalling)
+func (x *rTCSignalServer) Recv() (*Request, error) {
+	m := new(Request)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

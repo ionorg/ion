@@ -9,6 +9,7 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/auth"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
@@ -23,9 +24,9 @@ type svcConf struct {
 }
 
 type signalConf struct {
-	GRPC grpcConf   `mapstructure:"grpc"`
-	JWT  AuthConfig `mapstructure:"jwt"`
-	SVC  svcConf    `mapstructure:"svc"`
+	GRPC grpcConf        `mapstructure:"grpc"`
+	JWT  auth.AuthConfig `mapstructure:"jwt"`
+	SVC  svcConf         `mapstructure:"svc"`
 }
 
 // signalConf represents signal server configuration
@@ -38,8 +39,7 @@ type grpcConf struct {
 }
 
 type global struct {
-	Pprof string `mapstructure:"pprof"`
-	Dc    string `mapstructure:"dc"`
+	Dc string `mapstructure:"dc"`
 }
 
 type logConf struct {
@@ -54,16 +54,11 @@ type avpConf struct {
 	Elements []string `mapstructure:"elements"`
 }
 
-type nodeConf struct {
-	NID string `mapstructure:"nid"`
-}
-
 // Config for biz node
 type Config struct {
 	Global global     `mapstructure:"global"`
 	Log    logConf    `mapstructure:"log"`
 	Nats   natsConf   `mapstructure:"nats"`
-	Node   nodeConf   `mapstructure:"node"`
 	Avp    avpConf    `mapstructure:"avp"`
 	Signal signalConf `mapstructure:"signal"`
 }
@@ -92,7 +87,7 @@ func NewSignal(conf Config) (*Signal, error) {
 		conf: conf,
 		nc:   nc,
 		ndc:  ndc,
-		Node: ion.NewNode(conf.Node.NID),
+		Node: ion.NewNode("signal-" + util.RandomString(6)),
 	}, nil
 }
 
@@ -140,7 +135,7 @@ func (s *Signal) Director(ctx context.Context, fullMethodName string) (context.C
 	//Authenticate here.
 	authConfig := &s.conf.Signal.JWT
 	if authConfig.Enabled {
-		claims, err := getClaim(ctx, authConfig)
+		claims, err := auth.GetClaim(ctx, authConfig)
 		if err != nil {
 			return ctx, nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("Failed to Get Claims JWT : %v", err))
 		}

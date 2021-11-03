@@ -1,0 +1,11 @@
+[global]
+# data center id
+dc = "dc1"
+
+[log]
+level = "info"
+# level = "debug"
+
+[nats]
+url = "nats://nats:4222"
+

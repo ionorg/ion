@@ -1,32 +1,28 @@
 package islb
 
 import (
-	"context"
-
-	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/db"
-	ion "github.com/pion/ion/proto/ion"
 	islb "github.com/pion/ion/proto/islb"
-	"github.com/square/go-jose/v3/json"
 )
 
 type islbServer struct {
 	islb.UnimplementedISLBServer
-	redis    *db.Redis
-	islb     *ISLB
-	conf     Config
-	watchers map[string]islb.ISLB_WatchISLBEventServer
+	redis *db.Redis
+	islb  *ISLB
+	conf  Config
+	//watchers map[string]islb.ISLB_WatchISLBEventServer
 }
 
 func newISLBServer(conf Config, in *ISLB, redis *db.Redis) *islbServer {
 	return &islbServer{
-		conf:     conf,
-		islb:     in,
-		redis:    redis,
-		watchers: make(map[string]islb.ISLB_WatchISLBEventServer),
+		conf:  conf,
+		islb:  in,
+		redis: redis,
+		//watchers: make(map[string]islb.ISLB_WatchISLBEventServer),
 	}
 }
 
+/*
 //PostISLBEvent Receive ISLBEvent(stream or session events) from ion-SFU, ion-AVP and ion-SIP
 //the stream and session event will be save to redis db, which is used to create the
 //global location of the media stream
@@ -97,3 +93,4 @@ func (s *islbServer) WatchISLBEvent(stream islb.ISLB_WatchISLBEventServer) error
 		}
 	}
 }
+*/

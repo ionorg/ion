@@ -3,12 +3,15 @@ package db
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	log "github.com/pion/ion-log"
 
 	"github.com/go-redis/redis/v7"
+)
+
+var (
+	lockExpire = 3 * time.Second
 )
 
 type Config struct {
@@ -21,7 +24,6 @@ type Redis struct {
 	cluster     *redis.ClusterClient
 	single      *redis.Client
 	clusterMode bool
-	mutex       *sync.Mutex
 }
 
 func NewRedis(c Config) *Redis {
@@ -46,7 +48,6 @@ func NewRedis(c Config) *Redis {
 		}
 		r.single.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 		r.clusterMode = false
-		r.mutex = new(sync.Mutex)
 		return r
 	}
 
@@ -54,9 +55,9 @@ func NewRedis(c Config) *Redis {
 		&redis.ClusterOptions{
 			Addrs:        c.Addrs,
 			Password:     c.Pwd,
-			DialTimeout:  3 * time.Second,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
+			DialTimeout:  5 * time.Second,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
 		})
 	if err := r.cluster.Ping().Err(); err != nil {
 		log.Errorf(err.Error())
@@ -75,97 +76,131 @@ func (r *Redis) Close() {
 	}
 }
 
-func (r *Redis) Set(k, v string, t time.Duration) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) Set(key string, value interface{}, t time.Duration) error {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.Set(k, v, t).Err()
+		return r.cluster.Set(key, value, t).Err()
 	}
-	return r.single.Set(k, v, t).Err()
+	return r.single.Set(key, value, t).Err()
 }
 
-func (r *Redis) Get(k string) interface{} {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) Get(k string) string {
+	r.Acquire(k)
+	defer r.Release(k)
 	if r.clusterMode {
 		return r.cluster.Get(k).Val()
 	}
 	return r.single.Get(k).Val()
 }
 
-func (r *Redis) HSet(k, field string, value interface{}) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HSet(key, field string, value interface{}) error {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.HSet(k, field, value).Err()
+		return r.cluster.HSet(key, field, value).Err()
 	}
-	return r.single.HSet(k, field, value).Err()
+	return r.single.HSet(key, field, value).Err()
 }
 
-func (r *Redis) HGet(k, field string) string {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HGet(key, field string) string {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.HGet(k, field).Val()
+		return r.cluster.HGet(key, field).Val()
 	}
-	return r.single.HGet(k, field).Val()
+	return r.single.HGet(key, field).Val()
 }
 
-func (r *Redis) HGetAll(k string) map[string]string {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HMSet(key string, values ...string) error {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.HGetAll(k).Val()
+		return r.cluster.HMSet(key, values).Err()
 	}
-	return r.single.HGetAll(k).Val()
+	return r.single.HMSet(key, values).Err()
 }
 
-func (r *Redis) HDel(k, field string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HMGet(key string, fields ...string) []interface{} {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.HDel(k, field).Err()
+		return r.cluster.HMGet(key, fields...).Val()
 	}
-	return r.single.HDel(k, field).Err()
+	return r.single.HMGet(key, fields...).Val()
 }
 
-func (r *Redis) Expire(k string, t time.Duration) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HGetAll(key string) map[string]string {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.Expire(k, t).Err()
+		return r.cluster.HGetAll(key).Val()
 	}
-
-	return r.single.Expire(k, t).Err()
+	return r.single.HGetAll(key).Val()
 }
 
-func (r *Redis) HSetTTL(k, field string, value interface{}, t time.Duration) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) HDel(key, field string) error {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		if err := r.cluster.HSet(k, field, value).Err(); err != nil {
+		return r.cluster.HDel(key, field).Err()
+	}
+	return r.single.HDel(key, field).Err()
+}
+
+func (r *Redis) Expire(key string, t time.Duration) error {
+	r.Acquire(key)
+	defer r.Release(key)
+	if r.clusterMode {
+		return r.cluster.Expire(key, t).Err()
+	}
+
+	return r.single.Expire(key, t).Err()
+}
+
+func (r *Redis) HSetTTL(t time.Duration, key, field string, value interface{}) error {
+	r.Acquire(key)
+	defer r.Release(key)
+	if r.clusterMode {
+		if err := r.cluster.HSet(key, field, value).Err(); err != nil {
+			return err
+		}
+		return r.cluster.Expire(key, t).Err()
+	}
+	if err := r.single.HSet(key, field, value).Err(); err != nil {
+		return err
+	}
+	return r.single.Expire(key, t).Err()
+}
+
+func (r *Redis) HMSetTTL(t time.Duration, k string, values ...interface{}) error {
+	r.Acquire(k)
+	defer r.Release(k)
+	if r.clusterMode {
+		if err := r.cluster.HMSet(k, values...).Err(); err != nil {
 			return err
 		}
 		return r.cluster.Expire(k, t).Err()
 	}
-	if err := r.single.HSet(k, field, value).Err(); err != nil {
+
+	if err := r.single.HMSet(k, values...).Err(); err != nil {
 		return err
 	}
 	return r.single.Expire(k, t).Err()
 }
 
-func (r *Redis) Keys(k string) []string {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Redis) Keys(key string) []string {
+	r.Acquire(key)
+	defer r.Release(key)
 	if r.clusterMode {
-		return r.cluster.Keys(k).Val()
+		return r.cluster.Keys(key).Val()
 	}
-	return r.single.Keys(k).Val()
+	return r.single.Keys(key).Val()
 }
 
 func (r *Redis) Del(k string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.Acquire(k)
+	defer r.Release(k)
 	if r.clusterMode {
 		return r.cluster.Del(k).Err()
 	}
@@ -174,6 +209,8 @@ func (r *Redis) Del(k string) error {
 
 // Watch http://redisdoc.com/topic/notification.html
 func (r *Redis) Watch(ctx context.Context, key string) <-chan interface{} {
+	r.Acquire(key)
+	defer r.Release(key)
 	var pubsub *redis.PubSub
 	if r.clusterMode {
 		pubsub = r.cluster.PSubscribe(fmt.Sprintf("__key*__:%s", key))
@@ -198,4 +235,35 @@ func (r *Redis) Watch(ctx context.Context, key string) <-chan interface{} {
 	}()
 
 	return res
+}
+
+func (r *Redis) lock(key string) bool {
+	// Tips: use ("lock-"+key) as lock key is better than (key+"-lock")
+	// this avoid "keys /xxxxx/*" to get this lock
+	if r.clusterMode {
+		ok, _ := r.cluster.SetNX("lock-"+key, 1, lockExpire).Result()
+		return ok
+	}
+	ok, _ := r.single.SetNX("lock-"+key, 1, lockExpire).Result()
+	return ok
+}
+
+func (r *Redis) unlock(key string) {
+	if r.clusterMode {
+		_, _ = r.cluster.Del("lock-" + key).Result()
+	}
+	_, _ = r.single.Del("lock-" + key).Result()
+}
+
+// Acquire a destributed lock
+func (r *Redis) Acquire(key string) {
+	// retry if lock failed
+	for !r.lock(key) {
+		time.Sleep(time.Millisecond * 100)
+	}
+}
+
+// Release a destributed lock
+func (r *Redis) Release(key string) {
+	r.unlock(key)
 }

@@ -1,0 +1,243 @@
+syntax = "proto3";
+
+option go_package = "github.com/pion/ion/apps/room/proto";
+
+package room;
+
+service RoomService {
+  // Manager API
+  // Room API
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomReply) {}
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomReply) {}
+  rpc EndRoom(EndRoomRequest) returns (EndRoomReply) {}
+  rpc GetRooms(GetRoomsRequest) returns (GetRoomsReply) {}
+
+  // Peer API
+  rpc AddPeer(AddPeerRequest) returns (AddPeerReply) {}
+  rpc UpdatePeer(UpdatePeerRequest) returns (UpdatePeerReply) {}
+  rpc RemovePeer(RemovePeerRequest) returns (RemovePeerReply) {}
+  rpc GetPeers(GetPeersRequest) returns (GetPeersReply) {}
+}
+
+service RoomSignal {
+  // Signal
+  rpc Signal(stream Request) returns (stream Reply) {}
+}
+
+enum ErrorType {
+  None = 0;
+  UnkownError = 1;
+  PermissionDenied = 2;
+  ServiceUnavailable = 3;
+  RoomLocked = 4;
+  PasswordRequired = 5;
+  RoomAlreadyExist = 6;
+  RoomNotExist = 7;
+  InvalidParams = 8;
+  PeerAlreadyExist = 9;
+  PeerNotExist = 10;
+}
+
+message Error {
+  ErrorType code = 1;
+  string reason = 2;
+}
+
+message Request {
+  oneof payload {
+    JoinRequest join = 1;
+    LeaveRequest leave = 2;
+    SendMessageRequest sendMessage = 3;
+  }
+}
+
+message Reply {
+  oneof payload {
+    JoinReply join = 1;
+    LeaveReply leave = 2;
+    SendMessageReply sendMessage = 3;
+    PeerEvent Peer = 4;
+    Message message = 5;
+    Disconnect disconnect = 6;
+    Room room = 7;
+  }
+}
+
+message CreateRoomRequest {
+  Room room = 1;
+}
+
+message CreateRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message DeleteRoomRequest {
+  string sid = 1;
+}
+
+message DeleteRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message JoinRequest {
+  Peer peer = 1;
+  string password = 2;
+}
+
+message Room {
+  string sid = 1;
+  string name = 2;
+  bool lock = 3;
+  string password = 4;
+  string description = 5;
+  uint32 maxPeers = 6;
+}
+
+message JoinReply {
+  bool success = 1;
+  Error error = 2;
+  Role role = 3;
+  Room room = 4;
+}
+
+message LeaveRequest {
+  string sid = 1;
+  string uid = 2;
+}
+
+message LeaveReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+enum Role {
+  Host = 0;
+  Guest = 1;
+}
+
+enum Protocol {
+  ProtocolUnknown = 0;
+  WebRTC = 1;
+  SIP = 2;
+  RTMP = 3;
+  RTSP = 4;
+}
+
+message Peer {
+  enum Direction {
+    INCOMING = 0;
+    OUTGOING = 1;
+    BILATERAL = 2;
+  }
+  string sid = 1;
+  string uid = 2;
+  string displayName = 3;
+  bytes extraInfo = 4;
+  string destination = 5; // rtsp/rtmp/sip url
+  Role role = 6;
+  Protocol protocol = 7;
+  string avatar = 8;
+  Direction direction  = 9;
+  string vendor = 10;
+}
+
+message AddPeerRequest {
+  Peer peer = 1;
+}
+
+message AddPeerReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message GetPeersRequest { string sid = 1; }
+
+message GetPeersReply { 
+  bool success = 1;
+  Error error = 2;
+  repeated Peer Peers = 3; 
+}
+
+message Message {
+  string from = 1;   // UUID of the sending Peer.
+  string to = 2;     // UUID of the receiving Peer.
+  string type = 3;   // MIME content-type of the message, usually text/plain.
+  bytes payload = 4; // Payload message contents.
+}
+
+message SendMessageRequest {
+  string sid = 1;
+  Message message = 2;
+}
+
+message SendMessageReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message Disconnect {
+  string sid = 1;
+  string reason = 2;
+}
+
+enum PeerState {
+  JOIN = 0;
+  UPDATE = 1;
+  LEAVE = 2;
+}
+
+message PeerEvent {
+  Peer Peer = 1;
+  PeerState state = 2;
+}
+
+message UpdateRoomRequest {
+  Room room = 1;
+}
+
+message UpdateRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message EndRoomRequest {
+  string sid = 1;
+  string reason = 2;
+  bool delete = 3;
+}
+
+message EndRoomReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message GetRoomsRequest {
+
+}
+
+message GetRoomsReply {
+  bool success = 1;
+  Error error = 2;
+  repeated Room rooms = 3;
+}
+
+message UpdatePeerRequest {
+  Peer peer = 1;
+}
+
+message UpdatePeerReply {
+  bool success = 1;
+  Error error = 2;
+}
+
+message RemovePeerRequest {
+  string sid = 1;
+  string uid = 2;
+}
+
+message RemovePeerReply {
+  bool success = 1;
+  Error error = 2;
+}

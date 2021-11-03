@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Generate
-        run: go generate ./...
+      # - name: Generate
+        # run: go generate ./...
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2

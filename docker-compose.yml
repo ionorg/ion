@@ -55,17 +55,17 @@ services:
       - 5551:5551
     depends_on:
       - islb
-      - app-biz
+      - app-room
     networks:
       - ionnet
 
-  app-biz:
-    image: pionwebrtc/ion:latest-app-biz
+  app-room:
+    image: pionwebrtc/ion:latest-app-room
     build:
-      dockerfile: ./docker/app-biz.Dockerfile
+      dockerfile: ./docker/app-room.Dockerfile
       context: .
     volumes:
-      - "./configs/docker/app-biz.toml:/configs/app-biz.toml"
+      - "./configs/docker/app-room.toml:/configs/app-room.toml"
     depends_on:
       - nats
       - islb

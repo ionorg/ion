@@ -1,5 +1,4 @@
 [global]
-pprof = ":6064"
 # data center id
 dc = "dc1"
 
@@ -10,9 +9,6 @@ level = "info"
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[node]
-# node id
-nid = "sig01"
 
 [signal.grpc]
 #listen ip port
@@ -24,8 +20,8 @@ allow_all_origins = true
 
 [signal.jwt]
 enabled = false 
-key_type = "HMAC"  # this selects the Signing method https://godoc.org/github.com/dgrijalva/jwt-go#SigningMethod
+key_type = "HMAC"
 key = "1q2dGu5pzikcrECJgW3ADfXX3EsmoD99SYvSVCpDsJrAqxou5tUNbHPvkEFI4bTS"
 
 [signal.svc]
-services = ["sfu","biz","avp"]
+services = ["rtc","biz","avp", "room"]

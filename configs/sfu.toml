@@ -1,14 +1,10 @@
 [global]
-pprof = ":6062"
 # data center id
 dc = "dc1"
 
 [nats]
 url = "nats://127.0.0.1:4222"
 
-[node]
-# node id
-nid = "sfu01"
 
 [sfu]
 # Ballast size in MiB, will allocate memory to reduce the GC trigger upto 2x the
@@ -80,7 +76,7 @@ mdns = true
 # if the sfu is deployed in a DMZ between two 1-1 NAT for internal and
 # external users.
 nat1to1 = ["127.0.0.1"]
-icelite = true
+#icelite = true
 
 [webrtc.timeouts]
 # The duration in [sec] without network activity before a ICE Agent is considered disconnected

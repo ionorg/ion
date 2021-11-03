@@ -3,11 +3,7 @@
 package islb
 
 import (
-	context "context"
-	ion "github.com/pion/ion/proto/ion"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,8 +15,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ISLBClient interface {
-	PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...grpc.CallOption) (*ion.Empty, error)
-	WatchISLBEvent(ctx context.Context, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error)
 }
 
 type iSLBClient struct {
@@ -31,52 +25,10 @@ func NewISLBClient(cc grpc.ClientConnInterface) ISLBClient {
 	return &iSLBClient{cc}
 }
 
-func (c *iSLBClient) PostISLBEvent(ctx context.Context, in *ISLBEvent, opts ...grpc.CallOption) (*ion.Empty, error) {
-	out := new(ion.Empty)
-	err := c.cc.Invoke(ctx, "/islb.ISLB/PostISLBEvent", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iSLBClient) WatchISLBEvent(ctx context.Context, opts ...grpc.CallOption) (ISLB_WatchISLBEventClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ISLB_ServiceDesc.Streams[0], "/islb.ISLB/WatchISLBEvent", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &iSLBWatchISLBEventClient{stream}
-	return x, nil
-}
-
-type ISLB_WatchISLBEventClient interface {
-	Send(*WatchRequest) error
-	Recv() (*ISLBEvent, error)
-	grpc.ClientStream
-}
-
-type iSLBWatchISLBEventClient struct {
-	grpc.ClientStream
-}
-
-func (x *iSLBWatchISLBEventClient) Send(m *WatchRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *iSLBWatchISLBEventClient) Recv() (*ISLBEvent, error) {
-	m := new(ISLBEvent)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // ISLBServer is the server API for ISLB service.
 // All implementations must embed UnimplementedISLBServer
 // for forward compatibility
 type ISLBServer interface {
-	PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error)
-	WatchISLBEvent(ISLB_WatchISLBEventServer) error
 	mustEmbedUnimplementedISLBServer()
 }
 
@@ -84,12 +36,6 @@ type ISLBServer interface {
 type UnimplementedISLBServer struct {
 }
 
-func (UnimplementedISLBServer) PostISLBEvent(context.Context, *ISLBEvent) (*ion.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostISLBEvent not implemented")
-}
-func (UnimplementedISLBServer) WatchISLBEvent(ISLB_WatchISLBEventServer) error {
-	return status.Errorf(codes.Unimplemented, "method WatchISLBEvent not implemented")
-}
 func (UnimplementedISLBServer) mustEmbedUnimplementedISLBServer() {}
 
 // UnsafeISLBServer may be embedded to opt out of forward compatibility for this service.
@@ -103,69 +49,13 @@ func RegisterISLBServer(s grpc.ServiceRegistrar, srv ISLBServer) {
 	s.RegisterService(&ISLB_ServiceDesc, srv)
 }
 
-func _ISLB_PostISLBEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ISLBEvent)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ISLBServer).PostISLBEvent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/islb.ISLB/PostISLBEvent",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISLBServer).PostISLBEvent(ctx, req.(*ISLBEvent))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ISLB_WatchISLBEvent_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ISLBServer).WatchISLBEvent(&iSLBWatchISLBEventServer{stream})
-}
-
-type ISLB_WatchISLBEventServer interface {
-	Send(*ISLBEvent) error
-	Recv() (*WatchRequest, error)
-	grpc.ServerStream
-}
-
-type iSLBWatchISLBEventServer struct {
-	grpc.ServerStream
-}
-
-func (x *iSLBWatchISLBEventServer) Send(m *ISLBEvent) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *iSLBWatchISLBEventServer) Recv() (*WatchRequest, error) {
-	m := new(WatchRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // ISLB_ServiceDesc is the grpc.ServiceDesc for ISLB service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ISLB_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "islb.ISLB",
 	HandlerType: (*ISLBServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "PostISLBEvent",
-			Handler:    _ISLB_PostISLBEvent_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "WatchISLBEvent",
-			Handler:       _ISLB_WatchISLBEvent_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "proto/islb/islb.proto",
+	Methods:     []grpc.MethodDesc{},
+	Streams:     []grpc.StreamDesc{},
+	Metadata:    "proto/islb/islb.proto",
 }
