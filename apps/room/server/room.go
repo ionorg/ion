@@ -342,9 +342,20 @@ func (r *Room) sendMessage(msg *room.Message) {
 	dtype := msg.Type
 	data := msg.Payload
 	log.Debugf("Room.onMessage %v => %v, type: %v, data: %v", from, to, dtype, data)
+	if to == "all" {
+		r.broadcastRoomEvent(
+			&room.Reply{
+				Payload: &room.Reply_Message{
+					Message: msg,
+				},
+			},
+		)
+		return
+	}
+
 	peers := r.getPeers()
 	for _, p := range peers {
-		if to == p.info.Uid || to == "all" || to == r.sid {
+		if to == p.info.Uid {
 			if err := p.sendMessage(msg); err != nil {
 				log.Errorf("send msg to peer(%s) error: %v", p.info.Uid, err)
 			}
