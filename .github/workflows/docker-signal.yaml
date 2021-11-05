@@ -1,4 +1,4 @@
-name: app-room docker
+name: signal docker
 on:
   push:
     branches:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
     
       - name: build
-        run: docker build --tag pionwebrtc/ion:latest-app-room -f docker/app-room.Dockerfile .
+        run: docker build --tag pionwebrtc/ion:latest-signal -f docker/signal.Dockerfile .
 
       - name: login
         if: github.event_name == 'release'
@@ -25,10 +25,10 @@ jobs:
 
       - name: tag
         if: github.event_name == 'release'
-        run: docker tag pionwebrtc/ion:latest-app-room pionwebrtc/ion:"$TAG"-app-room
+        run: docker tag pionwebrtc/ion:latest-signal pionwebrtc/ion:"$TAG"-signal
         env:
           TAG: ${{ github.event.release.tag_name }}
 
       - name: push
         if: github.event_name == 'release'
-        run: docker push pionwebrtc/ion:"$TAG"-app-room
+        run: docker push pionwebrtc/ion:"$TAG"-signal

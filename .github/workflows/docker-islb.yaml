@@ -31,4 +31,4 @@ jobs:
 
       - name: push
         if: github.event_name == 'release'
-        run: docker push pionwebrtc/ion
+        run: docker push pionwebrtc/ion:"$TAG"-islb
