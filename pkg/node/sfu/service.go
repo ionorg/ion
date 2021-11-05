@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apex/log"
+	"github.com/pion/ion-log"
 	"github.com/bep/debounce"
 	ion_sfu_log "github.com/pion/ion-sfu/pkg/logger"
 	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"

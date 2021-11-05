@@ -1,25 +1,22 @@
-FROM golang:1.14.13-stretch
+FROM golang:1.16-alpine as builder
 
-ENV GO111MODULE=on
+WORKDIR /ion
 
-WORKDIR $GOPATH/src/github.com/pion/ion
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
 
-COPY go.mod go.sum ./
-RUN cd $GOPATH/src/github.com/pion/ion && go mod download
+COPY pkg/ pkg/
+COPY proto/ proto/
+COPY cmd/ cmd/
 
-COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg
-COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
-COPY proto/ $GOPATH/src/github.com/pion/ion/proto
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /ion/signal ./cmd/signal
 
-WORKDIR $GOPATH/src/github.com/pion/ion/cmd/signal
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /signal .
+FROM alpine
 
-FROM alpine:3.12.1
-
-RUN apk --no-cache add ca-certificates
-COPY --from=0 /signal /usr/local/bin/signal
+COPY --from=builder /ion/signal /signal
 
 COPY configs/docker/signal.toml /configs/signal.toml
 
-ENTRYPOINT ["/usr/local/bin/signal"]
+ENTRYPOINT ["/signal"]
 CMD ["-c", "/configs/signal.toml"]

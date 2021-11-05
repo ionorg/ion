@@ -1,25 +1,21 @@
-FROM golang:1.14.13-stretch
+FROM golang:1.16-alpine as builder
 
-ENV GO111MODULE=on
+WORKDIR /ion
 
-WORKDIR $GOPATH/src/github.com/pion/ion
+COPY go.mod go.mod
+COPY go.sum go.sum
 
-COPY go.mod go.sum ./
-RUN cd $GOPATH/src/github.com/pion/ion && go mod download
+COPY pkg/ pkg/
+COPY proto/ proto/
+COPY cmd/ cmd/
 
-COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg
-COPY cmd/ $GOPATH/src/github.com/pion/ion/cmd
-COPY proto/ $GOPATH/src/github.com/pion/ion/proto
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /ion/sfu ./cmd/sfu
 
-WORKDIR $GOPATH/src/github.com/pion/ion/cmd/sfu
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /sfu .
+FROM alpine
 
-FROM alpine:3.12.1
-
-RUN apk --no-cache add ca-certificates
-COPY --from=0 /sfu /usr/local/bin/sfu
+COPY --from=builder /ion/sfu /sfu
 
 COPY configs/docker/sfu.toml /configs/sfu.toml
 
-ENTRYPOINT ["/usr/local/bin/sfu"]
+ENTRYPOINT ["/sfu"]
 CMD ["-c", "/configs/sfu.toml"]

@@ -30,20 +30,6 @@ services:
     networks:
       - ionnet
 
-        #avp:
-        #  image: pionwebrtc/ion:latest-avp
-        #  build:
-        #    dockerfile: ./docker/avp.Dockerfile
-        #    context: .
-        #  volumes:
-        #    - "./configs/docker/avp.toml:/configs/avp.toml"
-        #    - "./out:/out/"
-        #  depends_on:
-        #    - nats
-        #    - islb
-        #  networks:
-        #    - ionnet
-
   signal:
     image: pionwebrtc/ion:latest-signal
     build:

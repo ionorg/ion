@@ -1,25 +1,22 @@
-FROM golang:1.14.13-stretch
+FROM golang:1.16-alpine as builder
 
-ENV GO111MODULE=on
+WORKDIR /ion
 
-WORKDIR $GOPATH/src/github.com/pion/ion
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
 
-COPY go.mod go.sum ./
-RUN cd $GOPATH/src/github.com/pion/ion && go mod download
+COPY pkg/ pkg/
+COPY proto/ proto/
+COPY apps/ apps/
 
-COPY pkg/ $GOPATH/src/github.com/pion/ion/pkg
-COPY proto/ $GOPATH/src/github.com/pion/ion/proto
-COPY apps $GOPATH/src/github.com/pion/ion/apps
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -installsuffix cgo -o /ion/app-room ./apps/room
 
-WORKDIR $GOPATH/src/github.com/pion/ion/apps/room
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app-room .
+FROM alpine
 
-FROM alpine:3.12.1
-
-RUN apk --no-cache add ca-certificates
-COPY --from=0 /app-room /usr/local/bin/app-room
+COPY --from=builder /ion/app-room /app-room
 
 COPY configs/docker/app-room.toml /configs/app-room.toml
 
-ENTRYPOINT ["/usr/local/bin/app-room"]
+ENTRYPOINT ["/app-room"]
 CMD ["-c", "/configs/app-room.toml"]

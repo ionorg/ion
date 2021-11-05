@@ -92,8 +92,10 @@ func NewSignal(conf Config) (*Signal, error) {
 }
 
 func (s *Signal) Start() error {
+	log.Infof("s.Node.Start node=%+v", s.conf.Nats.URL)
 	err := s.Node.Start(s.conf.Nats.URL)
 	if err != nil {
+		log.Errorf("s.Node.Start error err=%+v", err)
 		s.Close()
 		return err
 	}
@@ -109,6 +111,7 @@ func (s *Signal) Start() error {
 	}
 
 	go func() {
+		log.Infof("KeepAlive node=%+v", node)
 		err := s.Node.KeepAlive(node)
 		if err != nil {
 			log.Errorf("sig.Node.KeepAlive(%v) error %v", s.Node.NID, err)

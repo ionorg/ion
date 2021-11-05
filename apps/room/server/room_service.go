@@ -321,7 +321,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	}
 
 	// check peer exist
-	log.Infof("sid=%v  uid======%v", sid, uid)
+	log.Infof("sid=%v  uid=v", sid, uid)
 	key = util.GetRedisPeerKey(sid, uid)
 	if s.redis.HGet(key, "uid") == "" {
 		return &room.UpdatePeerReply{
