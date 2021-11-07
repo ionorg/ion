@@ -35,6 +35,7 @@ type Node struct {
 
 //NewNode .
 func NewNode(nid string) Node {
+	log.Infof("NewNode nid=======%v", nid)
 	return Node{
 		NID:           nid,
 		neighborNodes: make(map[string]discovery.Node),

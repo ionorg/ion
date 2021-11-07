@@ -16,7 +16,7 @@ SERVICE=$2
 show_help()
 {
     echo ""
-    echo "Usage: ./service {start|stop} {app-room|signal|islb|sfu|avp}"
+    echo "Usage: ./service {start|stop} {app-room|signal|islb|sfu}"
     echo ""
 }
 
@@ -93,7 +93,7 @@ if [[ "$ACTION" != "start" && "$ACTION" != "stop" ]]; then
     exit 1
 fi
 
-if [[ "$SERVICE" != "app-room" && "$SERVICE" != "signal" && "$SERVICE" != "islb" && "$SERVICE" != "sfu" && "$SERVICE" != "avp" ]]; then
+if [[ "$SERVICE" != "app-room" && "$SERVICE" != "signal" && "$SERVICE" != "islb" && "$SERVICE" != "sfu" ]]; then
     show_help
     exit 1
 fi
