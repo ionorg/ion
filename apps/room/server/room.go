@@ -141,6 +141,7 @@ func (r *RoomServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	r.natsDiscoveryCli = ndc
 	r.natsConn = nil
 	r.RoomService = *NewRoomService(r.conf.Redis)
+	log.Infof("NewRoomService r.conf.Redis=%+v r.redis=%+v", r.conf.Redis, r.redis)
 	r.RoomSignalService = *NewRoomSignalService(&r.RoomService)
 
 	room.RegisterRoomServiceServer(registrar, &r.RoomService)
@@ -171,6 +172,7 @@ func (r *RoomServer) Start() error {
 	r.natsDiscoveryCli = ndc
 	r.natsConn = r.NatsConn()
 	r.RoomService = *NewRoomService(r.conf.Redis)
+	log.Infof("NewRoomService r.conf.Redis=%+v r.redis=%+v", r.conf.Redis, r.redis)
 	r.RoomSignalService = *NewRoomSignalService(&r.RoomService)
 
 	if err != nil {

@@ -9,3 +9,7 @@ level = "info"
 [nats]
 url = "nats://nats:4222"
 
+[redis]
+addrs = ["redis:6379"]
+password = ""
+db = 0

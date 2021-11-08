@@ -54,6 +54,7 @@ services:
       - "./configs/docker/app-room.toml:/configs/app-room.toml"
     depends_on:
       - nats
+      - redis
       - islb
     networks:
       - ionnet

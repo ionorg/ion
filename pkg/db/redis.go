@@ -28,6 +28,7 @@ type Redis struct {
 
 func NewRedis(c Config) *Redis {
 	if len(c.Addrs) == 0 {
+		log.Errorf("invalid addrs: %v", c.Addrs)
 		return nil
 	}
 
@@ -48,6 +49,7 @@ func NewRedis(c Config) *Redis {
 		}
 		r.single.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 		r.clusterMode = false
+		log.Infof("redis new client single mode: %v", r)
 		return r
 	}
 
@@ -64,6 +66,7 @@ func NewRedis(c Config) *Redis {
 	}
 	r.cluster.Do("CONFIG", "SET", "notify-keyspace-events", "AKE")
 	r.clusterMode = true
+	log.Infof("redis new client cluster mode: %v", r)
 	return r
 }
 
