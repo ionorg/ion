@@ -3,7 +3,6 @@ module github.com/pion/ion
 go 1.15
 
 require (
-	github.com/apex/log v1.1.4
 	github.com/bep/debounce v1.2.0
 	github.com/cloudwebrtc/nats-discovery v0.3.0
 	github.com/cloudwebrtc/nats-grpc v1.0.0
@@ -14,8 +13,7 @@ require (
 	github.com/jhump/protoreflect v1.8.2
 	github.com/nats-io/nats.go v1.12.0
 	github.com/onsi/gomega v1.15.0 // indirect
-	github.com/pion/ion-avp v1.8.4
-	github.com/pion/ion-log v1.2.0
+	github.com/pion/ion-log v1.2.1
 	github.com/pion/ion-sfu v1.10.10
 	github.com/pion/webrtc/v3 v3.1.7
 	github.com/soheilhy/cmux v0.1.5
