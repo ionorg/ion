@@ -6,7 +6,7 @@ require (
 	github.com/bep/debounce v1.2.0
 	github.com/cloudwebrtc/nats-discovery v0.3.0
 	github.com/cloudwebrtc/nats-grpc v1.0.0
-	github.com/go-redis/redis/v7 v7.4.0
+	github.com/go-redis/redis/v7 v7.4.1
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/protobuf v1.5.2
 	github.com/improbable-eng/grpc-web v0.14.1
