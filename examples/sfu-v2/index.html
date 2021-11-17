@@ -79,7 +79,7 @@
   </div>
 
   <!-- Optional JavaScript -->
-  <script src="js/ion-connector.min.js"></script>
+  <script src="https://unpkg.com/ion-sdk-js@1.8.0/dist/ion-connector.min.js"></script>
   <script>
     const localVideo = document.getElementById("local-video");
     const remotesDiv = document.getElementById("remotes");
@@ -87,7 +87,7 @@
     /* eslint-env browser */
     const joinBtns = document.getElementById("start-btns");
 
-    const connector = new Ion.IonBaseConnector("http://localhost:5551", "token121231231");
+    const connector = new Ion.Connector("http://localhost:5551", "token121231231");
     connector.onopen = function(svc) {
         console.log("onopen: service = ", svc.name);
     };
@@ -102,7 +102,7 @@
     //const biz = new Ion.IonAppBiz(connector);
     //biz.connect();
 
-    const sfu = new Ion.IonSDKRTC(connector);
+    const sfu = new Ion.RTC(connector);
 
     sfu.onstreamevent = function (ev) {
       console.log("onstreamevent: state = ", ev.state, ", streams = ", JSON.stringify(ev.streams));
