@@ -86,6 +86,7 @@ type Room struct {
 	peers  map[string]*Peer
 	info   *room.Room
 	update time.Time
+	redis  *db.Redis
 }
 
 type RoomServer struct {
@@ -220,11 +221,12 @@ func (s *RoomServer) Close() {
 }
 
 // newRoom creates a new room instance
-func newRoom(sid string) *Room {
+func newRoom(sid string, redis *db.Redis) *Room {
 	r := &Room{
 		sid:    sid,
 		peers:  make(map[string]*Peer),
 		update: time.Now(),
+		redis:  redis,
 	}
 	return r
 }
@@ -299,6 +301,13 @@ func (r *Room) delPeer(p *Peer) int {
 		Peer:  p.info,
 		State: room.PeerState_LEAVE,
 	}
+
+	key := util.GetRedisPeerKey(p.info.Sid, uid)
+	err := r.redis.Del(key)
+	if err != nil {
+		log.Errorf("err=%v", err)
+	}
+
 	r.broadcastPeerEvent(event)
 
 	return peerCount

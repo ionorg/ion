@@ -478,7 +478,7 @@ func (s *RoomService) createRoom(sid string) *Room {
 	if r := s.rooms[sid]; r != nil {
 		return r
 	}
-	r := newRoom(sid)
+	r := newRoom(sid, s.redis)
 	s.rooms[sid] = r
 	return r
 }
@@ -516,7 +516,9 @@ func (s *RoomService) stat() {
 			//clean after room is clean and expired
 			duration := time.Since(room.update)
 			if duration > roomExpire && room.count() == 0 {
+				s.roomLock.Lock()
 				delete(s.rooms, sid)
+				s.roomLock.Unlock()
 			}
 			info += fmt.Sprintf("room: %s\npeers: %d\n", sid, room.count())
 		}

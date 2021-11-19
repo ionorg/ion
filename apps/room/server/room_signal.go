@@ -53,12 +53,12 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 		switch payload := req.Payload.(type) {
 		case *room.Request_Join:
 			log.Infof("[C->S]=%+v", payload)
-			reply, peer, err := s.Join(payload)
+			reply, peer, err := s.Join(payload, stream)
 			if err != nil {
 				log.Errorf("Join err: %v", err)
 				return err
 			}
-			peer.sig = stream
+
 			p = peer
 			log.Infof("[S->C]=%+v", reply)
 			err = stream.Send(&room.Reply{Payload: reply})
@@ -95,8 +95,10 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 	}
 }
 
-func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer, error) {
+func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_SignalServer) (*room.Reply_Join, *Peer, error) {
 	pinfo := in.Join.Peer
+	sid := pinfo.Sid
+	uid := pinfo.Uid
 
 	if pinfo == nil || pinfo.Sid == "" && pinfo.Uid == "" {
 		reply := &room.Reply_Join{
@@ -111,16 +113,12 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 		}
 		return reply, nil, status.Errorf(codes.Internal, "sid/uid is empty")
 	}
-	key := util.GetRedisRoomKey(pinfo.Sid)
-	infos := s.rs.redis.HGetAll(key)
-	sid := infos["sid"]
-	uid := infos["uid"]
-
+	key := util.GetRedisRoomKey(sid)
 	// create in redis if room not exist
 	if sid == "" {
 		// store room info
 		sid = pinfo.Sid
-		err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", pinfo.Sid, "name", pinfo.DisplayName,
+		err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "name", pinfo.DisplayName,
 			"password", "", "description", "", "lock", "0")
 		if err != nil {
 			reply := &room.Reply_Join{
@@ -168,6 +166,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 
 	peer = NewPeer()
 	peer.info = pinfo
+	peer.sig = stream
 	r.addPeer(peer)
 	// TODO
 	/*
@@ -205,6 +204,42 @@ func (s *RoomSignalService) Join(in *room.Request_Join) (*room.Reply_Join, *Peer
 		},
 	}
 
+	// find peer in room
+	key = util.GetRedisPeersPrefixKey(sid)
+	peersKeys := s.rs.redis.Keys(key)
+
+	for _, pkey := range peersKeys {
+		res := s.rs.redis.HGetAll(pkey)
+		sid = res["sid"]
+		uid = res["uid"]
+		if sid == "" || uid == "" || uid == pinfo.Uid {
+			continue
+		}
+		key = util.GetRedisPeerKey(sid, uid)
+		res = s.rs.redis.HGetAll(key)
+		if len(res) != 0 {
+			info := &room.Peer{
+				Sid:         res["sid"],
+				Uid:         res["uid"],
+				DisplayName: res["name"],
+				ExtraInfo:   []byte(res["info"]),
+				Role:        room.Role(room.Role_value[res["role"]]),
+				Protocol:    room.Protocol(room.Protocol_value[res["protocol"]]),
+				Avatar:      res["avatar"],
+				Direction:   room.Peer_Direction(room.Peer_Direction_value["direction"]),
+				Vendor:      res["vendor"],
+			}
+
+			err := peer.sendPeerEvent(&room.PeerEvent{
+				State: room.PeerState_JOIN,
+				Peer:  info,
+			})
+
+			if err != nil {
+				log.Errorf("signal send peer event error: %v", err)
+			}
+		}
+	}
 	return reply, peer, nil
 }
 
