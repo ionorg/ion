@@ -493,7 +493,7 @@ func (s *RoomService) delRoom(r *Room) {
 	id := r.SID()
 	s.roomLock.Lock()
 	defer s.roomLock.Unlock()
-	if s.rooms[id] == r {
+	if s.rooms[id] != nil {
 		delete(s.rooms, id)
 	}
 }
