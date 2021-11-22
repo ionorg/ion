@@ -28,7 +28,11 @@ First Time
 ./scripts/all start
 ```
 
-It will start all services we need
+It will start all services we need, checking
+
+```
+./scripts/all status
+```
 
 Next Time, just restart:
 

@@ -70,7 +70,30 @@ function stop()
     echo "--------------------------"
 }
 
-if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" ]]; then
+function status()
+{
+    echo "------------nats-server--------------"
+    $APP_DIR/scripts/deps status nats-server
+
+    echo "------------redis--------------"
+    $APP_DIR/scripts/deps status redis
+
+    echo "------------room--------------"
+    $APP_DIR/scripts/service status app-room
+
+    echo "------------signal--------------"
+    $APP_DIR/scripts/service status signal
+
+    echo "------------islb--------------"
+    $APP_DIR/scripts/service status islb
+
+    echo "------------sfu--------------"
+    $APP_DIR/scripts/service status sfu
+
+    echo "--------------------------"
+}
+
+if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "restart" && "$ACTION" != "status" ]]; then
     show_help
     exit 1
 fi
@@ -91,4 +114,8 @@ if [[ "$ACTION" == "restart" ]]; then
     exit 0
 fi
 
+if [[ "$ACTION" == "status" ]]; then
+    status
+    exit 0
+fi
 

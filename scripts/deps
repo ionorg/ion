@@ -10,6 +10,11 @@ SERVICE=$2
 
 function run()
 {
+    if [[ "$ACTION" =~ "status" ]];then
+        status
+        return
+    fi
+
     if [[ "$OS_TYPE" =~ "Darwin" ]];then
         brew services $1 $2
     else
@@ -20,8 +25,19 @@ function run()
 show_help()
 {
     echo ""
-    echo "Usage: ./deps {start|stop} {nats-server|redis}"
+    echo "Usage: ./deps {start|stop|status} {nats-server|redis}"
     echo ""
+}
+
+function status() {
+    if [[ "$SERVICE" == "" ]]; then
+        exit 1
+    fi
+    if [ `pgrep -n $SERVICE` ]; then
+        echo -e "\033[32m[OK]\033[0m: $SERVICE is running"
+    else
+        echo -e "\033[32m[Failed]\033[0m: $SERVICE is not running"
+    fi
 }
 
 if [[ $# -ne 2 ]] ; then
@@ -29,7 +45,7 @@ if [[ $# -ne 2 ]] ; then
     exit 1
 fi
 
-if [[ "$ACTION" != "start" && "$ACTION" != "stop" ]]; then
+if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "status" ]]; then
     show_help
     exit 1
 fi

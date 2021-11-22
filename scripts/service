@@ -16,7 +16,7 @@ SERVICE=$2
 show_help()
 {
     echo ""
-    echo "Usage: ./service {start|stop} {app-room|signal|islb|sfu}"
+    echo "Usage: ./service {start|stop|status} {app-room|signal|islb|sfu}"
     echo ""
 }
 
@@ -88,7 +88,19 @@ function stop(){
     echo "stop ok"
 }
 
-if [[ "$ACTION" != "start" && "$ACTION" != "stop" ]]; then
+function status() {
+    if [[ "$SERVICE" == "" ]]; then
+        exit 1
+    fi
+    if [ `pgrep -n $SERVICE` ]; then
+        echo -e "\033[32m[OK]\033[0m: $SERVICE is running"
+    else
+        echo -e "\033[31m[Failed]\033[0m: $SERVICE is not running, run by service scripts"
+        show_help
+    fi
+}
+
+if [[ "$ACTION" != "start" && "$ACTION" != "stop" && "$ACTION" != "status" ]]; then
     show_help
     exit 1
 fi
@@ -105,5 +117,10 @@ fi
 
 if [[ "$ACTION" == "stop" ]]; then
     stop $SERVICE
+    exit 0
+fi
+
+if [[ "$ACTION" == "status" ]]; then
+    status $SERVICE
     exit 0
 fi
