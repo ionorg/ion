@@ -547,8 +547,8 @@ github.com/pion/ice/v2 v2.1.13/go.mod h1:ovgYHUmwYLlRvcCLI67PnQ5YGe+upXZbGgllBDG
 github.com/pion/interceptor v0.1.0 h1:SlXKaDlEvSl7cr4j8fJykzVz4UdH+7UDtcvx+u01wLU=
 github.com/pion/interceptor v0.1.0/go.mod h1:j5NIl3tJJPB3u8+Z2Xz8MZs/VV6rc+If9mXEKNuFmEM=
 github.com/pion/ion-log v1.2.0/go.mod h1:oUlvCy7LZNPzOxmCZVraaMhcS/hB9XFog4m1A8QpVgM=
-github.com/pion/ion-log v1.2.1 h1:czzuUZeMIPdpc5zZTdKQb9xw1345amGN+eSAPAgLxnA=
-github.com/pion/ion-log v1.2.1/go.mod h1:oUlvCy7LZNPzOxmCZVraaMhcS/hB9XFog4m1A8QpVgM=
+github.com/pion/ion-log v1.2.2 h1:aA2JlPtkpJYLFzq2gH4sEIkN/+flXE1d3YH84Gh0h34=
+github.com/pion/ion-log v1.2.2/go.mod h1:oUlvCy7LZNPzOxmCZVraaMhcS/hB9XFog4m1A8QpVgM=
 github.com/pion/ion-sfu v1.10.10 h1:sUJTxqAo6Vl20vq+YDdmp+/tu8W+IMhG773C4JXfM20=
 github.com/pion/ion-sfu v1.10.10/go.mod h1:sP+lxPeuzUqabYC6u+YOXZI8YENtqqbnCHnHfOxA/dQ=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
