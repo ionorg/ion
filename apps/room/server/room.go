@@ -147,7 +147,6 @@ func (r *RoomServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
 
 	room.RegisterRoomServiceServer(registrar, &r.RoomService)
 	room.RegisterRoomSignalServer(registrar, &r.RoomSignalService)
-	go r.RoomService.stat()
 
 	return nil
 }
@@ -185,8 +184,6 @@ func (r *RoomServer) Start() error {
 	room.RegisterRoomSignalServer(r.Node.ServiceRegistrar(), &r.RoomSignalService)
 	// Register reflection service on nats-rpc server.
 	reflection.Register(r.Node.ServiceRegistrar().(*natsRPC.Server))
-
-	go r.stat()
 
 	node := discovery.Node{
 		DC:      r.conf.Global.Dc,

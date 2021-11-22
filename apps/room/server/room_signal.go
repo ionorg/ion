@@ -240,6 +240,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_S
 			}
 		}
 	}
+	log.Infof("Join OK: replay=%+v", reply)
 	return reply, peer, nil
 }
 
