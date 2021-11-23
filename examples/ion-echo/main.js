@@ -1,3 +1,8 @@
+const joinBtn = document.getElementById("join-btn");
+const leaveBtn = document.getElementById("leave-btn");
+const publishBtn = document.getElementById("publish-btn");
+const publishSBtn = document.getElementById("publish-simulcast-btn");
+
 const localVideo = document.getElementById("local-video");
 const remoteVideo = document.getElementById("remote-video");
 const localData = document.getElementById("local-data");
@@ -6,16 +11,17 @@ const sizeTag = document.getElementById("size-tag");
 const brTag = document.getElementById("br-tag");
 const codecBox = document.getElementById("select-box1");
 const resolutionBox = document.getElementById("select-box2");
+
 let simulcast = false;
 let localDataChannel;
 
 let url = 'http://localhost:5551';
 let sid = 'ion';
-let uid = "echo-example";
-
+let uid = "local-user";
+let connector;
 let room;
-const joinRoom = async () => {
-    console.log("[joinRoom]: sid="+sid+" uid=", uid)
+const join = async () => {
+    console.log("[join]: sid="+sid+" uid=", uid)
     const connector = new Ion.Connector(url, "token");
     
     connector.onopen = function (service){
@@ -25,7 +31,6 @@ const joinRoom = async () => {
     connector.onclose = function (service){
         console.log('[onclose]: service = ' + service.name);
     };
-
 
     room = new Ion.Room(connector);
     
@@ -75,7 +80,6 @@ const joinRoom = async () => {
         console.log('[ondisconnect]: Disconnected from server ' + dis);
     };
     
-    //room.connect();
     const result = await room.join({
         sid: sid,
         uid: uid,
@@ -89,7 +93,12 @@ const joinRoom = async () => {
         vendor: 'string',
     }, '')
         .then((result) => {
-             console.log('[joinRoom] result: success ' + result?.success + ', room info: ' + JSON.stringify(result?.room));
+             console.log('[join] result: success ' + result?.success + ', room info: ' + JSON.stringify(result?.room));
+             joinBtn.disabled = "true";
+             remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(result) + '\n';
+             leaveBtn.removeAttribute('disabled');
+             publishBtn.removeAttribute('disabled');
+             publishSBtn.removeAttribute('disabled');
     });
     
 
@@ -104,14 +113,19 @@ const sendMsg = () => {
     }
     const payload = new Map();
     payload.set('msg', localData.value);
-    console.log("[sendMsg]: sid=", sid, "from=", 'sender', "to=", uid, "payload=", payload);
-    room.message(sid,'sender', uid, 'Map', payload);
+    console.log("[sendMsg]: sid=", sid, "from=", uid, "to=", "all", "payload=", payload);
+    room.message(sid, "sender", "all", 'Map', payload);
 }
 
 
-const leaveRoom = () => {
-    console.log("[leaveRoom]: sid="+sid+" uid=", uid)
+const leave = () => {
+    console.log("[leave]: sid=" + sid + " uid=", uid)
     room.leave(sid, uid);
+    joinBtn.removeAttribute('disabled');
+    leaveBtn.disabled = "true";
+    publishBtn.disabled = "true";
+    publishSBtn.disabled = "true";
+    location.reload();
 }
 
 remoteVideo.addEventListener("loadedmetadata", function () {
@@ -122,8 +136,7 @@ remoteVideo.onresize = function () {
   sizeTag.innerHTML = `${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`;
 };
 
-/* eslint-env browser */
-const joinBtns = document.getElementById("start-btns");
+
 
 const local = new Ion.Connector(url);
 const remote = new Ion.Connector(url);
@@ -138,12 +151,15 @@ local.onclose = function (service, err) {
 
 const localRTC = new Ion.RTC(local);
 const remoteRTC = new Ion.RTC(remote);
+let trackEvent;
 
 localRTC.join(sid, uid);
 
 remoteRTC.ontrackevent = function (ev) {
   console.log("[ontrackevent]: \nuid = ", ev.uid, " \nstate = ", ev.state, ", \ntracks = ", JSON.stringify(ev.tracks));
-  event = ev;
+  if (!trackEvent) {
+    trackEvent = ev;
+  }
   remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(ev) + '\n';
 };
 
@@ -154,11 +170,15 @@ remoteRTC.ondatachannel = ({ channel }) => {
   };
 };
 
-remoteRTC.join(sid, "echo-remote");
+remoteRTC.join(sid, "remote-user");
 
 let localStream;
 const start = (sc) => {
   simulcast = sc;
+
+  publishSBtn.disabled = "true";
+  publishBtn.disabled = "true";
+
   Ion.LocalStream.getUserMedia({
     resolution: resolutionBox.options[resolutionBox.selectedIndex].value,
     codec:codecBox.options[codecBox.selectedIndex].value,
@@ -171,7 +191,7 @@ const start = (sc) => {
       localVideo.autoplay = true;
       localVideo.controls = true;
       localVideo.muted = true;
-      joinBtns.style.display = "none";
+      // joinBtns.style.display = "none";
       localRTC.publish(media);
       localDataChannel = localRTC.createDataChannel("data");
     })

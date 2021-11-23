@@ -317,11 +317,15 @@ func (r *Room) count() int {
 	return len(r.peers)
 }
 
-func (r *Room) broadcastRoomEvent(event *room.Reply) {
+func (r *Room) broadcastRoomEvent(uid string, event *room.Reply) {
 	log.Infof("event=%+v", event)
 	peers := r.getPeers()
 	r.update = time.Now()
 	for _, p := range peers {
+		if p.UID() == uid {
+			continue
+		}
+
 		if err := p.send(event); err != nil {
 			log.Errorf("send data to peer(%s) error: %v", p.info.Uid, err)
 		}
@@ -352,6 +356,7 @@ func (r *Room) sendMessage(msg *room.Message) {
 	log.Debugf("Room.onMessage %v => %v, type: %v, data: %v", from, to, dtype, data)
 	if to == "all" {
 		r.broadcastRoomEvent(
+			from,
 			&room.Reply{
 				Payload: &room.Reply_Message{
 					Message: msg,

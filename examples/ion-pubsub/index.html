@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
+  <style>
+    #remotes video {
+      width: 320px;
+    }
+  </style>
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+    integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+    crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js"></script>
+  <title>Pion ion-cluster | Pub Sub test</title>
+</head>
+
+<body>
+  <nav class="navbar navbar-light bg-light border-bottom">
+    <h3>Pion</h3>
+  </nav>
+  <div class="container pt-4">
+    <div class="row" id="start-btns">
+      <div class="col-12">
+        <div class="btn-group" role="group" aria-label="...">
+          <button id="join-btn" type="button" class="btn btn-primary" onclick="join()">
+            join
+          </button>
+          <button id="publish-btn" type="button" class="btn btn-primary" onclick="start(false)" disabled=true>
+            publish
+          </button>
+          <button id="publish-simulcast-btn" type="button" class="btn btn-primary" onclick="start(true)" disabled=true>
+            publish(simulcast)
+          </button>
+          <button id="leave-btn" type="button" class="btn btn-primary" onclick="leave()" disabled=true>
+            leave
+          </button>
+      </div>
+      </div>
+    </div>
+    <div class="row" >
+      <div class="col-12">
+        <select id="select-box1">
+          <option value="vp8" selected="selected" >vp8</option>
+          <option value="h264">h264</option>
+        </select>
+        <select id="select-box2">
+          <option value="qvga">qvga_320_180</option>
+          <option value="vga" selected="selected" >vga_640_360</option>
+          <option value="shd">shd_960_540</option>
+          <option value="hd">hd_1280_720</option>
+          <option value="fhd">qvga_1980_1080</option>
+          <option value="fhd">qvga_2560_1440</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-6 pt-2">
+        <span style="position: absolute; margin-left: 5px; margin-top: 5px" class="badge badge-primary">Local</span>
+        <video id="local-video" style="background-color: black" width="320" height="240"></video>
+        <div class="controls" style="display: none">
+          <div class="row pt-3">
+            <div class="col-3">
+              <strong>Video</strong>
+              <div class="radio">
+                <label><input type="radio" onclick="controlLocalVideo(this)" value="true" name="optlocalvideo"
+                    checked />
+                  Unmute</label>
+              </div>
+              <div class="radio">
+                <label><input type="radio" onclick="controlLocalVideo(this)" value="false" name="optlocalvideo" />
+                  Mute</label>
+              </div>
+            </div>
+            <div class="col-3">
+              <strong>Audio</strong>
+              <div class="radio">
+                <label><input type="radio" onclick="controlLocalAudio(this)" value="true" name="optlocalaudio"
+                    checked />
+                  Unmute</label>
+              </div>
+              <div class="radio">
+                <label><input type="radio" onclick="controlLocalAudio(this)" value="false" name="optlocalaudio" />
+                  Mute</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="remotes" class="col-6 pt-2">
+        <span style="position: absolute; margin-left: 5px; margin-top: 5px" class="badge badge-primary">Remotes</span>
+        <div class="col-6 pt-2">
+          <select id="select-box3" style="position: absolute ; top: -17px; z-index:9999" onchange="subscribe()">
+            <option value="f" selected="selected">Simulcast_f</option>
+            <option value="h" " >Simulcast_h</option>
+            <option value="q" >Simulcast_q</option>
+            </select>
+        </div>
+        <span
+           id="size-tag"
+           style="position: absolute; margin-left: 5px; top: 225px"
+           class="badge badge-primary"
+        ></span>
+        <span
+           id="br-tag"
+           style="position: absolute; left: 215px; top: 225px"
+           class="badge badge-primary"
+        ></span>
+      </div>
+
+    </div>
+
+      <div class="row">
+        <div class="col-12 pt-4">Event</div>
+      </div>
+      <div class="row">
+        <div class="col-6 pt-2">
+          <pre
+            id="remote-signal"
+            class="d-block border"
+            style="
+              background-color: #f8f9fa;
+              height: 117px;
+              width: 800px;
+              margin: 5px 0;
+              word-break;
+              break-all;
+              word-wrap:break-word;
+            "
+          ></pre>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 pt-4">Message</div>
+      </div>
+      <div class="row">
+        <div class="col-6 pt-2">
+          <textarea
+            id="local-data"
+            class="d-block border"
+            style="
+              background-color: #f8f9fa;
+              height: 117px;
+              width: 320px;
+              margin: 5px 0;
+              padding: 5px;
+            "
+            placeholder="Send a message"
+          ></textarea>
+          <button type="button" class="btn btn-primary" onclick="send()">
+            send
+          </button>
+        </div>
+        <div class="col-6 pt-2">
+          <pre
+            id="remote-data"
+            class="d-block border"
+            style="
+              background-color: #f8f9fa;
+              height: 117px;
+              width: 320px;
+              margin: 5px 0;
+            "
+          ></pre>
+        </div>
+      </div>
+
+  </div>
+  <!-- Optional JavaScript -->
+  <script src="https://unpkg.com/ion-sdk-js@1.8.1/dist/ion-connector.min.js"></script>
+  <script src="./main.js"></script>
+</body>
+
+</html>

@@ -44,7 +44,7 @@
       }
     </style>
 
-    <title>Pion ion-sfu | Echotest</title>
+    <title>Pion ion | Echotest</title>
   </head>
 
   <body>
@@ -52,20 +52,22 @@
       <h3>Pion</h3>
     </nav>
     <div class="container pt-4">
-      <div class="row" id="start-btns">
+      <div class="row" id="buttons">
         <div class="col-12">
-          <button type="button" class="btn btn-primary" onclick="start(false)">
-            start
-          </button>
-          <button type="button" class="btn btn-primary" onclick="start(true)">
-            start with simulcast
-          </button>
-          <button type="button" class="btn btn-primary" onclick="joinRoom()">
-              joinRoom
-          </button>
-          <button type="button" class="btn btn-primary" onclick="leaveRoom()">
-              leaveRoom
-          </button>
+          <div class="btn-group" role="group" aria-label="...">
+            <button id="join-btn" type="button" class="btn btn-primary" onclick="join()">
+              join
+            </button>
+            <button id="publish-btn" type="button" class="btn btn-primary" onclick="start(false)" disabled=true>
+              publish
+            </button>
+            <button id="publish-simulcast-btn" type="button" class="btn btn-primary" onclick="start(true)" disabled=true>
+              publish(simulcast)
+            </button>
+            <button id="leave-btn" type="button" class="btn btn-primary" onclick="leave()" disabled=true>
+              leave
+            </button>
+          </div>
         </div>
       </div>
 
@@ -273,8 +275,8 @@
               class="d-block border"
               style="
                 background-color: #f8f9fa;
-                height: 117px;
-                width: 320px;
+                height: 120px;
+                width: 400px;
                 margin: 5px 0;
               "
             ></pre>
@@ -291,8 +293,8 @@
             class="d-block border"
             style="
               background-color: #f8f9fa;
-              height: 117px;
-              width: 320px;
+              height: 200px;
+              width: 400px;
               margin: 5px 0;
               padding: 5px;
             "
@@ -308,8 +310,8 @@
             class="d-block border"
             style="
               background-color: #f8f9fa;
-              height: 117px;
-              width: 320px;
+              height: 200px;
+              width: 400px;
               margin: 5px 0;
             "
           ></pre>
@@ -333,9 +335,7 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
-    <script src="https://unpkg.com/ion-sdk-js@1.8.0/dist/ion-sdk.min.js"></script>
-    <script src="https://unpkg.com/ion-sdk-js@1.8.0/dist/ion-connector.min.js"></script>
-    <!-- <script src="build/bundle.js"></script> -->
+    <script src="https://unpkg.com/ion-sdk-js@1.8.1/dist/ion-connector.min.js"></script>
     <script src="./main.js"></script>
   </body>
 </html>

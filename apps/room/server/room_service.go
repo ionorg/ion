@@ -138,7 +138,7 @@ func (s *RoomService) UpdateRoom(ctx context.Context, in *room.UpdateRoomRequest
 	}
 
 	// broadcast to others
-	r.broadcastRoomEvent(event)
+	r.broadcastRoomEvent("", event)
 	log.Infof("update room ok sid=%v", info.Sid)
 	return &room.UpdateRoomReply{Success: true}, nil
 }
@@ -194,6 +194,7 @@ func (s *RoomService) EndRoom(ctx context.Context, in *room.EndRoomRequest) (*ro
 	}
 
 	r.broadcastRoomEvent(
+		"",
 		&room.Reply{
 			Payload: &room.Reply_Disconnect{
 				Disconnect: event,
