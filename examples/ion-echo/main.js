@@ -42,14 +42,6 @@ const join = async () => {
         console.log('[onleave]: leave room, reason ' + reason);
     };
     
-    function Uint8ArrayToString(fileData){
-      var dataString = "";
-      for (var i = 0; i < fileData.byteLength; i++) {
-        dataString += String.fromCharCode(fileData[i]);
-      }
-      return dataString;
-    }
-
     room.onmessage = function (msg){
         console.log('[onmessage]: Received msg:',  msg)
         const uint8Arr = new Uint8Array(msg.data);

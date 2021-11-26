@@ -22,17 +22,19 @@ app:
 clean:
 	rm -rf bin
 
-start-bin:
+scripts-start-services:
+	./scripts/all start
 
-start-services:
-	docker network create ionnet || true
-	docker-compose -f docker-compose.yml up -d redis nats
+scripts-stop-services:
+	./scripts/all stop
 
-stop-services:
-	docker-compose -f docker-compose.yml stop redis nats
+docker-start-services:
+	docker-compose pull
+	docker network create ionnet
+	docker-compose -f docker-compose.yml up
 
-run:
-	docker-compose up --build
+docker-stop-services:
+	docker-compose -f docker-compose.yml stop
 
 test: go_deps start-services
 	go test \
