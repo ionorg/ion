@@ -14,7 +14,7 @@ require (
 	github.com/nats-io/nats.go v1.12.0
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-log v1.2.2
-	github.com/pion/ion-sfu v1.10.10
+	github.com/pion/ion-sfu v1.11.0
 	github.com/pion/webrtc/v3 v3.1.7
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/viper v1.9.0
