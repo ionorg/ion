@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"io"
+	"time"
 
 	log "github.com/pion/ion-log"
 	room "github.com/pion/ion/apps/room/proto"
@@ -64,6 +65,12 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 			err = stream.Send(&room.Reply{Payload: reply})
 			if err != nil {
 				log.Errorf("stream send error: %v", err)
+			}
+
+			err = s.SendPeers(peer)
+			if err != nil {
+				log.Errorf("Sending peers err: %v", err)
+				return err
 			}
 		case *room.Request_Leave:
 			log.Infof("[C->S]=%+v", payload)
@@ -204,42 +211,6 @@ func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_S
 		},
 	}
 
-	// find peer in room
-	key = util.GetRedisPeersPrefixKey(sid)
-	peersKeys := s.rs.redis.Keys(key)
-
-	for _, pkey := range peersKeys {
-		res := s.rs.redis.HGetAll(pkey)
-		sid = res["sid"]
-		uid = res["uid"]
-		if sid == "" || uid == "" || uid == pinfo.Uid {
-			continue
-		}
-		key = util.GetRedisPeerKey(sid, uid)
-		res = s.rs.redis.HGetAll(key)
-		if len(res) != 0 {
-			info := &room.Peer{
-				Sid:         res["sid"],
-				Uid:         res["uid"],
-				DisplayName: res["name"],
-				ExtraInfo:   []byte(res["info"]),
-				Role:        room.Role(room.Role_value[res["role"]]),
-				Protocol:    room.Protocol(room.Protocol_value[res["protocol"]]),
-				Avatar:      res["avatar"],
-				Direction:   room.Peer_Direction(room.Peer_Direction_value["direction"]),
-				Vendor:      res["vendor"],
-			}
-
-			err := peer.sendPeerEvent(&room.PeerEvent{
-				State: room.PeerState_JOIN,
-				Peer:  info,
-			})
-
-			if err != nil {
-				log.Errorf("signal send peer event error: %v", err)
-			}
-		}
-	}
 	log.Infof("Join OK: replay=%+v", reply)
 	return reply, peer, nil
 }
@@ -301,4 +272,28 @@ func (s *RoomSignalService) SendMessage(in *room.Request_SendMessage) (*room.Rep
 	}
 	r.sendMessage(msg)
 	return &room.Reply_SendMessage{}, nil
+}
+
+func (s *RoomSignalService) SendPeers(peer *Peer) error {
+	sid := peer.SID()
+	uid := peer.UID()
+	// Sending active peers to the new peer
+	log.Infof("Sending peers to: %v", uid)
+	r := s.rs.getRoom(sid)
+	peers := r.getPeers()
+	r.update = time.Now()
+	for _, p := range peers {
+		if p.info.Uid == uid {
+			continue
+		}
+		if err := peer.sendPeerEvent(&room.PeerEvent{
+			State: room.PeerState_JOIN,
+			Peer:  p.info,
+		}); err != nil {
+			log.Errorf("send data to peer(%s) error: %v", uid, err)
+			return err
+		}
+	}
+
+	return nil
 }
