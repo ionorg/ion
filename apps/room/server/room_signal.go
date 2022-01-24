@@ -181,7 +181,7 @@ func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_S
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
 	err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "dest", in.Join.Peer.Destination,
-		"name", in.Join.Peer.DisplayName, "role", in.Join.Peer.Role.String(), "protocol", in.Join.Peer.Protocol.String(), "direction", in.Join.Peer.Direction.String())
+		"name", in.Join.Peer.DisplayName, "role", in.Join.Peer.Role.String(), "protocol", in.Join.Peer.Protocol.String(), "direction", in.Join.Peer.Direction.String(), "avatar", in.Join.Peer.Avatar, "info", in.Join.Peer.ExtraInfo)
 	if err != nil {
 		reply := &room.Reply_Join{
 			Join: &room.JoinReply{
