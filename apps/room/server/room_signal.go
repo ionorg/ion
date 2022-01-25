@@ -97,8 +97,6 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 
 func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_SignalServer) (*room.Reply_Join, *Peer, error) {
 	pinfo := in.Join.Peer
-	sid := pinfo.Sid
-	uid := pinfo.Uid
 
 	if pinfo == nil || pinfo.Sid == "" && pinfo.Uid == "" {
 		reply := &room.Reply_Join{
@@ -113,6 +111,10 @@ func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_S
 		}
 		return reply, nil, status.Errorf(codes.Internal, "sid/uid is empty")
 	}
+
+	sid := pinfo.Sid
+	uid := pinfo.Uid
+
 	key := util.GetRedisRoomKey(sid)
 	// create in redis if room not exist
 	if sid == "" {
