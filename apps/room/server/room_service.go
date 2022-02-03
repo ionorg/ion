@@ -275,7 +275,7 @@ func (s *RoomService) AddPeer(ctx context.Context, in *room.AddPeerRequest) (*ro
 	// store peer to redis
 	key = util.GetRedisPeerKey(sid, uid)
 	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "dest", dest,
-		"name", name, "role", role, "protocol", protocol, "direction", direction, 
+		"name", name, "role", role, "protocol", protocol, "direction", direction,
 		"avatar", avatar, "info", extraInfo)
 
 	if err != nil {
@@ -313,7 +313,6 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	direction := in.Peer.Direction.String()
 	avatar := in.Peer.Avatar
 	extraInfo := in.Peer.ExtraInfo
-
 
 	// check room exist
 	key := util.GetRedisRoomKey(sid)
@@ -365,7 +364,7 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	key = util.GetRedisPeerKey(sid, uid)
 
 	err := s.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "uid", uid, "destination", destination,
-		"name", name, "role", role, "protocol", protocol, "direction", direction,"avatar", avatar, "info", extraInfo )
+		"name", name, "role", role, "protocol", protocol, "direction", direction, "avatar", avatar, "info", extraInfo)
 
 	if err != nil {
 		return &room.UpdatePeerReply{
