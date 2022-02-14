@@ -89,6 +89,18 @@ func (s *RoomSignalService) Signal(stream room.RoomSignal_SignalServer) error {
 			if err != nil {
 				log.Errorf("stream send error: %v", err)
 			}
+
+		case *room.Request_UpdateRoom:
+			log.Infof("[C->S]=%+v", payload)
+			reply, err := s.UpdateRoom(payload)
+			if err != nil {
+				log.Errorf("UpdateRoom err: %v", err)
+				return err
+			}
+			log.Infof("[S->C]=%+v", reply)
+			if err != nil {
+				log.Errorf("stream send error: %v", err)
+			}
 		default:
 			log.Errorf("unknown signal!! payload=%+v", payload)
 		}
@@ -303,4 +315,10 @@ func (s *RoomSignalService) SendMessage(in *room.Request_SendMessage) (*room.Rep
 	}
 	r.sendMessage(msg)
 	return &room.Reply_SendMessage{}, nil
+}
+
+func (s *RoomSignalService) UpdateRoom(in *room.Request_UpdateRoom) (*room.UpdateRoomReply, error) {
+	// TODO: Do not allow update room for peers that are host
+	reply, err := s.rs.UpdateRoom(nil, in.UpdateRoom)
+	return reply, err
 }
