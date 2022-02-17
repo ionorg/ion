@@ -48,6 +48,7 @@ message Request {
     JoinRequest join = 1;
     LeaveRequest leave = 2;
     SendMessageRequest sendMessage = 3;
+    UpdateRoomRequest updateRoom = 4;
   }
 }
 
