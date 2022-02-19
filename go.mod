@@ -10,7 +10,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/protobuf v1.5.2
 	github.com/improbable-eng/grpc-web v0.14.1
-	github.com/jhump/protoreflect v1.8.2
+	github.com/jhump/protoreflect v1.12.0
 	github.com/nats-io/nats.go v1.12.0
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-log v1.2.2
