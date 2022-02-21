@@ -314,7 +314,6 @@ func (s *RoomService) UpdatePeer(ctx context.Context, in *room.UpdatePeerRequest
 	avatar := in.Peer.Avatar
 	extraInfo := in.Peer.ExtraInfo
 
-
 	// check room exist
 	key := util.GetRedisRoomKey(sid)
 	if s.redis.HGet(key, "sid") == "" {
