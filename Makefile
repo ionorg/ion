@@ -30,11 +30,10 @@ scripts-stop-services:
 
 docker-start-services:
 	docker-compose pull
-	docker network create ionnet
 	docker-compose -f docker-compose.yml up
 
 docker-stop-services:
-	docker-compose -f docker-compose.yml stop
+	docker-compose -f docker-compose.yml down
 
 test: go_deps start-services
 	go test \
