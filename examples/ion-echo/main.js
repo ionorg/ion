@@ -1,3 +1,4 @@
+const connectBtn = document.getElementById("connect-btn");
 const joinBtn = document.getElementById("join-btn");
 const leaveBtn = document.getElementById("leave-btn");
 const publishBtn = document.getElementById("publish-btn");
@@ -12,14 +13,103 @@ const brTag = document.getElementById("br-tag");
 const codecBox = document.getElementById("select-box1");
 const resolutionBox = document.getElementById("select-box2");
 
+const turnUrl = document.getElementById("turnUrl");
+const turnUsername = document.getElementById("turnUsername");
+const turnCredential = document.getElementById("turnCredential");
+const relayBox = document.getElementById("select-box-relay");
+
+const rttTag = document.getElementById("rtt-tag");
+
 let simulcast = false;
 let localDataChannel;
 
-let url = 'http://localhost:5551';
+let url = window.location.href.replace(/\/+$/, '') + ':5551';
 let sid = 'ion';
 let uid = "local-user";
 let connector;
 let room;
+
+let localRTC
+let remoteStream
+
+const connect = async () => {
+  console.log("[connect]: turn server=", turnUrl.value);
+
+  console.log("TURN server: "+turnUrl.value);
+
+  const local = new Ion.Connector(url);
+  const remote = new Ion.Connector(url);
+
+  local.onopen = function (service) {
+    console.log("[onopen]: service = ", service.name);
+  };
+
+  local.onclose = function (service, err) {
+    console.log("[onclose]: service = ", service.name, ", err = ", JSON.stringify(err.detail));
+  };
+
+  let config = {
+    codec: codecBox.value
+  };
+
+  if (turnUsername.value) {
+    config = {
+     codec: codecBox.value,
+     iceServers: [
+       {"username": turnUsername.value, "credential": turnCredential.value, "url": turnUrl.value}
+     ],
+     iceTransportPolicy: relayBox.options[relayBox.selectedIndex].value
+   }
+  }
+
+  localRTC = new Ion.RTC(local, config);
+  remoteRTC = new Ion.RTC(remote, config);
+
+  let trackEvent;
+
+  localRTC.join(sid, uid);
+
+  remoteRTC.ontrackevent = function (ev) {
+    console.log("[ontrackevent]: \nuid = ", ev.uid, " \nstate = ", ev.state, ", \ntracks = ", JSON.stringify(ev.tracks));
+    if (!trackEvent) {
+      trackEvent = ev;
+    }
+    remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(ev) + '\n';
+  };
+
+  remoteRTC.ondatachannel = ({ channel }) => {
+    console.log("[ondatachannel] channel=", channel)
+    channel.onmessage = ({ data }) => {
+      remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(data) + '\n';
+    };
+  };
+
+  remoteRTC.join(sid, "remote-user");
+
+  remoteRTC.ontrack = (track, stream) => {
+    if (track.kind === "video") {
+      remoteStream = stream;
+      remoteVideo.srcObject = stream;
+      remoteVideo.autoplay = true;
+      remoteVideo.muted = true;
+      getStats();
+
+      document.querySelectorAll(".controls")
+        .forEach((el) => (el.style.display = "block"));
+      if (simulcast) {
+        document.getElementById("simulcast-controls").style.display =
+          "block";
+      } else {
+        document.getElementById("simple-controls").style.display = "block";
+      }
+    }
+  };
+
+  joinBtn.removeAttribute('disabled');
+  connectBtn.disabled = "true";
+
+}
+
 const join = async () => {
     console.log("[join]: sid="+sid+" uid=", uid)
     const connector = new Ion.Connector(url, "token");
@@ -128,42 +218,6 @@ remoteVideo.onresize = function () {
   sizeTag.innerHTML = `${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`;
 };
 
-
-
-const local = new Ion.Connector(url);
-const remote = new Ion.Connector(url);
-
-local.onopen = function (service) {
-  console.log("[onopen]: service = ", service.name);
-};
-
-local.onclose = function (service, err) {
-  console.log("[onclose]: service = ", service.name, ", err = ", JSON.stringify(err.detail));
-};
-
-const localRTC = new Ion.RTC(local);
-const remoteRTC = new Ion.RTC(remote);
-let trackEvent;
-
-localRTC.join(sid, uid);
-
-remoteRTC.ontrackevent = function (ev) {
-  console.log("[ontrackevent]: \nuid = ", ev.uid, " \nstate = ", ev.state, ", \ntracks = ", JSON.stringify(ev.tracks));
-  if (!trackEvent) {
-    trackEvent = ev;
-  }
-  remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(ev) + '\n';
-};
-
-remoteRTC.ondatachannel = ({ channel }) => {
-  console.log("[ondatachannel] channel=", channel)
-  channel.onmessage = ({ data }) => {
-    remoteData.innerHTML = remoteData.innerHTML + JSON.stringify(data) + '\n';
-  };
-};
-
-remoteRTC.join(sid, "remote-user");
-
 let localStream;
 const start = (sc) => {
   simulcast = sc;
@@ -201,27 +255,6 @@ const send = () => {
     localDataChannel.send(localData.value);
   }
 };
-
-let remoteStream;
-remoteRTC.ontrack = (track, stream) => {
-  if (track.kind === "video") {
-    remoteStream = stream;
-    remoteVideo.srcObject = stream;
-    remoteVideo.autoplay = true;
-    remoteVideo.muted = true;
-    getStats();
-
-    document.querySelectorAll(".controls")
-      .forEach((el) => (el.style.display = "block"));
-    if (simulcast) {
-      document.getElementById("simulcast-controls").style.display =
-        "block";
-    } else {
-      document.getElementById("simple-controls").style.display = "block";
-    }
-  }
-};
-
 
 const api = {
   streamId: "",
@@ -317,6 +350,14 @@ getStats = () => {
         }
         if (bitrate) {
           brTag.innerHTML = `${bitrate} kbps @ ${report.framesPerSecond} fps`;
+        }
+
+        let rtt;
+        if (report.type === "candidate-pair") {
+          const rtt = report.currentRoundTripTime;
+          if (rtt) {
+            rttTag.innerHTML = `${rtt} s RTT`;
+          }
         }
       });
     });

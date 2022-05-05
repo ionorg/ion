@@ -55,7 +55,10 @@
       <div class="row" id="buttons">
         <div class="col-12">
           <div class="btn-group" role="group" aria-label="...">
-            <button id="join-btn" type="button" class="btn btn-primary" onclick="join()">
+            <button id="connect-btn" type="button" class="btn btn-primary" onclick="connect()">
+              connect
+            </button>
+            <button id="join-btn" type="button" class="btn btn-primary" onclick="join()" disabled=true>
               join
             </button>
             <button id="publish-btn" type="button" class="btn btn-primary" onclick="start(false)" disabled=true>
@@ -68,6 +71,28 @@
               leave
             </button>
           </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12">TURN
+          <form>
+            URL:
+            <input type="text" id="turnUrl">
+            username:
+            <input type="text" id="turnUsername">
+            credential:
+            <input type="text" id="turnCredential">
+            </form>
+            </div>
+            <div class="col-12">
+              <form>
+            Transport policy:
+            <select id="select-box-relay">
+              <option value="relay" selected="selected" >relay</option>
+              <option value="all">all</option>
+            </select>
+          </form>
         </div>
       </div>
 
@@ -168,6 +193,11 @@
           <span
             id="br-tag"
             style="position: absolute; left: 215px; top: 225px"
+            class="badge badge-primary"
+          ></span>
+          <span
+            id="rtt-tag"
+            style="position: absolute; left: 105px; top: 225px"
             class="badge badge-primary"
           ></span>
           <video
