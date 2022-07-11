@@ -128,8 +128,12 @@ func (s *RoomSignalService) Join(in *room.Request_Join, stream room.RoomSignal_S
 	uid := pinfo.Uid
 
 	key := util.GetRedisRoomKey(sid)
+	
+	resArray:= s.rs.redis.HMGet(key, "sid" )
+	sidFromRedis:= resArray[0]
+
 	// create in redis if room not exist
-	if sid == "" {
+	if sid == "" || sidFromRedis =="" {
 		// store room info
 		sid = pinfo.Sid
 		err := s.rs.redis.HMSetTTL(roomRedisExpire, key, "sid", sid, "name", pinfo.DisplayName,
