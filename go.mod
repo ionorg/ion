@@ -12,15 +12,14 @@ require (
 	github.com/improbable-eng/grpc-web v0.14.1
 	github.com/jhump/protoreflect v1.8.2
 	github.com/nats-io/nats.go v1.12.0
-	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pion/ion-log v1.2.2
 	github.com/pion/ion-sfu v1.10.10
-	github.com/pion/webrtc/v3 v3.1.7
+	github.com/pion/webrtc/v3 v3.1.41
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/viper v1.9.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tj/assert v0.0.3
-	golang.org/x/net v0.0.0-20211020060615-d418f374d309
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
