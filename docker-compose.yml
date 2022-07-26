@@ -62,7 +62,7 @@ services:
   nats:
     image: nats
     ports:
-      - 4222:4222
+      - "127.0.0.1:4222:4222"
     networks:
       - ionnet
 
