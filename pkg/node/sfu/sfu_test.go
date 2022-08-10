@@ -125,7 +125,6 @@ func TestStart(t *testing.T) {
 		reply, err := stream.Recv()
 		if err != nil {
 			t.Fatalf("Signal: err %s", err)
-			break
 		}
 		log.Debugf("\nReply: reply %v\n", reply)
 
